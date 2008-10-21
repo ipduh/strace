@@ -34,9 +34,39 @@
 #include "defs.h"
 
 #include <dirent.h>
-#ifdef LINUX
+#if defined(LINUX)
 #define dirent kernel_dirent
+#ifndef HAVE_ANDROID_OS
 #define dirent64 kernel_dirent64
+#endif
+#ifdef HAVE_ANDROID_OS
+#include <linux/fadvise.h>
+
+// ANDROID: From kernel_headers/asm/statfs.h
+
+/*
+ * With EABI there is 4 bytes of padding added to this structure.
+ * Let's pack it so the padding goes away to simplify dual ABI support.
+ * Note that user space does NOT have to pack this structure.
+ */
+struct statfs64 {
+        __u32 f_type;
+        __u32 f_bsize;
+        __u64 f_blocks;
+        __u64 f_bfree;
+        __u64 f_bavail;
+        __u64 f_files;
+        __u64 f_ffree;
+        __kernel_fsid_t f_fsid;
+        __u32 f_namelen;
+        __u32 f_frsize;
+        __u32 f_spare[5];
+} __attribute__ ((packed,aligned(4)));
+
+
+
+
+#endif /* HAVE_ANDROID_OS */
 #include <linux/types.h>
 #include <linux/dirent.h>
 #undef dirent
@@ -1529,7 +1559,7 @@ struct tcb *tcp;
 	return 0;
 }
 
-#ifdef LINUX
+#ifdef LINUX 
 static void
 printstatfs64(tcp, addr)
 struct tcb *tcp;
@@ -2478,7 +2508,6 @@ struct tcb *tcp;
     return 0;
 }
 
-
 static const struct xlat advise[] = {
   { POSIX_FADV_NORMAL,		"POSIX_FADV_NORMAL"	},
   { POSIX_FADV_RANDOM,		"POSIX_FADV_RANDOM"	},
@@ -2529,3 +2558,5 @@ struct tcb *tcp;
     }
     return 0;
 }
+
+//#endif /*HAVE_ANDROID_OS */

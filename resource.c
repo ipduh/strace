@@ -36,7 +36,14 @@
 #ifdef LINUX
 #include <sys/times.h>
 #include <linux/kernel.h>
+#ifdef HAVE_ANDROID_OS
+#define spinlock_t struct spinlock_t
+#define if_dqblk dqblk
+#define dqb_curblocks dqb_curspace
+#else
 #include <sys/quota.h>
+#endif
+#include <linux/quota.h>
 #endif /* LINUX */
 #ifdef SUNOS4
 #include <ufs/quota.h>
@@ -166,6 +173,7 @@ struct tcb *tcp;
 }
 #endif /* !HAVE_LONG_LONG_RLIM_T */
 
+#ifndef HAVE_ANDROID_OS
 #if _LFS64_LARGEFILE || HAVE_LONG_LONG_RLIM_T
 static char *
 sprintrlim64(lim)
@@ -226,6 +234,7 @@ struct tcb *tcp;
 	return 0;
 }
 #endif /* _LFS64_LARGEFILES || HAVE_LONG_LONG_RLIM_T */
+#endif /* HAVE_ANDROID_OS */
 
 #ifndef SVR4
 
@@ -462,6 +471,8 @@ struct tcb *tcp;
 
 #endif /* !SUNOS4 */
 
+
+//#ifndef HAVE_ANDROID_OS
 #ifdef LINUX
 
 #define NEW_CMD(c)      ((0x80<<16)+(c))
@@ -475,11 +486,15 @@ static const struct xlat quotacmds[] = {
 	{ Q_QUOTAOFF,	"Q_QUOTAOFF"	},
 	{ Q_GETQUOTA,	"Q_GETQUOTA"	},
 	{ Q_SETQUOTA,	"Q_SETQUOTA"	},
+#ifndef HAVE_ANDROID_OS
 	{ Q_SETUSE,	"Q_SETUSE"	},
+#endif
 	{ Q_SYNC,	"Q_SYNC"	},
+#ifndef HAVE_ANDROID_OS
 	{ Q_SETQLIM,	"Q_SETQLIM"	},
 	{ Q_GETSTATS,	"Q_GETSTATS"	},
 	{ Q_RSQUASH,	"Q_RSQUASH"	},
+#endif
 	{ NEW_CMD(0x1), "Q_SYNC"        },
 	{ NEW_CMD(0x2), "Q_QUOTAON"     },
 	{ NEW_CMD(0x3), "Q_QUOTAOFF"    },
@@ -551,6 +566,7 @@ struct tcb *tcp;
 }
 
 #endif /* Linux */
+//#endif /* HAVE_ANDROID_OS */
 
 #if defined(SUNOS4) || defined(FREEBSD)
 

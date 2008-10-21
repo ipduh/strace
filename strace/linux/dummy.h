@@ -224,25 +224,3 @@
 #define sys_mlockall		printargs
 #define	sys_reboot		printargs
 #endif
-
-
-#ifdef HAVE_ANDROID_OS
-
-#define sys_mq_open printargs
-#define sys_mq_timedsend printargs
-#define sys_mq_timedreceive printargs
-#define sys_mq_notify printargs
-#define sys_mq_getsetattr printargs
-#define sys_semop printargs
-#define sys_semget printargs
-#define sys_semctl printargs
-#define sys_semtimedop printargs
-#define sys_msgsnd printargs
-#define sys_msgrcv printargs
-#define sys_msgget printargs
-#define sys_msgctl printargs
-#define sys_shmat printargs
-#define sys_shmdt printargs
-#define sys_shmget printargs
-#define sys_shmctl printargs
-#endif

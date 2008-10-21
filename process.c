@@ -45,7 +45,11 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
+#ifdef HAVE_ANDROID_OS
+#include <asm/user.h>
+#else
 #include <sys/user.h>
+#endif
 #include <sys/syscall.h>
 #include <signal.h>
 #ifdef SUNOS4
@@ -54,6 +58,11 @@
 
 #ifdef FREEBSD
 #include <sys/ptrace.h>
+#endif
+
+#ifdef HAVE_ANDROID_OS
+/* for struct sched_param */
+#define sched_priority  __sched_priority
 #endif
 
 #if HAVE_ASM_REG_H
@@ -694,6 +703,16 @@ int new;
                                    0x100000 | new) < 0)
                        return -1;
        return 0;
+#elif defined(ARM)
+       /* Some kernels support this, some (pre-2.6.16 or so) don't.  */
+# ifndef PTRACE_SET_SYSCALL
+#  define PTRACE_SET_SYSCALL 23
+# endif
+
+       if (ptrace (PTRACE_SET_SYSCALL, tcp->pid, 0, new) != 0)
+		return -1;
+
+       return 0;
 #else
 #warning Do not know how to handle change_syscall for this architecture
 #endif /* architecture */
@@ -781,7 +800,7 @@ setarg(tcp, argnum)
 }
 #endif
 
-#if defined SYS_clone || defined SYS_clone2
+#if defined SYS_clone || defined SYS_clone2 || defined __NR_clone
 int
 internal_clone(tcp)
 struct tcb *tcp;

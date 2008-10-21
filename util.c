@@ -34,10 +34,13 @@
  */
 
 #include "defs.h"
+#include "../syscall-android.h"
 
 #include <signal.h>
 #include <sys/syscall.h>
+#ifndef HAVE_ANDROID_OS
 #include <sys/user.h>
+#endif
 #include <sys/param.h>
 #include <fcntl.h>
 #if HAVE_SYS_UIO_H

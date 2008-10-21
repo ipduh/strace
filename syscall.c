@@ -38,7 +38,9 @@
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
+#ifndef HAVE_ANDROID_OS
 #include <sys/user.h>
+#endif
 #include <sys/syscall.h>
 #include <sys/param.h>
 
@@ -115,6 +117,7 @@
 #endif
 #endif /* LINUX */
 
+#include "syscall-android.h"
 #include "syscall.h"
 
 /* Define these shorthand notations to simplify the syscallent files. */
@@ -1032,16 +1035,25 @@ struct tcb *tcp;
 				return 0;
 			}
 
-			if ((scno & 0x0ff00000) != 0x0f900000) {
-				fprintf(stderr, "syscall: unknown syscall trap 0x%08lx\n",
-					scno);
-				return -1;
-			}
+			/* Handle the EABI syscall convention.  We do not
+			   bother converting structures between the two
+			   ABIs, but basic functionality should work even
+			   if strace and the traced program have different
+			   ABIs.  */
+			if (scno == 0xef000000) {
+				scno = regs.ARM_r7;
+			} else {
+				if ((scno & 0x0ff00000) != 0x0f900000) {
+					fprintf(stderr, "syscall: unknown syscall trap 0x%08lx\n",
+						scno);
+					return -1;
+				}
 
-			/*
-			 * Fixup the syscall number
-			 */
-			scno &= 0x000fffff;
+				/*
+				 * Fixup the syscall number
+				 */
+				scno &= 0x000fffff;
+			}
 		}
 
 		if (tcp->flags & TCB_INSYSCALL) {
@@ -2245,6 +2257,7 @@ strace: out of memory for call counts\n");
 			if (tcp->u_error)
 				counts[tcp->scno].errors++;
 			tv_sub(&tv, &tv, &tcp->etime);
+#ifndef HAVE_ANDROID_OS
 #ifdef LINUX
 			if (tv_cmp(&tv, &tcp->dtime) > 0) {
 				static struct timeval one_tick;
@@ -2268,6 +2281,7 @@ strace: out of memory for call counts\n");
 				}
 			}
 #endif /* LINUX */
+#endif
 			if (tv_cmp(&tv, &shortest) < 0)
 				shortest = tv;
 			tv_add(&counts[tcp->scno].time,
@@ -2384,7 +2398,7 @@ strace: out of memory for call counts\n");
 
 	switch (known_scno(tcp)) {
 #ifdef LINUX
-#if !defined (ALPHA) && !defined(SPARC) && !defined(SPARC64) && !defined(MIPS) && !defined(HPPA)
+#if !defined (ALPHA) && !defined(SPARC) && !defined(SPARC64) && !defined(MIPS) && !defined(HPPA) && !defined(__ARM_EABI__) //ANDROID
 	case SYS_socketcall:
 		decode_subcall(tcp, SYS_socket_subcall,
 			SYS_socket_nsubcalls, deref_style);

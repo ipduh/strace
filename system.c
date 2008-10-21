@@ -33,6 +33,14 @@
 #include "defs.h"
 
 #ifdef LINUX
+
+#ifdef HAVE_ANDROID_OS
+#undef __unused
+#include <linux/sysctl.h>
+#include <sys/mount.h>
+#define CTL_PROC 4
+
+#else
 #define _LINUX_SOCKET_H
 #define _LINUX_FS_H
 
@@ -53,6 +61,7 @@
 #define MS_POSIXACL	(1<<16)	/* VFS does not apply the umask */
 #define MS_ACTIVE	(1<<30)
 #define MS_NOUSER	(1<<31)
+#endif /* HAVE_ANDROID_OS */
 
 #include <sys/socket.h>
 #include <netinet/in.h>

@@ -134,11 +134,7 @@
 	{ 2,	TF,	sys_statfs,		"statfs"	}, /* 99 */
 	{ 2,	0,	sys_fstatfs,		"fstatfs"	}, /* 100 */
 	{ 3,	0,	sys_ioperm,		"ioperm"	}, /* 101 */
-#ifdef HAVE_ANDROID_OS
-	{ 2,	0,	sys_socketcall,		"socketcall"}, /* 102 */
-#else
 	{ 2,	0,	sys_socketcall,		"socketcall", SYS_socketcall }, /* 102 */
-#endif
 	{ 3,	0,	sys_syslog,		"syslog"	}, /* 103 */
 	{ 3,	0,	sys_setitimer,		"setitimer"	}, /* 104 */
 	{ 2,	0,	sys_getitimer,		"getitimer"	}, /* 105 */
@@ -153,11 +149,7 @@
 	{ 4,	TP,	sys_wait4,		"wait4", SYS_wait4 }, /* 114 */
 	{ 1,	0,	sys_swapoff,		"swapoff"	}, /* 115 */
 	{ 1,	0,	sys_sysinfo,		"sysinfo"	}, /* 116 */
-#ifdef HAVE_ANDROID_OS
-	{ 6,	0,	sys_ipc,		"ipc"}, /* 117 */
-#else
 	{ 6,	0,	sys_ipc,		"ipc", SYS_ipc }, /* 117 */
-#endif
 	{ 1,	0,	sys_fsync,		"fsync"		}, /* 118 */
 	{ 1,	TS,	sys_sigreturn,		"sigreturn"	}, /* 119 */
 	{ 5,	TP,	sys_clone,		"clone", SYS_clone }, /* 120 */

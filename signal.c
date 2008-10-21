@@ -36,7 +36,10 @@
 #include "defs.h"
 
 #include <signal.h>
+#ifdef HAVE_ANDROID_OS
+#else
 #include <sys/user.h>
+#endif
 #include <fcntl.h>
 
 #ifdef SVR4
@@ -442,7 +445,7 @@ int nr;
 #define SI_TKILL	-6	/* Sent by tkill */
 #endif
 
-#if __GLIBC_MINOR__ < 1
+#if __GLIBC_MINOR__ < 1 && !defined(HAVE_ANDROID_OS)
 /* Type for data associated with a signal.  */
 typedef union sigval
 {
@@ -1027,6 +1030,11 @@ struct tcb *tcp;
 		long_to_sigset(tcp->u_arg[0], &sigm);
 		printsigmask(&sigm, 0);
 #ifndef USE_PROCFS
+#ifdef HAVE_ANDROID_OS
+//FIXME use "sigprocmask" or something
+#define sigmask(sig)    (1UL << ((sig) - 1))
+#endif 
+
 		if ((tcp->u_arg[0] & sigmask(SIGTRAP))) {
 			/* Mark attempt to block SIGTRAP */
 			tcp->flags |= TCB_SIGTRAPPED;
@@ -1205,6 +1213,10 @@ struct tcb *tcp;
 
 #endif /* HAVE_SIGACTION */
 
+#ifdef HAVE_ANDROID_OS
+#define sigcontext_struct sigcontext
+#endif
+//#ifndef HAVE_ANDROID_OS
 #ifdef LINUX
 
 int
@@ -1473,6 +1485,7 @@ struct tcb *tcp;
 }
 
 #endif /* LINUX */
+//#endif /* HAVE_ANDROID_OS */
 
 #if defined(SVR4) || defined(FREEBSD)
 

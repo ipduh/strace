@@ -63,6 +63,10 @@
 #endif
 #endif
 
+#ifdef HAVE_ANDROID_OS
+#define wait4 __wait4
+#endif
+
 int debug = 0, followfork = 0, followvfork = 0, interactive = 0;
 int rflag = 0, tflag = 0, dtime = 0, cflag = 0;
 int iflag = 0, xflag = 0, qflag = 0;
@@ -358,12 +362,17 @@ char *argv[];
 				exit(1);
 			}
 
+#ifdef HAVE_ANDROID_OS
+                        fprintf(stderr,"output to a pipe not supported on android.\n");
+                        exit(-1);
+#else
 			if ((outf = popen(outfname + 1, "w")) == NULL) {
 				fprintf(stderr, "%s: can't popen '%s': %s\n",
 					progname, outfname + 1,
 					strerror(errno));
 				exit(1);
 			}
+#endif
 		}
 		else if ((outf = fopen(outfname, "w")) == NULL) {
 			fprintf(stderr, "%s: can't fopen '%s': %s\n",
@@ -587,10 +596,12 @@ Process %u attached - interrupt to quit\n",
 				 * lose privileges on setuid.
 				 */
 				if (username != NULL) {
+#ifndef HAVE_ANDROID_OS
 					if (initgroups(username, run_gid) < 0) {
 						perror("initgroups");
 						exit(1);
 					}
+#endif /* HAVE_ANDROID_OS */
 					if (setregid(run_gid, run_egid) < 0) {
 						perror("setregid");
 						exit(1);
