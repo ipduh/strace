@@ -1,0 +1,11 @@
+Steps to build from original source:
+
+1) apply arm-eabi.patch from Debian bug tracker
+
+2) run configure as follows
+./configure CFLAGS=-I/android/device/system/kernel_headers/ ./configure  --prefix=/data/ --build=arm-unknown-linux-gnu
+
+(note this uses the desktop gcc and glibc headers)
+
+3) Further modifications as change history will show
+
