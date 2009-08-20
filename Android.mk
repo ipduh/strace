@@ -17,7 +17,18 @@ LOCAL_SRC_FILES:= $(strace_SOURCES)
 
 LOCAL_SHARED_LIBRARIES :=
 
+# Hack for ARM devices. This version of strace does not support ARM, and the
+# patch that was used to add ARM support actually adds the ARM syscalls to
+# linux/sh/ (Sega Megadrive/Dreamcast/...) instead of linux/arm/ . The proper
+# way to fix this would be to upgrade to a version of strace that does support
+# ARM (e.g. 4.5.1.8), but that would mean having to reapply all Android-specific
+# changes. Sigh.
+ifeq ($(TARGET_ARCH),arm)
+	STRACE_ARM_HEADERS := $(LOCAL_PATH)/strace/linux/sh
+endif
+
 LOCAL_C_INCLUDES := \
+	$(STRACE_ARM_HEADERS) \
 	$(KERNEL_HEADERS) \
 	$(LOCAL_PATH)/linux \
 	$(LOCAL_PATH)/android/arch/$(TARGET_ARCH)
