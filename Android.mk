@@ -24,11 +24,13 @@ LOCAL_SHARED_LIBRARIES :=
 # ARM (e.g. 4.5.1.8), but that would mean having to reapply all Android-specific
 # changes. Sigh.
 ifeq ($(TARGET_ARCH),arm)
-	STRACE_ARM_HEADERS := $(LOCAL_PATH)/strace/linux/sh
+	STRACE_ARCH_HEADERS := $(LOCAL_PATH)/strace/linux/sh
+else
+	STRACE_ARCH_HEADERS := $(LOCAL_PATH)/strace/linux/$(TARGET_ARCH)
 endif
 
 LOCAL_C_INCLUDES := \
-	$(STRACE_ARM_HEADERS) \
+	$(STRACE_ARCH_HEADERS) \
 	$(KERNEL_HEADERS) \
 	$(LOCAL_PATH)/linux \
 	$(LOCAL_PATH)/android/arch/$(TARGET_ARCH)
