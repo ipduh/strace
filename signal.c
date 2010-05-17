@@ -395,7 +395,7 @@ void
 printsignal(nr)
 int nr;
 {
-	tprintf(signame(nr));
+	tprintf("%s", signame(nr));
 }
 
 #ifdef LINUX

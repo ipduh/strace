@@ -1695,7 +1695,7 @@ long addr;
 		}
 		if (cp == 0)
 			break;
-		tprintf(sep);
+		tprintf("%s", sep);
 		printstr(tcp, (long) cp, -1);
 		addr += sizeof(char *);
 	}
