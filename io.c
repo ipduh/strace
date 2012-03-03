@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: io.c,v 1.20 2005/06/01 19:22:08 roland Exp $
+ *	$Id$
  */
 
 #include "defs.h"
@@ -47,11 +47,11 @@
 #endif
 
 int
-sys_read(tcp)
-struct tcb *tcp;
+sys_read(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 	} else {
 		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
@@ -63,11 +63,11 @@ struct tcb *tcp;
 }
 
 int
-sys_write(tcp)
-struct tcb *tcp;
+sys_write(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 		tprintf(", %lu", tcp->u_arg[2]);
 	}
@@ -81,7 +81,26 @@ struct tcb * tcp;
 unsigned long len;
 unsigned long addr;
 {
+#if defined(LINUX) && SUPPORTED_PERSONALITIES > 1
+	union {
+		struct { u_int32_t base; u_int32_t len; } iov32;
+		struct { u_int64_t base; u_int64_t len; } iov64;
+	} iov;
+#define sizeof_iov \
+  (personality_wordsize[current_personality] == 4 \
+   ? sizeof(iov.iov32) : sizeof(iov.iov64))
+#define iov_iov_base \
+  (personality_wordsize[current_personality] == 4 \
+   ? (u_int64_t) iov.iov32.base : iov.iov64.base)
+#define iov_iov_len \
+  (personality_wordsize[current_personality] == 4 \
+   ? (u_int64_t) iov.iov32.len : iov.iov64.len)
+#else
 	struct iovec iov;
+#define sizeof_iov sizeof(iov)
+#define iov_iov_base iov.iov_base
+#define iov_iov_len iov.iov_len
+#endif
 	unsigned long size, cur, end, abbrev_end;
 	int failed = 0;
 
@@ -89,47 +108,50 @@ unsigned long addr;
 		tprintf("[]");
 		return;
 	}
-	size = len * sizeof(iov);
+	size = len * sizeof_iov;
 	end = addr + size;
-	if (!verbose(tcp) || size / sizeof(iov) != len || end < addr) {
+	if (!verbose(tcp) || size / sizeof_iov != len || end < addr) {
 		tprintf("%#lx", addr);
 		return;
 	}
 	if (abbrev(tcp)) {
-		abbrev_end = addr + max_strlen * sizeof(iov);
+		abbrev_end = addr + max_strlen * sizeof_iov;
 		if (abbrev_end < addr)
 			abbrev_end = end;
 	} else {
 		abbrev_end = end;
 	}
 	tprintf("[");
-	for (cur = addr; cur < end; cur += sizeof(iov)) {
+	for (cur = addr; cur < end; cur += sizeof_iov) {
 		if (cur > addr)
 			tprintf(", ");
 		if (cur >= abbrev_end) {
 			tprintf("...");
 			break;
 		}
-		if (umoven(tcp, cur, sizeof iov, (char *) &iov) < 0) {
+		if (umoven(tcp, cur, sizeof_iov, (char *) &iov) < 0) {
 			tprintf("?");
 			failed = 1;
 			break;
 		}
 		tprintf("{");
-		printstr(tcp, (long) iov.iov_base, iov.iov_len);
-		tprintf(", %lu}", (unsigned long)iov.iov_len);
+		printstr(tcp, (long) iov_iov_base, iov_iov_len);
+		tprintf(", %lu}", (unsigned long)iov_iov_len);
 	}
 	tprintf("]");
 	if (failed)
 		tprintf(" %#lx", addr);
+#undef sizeof_iov
+#undef iov_iov_base
+#undef iov_iov_len
 }
 
 int
-sys_readv(tcp)
-struct tcb *tcp;
+sys_readv(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 	} else {
 		if (syserror(tcp)) {
 			tprintf("%#lx, %lu",
@@ -143,11 +165,11 @@ struct tcb *tcp;
 }
 
 int
-sys_writev(tcp)
-struct tcb *tcp;
+sys_writev(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 		tprintf(", %lu", tcp->u_arg[2]);
 	}
@@ -158,11 +180,11 @@ struct tcb *tcp;
 #if defined(SVR4)
 
 int
-sys_pread(tcp)
-struct tcb *tcp;
+sys_pread(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 	} else {
 		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
@@ -180,11 +202,11 @@ struct tcb *tcp;
 }
 
 int
-sys_pwrite(tcp)
-struct tcb *tcp;
+sys_pwrite(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 #if UNIXWARE
 		/* off_t is signed int */
@@ -203,11 +225,13 @@ struct tcb *tcp;
 #include <sys/socket.h>
 
 int
-sys_sendfile(tcp)
-struct tcb *tcp;
+sys_sendfile(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, %ld, %llu, %lu", tcp->u_arg[0], tcp->u_arg[1],
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
+		printfd(tcp, tcp->u_arg[1]);
+		tprintf(", %llu, %lu",
 			LONG_LONG(tcp->u_arg[2], tcp->u_arg[3]),
 			tcp->u_arg[4]);
 	} else {
@@ -254,45 +278,45 @@ struct tcb *tcp;
 #endif
 
 int
-sys_pread(tcp)
-struct tcb *tcp;
+sys_pread(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 	} else {
 		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
 		else
 			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
-		ALIGN64 (tcp, PREAD_OFFSET_ARG); /* PowerPC alignment restriction */
-		tprintf(", %lu, %llu", tcp->u_arg[2],
-			*(unsigned long long *)&tcp->u_arg[PREAD_OFFSET_ARG]);
+		tprintf(", %lu, ", tcp->u_arg[2]);
+		printllval(tcp, "%llu", PREAD_OFFSET_ARG);
 	}
 	return 0;
 }
 
 int
-sys_pwrite(tcp)
-struct tcb *tcp;
+sys_pwrite(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		ALIGN64 (tcp, PREAD_OFFSET_ARG); /* PowerPC alignment restriction */
-		tprintf(", %lu, %llu", tcp->u_arg[2],
-			*(unsigned long long *)&tcp->u_arg[PREAD_OFFSET_ARG]);
+		tprintf(", %lu, ", tcp->u_arg[2]);
+		printllval(tcp, "%llu", PREAD_OFFSET_ARG);
 	}
 	return 0;
 }
 
 int
-sys_sendfile(tcp)
-struct tcb *tcp;
+sys_sendfile(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		off_t offset;
 
-		tprintf("%ld, %ld, ", tcp->u_arg[0], tcp->u_arg[1]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
+		printfd(tcp, tcp->u_arg[1]);
+		tprintf(", ");
 		if (!tcp->u_arg[2])
 			tprintf("NULL");
 		else if (umove(tcp, tcp->u_arg[2], &offset) < 0)
@@ -305,13 +329,15 @@ struct tcb *tcp;
 }
 
 int
-sys_sendfile64(tcp)
-struct tcb *tcp;
+sys_sendfile64(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		loff_t offset;
 
-		tprintf("%ld, %ld, ", tcp->u_arg[0], tcp->u_arg[1]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
+		printfd(tcp, tcp->u_arg[1]);
+		tprintf(", ");
 		if (!tcp->u_arg[2])
 			tprintf("NULL");
 		else if (umove(tcp, tcp->u_arg[2], &offset) < 0)
@@ -327,46 +353,44 @@ struct tcb *tcp;
 
 #if _LFS64_LARGEFILE || HAVE_LONG_LONG_OFF_T
 int
-sys_pread64(tcp)
-struct tcb *tcp;
+sys_pread64(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 	} else {
-		ALIGN64 (tcp, 3);
 		if (syserror(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
 		else
 			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
-		tprintf(", %lu, %#llx", tcp->u_arg[2],
-			LONG_LONG(tcp->u_arg[3], tcp->u_arg[4]));
+		tprintf(", %lu, ", tcp->u_arg[2]);
+		printllval(tcp, "%#llx", 3);
 	}
 	return 0;
 }
 
 int
-sys_pwrite64(tcp)
-struct tcb *tcp;
+sys_pwrite64(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		ALIGN64 (tcp, 3);
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %lu, %#llx", tcp->u_arg[2],
-			LONG_LONG(tcp->u_arg[3], tcp->u_arg[4]));
+		tprintf(", %lu, ", tcp->u_arg[2]);
+		printllval(tcp, "%#llx", 3);
 	}
 	return 0;
 }
 #endif
 
 int
-sys_ioctl(tcp)
-struct tcb *tcp;
+sys_ioctl(struct tcb *tcp)
 {
 	const struct ioctlent *iop;
 
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
+		printfd(tcp, tcp->u_arg[0]);
+		tprintf(", ");
 		iop = ioctl_lookup(tcp->u_arg[1]);
 		if (iop) {
 			tprintf("%s", iop->symbol);

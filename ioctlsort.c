@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: ioctlsort.c,v 1.2 2001/03/17 17:26:34 wichert Exp $
+ *	$Id$
  */
 
 
@@ -36,8 +36,8 @@
 #endif
 
 struct ioctlent {
-	char *doth;
-	char *symbol;
+	const char *doth;
+	const char *symbol;
 	unsigned long code;
 };
 
@@ -56,9 +56,7 @@ const void *b;
 }
 
 int
-main(argc, argv)
-int argc;
-char *argv[];
+main(int argc, const char *argv[])
 {
 	int i;
 

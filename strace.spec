@@ -1,14 +1,16 @@
-Summary: Tracks and displays system calls associated with a running process.
+Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 4.5.12
-Release: 1
+Version: 4.6
+Release: 1%{?dist}
 License: BSD
 Group: Development/Debuggers
 URL: http://sourceforge.net/projects/strace/
-Source0: %{name}-%{version}.tar.bz2
-BuildRoot: %{_tmppath}/%{name}-root
+Source: http://downloads.sourceforge.net/strace/%{name}-%{version}.tar.xz
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-%define strace64_arches ppc64
+BuildRequires: libacl-devel, libaio-devel, time
+
+%define strace64_arches ppc64 sparc64
 
 %description
 The strace program intercepts and records the system calls called and
@@ -44,26 +46,35 @@ The `strace' program in the `strace' package is for 32-bit processes.
 
 %build
 %configure
-make
+make %{?_smp_mflags}
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}%{_mandir}/man1
-mkdir -p %{buildroot}%{_bindir}
-%makeinstall man1dir=%{buildroot}%{_mandir}/man1
+make DESTDIR=%{buildroot} install
 
 # remove unpackaged files from the buildroot
 rm -f %{buildroot}%{_bindir}/strace-graph
 
-%ifarch %{strace64_arches}
-ln %{buildroot}%{_bindir}/strace %{buildroot}%{_bindir}/strace64
+%define copy64 ln
+%if 0%{?rhel}
+%if 0%{?rhel} < 6
 %endif
+%define copy64 cp -p
+%endif
+
+%ifarch %{strace64_arches}
+%{copy64} %{buildroot}%{_bindir}/strace %{buildroot}%{_bindir}/strace64
+%endif
+
+%check
+make check
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
+%doc CREDITS ChangeLog ChangeLog-CVS COPYRIGHT NEWS PORTING README
 %{_bindir}/strace
 %{_mandir}/man1/*
 
@@ -73,8 +84,111 @@ rm -rf %{buildroot}
 %{_bindir}/strace64
 %endif
 
-
 %changelog
+* Mon Mar 14 2011 Dmitry V. Levin <ldv@altlinux.org> - 4.6-1
+- New upstream release.
+  + fixed a corner case in waitpid handling (#663547).
+
+* Wed Feb 09 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 4.5.20-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Tue Apr 13 2010 Roland McGrath <roland@redhat.com> - 4.5.20-1
+- New upstream release, work mostly by Andreas Schwab and Dmitry V. Levin.
+  + fixed potential stack buffer overflow in select decoder (#556678);
+  + fixed FTBFS (#539044).
+
+* Wed Oct 21 2009 Roland McGrath <roland@redhat.com> - 4.5.19-1
+- New upstream release, work mostly by Dmitry V. Levin <ldv@altlinux.org>
+  + exit/kill strace with traced process exitcode/signal (#105371);
+  + fixed build on ARM EABI (#507576);
+  + fixed display of 32-bit argv array on 64-bit architectures (#519480);
+  + fixed display of 32-bit fcntl(F_SETLK) on 64-bit architectures (#471169);
+  + fixed several bugs in strings decoder, including potential heap
+    memory corruption (#470529, #478324, #511035).
+
+* Thu Aug 28 2008 Roland McGrath <roland@redhat.com> - 4.5.18-1
+- build fix for newer kernel headers (#457291)
+- fix CLONE_VFORK handling (#455078)
+- Support new Linux/PPC system call subpage_prot and PROT_SAO flag.
+- In sigaction system call, display sa_flags value along with SIG_DFL/SIG_IGN.
+
+* Mon Jul 21 2008 Roland McGrath <roland@redhat.com> - 4.5.17-1
+- handle O_CLOEXEC, MSG_CMSG_CLOEXEC (#365781)
+- fix biarch stat64 decoding (#222275)
+- fix spurious "..." in printing of environment strings (#358241)
+- improve prctl decoding (#364401)
+- fix hang wait on exited child with exited child (#354261)
+- fix biarch fork/vfork (-f) tracing (#447475)
+- fix biarch printing of negative argument kill (#430585)
+- fix biarch decoding of error return values (#447587)
+- fix -f tracing of CLONE_VFORK (#455078)
+- fix ia64 register clobberation in -f tracing (#453438)
+- print SO_NODEFER, SA_RESETHAND instead of SA_NOMASK, SA_ONESHOT (#455821)
+- fix futex argument decoding (#448628, #448629)
+
+* Fri Aug  3 2007 Roland McGrath <roland@redhat.com> - 4.5.16-1
+- fix multithread issues (#240962, #240961, #247907)
+- fix spurious SIGSTOP on early interrupt (#240986)
+- fix utime for biarch (#247185)
+- fix -u error message (#247170)
+- better futex syscall printing (##241467)
+- fix argv/envp printing with small -s settings, and for biarch
+- new syscalls: getcpu, eventfd, timerfd, signalfd, epoll_pwait,
+  move_pages, utimensat
+
+* Tue Jan 16 2007 Roland McGrath <roland@redhat.com> - 4.5.15-1
+- biarch fixes (#179740, #192193, #171626, #173050, #218433, #218043)
+- fix -ff -o behavior (#204950, #218435, #193808, #219423)
+- better quotactl printing (#118696)
+- *at, inotify*, pselect6, ppoll and unshare syscalls (#178633, #191275)
+- glibc-2.5 build fixes (#209856)
+- memory corruption fixes (#200621
+- fix race in child setup under -f (#180293)
+- show ipc key values in hex (#198179, #192182)
+- disallow -c with -ff (#187847)
+- Resolves: RHBZ #179740, RHBZ #192193, RHBZ #204950, RHBZ #218435
+- Resolves: RHBZ #193808, RHBZ #219423, RHBZ #171626, RHBZ #173050
+- Resolves: RHBZ #218433, RHBZ #218043, RHBZ #118696, RHBZ #178633
+- Resolves: RHBZ #191275, RHBZ #209856, RHBZ #200621, RHBZ #180293
+- Resolves: RHBZ #198179, RHBZ #198182, RHBZ #187847
+
+* Mon Nov 20 2006 Jakub Jelinek <jakub@redhat.com> - 4.5.14-4
+- Fix ia64 syscall decoding (#206768)
+- Fix build with glibc-2.4.90-33 and up on all arches but ia64
+- Fix build against 2.6.18+ headers
+
+* Tue Aug 22 2006 Roland McGrath <roland@redhat.com> - 4.5.14-3
+- Fix bogus decoding of syscalls >= 300 (#201462, #202620).
+
+* Fri Jul 14 2006 Jesse Keating <jkeating@redhat.com> - 4.5.14-2
+- rebuild
+
+* Fri Feb 10 2006 Jesse Keating <jkeating@redhat.com> - 4.5.14-1.2
+- bump again for long double bug on ppc{,64}
+
+* Tue Feb 07 2006 Jesse Keating <jkeating@redhat.com> - 4.5.14-1.1
+- rebuilt for new gcc4.1 snapshot and glibc changes
+
+* Mon Jan 16 2006 Roland McGrath <roland@redhat.com> - 4.5.14-1
+- Fix biarch decoding of socket syscalls (#174354).
+- Fix biarch -e support (#173986).
+- Accept numeric syscalls in -e (#174798).
+- Fix ipc syscall decoding (#164755).
+- Improve msgrcv printing (#164757).
+- Man page updates (#165375).
+- Improve mount syscall printing (#165377).
+- Correct printing of restarting syscalls (#165469).
+
+* Wed Aug  3 2005 Roland McGrath <roland@redhat.com> - 4.5.13-1
+- Fix setsockopt decoding on 64-bit (#162449).
+- Fix typos in socket option name strings (#161578).
+- Display more IPV6 socket options by name (#162450).
+- Don't display inappropriate syscalls for -e trace=file (#159340).
+- New selector type -e trace=desc for file-descriptor using calls (#159400).
+- Fix 32-bit old_mmap syscall decoding on x86-64 (#162467, #164215).
+- Fix errors detaching from multithreaded process on interrupt (#161919).
+- Note 4.5.12 fix for crash handling bad signal numbers (#162739).
+
 * Wed Jun  8 2005 Roland McGrath <roland@redhat.com> - 4.5.12-1
 - Fix known syscall recognition for IA32 processes on x86-64 (#158934).
 - Fix bad output for ptrace on x86-64 (#159787).
@@ -319,7 +433,7 @@ rm -rf %{buildroot}
 - strace 3.1 patches carried along for now.
 
 * Sun May 16 1999 Jeff Johnson <jbj@redhat.com>
-- don't rely on (broken!) rpm %patch (#2735)
+- don't rely on (broken!) rpm %%patch (#2735)
 
 * Tue Apr 06 1999 Preston Brown <pbrown@redhat.com>
 - strip binary

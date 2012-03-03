@@ -4,40 +4,126 @@ LOCAL_PATH := $(my-dir)
 include $(CLEAR_VARS)
 
 # From autoconf-generated Makefile
-strace_SOURCES = strace.c syscall.c util.c desc.c file.c \
-                 io.c ioctl.c mem.c net.c process.c bjm.c \
+strace_SOURCES = strace.c syscall.c count.c util.c desc.c file.c ipc.c \
+                 io.c ioctl.c mem.c net.c process.c bjm.c quota.c \
                  resource.c signal.c sock.c system.c term.c time.c \
-                 proc.c stream.c
+                 proc.c stream.c block.c
 
-#excluded_sources = ipc.c
+#excluded_sources = scsi.c
+
+strace_VERSION = 4.6
 
 LOCAL_SRC_FILES:= $(strace_SOURCES)
 
 LOCAL_SHARED_LIBRARIES :=
 
-# Hack for ARM devices. This version of strace does not support ARM, and the
-# patch that was used to add ARM support actually adds the ARM syscalls to
-# linux/sh/ (Sega Megadrive/Dreamcast/...) instead of linux/arm/ . The proper
-# way to fix this would be to upgrade to a version of strace that does support
-# ARM (e.g. 4.5.1.8), but that would mean having to reapply all Android-specific
-# changes. Sigh.
+LOCAL_CFLAGS := -DLINUX=1 \
+	-DGETGROUPS_T=gid_t \
+	-DHAVE_ASM_SIGCONTEXT_H=1 \
+	-DHAVE_DECL_SYS_ERRLIST=1 \
+	-DHAVE_DECL_SYS_SIGLIST=1 \
+	-DHAVE_DECL_____PTRACE_EVENT_CLONE=1 \
+	-DHAVE_DECL_____PTRACE_EVENT_FORK=1 \
+	-DHAVE_DECL_____PTRACE_EVENT_VFORK=1 \
+	-DHAVE_DECL_____PTRACE_GETEVENTMSG=1 \
+	-DHAVE_DECL_____PTRACE_GETSIGINFO=1 \
+	-DHAVE_DECL_____PTRACE_O_TRACECLONE=1 \
+	-DHAVE_DECL_____PTRACE_O_TRACEFORK=1 \
+	-DHAVE_DECL_____PTRACE_O_TRACEVFORK=1 \
+	-DHAVE_DECL_____PTRACE_SETOPTIONS=1 \
+	-DHAVE_DECL_____PTRACE_EVENT_CLONE=1 \
+	-DHAVE_DECL_____PTRACE_EVENT_CLONE=1 \
+	-DHAVE_DIRENT_H=1 \
+	-DHAVE_FORK=1 \
+	-DHAVE_GETDENTS=1 \
+	-DHAVE_IF_INDEXTONAME=1 \
+	-DHAVE_INET_NTOP=1 \
+	-DHAVE_INTTYPES_H=1 \
+	-DHAVE_LINUX_CAPABILITY_H=1 \
+	-DHAVE_LINUX_ICMP_H=1 \
+	-DHAVE_LINUX_IF_PACKET_H=1 \
+	-DHAVE_LINUX_IN6_H=1 \
+	-DHAVE_LINUX_NETLINK_H=1 \
+	-DHAVE_LINUX_UTSNAME_H=1 \
+	-DHAVE_LONG_LONG=1 \
+	-DHAVE_LONG_LONG_RLIM_T=1 \
+	-DHAVE_MEMORY_H=1 \
+	-DHAVE_NETINET_TCP_H=1 \
+	-DHAVE_NETINET_UDP_H=1 \
+	-DHAVE_POLL_H=1 \
+	-DHAVE_PRCTL=1 \
+	-DHAVE_PREAD=1 \
+	-DHAVE_SENDMSG=1 \
+	-DHAVE_SIGACTION=1 \
+	-DHAVE_SIGINFO_T=1 \
+	-DHAVE_SIG_ATOMIC_T=1 \
+	-DHAVE_STAT64=1 \
+	-DHAVE_STATFS64=1 \
+	-DHAVE_STDBOOL_H=1 \
+	-DHAVE_STDINT_H=1 \
+	-DHAVE_STDLIB_H=1 \
+	-DHAVE_STRERROR=1 \
+	-DHAVE_STRINGS_H=1 \
+	-DHAVE_STRING_H=1 \
+	-DHAVE_STRSIGNAL=1 \
+	-DHAVE_STRUCT_MSGHDR_MSG_CONTROL=1 \
+	-DHAVE_STRUCT_SIGCONTEXT \
+	-DHAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID=1 \
+	-DHAVE_STRUCT_STAT_ST_BLKSIZE=1 \
+	-DHAVE_STRUCT_STAT_ST_BLOCKS=1 \
+	-DHAVE_STRUCT_STAT_ST_RDEV=1 \
+	-DHAVE_STRUCT_USER_DESC=1 \
+	-DHAVE_STRUCT___OLD_KERNEL_STAT=1 \
+	-DHAVE_SYS_EPOLL_H=1 \
+	-DHAVE_SYS_IOCTL_H=1 \
+	-DHAVE_SYS_POLL_H=1 \
+	-DHAVE_SYS_PTRACE_H=1 \
+	-DHAVE_SYS_SIGLIST=1 \
+	-DHAVE_SYS_STAT_H=1 \
+	-DHAVE_SYS_TYPES_H=1 \
+	-DHAVE_SYS_VFS_H=1 \
+	-DHAVE_UNISTD_H=1 \
+	-DLINUX=1 \
+	-DMAJOR_IN_SYSMACROS \
+	-DPACKAGE=strace \
+	-DPACKAGE_BUGREPORT= \
+	-DPACKAGE_NAME='"strace"' \
+	-DPACKAGE_STRING='"strace $(strace_VERSION)"' \
+	-DPACKAGE_TARNAME='"strace"' \
+	-DPACKAGE_VERSION='"$(strace_VERSION)"' \
+	-DRETSIGTYPE=void \
+	-DSTDC_HEADER=1 \
+	-DVERSION='"$(strace_VERSION)"' \
+	-D_GNU_SOURCE=1 \
+	-D_POSIX_SOURCE=1 \
+	-Dfopen64=fopen \
+	-Dd_fileno=d_ino \
+	-D_LFS64_LARGEFILE=1 \
+	-D__KERNEL__=1
+
+#These are defined in AndroidConfig.h so we omit them above.
+#	-DHAVE_SYS_UIO_H=1 \
+#	-DHAVE_TERMIO_H=1 \
+
+
+arch := $(TARGET_ARCH)
 ifeq ($(TARGET_ARCH),arm)
-	STRACE_ARCH_HEADERS := $(LOCAL_PATH)/strace/linux/sh
-else
-	STRACE_ARCH_HEADERS := $(LOCAL_PATH)/strace/linux/$(TARGET_ARCH)
+	LOCAL_CFLAGS += -DARM=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+else ifeq ($(TARGET_ARCH),x86)
+	LOCAL_CFLAGS += -DI386=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+	arch := i386
+else ifeq ($(TARGET_ARCH),sh)
+	LOCAL_CFLAGS += -DSH=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+else ifeq ($(TARGET_ARCH),mips)
+	LOCAL_CFLAGS += -DMIPS=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
 endif
+
+LOCAL_CFLAGS += -Wno-missing-field-initializers
 
 LOCAL_C_INCLUDES := \
-	$(STRACE_ARCH_HEADERS) \
 	$(KERNEL_HEADERS) \
 	$(LOCAL_PATH)/linux \
-	$(LOCAL_PATH)/android/arch/$(TARGET_ARCH)
-
-LOCAL_CFLAGS := -DHAVE_CONFIG_H -Dd_fileno=d_ino -D_LFS64_LARGEFILE=1
-
-ifeq ($(TARGET_ARCH),x86)
-LOCAL_CFLAGS += -Ulinux
-endif
+	$(LOCAL_PATH)/linux/$(arch)
 
 LOCAL_MODULE := strace
 

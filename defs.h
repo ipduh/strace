@@ -26,11 +26,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: defs.h,v 1.59 2005/06/08 20:45:28 roland Exp $
+ *	$Id$
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
+#ifdef MIPS
+#include <sgidefs.h>
 #endif
 
 #ifdef linux
@@ -47,7 +51,7 @@
 /* configuration section */
 #ifndef MAX_QUALS
 #if defined(LINUX) && defined(MIPS)
-#define MAX_QUALS	5000	/* maximum number of syscalls, signals, etc. */
+#define MAX_QUALS	7000	/* maximum number of syscalls, signals, etc. */
 #else
 #define MAX_QUALS	2048	/* maximum number of syscalls, signals, etc. */
 #endif
@@ -60,7 +64,11 @@
 #define DEFAULT_ACOLUMN	40	/* default alignment column for results */
 #endif
 #ifndef MAX_ARGS
-#define MAX_ARGS	32	/* maximum number of args to a syscall */
+# ifdef HPPA
+#  define MAX_ARGS	6	/* maximum number of args to a syscall */
+# else
+#  define MAX_ARGS	32	/* maximum number of args to a syscall */
+# endif
 #endif
 #ifndef DEFAULT_SORTBY
 #define DEFAULT_SORTBY "time"	/* default sorting method for call profiling */
@@ -76,6 +84,10 @@
 #include <sys/time.h>
 #include <errno.h>
 
+#ifdef HAVE_STDBOOL_H
+#include <stdbool.h>
+#endif
+
 #ifdef STDC_HEADERS
 #include <stddef.h>
 #endif /* STDC_HEADERS */
@@ -88,11 +100,25 @@
 #  if defined(SPARC) || defined(SPARC64)
 #     define LINUXSPARC
 #  endif
-#  if defined(ALPHA)
-#     define LINUX_64BIT
-#  endif
 #  if defined(X86_64)
 #     define LINUX_X86_64
+#  endif
+#  if defined(MIPS) && _MIPS_SIM == _MIPS_SIM_ABI32
+#     define LINUX_MIPSO32
+#  endif
+#  if defined(MIPS) && _MIPS_SIM == _MIPS_SIM_NABI32
+#     define LINUX_MIPSN32
+#     define LINUX_MIPS64
+#  endif
+#  if defined(MIPS) && _MIPS_SIM == _MIPS_SIM_ABI64
+#     define LINUX_MIPSN64
+#     define LINUX_MIPS64
+#  endif
+#  if defined(ARM)
+#     define LINUX_ARM
+#  endif
+#  if defined(AVR32)
+#     define LINUX_AVR32
 #  endif
 #endif
 
@@ -120,7 +146,7 @@
 #include <sys/pioctl.h>
 #endif /* FREEBSD */
 #else /* !USE_PROCFS */
-#if (defined(LINUXSPARC) || defined (LINUX_X86_64)) && defined(__GLIBC__)
+#if (defined(LINUXSPARC) || defined(LINUX_X86_64) || defined(LINUX_ARM) || defined(LINUX_AVR32)) && defined(__GLIBC__)
 #include <sys/ptrace.h>
 #else
 /* Work around awkward prototype in ptrace.h. */
@@ -132,15 +158,11 @@
 #include <asm/ptrace.h>
 #undef __KERNEL__
 #endif
-#ifdef __STDC__
 #ifdef LINUX
 extern long ptrace(int, int, char *, long);
 #else /* !LINUX */
 extern int ptrace(int, int, char *, int, ...);
 #endif /* !LINUX */
-#else /* !__STDC__ */
-extern int ptrace();
-#endif /* !__STDC__ */
 #endif /* !LINUXSPARC */
 #endif /* !SVR4 */
 
@@ -192,12 +214,20 @@ extern int ptrace();
 #define DEFAULT_PERSONALITY 0
 
 #ifdef LINUXSPARC
-#include <linux/a.out.h>
-#include <asm/psr.h>
+/* Indexes into the pt_regs.u_reg[] array -- UREG_XX from kernel are all off
+ * by 1 and use Ix instead of Ox.  These work for both 32 and 64 bit Linux. */
+#define U_REG_G1 0
+#define U_REG_O0 7
+#define U_REG_O1 8
+#define PERSONALITY0_WORDSIZE 4
+#define PERSONALITY1_WORDSIZE 4
 #undef  SUPPORTED_PERSONALITIES
 #if defined(SPARC64)
+#include <asm/psrcompat.h>
 #define SUPPORTED_PERSONALITIES 3
+#define PERSONALITY2_WORDSIZE 8
 #else
+#include <asm/psr.h>
 #define SUPPORTED_PERSONALITIES 2
 #endif /* SPARC64 */
 #endif /* LINUXSPARC */
@@ -205,6 +235,22 @@ extern int ptrace();
 #ifdef X86_64
 #undef SUPPORTED_PERSONALITIES
 #define SUPPORTED_PERSONALITIES 2
+#define PERSONALITY0_WORDSIZE 8
+#define PERSONALITY1_WORDSIZE 4
+#endif
+
+#ifdef ARM
+#undef SUPPORTED_PERSONALITIES
+#define SUPPORTED_PERSONALITIES 2
+#define PERSONALITY0_WORDSIZE 4
+#define PERSONALITY1_WORDSIZE 4
+#endif
+
+#ifdef POWERPC64
+#undef SUPPORTED_PERSONALITIES
+#define SUPPORTED_PERSONALITIES 2
+#define PERSONALITY0_WORDSIZE 8
+#define PERSONALITY1_WORDSIZE 4
 #endif
 
 #ifdef SVR4
@@ -262,6 +308,37 @@ extern int mp_ioctl (int f, int c, void *a, int s);
 #define PR_FAULTED      S_CORE
 #endif
 
+#ifdef LINUX
+# if !HAVE_DECL_PTRACE_SETOPTIONS
+#  define PTRACE_SETOPTIONS	0x4200
+# endif
+# if !HAVE_DECL_PTRACE_GETEVENTMSG
+#  define PTRACE_GETEVENTMSG	0x4201
+# endif
+# if !HAVE_DECL_PTRACE_GETSIGINFO
+#  define PTRACE_GETSIGINFO	0x4202
+# endif
+# if !HAVE_DECL_PTRACE_O_TRACEFORK
+#  define PTRACE_O_TRACEFORK	0x00000002
+# endif
+# if !HAVE_DECL_PTRACE_O_TRACEVFORK
+#  define PTRACE_O_TRACEVFORK	0x00000004
+# endif
+# if !HAVE_DECL_PTRACE_O_TRACECLONE
+#  define PTRACE_O_TRACECLONE	0x00000008
+# endif
+
+# if !HAVE_DECL_PTRACE_EVENT_FORK
+#  define PTRACE_EVENT_FORK	1
+# endif
+# if !HAVE_DECL_PTRACE_EVENT_VFORK
+#  define PTRACE_EVENT_VFORK	2
+# endif
+# if !HAVE_DECL_PTRACE_EVENT_CLONE
+#  define PTRACE_EVENT_CLONE	3
+# endif
+#endif /* LINUX */
+
 /* Trace Control Block */
 struct tcb {
 	short flags;		/* See below for TCB_ values */
@@ -269,12 +346,16 @@ struct tcb {
 	long scno;		/* System call number */
 	int u_nargs;		/* System call arguments */
 	long u_arg[MAX_ARGS];	/* System call arguments */
+#if defined (LINUX_MIPSN32)
+	long long ext_arg[MAX_ARGS];	/* System call arguments */
+#endif
 	int u_error;		/* Error code */
 	long u_rval;		/* (first) return value */
 #ifdef HAVE_LONG_LONG
 	long long u_lrval;	/* long long return value */
 #endif
 	FILE *outf;		/* Output file for this process */
+	int curcol;		/* Output column for this process */
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
 	struct timeval stime;	/* System time usage as of last process wait */
 	struct timeval dtime;	/* Delta for system time usage */
@@ -286,7 +367,6 @@ struct tcb {
 	int nzombies;		/* # of formerly traced children now dead */
 #ifdef LINUX
 	int nclone_threads;	/* # of nchildren with CLONE_THREAD */
-	int nclone_detached;	/* # of nchildren with CLONE_DETACHED */
 	int nclone_waiting;	/* clone threads in wait4 (TCB_SUSPENDED) */
 #endif
 				/* (1st arg of wait4()) */
@@ -302,6 +382,7 @@ struct tcb {
 	prstatus_t status;	/* procfs status structure */
 #endif
 #endif
+	int ptrace_errno;
 #ifdef FREEBSD
 	struct procfs_status status;
 	int pfd_reg;
@@ -315,17 +396,22 @@ struct tcb {
 #define TCB_INSYSCALL	00004	/* A system call is in progress */
 #define TCB_ATTACHED	00010	/* Process is not our own child */
 #define TCB_EXITING	00020	/* As far as we know, this process is exiting */
-#define TCB_SUSPENDED	00040	/* Process has done a wait(4), that can
-				   not be allowed to complete just now */
+#define TCB_SUSPENDED	00040	/* Process can not be allowed to resume just now */
 #define TCB_BPTSET	00100	/* "Breakpoint" set after fork(2) */
 #define TCB_SIGTRAPPED	00200	/* Process wanted to block SIGTRAP */
 #define TCB_FOLLOWFORK	00400	/* Process should have forks followed */
 #define TCB_REPRINT	01000	/* We should reprint this syscall on exit */
 #ifdef LINUX
-# if defined(ALPHA) || defined(SPARC) || defined(SPARC64) || defined(POWERPC) || defined(IA64) || defined(HPPA) || defined(SH) || defined(SH64) || defined(S390) || defined(S390X) || defined(ARM)
+/* x86 does not need TCB_WAITEXECVE.
+ * It can detect execve's SIGTRAP by looking at eax/rax.
+ * See "stray syscall exit: eax = " message in syscall_fixup().
+ */
+# if defined(ALPHA) || defined(AVR32) || defined(SPARC) || defined(SPARC64) \
+  || defined(POWERPC) || defined(IA64) || defined(HPPA) \
+  || defined(SH) || defined(SH64) || defined(S390) || defined(S390X) \
+  || defined(ARM) || defined(MIPS) || defined(BFIN) || defined(TILE)
 #  define TCB_WAITEXECVE 02000	/* ignore SIGTRAP after exceve */
 # endif
-# define TCB_CLONE_DETACHED 04000 /* CLONE_DETACHED set in creating syscall */
 # define TCB_CLONE_THREAD  010000 /* CLONE_THREAD set in creating syscall */
 # define TCB_GROUP_EXITING 020000 /* TCB_EXITING was exit_group, not _exit */
 # include <sys/syscall.h>
@@ -335,6 +421,8 @@ struct tcb {
 #   define __NR_exit_group 405
 #  elif defined I386
 #   define __NR_exit_group 252
+#  elif defined X86_64
+#   define __NR_exit_group 231
 #  elif defined IA64
 #   define __NR_exit_group 1236
 #  elif defined POWERPC
@@ -343,6 +431,8 @@ struct tcb {
 #   define __NR_exit_group 248
 #  elif defined SPARC || defined SPARC64
 #   define __NR_exit_group 188
+#  elif defined M68K
+#   define __NR_exit_group 247
 #  endif /* ALPHA et al */
 # endif	/* !__NR_exit_group */
 #endif /* LINUX */
@@ -365,8 +455,13 @@ struct tcb {
 
 struct xlat {
 	int val;
-	char *str;
+	const char *str;
 };
+
+extern const struct xlat open_mode_flags[];
+extern const struct xlat addrfams[];
+extern const struct xlat struct_user_offsets[];
+extern const struct xlat open_access_modes[];
 
 /* Format of syscall return values */
 #define RVAL_DECIMAL	000	/* decimal format */
@@ -395,131 +490,154 @@ struct xlat {
 #define TRACE_NETWORK	004	/* Trace network-related syscalls. */
 #define TRACE_PROCESS	010	/* Trace process-related syscalls. */
 #define TRACE_SIGNAL	020	/* Trace signal-related syscalls. */
+#define TRACE_DESC	040	/* Trace file descriptor-related syscalls. */
+#define SYSCALL_NEVER_FAILS	0100	/* Syscall is always successful. */
+
+typedef enum {
+	CFLAG_NONE = 0,
+	CFLAG_ONLY_STATS,
+	CFLAG_BOTH
+} cflag_t;
 
 extern struct tcb **tcbtab;
-extern int qual_flags[];
-extern int debug, followfork, followvfork;
-extern int rflag, tflag, dtime, cflag, xflag, qflag;
+extern int *qual_flags;
+extern int debug, followfork;
+extern unsigned int ptrace_setoptions;
+extern int dtime, xflag, qflag;
+extern cflag_t cflag;
 extern int acolumn;
-extern char *outfname;
 extern unsigned int nprocs, tcbtabsize;
 extern int max_strlen;
 extern struct tcb *tcp_last;
 
-#ifdef __STDC__
-#define P(args) args
-#else
-#define P(args) ()
-#endif
+enum bitness_t { BITNESS_CURRENT = 0, BITNESS_32 };
 
-extern int set_personality P((int personality));
-extern char *xlookup P((const struct xlat *, int));
-extern struct tcb *alloctcb P((int));
-extern struct tcb *pid2tcb P((int));
-extern void droptcb P((struct tcb *));
-extern int expand_tcbtab P((void));
+extern int set_personality(int personality);
+extern const char *xlookup(const struct xlat *, int);
+extern struct tcb *alloc_tcb(int, int);
+extern struct tcb *pid2tcb(int);
+extern void droptcb(struct tcb *);
+extern void expand_tcbtab(void);
 
-extern void set_sortby P((char *));
-extern void set_overhead P((int));
-extern void qualify P((char *));
-extern void newoutf P((struct tcb *));
-extern int get_scno P((struct tcb *));
-extern long known_scno P((struct tcb *));
-extern int trace_syscall P((struct tcb *));
-extern void printxval P((const struct xlat *, int, const char *));
-extern int printargs P((struct tcb *));
-extern int addflags P((const struct xlat *, int));
-extern int printflags P((const struct xlat *, int, const char *));
-extern int umoven P((struct tcb *, long, int, char *));
-extern int umovestr P((struct tcb *, long, int, char *));
-extern int upeek P((int, long, long *));
-extern void dumpiov P((struct tcb *, int, long));
-extern void dumpstr P((struct tcb *, long, int));
-extern void printstr P((struct tcb *, long, int));
-extern void printnum P((struct tcb *, long, char *));
-extern void printpath P((struct tcb *, long));
-extern void printpathn P((struct tcb *, long, int));
-extern void printtv P((struct tcb *, long));
+#define alloctcb(pid)	alloc_tcb((pid), 1)
+
+extern void set_sortby(const char *);
+extern void set_overhead(int);
+extern void qualify(const char *);
+extern int get_scno(struct tcb *);
+extern long known_scno(struct tcb *);
+extern long do_ptrace(int request, struct tcb *tcp, void *addr, void *data);
+extern int ptrace_restart(int request, struct tcb *tcp, int sig);
+extern int force_result(struct tcb *, int, long);
+extern int trace_syscall(struct tcb *);
+extern int count_syscall(struct tcb *, struct timeval *);
+extern void printxval(const struct xlat *, int, const char *);
+extern int printargs(struct tcb *);
+extern int addflags(const struct xlat *, int);
+extern int printflags(const struct xlat *, int, const char *);
+extern const char *sprintflags(const char *, const struct xlat *, int);
+extern int umoven(struct tcb *, long, int, char *);
+extern int umovestr(struct tcb *, long, int, char *);
+extern int upeek(struct tcb *, long, long *);
+extern void dumpiov(struct tcb *, int, long);
+extern void dumpstr(struct tcb *, long, int);
+extern void printstr(struct tcb *, long, int);
+extern void printnum(struct tcb *, long, const char *);
+extern void printnum_int(struct tcb *, long, const char *);
+extern void printpath(struct tcb *, long);
+extern void printpathn(struct tcb *, long, int);
+extern void printtv_bitness(struct tcb *, long, enum bitness_t, int);
+extern void sprinttv(struct tcb *, long, enum bitness_t, char *);
+extern void print_timespec(struct tcb *, long);
+extern void sprint_timespec(char *, struct tcb *, long);
 #ifdef HAVE_SIGINFO_T
-extern void printsiginfo P((siginfo_t *, int));
+extern void printsiginfo(siginfo_t *, int);
 #endif
-extern void printsock P((struct tcb *, long, int));
-extern void print_sock_optmgmt P((struct tcb *, long, int));
-extern void printrusage P((struct tcb *, long));
-extern void printuid P((const char *, unsigned long));
-extern int clearbpt P((struct tcb *));
-extern int setbpt P((struct tcb *));
-extern int sigishandled P((struct tcb *, int));
-extern void printcall P((struct tcb *));
-extern const char *signame P((int));
-extern void printsignal P((int));
-extern void printleader P((struct tcb *));
-extern void printtrailer P((struct tcb *));
-extern void tabto P((int));
-extern void call_summary P((FILE *));
-extern void printtv32 P((struct tcb*, long));
-extern void tprint_iov P((struct tcb *, unsigned long, unsigned long));
+extern void printfd(struct tcb *, int);
+extern void printsock(struct tcb *, long, int);
+extern void print_sock_optmgmt(struct tcb *, long, int);
+extern void printrusage(struct tcb *, long);
+extern void printuid(const char *, unsigned long);
+extern int clearbpt(struct tcb *);
+extern int setbpt(struct tcb *);
+extern int sigishandled(struct tcb *, int);
+extern void printcall(struct tcb *);
+extern const char *signame(int);
+extern void print_sigset(struct tcb *, long, int);
+extern void printsignal(int);
+extern void printleader(struct tcb *);
+extern void printtrailer(void);
+extern void tabto(int);
+extern void call_summary(FILE *);
+extern void tprint_iov(struct tcb *, unsigned long, unsigned long);
+extern void tprint_open_modes(mode_t);
+extern const char *sprint_open_modes(mode_t);
+extern int is_restart_error(struct tcb *);
 
+extern int change_syscall(struct tcb *, int);
+extern int internal_fork(struct tcb *);
+extern int internal_exec(struct tcb *);
+extern int internal_wait(struct tcb *, int);
+extern int internal_exit(struct tcb *);
 #ifdef LINUX
-extern int internal_clone P((struct tcb *));
+extern int handle_new_child(struct tcb *, int, int);
 #endif
-extern int internal_fork P((struct tcb *));
-extern int internal_exec P((struct tcb *));
-extern int internal_wait P((struct tcb *, int));
-extern int internal_exit P((struct tcb *));
 
-extern const struct ioctlent *ioctl_lookup P((long));
-extern const struct ioctlent *ioctl_next_match P((const struct ioctlent *));
-extern int ioctl_decode P((struct tcb *, long, long));
-extern int term_ioctl P((struct tcb *, long, long));
-extern int sock_ioctl P((struct tcb *, long, long));
-extern int proc_ioctl P((struct tcb *, int, int));
-extern int stream_ioctl P((struct tcb *, int, int));
+extern const struct ioctlent *ioctl_lookup(long);
+extern const struct ioctlent *ioctl_next_match(const struct ioctlent *);
+extern int ioctl_decode(struct tcb *, long, long);
+extern int term_ioctl(struct tcb *, long, long);
+extern int sock_ioctl(struct tcb *, long, long);
+extern int proc_ioctl(struct tcb *, int, int);
+extern int stream_ioctl(struct tcb *, int, int);
 #ifdef LINUX
-extern int rtc_ioctl P((struct tcb *, long, long));
+extern int rtc_ioctl(struct tcb *, long, long);
+extern int scsi_ioctl(struct tcb *, long, long);
+extern int block_ioctl(struct tcb *, long, long);
 #endif
 
-extern void tv_tv P((struct timeval *, int, int));
-extern int tv_nz P((struct timeval *));
-extern int tv_cmp P((struct timeval *, struct timeval *));
-extern double tv_float P((struct timeval *));
-extern void tv_add P((struct timeval *, struct timeval *, struct timeval *));
-extern void tv_sub P((struct timeval *, struct timeval *, struct timeval *));
-extern void tv_mul P((struct timeval *, struct timeval *, int));
-extern void tv_div P((struct timeval *, struct timeval *, int));
+extern int tv_nz(struct timeval *);
+extern int tv_cmp(struct timeval *, struct timeval *);
+extern double tv_float(struct timeval *);
+extern void tv_add(struct timeval *, struct timeval *, struct timeval *);
+extern void tv_sub(struct timeval *, struct timeval *, struct timeval *);
+extern void tv_mul(struct timeval *, struct timeval *, int);
+extern void tv_div(struct timeval *, struct timeval *, int);
 
 #ifdef SUNOS4
-extern int fixvfork P((struct tcb *));
+extern int fixvfork(struct tcb *);
 #endif
-#if !(defined(LINUX) && !defined(SPARC) && !defined(SPARC64) && !defined(IA64))
-extern long getrval2 P((struct tcb *));
+#if !(defined(LINUX) && !defined(SPARC) && !defined(SPARC64) && !defined(IA64) \
+	&& !defined(SH))
+extern long getrval2(struct tcb *);
 #endif
 #ifdef USE_PROCFS
-extern int proc_open P((struct tcb *tcp, int attaching));
+extern int proc_open(struct tcb *tcp, int attaching);
 #endif
 
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof *(objp), (char *) (objp))
 
-#ifdef __STDC__
-#ifdef __GNUC__
+#define printtv(tcp, addr)	\
+	printtv_bitness((tcp), (addr), BITNESS_CURRENT, 0)
+#define printtv_special(tcp, addr)	\
+	printtv_bitness((tcp), (addr), BITNESS_CURRENT, 1)
+
 extern void tprintf(const char *fmt, ...)
-	__attribute__ ((format (printf, 1, 2)));
-#else
-extern void tprintf(const char *fmt, ...);
+#ifdef __GNUC__
+	__attribute__ ((format (printf, 1, 2)))
 #endif
-#else
-extern void tprintf();
-#endif
+	;
 
 #ifndef HAVE_STRERROR
-const char *strerror P((int));
+const char *strerror(int);
 #endif
 #ifndef HAVE_STRSIGNAL
-const char *strsignal P((int));
+const char *strsignal(int);
 #endif
 
 extern int current_personality;
+extern const int personality_wordsize[];
 
 struct sysent {
 	int	nargs;
@@ -566,20 +684,6 @@ extern const char *const signalent2[];
 extern const int nsignals2;
 #endif /* SUPPORTED_PERSONALITIES >= 3 */
 
-#if defined(FREEBSD) || (defined(LINUX) \
-			 && defined(POWERPC) && !defined(__powerpc64__)) \
-  || (defined (LINUX) && defined (MIPS) && !defined(__mips64))
-/* ARRGH!  off_t args are aligned on 64 bit boundaries! */
-#define ALIGN64(tcp,arg)						\
-do {									\
-	if (arg % 2)							\
-	    memmove (&tcp->u_arg[arg], &tcp->u_arg[arg + 1],		\
-		     (tcp->u_nargs - arg - 1) * sizeof tcp->u_arg[0]);	\
-} while (0)
-#else
-#define ALIGN64(tcp,arg) do { } while (0)
-#endif
-
 #if HAVE_LONG_LONG
 
 /* _l refers to the lower numbered u_arg,
@@ -593,6 +697,8 @@ do {									\
 #define LONG_LONG(_l,_h) \
     ((long long)((unsigned long long)(unsigned)(_h) | ((unsigned long long)(_l)<<32)))
 #endif
+
+extern int printllval(struct tcb *, const char *, int);
 #endif
 
 #ifdef IA64

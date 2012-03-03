@@ -33,7 +33,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-#	$Id: strace-graph,v 1.2 1999/08/30 23:26:53 wichert Exp $
+#	$Id$
 
 my %unfinished;
 
@@ -115,7 +115,7 @@ sub parse_str {
 	    return (undef, $in);
 	}
     }
-}    
+}
 
 sub parse_one {
     my ($in) = @_;
@@ -188,19 +188,19 @@ sub parseargs {
 	unless (length($in) == 0 or $in =~ s/^, //) {
 	    print STDERR "$0: $ARGV: $.: missing comma.\n";
 	    return undef;
-	}	    
+	}
     }
     return @args;
 }
-	    
+
 
 my $depth = "";
 
 # process info, indexed by pid.
-# fields: 
+# fields:
 #    parent         pid number
 #    seq            forks and execs for this pid, in sequence  (array)
- 
+
 #  filename and argv (from latest exec)
 #  basename (derived from filename)
 # argv[0] is modified to add the basename if it differs from the 0th argument.
@@ -229,7 +229,7 @@ sub handle_trace {
 	push @$seq, ['EXEC', $filename, $argv];
 
 	$pr{$pid}{seq} = $seq;
-    } elsif ($call eq 'fork') {
+    } elsif ($call eq 'fork' || $call eq 'clone' || $call eq 'vfork') {
 	return if $result == 0;
 
 	my $seq = $pr{$pid}{seq};
@@ -308,9 +308,9 @@ sub display_pid_trace {
 	} elsif ($$elem[0] eq 'FORK') {
 	    if ($i == 1) {
                 if ($lead =~ /-$/) {
- 		    display_pid_trace($$elem[1], "$lead--+--");
+		    display_pid_trace($$elem[1], "$lead--+--");
                 } else {
- 		    display_pid_trace($$elem[1], "$lead  +--");
+		    display_pid_trace($$elem[1], "$lead  +--");
                 }
 	    } elsif ($i == @seq) {
 		display_pid_trace($$elem[1], "$lead  `--");
@@ -336,4 +336,3 @@ sub display_trace {
 
     display_pid_trace($startpid, "");
 }
-    

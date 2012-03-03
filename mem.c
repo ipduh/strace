@@ -29,7 +29,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: mem.c,v 1.36 2005/06/01 19:22:07 roland Exp $
+ *	$Id$
  */
 
 #include "defs.h"
@@ -70,6 +70,7 @@ struct tcb *tcp;
 #endif
 }
 
+#if defined(FREEBSD) || defined(SUNOS4)
 int
 sys_sbrk(tcp)
 struct tcb *tcp;
@@ -79,6 +80,7 @@ struct tcb *tcp;
 	}
 	return RVAL_HEX;
 }
+#endif /* FREEBSD || SUNOS4 */
 
 static const struct xlat mmap_prot[] = {
 	{ PROT_NONE,	"PROT_NONE",	},
@@ -94,6 +96,9 @@ static const struct xlat mmap_prot[] = {
 #ifdef PROT_GROWSUP
 	{ PROT_GROWSUP, "PROT_GROWSUP"	},
 #endif
+#ifdef PROT_SAO
+	{ PROT_SAO,	"PROT_SAO"	},
+#endif
 	{ 0,		NULL		},
 };
 
@@ -103,6 +108,9 @@ static const struct xlat mmap_flags[] = {
 	{ MAP_FIXED,	"MAP_FIXED"	},
 #ifdef MAP_ANONYMOUS
 	{ MAP_ANONYMOUS,"MAP_ANONYMOUS"	},
+#endif
+#ifdef MAP_32BIT
+	{ MAP_32BIT,	"MAP_32BIT"	},
 #endif
 #ifdef MAP_RENAME
 	{ MAP_RENAME,	"MAP_RENAME"	},
@@ -180,15 +188,52 @@ static const struct xlat mmap_flags[] = {
 #ifdef MAP_NOCORE
 	{ MAP_NOCORE,		"MAP_NOCORE"	},
 #endif
+#ifdef TILE
+	{ MAP_CACHE_NO_LOCAL, "MAP_CACHE_NO_LOCAL" },
+	{ MAP_CACHE_NO_L2, "MAP_CACHE_NO_L2" },
+	{ MAP_CACHE_NO_L1, "MAP_CACHE_NO_L1" },
+#endif
 	{ 0,		NULL		},
 };
 
-#if !HAVE_LONG_LONG_OFF_T
+#ifdef TILE
 static
 int
-print_mmap(tcp,u_arg)
-struct tcb *tcp;
-long *u_arg;
+addtileflags(flags)
+long flags;
+{
+	long home = flags & _MAP_CACHE_MKHOME(_MAP_CACHE_HOME_MASK);
+	flags &= ~_MAP_CACHE_MKHOME(_MAP_CACHE_HOME_MASK);
+
+	if (flags & _MAP_CACHE_INCOHERENT) {
+		flags &= ~_MAP_CACHE_INCOHERENT;
+		if (home == MAP_CACHE_HOME_NONE) {
+			tprintf("|MAP_CACHE_INCOHERENT");
+			return flags;
+		}
+		tprintf("|_MAP_CACHE_INCOHERENT");
+	}
+
+	switch (home) {
+	case 0:	break;
+	case MAP_CACHE_HOME_HERE: tprintf("|MAP_CACHE_HOME_HERE"); break;
+	case MAP_CACHE_HOME_NONE: tprintf("|MAP_CACHE_HOME_NONE"); break;
+	case MAP_CACHE_HOME_SINGLE: tprintf("|MAP_CACHE_HOME_SINGLE"); break;
+	case MAP_CACHE_HOME_TASK: tprintf("|MAP_CACHE_HOME_TASK"); break;
+	case MAP_CACHE_HOME_HASH: tprintf("|MAP_CACHE_HOME_HASH"); break;
+	default:
+		tprintf("|MAP_CACHE_HOME(%d)",
+			(home >> _MAP_CACHE_HOME_SHIFT) );
+		break;
+	}
+
+	return flags;
+}
+#endif
+
+#if !HAVE_LONG_LONG_OFF_T
+static int
+print_mmap(struct tcb *tcp, long *u_arg, long long offset)
 {
 	if (entering(tcp)) {
 		/* addr */
@@ -204,14 +249,19 @@ long *u_arg;
 		/* flags */
 #ifdef MAP_TYPE
 		printxval(mmap_flags, u_arg[3] & MAP_TYPE, "MAP_???");
+#ifdef TILE
+		addflags(mmap_flags, addtileflags(u_arg[3] & ~MAP_TYPE));
+#else
 		addflags(mmap_flags, u_arg[3] & ~MAP_TYPE);
+#endif
 #else
 		printflags(mmap_flags, u_arg[3], "MAP_???");
 #endif
-		/* fd (is always int, not long) */
-		tprintf(", %d, ", (int)u_arg[4]);
+		/* fd */
+		tprintf(", ");
+		printfd(tcp, u_arg[4]);
 		/* offset */
-		tprintf("%#lx", u_arg[5]);
+		tprintf(", %#llx", offset);
 	}
 	return RVAL_HEX;
 }
@@ -220,36 +270,47 @@ long *u_arg;
 int sys_old_mmap(tcp)
 struct tcb *tcp;
 {
-    long u_arg[6];
+	long u_arg[6];
 
 #if	defined(IA64)
-    int i, v;
-    /*
-     *  IA64 processes never call this routine, they only use the
-     *  new `sys_mmap' interface.  This code converts the integer
-     *  arguments that the IA32 process pushed onto the stack into
-     *  longs.
-     *
-     *  Note that addresses with bit 31 set will be sign extended.
-     *  Fortunately, those addresses are not currently being generated
-     *  for IA32 processes so it's not a problem.
-     */
-    for (i = 0; i < 6; i++)
-	if (umove(tcp, tcp->u_arg[0] + (i * sizeof(int)), &v) == -1)
-		return 0;
-	else
-		u_arg[i] = v;
+	int i, v;
+	/*
+	 *  IA64 processes never call this routine, they only use the
+	 *  new `sys_mmap' interface.  This code converts the integer
+	 *  arguments that the IA32 process pushed onto the stack into
+	 *  longs.
+	 *
+	 *  Note that addresses with bit 31 set will be sign extended.
+	 *  Fortunately, those addresses are not currently being generated
+	 *  for IA32 processes so it's not a problem.
+	 */
+	for (i = 0; i < 6; i++)
+		if (umove(tcp, tcp->u_arg[0] + (i * sizeof(int)), &v) == -1)
+			return 0;
+		else
+			u_arg[i] = v;
 #elif defined(SH) || defined(SH64)
-    /* SH has always passed the args in registers */
-    int i;
-    for (i=0; i<6; i++)
-        u_arg[i] = tcp->u_arg[i];
+	/* SH has always passed the args in registers */
+	int i;
+	for (i=0; i<6; i++)
+		u_arg[i] = tcp->u_arg[i];
 #else
-    if (umoven(tcp, tcp->u_arg[0], sizeof u_arg, (char *) u_arg) == -1)
-	    return 0;
+# if defined(X86_64)
+	if (current_personality == 1) {
+		int i;
+		for (i = 0; i < 6; ++i) {
+			unsigned int val;
+			if (umove(tcp, tcp->u_arg[0] + i * 4, &val) == -1)
+				return 0;
+			u_arg[i] = val;
+		}
+	}
+	else
+# endif
+	if (umoven(tcp, tcp->u_arg[0], sizeof u_arg, (char *) u_arg) == -1)
+		return 0;
 #endif	// defined(IA64)
-    return print_mmap(tcp, u_arg);
-
+	return print_mmap(tcp, u_arg, u_arg[5]);
 }
 #endif
 
@@ -257,23 +318,27 @@ int
 sys_mmap(tcp)
 struct tcb *tcp;
 {
+	long long offset = tcp->u_arg[5];
+
 #if defined(LINUX) && defined(SH64)
-    /*
-     * Old mmap differs from new mmap in specifying the
-     * offset in units of bytes rather than pages.  We
-     * pretend it's in byte units so the user only ever
-     * sees bytes in the printout.
-     */
-    tcp->u_arg[5] <<= PAGE_SHIFT;
+	/*
+	 * Old mmap differs from new mmap in specifying the
+	 * offset in units of bytes rather than pages.  We
+	 * pretend it's in byte units so the user only ever
+	 * sees bytes in the printout.
+	 */
+	offset <<= PAGE_SHIFT;
 #endif
-    return print_mmap(tcp, tcp->u_arg);
+#if defined(LINUX_MIPSN32)
+	offset = tcp->ext_arg[5];
+#endif
+	return print_mmap(tcp, tcp->u_arg, offset);
 }
 #endif /* !HAVE_LONG_LONG_OFF_T */
 
 #if _LFS64_LARGEFILE || HAVE_LONG_LONG_OFF_T
 int
-sys_mmap64(tcp)
-struct tcb *tcp;
+sys_mmap64(struct tcb *tcp)
 {
 #ifdef linux
 #ifdef ALPHA
@@ -293,7 +358,6 @@ struct tcb *tcp;
 			return 0;
 #endif /* ALPHA */
 #endif /* linux */
-		ALIGN64 (tcp, 5);	/* FreeBSD wierdies */
 
 		/* addr */
 		tprintf("%#lx, ", u_arg[0]);
@@ -310,9 +374,10 @@ struct tcb *tcp;
 		printflags(mmap_flags, u_arg[3], "MAP_???");
 #endif
 		/* fd */
-		tprintf(", %ld, ", u_arg[4]);
+		tprintf(", ");
+		printfd(tcp, tcp->u_arg[4]);
 		/* offset */
-		tprintf("%#llx", LONG_LONG(u_arg[5], u_arg[6]));
+		printllval(tcp, ", %#llx", 5);
 	}
 	return RVAL_HEX;
 }
@@ -346,26 +411,33 @@ struct tcb *tcp;
 
 static const struct xlat mremap_flags[] = {
 	{ MREMAP_MAYMOVE,	"MREMAP_MAYMOVE"	},
+#ifdef MREMAP_FIXED
+	{ MREMAP_FIXED,		"MREMAP_FIXED"		},
+#endif
 	{ 0,			NULL			}
 };
 
 int
-sys_mremap(tcp)
-struct tcb *tcp;
+sys_mremap(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		tprintf("%#lx, %lu, %lu, ", tcp->u_arg[0], tcp->u_arg[1],
 			tcp->u_arg[2]);
 		printflags(mremap_flags, tcp->u_arg[3], "MREMAP_???");
+#ifdef MREMAP_FIXED
+		if ((tcp->u_arg[3] & (MREMAP_MAYMOVE | MREMAP_FIXED)) ==
+		    (MREMAP_MAYMOVE | MREMAP_FIXED))
+			tprintf(", %#lx", tcp->u_arg[4]);
+#endif
 	}
 	return RVAL_HEX;
 }
 
-static const struct xlat madvise_flags[] = {
+static const struct xlat madvise_cmds[] = {
 #ifdef MADV_NORMAL
 	{ MADV_NORMAL,		"MADV_NORMAL" },
 #endif
-#ifdef MADZV_RANDOM
+#ifdef MADV_RANDOM
 	{ MADV_RANDOM,		"MADV_RANDOM" },
 #endif
 #ifdef MADV_SEQUENTIAL
@@ -374,7 +446,7 @@ static const struct xlat madvise_flags[] = {
 #ifdef MADV_WILLNEED
 	{ MADV_WILLNEED,	"MADV_WILLNEED" },
 #endif
-#ifdef MADV_DONTNED
+#ifdef MADV_DONTNEED
 	{ MADV_DONTNEED,	"MADV_DONTNEED" },
 #endif
 	{ 0,			NULL },
@@ -387,7 +459,7 @@ struct tcb *tcp;
 {
 	if (entering(tcp)) {
 		tprintf("%#lx, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
-		printflags(madvise_flags, tcp->u_arg[2], "MADV_???");
+		printxval(madvise_cmds, tcp->u_arg[2], "MADV_???");
 	}
 	return 0;
 }
@@ -527,6 +599,7 @@ struct tcb *tcp;
 	return 0;
 }
 
+#if defined(ALPHA) || defined(FREEBSD) || defined(IA64) || defined(SUNOS4) || defined(SVR4) || defined(SPARC) || defined(SPARC64)
 int
 sys_getpagesize(tcp)
 struct tcb *tcp;
@@ -535,11 +608,11 @@ struct tcb *tcp;
 		return RVAL_HEX;
 	return 0;
 }
+#endif /* ALPHA || FREEBSD || IA64 || SUNOS4 || SVR4 */
 
 #if defined(LINUX) && defined(__i386__)
 void
-print_ldt_entry (ldt_entry)
-struct modify_ldt_ldt_s *ldt_entry;
+print_ldt_entry(struct modify_ldt_ldt_s *ldt_entry)
 {
 	tprintf("base_addr:%#08lx, "
 		"limit:%d, "
@@ -549,7 +622,7 @@ struct modify_ldt_ldt_s *ldt_entry;
 		"limit_in_pages:%d, "
 		"seg_not_present:%d, "
 		"useable:%d}",
-		ldt_entry->base_addr,
+		(long) ldt_entry->base_addr,
 		ldt_entry->limit,
 		ldt_entry->seg_32bit,
 		ldt_entry->contents,
@@ -634,6 +707,26 @@ struct tcb *tcp;
 }
 #endif /* LINUX && __i386__ */
 
+#if defined(LINUX) && defined(M68K)
+
+int
+sys_set_thread_area(tcp)
+struct tcb *tcp;
+{
+	if (entering(tcp))
+		tprintf("%#lx", tcp->u_arg[0]);
+	return 0;
+
+}
+
+int
+sys_get_thread_area(tcp)
+struct tcb *tcp;
+{
+	return RVAL_HEX;
+}
+#endif
+
 #if defined(LINUX)
 int
 sys_remap_file_pages(tcp)
@@ -663,6 +756,8 @@ struct tcb *tcp;
 #define MPOL_F_ADDR     (1<<1)
 
 #define MPOL_MF_STRICT  (1<<0)
+#define MPOL_MF_MOVE	(1<<1)
+#define MPOL_MF_MOVE_ALL (1<<2)
 
 
 static const struct xlat policies[] = {
@@ -675,12 +770,20 @@ static const struct xlat policies[] = {
 
 static const struct xlat mbindflags[] = {
 	{ MPOL_MF_STRICT,	"MPOL_MF_STRICT"	},
+	{ MPOL_MF_MOVE,		"MPOL_MF_MOVE"		},
+	{ MPOL_MF_MOVE_ALL,	"MPOL_MF_MOVE_ALL"	},
 	{ 0,			NULL			}
 };
 
 static const struct xlat mempolicyflags[] = {
 	{ MPOL_F_NODE,		"MPOL_F_NODE"		},
 	{ MPOL_F_ADDR,		"MPOL_F_ADDR"		},
+	{ 0,			NULL			}
+};
+
+static const struct xlat move_pages_flags[] = {
+	{ MPOL_MF_MOVE,		"MPOL_MF_MOVE"		},
+	{ MPOL_MF_MOVE_ALL,	"MPOL_MF_MOVE_ALL"	},
 	{ 0,			NULL			}
 };
 
@@ -737,7 +840,7 @@ sys_mbind(tcp)
 struct tcb *tcp;
 {
 	if (entering(tcp)) {
-		tprintf("%lu, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
+		tprintf("%#lx, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
 		printxval(policies, tcp->u_arg[2], "MPOL_???");
 		get_nodes(tcp, tcp->u_arg[3], tcp->u_arg[4], 0);
 		tprintf(", ");
@@ -773,6 +876,128 @@ struct tcb *tcp;
 		tprintf(", %#lx, ", tcp->u_arg[3]);
 		printflags(mempolicyflags, tcp->u_arg[4], "MPOL_???");
 	}
+	return 0;
+}
+
+int
+sys_move_pages(tcp)
+struct tcb *tcp;
+{
+	if (entering(tcp)) {
+		unsigned long npages = tcp->u_arg[1];
+		tprintf("%ld, %lu, ", tcp->u_arg[0], npages);
+		if (tcp->u_arg[2] == 0)
+			tprintf("NULL, ");
+		else {
+			int i;
+			long puser = tcp->u_arg[2];
+			tprintf("{");
+			for (i = 0; i < npages; ++i) {
+				void *p;
+				if (i > 0)
+					tprintf(", ");
+				if (umove(tcp, puser, &p) < 0) {
+					tprintf("???");
+					break;
+				}
+				tprintf("%p", p);
+				puser += sizeof (void *);
+			}
+			tprintf("}, ");
+		}
+		if (tcp->u_arg[3] == 0)
+			tprintf("NULL, ");
+		else {
+			int i;
+			long nodeuser = tcp->u_arg[3];
+			tprintf("{");
+			for (i = 0; i < npages; ++i) {
+				int node;
+				if (i > 0)
+					tprintf(", ");
+				if (umove(tcp, nodeuser, &node) < 0) {
+					tprintf("???");
+					break;
+				}
+				tprintf("%#x", node);
+				nodeuser += sizeof (int);
+			}
+			tprintf("}, ");
+		}
+	}
+	if (exiting(tcp)) {
+		unsigned long npages = tcp->u_arg[1];
+		if (tcp->u_arg[4] == 0)
+			tprintf("NULL, ");
+		else {
+			int i;
+			long statususer = tcp->u_arg[4];
+			tprintf("{");
+			for (i = 0; i < npages; ++i) {
+				int status;
+				if (i > 0)
+					tprintf(", ");
+				if (umove(tcp, statususer, &status) < 0) {
+					tprintf("???");
+					break;
+				}
+				tprintf("%#x", status);
+				statususer += sizeof (int);
+			}
+			tprintf("}, ");
+		}
+		printflags(move_pages_flags, tcp->u_arg[5], "MPOL_???");
+	}
+	return 0;
+}
+#endif
+
+#if defined(LINUX) && defined(POWERPC)
+int
+sys_subpage_prot(tcp)
+struct tcb *tcp;
+{
+	if (entering(tcp)) {
+		unsigned long cur, end, abbrev_end, entries;
+		unsigned int entry;
+
+		tprintf("%#lx, %#lx, ", tcp->u_arg[0], tcp->u_arg[1]);
+		entries = tcp->u_arg[1] >> 16;
+		if (!entries || !tcp->u_arg[2]) {
+			tprintf("{}");
+			return 0;
+		}
+		cur = tcp->u_arg[2];
+		end = cur + (sizeof(int) * entries);
+		if (!verbose(tcp) || end < tcp->u_arg[2]) {
+			tprintf("%#lx", tcp->u_arg[2]);
+			return 0;
+		}
+		if (abbrev(tcp)) {
+			abbrev_end = cur + (sizeof(int) * max_strlen);
+			if (abbrev_end > end)
+				abbrev_end = end;
+		}
+		else
+			abbrev_end = end;
+		tprintf("{");
+		for (; cur < end; cur += sizeof(int)) {
+			if (cur > tcp->u_arg[2])
+				tprintf(", ");
+			if (cur >= abbrev_end) {
+				tprintf("...");
+				break;
+			}
+			if (umove(tcp, cur, &entry) < 0) {
+				tprintf("??? [%#lx]", cur);
+				break;
+			}
+			else
+				tprintf("%#08x", entry);
+		}
+		tprintf("}");
+	}
+
 	return 0;
 }
 #endif

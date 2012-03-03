@@ -1,11 +1,14 @@
-Steps to build from original source:
+Strace on Android
 
-1) apply arm-eabi.patch from Debian bug tracker
+The Android port of Strace does not use the configure scripts or Makefiles
+from the original source distribution.
 
-2) run configure as follows
-./configure CFLAGS=-I/android/device/system/kernel_headers/ ./configure  --prefix=/data/ --build=arm-unknown-linux-gnu
+Build Strace on Android using the Android build system, like the rest
+of the system.
 
-(note this uses the desktop gcc and glibc headers)
+Android-specific customizations are immortalized in Android.patch to
+ease future upgrades.
 
-3) Further modifications as change history will show
+This file can be regenerated using:
 
+diff -r -u -d path-to-original-unmodified-strace . | grep -v "Only in" > android.patch

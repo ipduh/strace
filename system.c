@@ -27,20 +27,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: system.c,v 1.37 2005/06/01 19:22:06 roland Exp $
+ *	$Id$
  */
 
 #include "defs.h"
 
-#ifdef LINUX
-
 #ifdef HAVE_ANDROID_OS
 #undef __unused
-#include <linux/sysctl.h>
-#include <sys/mount.h>
-#define CTL_PROC 4
+#include <linux/socket.h>
+#endif
 
-#else
+#ifdef LINUX
 #define _LINUX_SOCKET_H
 #define _LINUX_FS_H
 
@@ -57,11 +54,21 @@
 #define MS_BIND		4096
 #define MS_MOVE		8192
 #define MS_REC		16384
-#define MS_VERBOSE	32768
+#define MS_SILENT	32768
 #define MS_POSIXACL	(1<<16)	/* VFS does not apply the umask */
+#define MS_UNBINDABLE	(1<<17)	/* change to unbindable */
+#define MS_PRIVATE	(1<<18)	/* change to private */
+#define MS_SLAVE	(1<<19)	/* change to slave */
+#define MS_SHARED	(1<<20)	/* change to shared */
+#define MS_RELATIME	(1<<21)
+#define MS_KERNMOUNT	(1<<22)
+#define MS_I_VERSION	(1<<23)
+#define MS_STRICTATIME	(1<<24)
+#define MS_BORN		(1<<29)
 #define MS_ACTIVE	(1<<30)
 #define MS_NOUSER	(1<<31)
-#endif /* HAVE_ANDROID_OS */
+#define MS_MGC_VAL	0xc0ed0000	/* Magic flag number */
+#define MS_MGC_MSK	0xffff0000	/* Magic flag mask */
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -69,11 +76,11 @@
 
 #include <sys/syscall.h>
 
-#ifdef SYS_capget
+#ifdef HAVE_LINUX_CAPABILITY_H
 #include <linux/capability.h>
 #endif
 
-#ifdef SYS_cacheflush
+#ifdef HAVE_ASM_CACHECTL_H
 #include <asm/cachectl.h>
 #endif
 
@@ -81,63 +88,99 @@
 #include <linux/utsname.h>
 #endif
 
-#ifdef MIPS
+#ifdef HAVE_ASM_SYSMIPS_H
 #include <asm/sysmips.h>
 #endif
 
 #include <linux/sysctl.h>
 
 static const struct xlat mount_flags[] = {
+	{ MS_MGC_VAL,	"MS_MGC_VAL"	},
 	{ MS_RDONLY,	"MS_RDONLY"	},
 	{ MS_NOSUID,	"MS_NOSUID"	},
 	{ MS_NODEV,	"MS_NODEV"	},
 	{ MS_NOEXEC,	"MS_NOEXEC"	},
 	{ MS_SYNCHRONOUS,"MS_SYNCHRONOUS"},
 	{ MS_REMOUNT,	"MS_REMOUNT"	},
+	{ MS_RELATIME,	"MS_RELATIME"	},
+	{ MS_KERNMOUNT,	"MS_KERNMOUNT"	},
+	{ MS_I_VERSION,	"MS_I_VERSION"	},
+	{ MS_STRICTATIME,"MS_STRICTATIME"},
+	{ MS_BORN,	"MS_BORN"	},
 	{ MS_MANDLOCK,	"MS_MANDLOCK"	},
 	{ MS_NOATIME,	"MS_NOATIME"	},
 	{ MS_NODIRATIME,"MS_NODIRATIME"	},
 	{ MS_BIND,	"MS_BIND"	},
 	{ MS_MOVE,	"MS_MOVE"	},
 	{ MS_REC,	"MS_REC"	},
-	{ MS_VERBOSE,	"MS_VERBOSE"	},
+	{ MS_SILENT,	"MS_SILENT"	},
 	{ MS_POSIXACL,	"MS_POSIXACL"	},
+	{ MS_UNBINDABLE,"MS_UNBINDABLE"	},
+	{ MS_PRIVATE,	"MS_PRIVATE"	},
+	{ MS_SLAVE,	"MS_SLAVE"	},
+	{ MS_SHARED,	"MS_SHARED"	},
 	{ MS_ACTIVE,	"MS_ACTIVE"	},
 	{ MS_NOUSER,	"MS_NOUSER"	},
 	{ 0,		NULL		},
 };
 
 int
-sys_mount(tcp)
-struct tcb *tcp;
+sys_mount(struct tcb *tcp)
 {
 	if (entering(tcp)) {
+		int ignore_type = 0, ignore_data = 0;
+		unsigned long flags = tcp->u_arg[3];
+
+		/* Discard magic */
+		if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
+			flags &= ~MS_MGC_MSK;
+
+		if (flags & MS_REMOUNT)
+			ignore_type = 1;
+		else if (flags & (MS_BIND | MS_MOVE))
+			ignore_type = ignore_data = 1;
+
 		printpath(tcp, tcp->u_arg[0]);
 		tprintf(", ");
+
 		printpath(tcp, tcp->u_arg[1]);
 		tprintf(", ");
-		if ((tcp->u_arg[3] & (MS_BIND|MS_MOVE|MS_REMOUNT)) == 0)
-			printpath(tcp, tcp->u_arg[2]);
-		else
+
+		if (ignore_type && tcp->u_arg[2])
 			tprintf("%#lx", tcp->u_arg[2]);
+		else
+			printstr(tcp, tcp->u_arg[2], -1);
 		tprintf(", ");
+
 		printflags(mount_flags, tcp->u_arg[3], "MS_???");
-		tprintf(", %#lx", tcp->u_arg[4]);
+		tprintf(", ");
+
+		if (ignore_data && tcp->u_arg[4])
+			tprintf("%#lx", tcp->u_arg[4]);
+		else
+			printstr(tcp, tcp->u_arg[4], -1);
 	}
 	return 0;
 }
 
+#define MNT_FORCE	0x00000001	/* Attempt to forcibily umount */
+#define MNT_DETACH	0x00000002	/* Just detach from the tree */
+#define MNT_EXPIRE	0x00000004	/* Mark for expiry */
+
+static const struct xlat umount_flags[] = {
+	{ MNT_FORCE,	"MNT_FORCE"	},
+	{ MNT_DETACH,	"MNT_DETACH"	},
+	{ MNT_EXPIRE,	"MNT_EXPIRE"	},
+	{ 0,		NULL		},
+};
+
 int
-sys_umount2(tcp)
-struct tcb *tcp;
+sys_umount2(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printstr(tcp, tcp->u_arg[0], -1);
 		tprintf(", ");
-		if (tcp->u_arg[1] & 1)
-			tprintf("MNT_FORCE");
-		else
-			tprintf("0");
+		printflags(umount_flags, tcp->u_arg[1], "MNT_???");
 	}
 	return 0;
 }
@@ -264,6 +307,88 @@ struct tcb *tcp;
 	return 0;
 }
 #endif /* M68K */
+
+#ifdef BFIN
+
+#include <bfin_sram.h>
+
+static const struct xlat sram_alloc_flags[] = {
+	{ L1_INST_SRAM,		"L1_INST_SRAM" },
+	{ L1_DATA_A_SRAM,	"L1_DATA_A_SRAM" },
+	{ L1_DATA_B_SRAM,	"L1_DATA_B_SRAM" },
+	{ L1_DATA_SRAM,		"L1_DATA_SRAM" },
+	{ L2_SRAM,		"L2_SRAM" },
+	{ 0,			NULL },
+};
+
+int
+sys_sram_alloc(struct tcb *tcp)
+{
+	if (entering(tcp)) {
+		/* size */
+		tprintf("%lu, ", tcp->u_arg[0]);
+		/* flags */
+		printxval(sram_alloc_flags, tcp->u_arg[1], "???_SRAM");
+	}
+	return 1;
+}
+
+#include <asm/cachectl.h>
+
+static const struct xlat cacheflush_flags[] = {
+	{ ICACHE,	"ICACHE" },
+	{ DCACHE,	"DCACHE" },
+	{ BCACHE,	"BCACHE" },
+	{ 0,		NULL },
+};
+
+int
+sys_cacheflush(struct tcb *tcp)
+{
+	if (entering(tcp)) {
+		/* start addr */
+		tprintf("%#lx, ", tcp->u_arg[0]);
+		/* length */
+		tprintf("%ld, ", tcp->u_arg[1]);
+		/* flags */
+		printxval(cacheflush_flags, tcp->u_arg[1], "?CACHE");
+	}
+	return 0;
+}
+
+#endif
+
+#ifdef SH
+static const struct xlat cacheflush_flags[] = {
+#ifdef CACHEFLUSH_D_INVAL
+	{ CACHEFLUSH_D_INVAL,	"CACHEFLUSH_D_INVAL" },
+#endif
+#ifdef CACHEFLUSH_D_WB
+	{ CACHEFLUSH_D_WB,	"CACHEFLUSH_D_WB" },
+#endif
+#ifdef CACHEFLUSH_D_PURGE
+	{ CACHEFLUSH_D_PURGE,	"CACHEFLUSH_D_PURGE" },
+#endif
+#ifdef CACHEFLUSH_I
+	{ CACHEFLUSH_I,		"CACHEFLUSH_I" },
+#endif
+	{ 0,			NULL },
+};
+
+int
+sys_cacheflush(struct tcb *tcp)
+{
+	if (entering(tcp)) {
+		/* addr */
+		tprintf("%#lx, ", tcp->u_arg[0]);
+		/* len */
+		tprintf("%lu, ", tcp->u_arg[1]);
+		/* flags */
+		printflags(cacheflush_flags, tcp->u_arg[2], "CACHEFLUSH_???");
+	}
+	return 0;
+}
+#endif /* SH */
 
 #endif /* LINUX */
 
@@ -1452,6 +1577,21 @@ static const struct xlat capabilities[] = {
 	{ 1<<CAP_SYS_RESOURCE,	"CAP_SYS_RESOURCE"},
 	{ 1<<CAP_SYS_TIME,	"CAP_SYS_TIME"	},
 	{ 1<<CAP_SYS_TTY_CONFIG,"CAP_SYS_TTY_CONFIG"},
+#ifdef CAP_MKNOD
+	{ 1<<CAP_MKNOD,		"CAP_MKNOD"	},
+#endif
+#ifdef CAP_LEASE
+	{ 1<<CAP_LEASE,		"CAP_LEASE"	},
+#endif
+#ifdef CAP_AUDIT_WRITE
+	{ 1<<CAP_AUDIT_WRITE,	"CAP_AUDIT_WRITE"},
+#endif
+#ifdef CAP_AUDIT_CONTROL
+	{ 1<<CAP_AUDIT_CONTROL,	"CAP_AUDIT_CONTROL"},
+#endif
+#ifdef CAP_SETFCAP
+	{ 1<<CAP_SETFCAP,	"CAP_SETFCAP"	},
+#endif
 	{ 0,                    NULL            },
 };
 
@@ -1577,6 +1717,9 @@ struct tcb *tcp;
 #endif
 
 #ifdef LINUX
+/* Linux 2.6.18+ headers removed CTL_PROC enum.  */
+# define CTL_PROC 4
+# define CTL_CPU 10		/* older headers lack */
 static const struct xlat sysctl_root[] = {
 	{ CTL_KERN, "CTL_KERN" },
 	{ CTL_VM, "CTL_VM" },
@@ -1585,6 +1728,9 @@ static const struct xlat sysctl_root[] = {
 	{ CTL_FS, "CTL_FS" },
 	{ CTL_DEBUG, "CTL_DEBUG" },
 	{ CTL_DEV, "CTL_DEV" },
+	{ CTL_BUS, "CTL_BUS" },
+	{ CTL_ABI, "CTL_ABI" },
+	{ CTL_CPU, "CTL_CPU" },
 	{ 0, NULL }
 };
 
@@ -1930,7 +2076,9 @@ struct tcb *tcp;
 			goto out;
 		}
 	out:
-		max_cnt = abbrev(tcp) ? max_strlen : info.nlen;
+		max_cnt = info.nlen;
+		if (abbrev(tcp) && max_cnt > max_strlen)
+			max_cnt = max_strlen;
 		while (cnt < max_cnt)
 			tprintf(", %x", name[cnt++]);
 		if (cnt < info.nlen)

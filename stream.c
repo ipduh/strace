@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: stream.c,v 1.24 2005/06/01 19:22:07 roland Exp $
+ *	$Id$
  */
 
 #include "defs.h"
@@ -55,9 +55,9 @@
 #ifndef HAVE_STROPTS_H
 #define RS_HIPRI 1
 struct strbuf {
-        int     maxlen;                 /* no. of bytes in buffer */
-        int     len;                    /* no. of bytes returned */
-        char    *buf;                   /* pointer to data */
+	int     maxlen;                 /* no. of bytes in buffer */
+	int     len;                    /* no. of bytes returned */
+	const char *buf;                /* pointer to data */
 };
 #define MORECTL 1
 #define MOREDATA 2
@@ -129,6 +129,7 @@ struct tcb *tcp;
 	return 0;
 }
 
+#if defined(SPARC) || defined(SPARC64) || defined(SUNOS4) || defined(SVR4)
 int
 sys_getmsg(tcp)
 struct tcb *tcp;
@@ -175,6 +176,7 @@ struct tcb *tcp;
 	}
 	return RVAL_HEX | RVAL_STR;
 }
+#endif /* SPARC || SPARC64 || SUNOS4 || SVR4 */
 
 #if defined SYS_putpmsg || defined SYS_getpmsg
 static const struct xlat pmsgflags[] = {
@@ -294,79 +296,181 @@ static const struct xlat pollflags[] = {
 	{ 0,		NULL		},
 };
 
-int
-sys_poll(tcp)
-struct tcb *tcp;
+static int
+decode_poll(struct tcb *tcp, long pts)
 {
 	struct pollfd fds;
 	unsigned nfds;
 	unsigned long size, start, cur, end, abbrev_end;
 	int failed = 0;
 
-	if (entering(tcp))
-		return 0;
-
-	nfds = tcp->u_arg[1];
-	size = sizeof(fds) * nfds;
-	start = tcp->u_arg[0];
-	end = start + size;
-	if (nfds == 0 || size / sizeof(fds) != nfds || end < start) {
-		tprintf("%#lx, %d, %ld",
-			tcp->u_arg[0], nfds, tcp->u_arg[2]);
-		return 0;
-	}
-	if (abbrev(tcp)) {
-		abbrev_end = start + max_strlen * sizeof(fds);
-		if (abbrev_end < start)
+	if (entering(tcp)) {
+		nfds = tcp->u_arg[1];
+		size = sizeof(fds) * nfds;
+		start = tcp->u_arg[0];
+		end = start + size;
+		if (nfds == 0 || size / sizeof(fds) != nfds || end < start) {
+			tprintf("%#lx, %d, ",
+				tcp->u_arg[0], nfds);
+			return 0;
+		}
+		if (abbrev(tcp)) {
+			abbrev_end = start + max_strlen * sizeof(fds);
+			if (abbrev_end < start)
+				abbrev_end = end;
+		} else {
 			abbrev_end = end;
+		}
+		tprintf("[");
+		for (cur = start; cur < end; cur += sizeof(fds)) {
+			if (cur > start)
+				tprintf(", ");
+			if (cur >= abbrev_end) {
+				tprintf("...");
+				break;
+			}
+			if (umoven(tcp, cur, sizeof fds, (char *) &fds) < 0) {
+				tprintf("?");
+				failed = 1;
+				break;
+			}
+			if (fds.fd < 0) {
+				tprintf("{fd=%d}", fds.fd);
+				continue;
+			}
+			tprintf("{fd=");
+			printfd(tcp, fds.fd);
+			tprintf(", events=");
+			printflags(pollflags, fds.events, "POLL???");
+			tprintf("}");
+		}
+		tprintf("]");
+		if (failed)
+			tprintf(" %#lx", start);
+		tprintf(", %d, ", nfds);
+		return 0;
 	} else {
-		abbrev_end = end;
+		static char outstr[1024];
+		char str[64];
+		const char *flagstr;
+		unsigned int cumlen;
+
+		if (syserror(tcp))
+			return 0;
+		if (tcp->u_rval == 0) {
+			tcp->auxstr = "Timeout";
+			return RVAL_STR;
+		}
+
+		nfds = tcp->u_arg[1];
+		size = sizeof(fds) * nfds;
+		start = tcp->u_arg[0];
+		end = start + size;
+		if (nfds == 0 || size / sizeof(fds) != nfds || end < start)
+			return 0;
+		if (abbrev(tcp)) {
+			abbrev_end = start + max_strlen * sizeof(fds);
+			if (abbrev_end < start)
+				abbrev_end = end;
+		} else {
+			abbrev_end = end;
+		}
+
+		outstr[0] = '\0';
+		cumlen = 0;
+
+		for (cur = start; cur < end; cur += sizeof(fds)) {
+			if (umoven(tcp, cur, sizeof fds, (char *) &fds) < 0) {
+				++cumlen;
+				if (cumlen < sizeof(outstr))
+					strcat(outstr, "?");
+				failed = 1;
+				break;
+			}
+			if (!fds.revents)
+				continue;
+			if (!cumlen) {
+				++cumlen;
+				strcat(outstr, "[");
+			} else {
+				cumlen += 2;
+				if (cumlen < sizeof(outstr))
+					strcat(outstr, ", ");
+			}
+			if (cur >= abbrev_end) {
+				cumlen += 3;
+				if (cumlen < sizeof(outstr))
+					strcat(outstr, "...");
+				break;
+			}
+			sprintf(str, "{fd=%d, revents=", fds.fd);
+			flagstr=sprintflags("", pollflags, fds.revents);
+			cumlen += strlen(str) + strlen(flagstr) + 1;
+			if (cumlen < sizeof(outstr)) {
+				strcat(outstr, str);
+				strcat(outstr, flagstr);
+				strcat(outstr, "}");
+			}
+		}
+		if (failed)
+			return 0;
+
+		if (cumlen && ++cumlen < sizeof(outstr))
+			strcat(outstr, "]");
+
+		if (pts) {
+			char str[128];
+
+			sprintf(str, "%sleft ", cumlen ? ", " : "");
+			sprint_timespec(str + strlen(str), tcp, pts);
+			if ((cumlen += strlen(str)) < sizeof(outstr))
+				strcat(outstr, str);
+		}
+
+		if (!outstr[0])
+			return 0;
+
+		tcp->auxstr = outstr;
+		return RVAL_STR;
 	}
-	tprintf("[");
-	for (cur = start; cur < end; cur += sizeof(fds)) {
-		if (cur > start)
-			tprintf(", ");
-		if (cur >= abbrev_end) {
-			tprintf("...");
-			break;
-		}
-		if (umoven(tcp, cur, sizeof fds, (char *) &fds) < 0) {
-			tprintf("?");
-			failed = 1;
-			break;
-		}
-		if (fds.fd < 0) {
-			tprintf("{fd=%d}", fds.fd);
-			continue;
-		}
-		tprintf("{fd=%d, events=", fds.fd);
-		printflags(pollflags, fds.events, "POLL???");
-		if (!syserror(tcp) && fds.revents) {
-			tprintf(", revents=");
-			printflags(pollflags, fds.revents, "POLL???");
-		}
-		tprintf("}");
-	}
-	tprintf("]");
-	if (failed)
-		tprintf(" %#lx", start);
-	tprintf(", %d, ", nfds);
-#ifdef INFTIM
-	if (tcp->u_arg[2] == INFTIM)
-		tprintf("INFTIM");
-	else
-#endif
-		tprintf("%ld", tcp->u_arg[2]);
-	return 0;
 }
 
+int
+sys_poll(struct tcb *tcp)
+{
+	int rc = decode_poll(tcp, 0);
+	if (entering(tcp)) {
+#ifdef INFTIM
+		if (tcp->u_arg[2] == INFTIM)
+			tprintf("INFTIM");
+		else
+#endif
+			tprintf("%ld", tcp->u_arg[2]);
+	}
+	return rc;
+}
+
+#ifdef LINUX
+int
+sys_ppoll(struct tcb *tcp)
+{
+	int rc = decode_poll(tcp, tcp->u_arg[2]);
+	if (entering(tcp)) {
+		print_timespec(tcp, tcp->u_arg[2]);
+		tprintf(", ");
+		print_sigset(tcp, tcp->u_arg[3], 0);
+		tprintf(", %lu", tcp->u_arg[4]);
+	}
+	return rc;
+}
+#endif
 
 #else /* !HAVE_SYS_POLL_H */
 int
 sys_poll(tcp)
 struct tcb *tcp;
 {
-    	return 0;
+	return 0;
 }
 #endif
 
@@ -931,10 +1035,7 @@ int len;
 #endif /* TI_BIND */
 
 
-static int
-internal_stream_ioctl(tcp, arg)
-struct tcb *tcp;
-int arg;
+static int internal_stream_ioctl(struct tcb *tcp, int arg)
 {
 	struct strioctl si;
 	struct ioctlent *iop;
@@ -1049,9 +1150,6 @@ int arg;
 	case SI_GETUDATA:
 		if (entering(tcp))
 			break;
-#if 0
-		tprintf("struct si_udata ");
-#endif
 		if (umove(tcp, (int) si.ic_dp, &udata) < 0)
 			tprintf("{...}");
 		else {
@@ -1062,9 +1160,6 @@ int arg;
 			tprintf("servtype=%d, so_state=%d, ",
 				udata.servtype, udata.so_state);
 			tprintf("so_options=%d", udata.so_options);
-#if 0
-			tprintf(", tsdusize=%d", udata.tsdusize);
-#endif
 			tprintf("}");
 		}
 		break;
@@ -1075,7 +1170,7 @@ int arg;
 	}
 	if (exiting(tcp)) {
 		tprintf("}");
-		if (timod && tcp->u_rval) {
+		if (timod && tcp->u_rval && !syserror(tcp)) {
 			tcp->auxstr = xlookup (tli_errors, tcp->u_rval);
 			return RVAL_STR + 1;
 		}

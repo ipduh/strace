@@ -24,7 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: proc.c,v 1.7 2005/06/01 19:02:36 roland Exp $
+ *	$Id$
  */
 
 #include "defs.h"
@@ -242,7 +242,7 @@ int code, arg;
 		printflags(proc_status_flags, arg, "PF_???");
 		return 1;
 	case PIOCGFL:
-	        if (syserror(tcp))
+		if (syserror(tcp))
 			tprintf(", %#x", arg);
 		else if (umove(tcp, arg, &val) < 0)
 			tprintf(", {...}");

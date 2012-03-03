@@ -25,13 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: syscall.h,v 1.45 2005/06/07 23:21:28 roland Exp $
+ *	$Id$
  */
 
 #include "dummy.h"
 
 /* primary syscalls */
 
+int sys_restart_syscall();
 int sys_setup(), sys_exit(), sys_fork(), sys_read(), sys_write();
 int sys_open(), sys_close(), sys_waitpid(), sys_creat(), sys_link();
 int sys_unlink(), sys_execve(), sys_chdir(), sys_time(), sys_mknod();
@@ -98,21 +99,47 @@ int sys_mq_open(), sys_mq_timedsend(), sys_mq_timedreceive();
 int sys_mq_notify(), sys_mq_getsetattr();
 int sys_epoll_create(), sys_epoll_ctl(), sys_epoll_wait();
 int sys_waitid(), sys_fadvise64(), sys_fadvise64_64();
-int sys_mbind(), sys_get_mempolicy(), sys_set_mempolicy();
+int sys_mbind(), sys_get_mempolicy(), sys_set_mempolicy(), sys_move_pages();
 int sys_arch_prctl();
 int sys_io_setup(), sys_io_submit(), sys_io_cancel(), sys_io_getevents(), sys_io_destroy();
+int sys_utimensat(), sys_epoll_pwait(), sys_signalfd(), sys_timerfd(), sys_eventfd();
+int sys_getcpu();
+int sys_fallocate(), sys_timerfd_create(), sys_timerfd_settime(), sys_timerfd_gettime();
+int sys_signalfd4(), sys_eventfd2(), sys_epoll_create1(), sys_dup3(), sys_pipe2();
 
 /* sys_socketcall subcalls */
 
-int sys_socket(), sys_bind(), sys_connect(), sys_listen();
+int sys_socket(), sys_bind(), sys_connect(), sys_listen(), sys_accept4();
 int sys_accept(), sys_getsockname(), sys_getpeername(), sys_socketpair();
 int sys_send(), sys_recv(), sys_sendto(), sys_recvfrom();
 int sys_shutdown(), sys_setsockopt(), sys_getsockopt();
+int sys_recvmmsg();
+
+/* *at syscalls */
+int sys_fchmodat();
+int sys_newfstatat();
+int sys_unlinkat();
+int sys_fchownat();
+int sys_openat();
+int sys_renameat();
+int sys_symlinkat();
+int sys_readlinkat();
+int sys_linkat();
+int sys_faccessat();
+int sys_mkdirat();
+int sys_mknodat();
+int sys_futimesat();
 
 /* new ones */
 int sys_query_module();
 int sys_poll();
 int sys_mincore();
+int sys_inotify_add_watch();
+int sys_inotify_rm_watch();
+int sys_inotify_init1();
+int sys_pselect6();
+int sys_ppoll();
+int sys_unshare();
 
 /* architecture-specific calls */
 #ifdef ALPHA
@@ -155,7 +182,8 @@ int sys_osf_utimes();
 # endif
 #endif
 
-#if !defined(ALPHA) && !defined(MIPS) && !defined(HPPA)
+#if !defined(ALPHA) && !defined(MIPS) && !defined(HPPA) && \
+	!defined(__ARM_EABI__)
 # ifdef	IA64
 /*
  *  IA64 syscall numbers (the only ones available from standard header
@@ -182,7 +210,11 @@ int sys_osf_utimes();
 #  undef SYS_sendmsg
 #  undef SYS_recvmsg
 # endif /* IA64 */
-#  define SYS_socket_subcall	300
+# if defined(SPARC) || defined(SPARC64)
+#  define SYS_socket_subcall	353
+# else
+#  define SYS_socket_subcall	400
+# endif
 #define SYS_sub_socket		(SYS_socket_subcall + 1)
 #define SYS_sub_bind		(SYS_socket_subcall + 2)
 #define SYS_sub_connect		(SYS_socket_subcall + 3)
@@ -200,8 +232,10 @@ int sys_osf_utimes();
 #define SYS_sub_getsockopt	(SYS_socket_subcall + 15)
 #define SYS_sub_sendmsg		(SYS_socket_subcall + 16)
 #define SYS_sub_recvmsg		(SYS_socket_subcall + 17)
+#define SYS_sub_accept4		(SYS_socket_subcall + 18)
+#define SYS_sub_recvmmsg	(SYS_socket_subcall + 19)
 
-#define SYS_socket_nsubcalls	18
+#define SYS_socket_nsubcalls	20
 #endif /* !(ALPHA || MIPS || HPPA) */
 
 /* sys_ipc subcalls */
@@ -210,7 +244,8 @@ int sys_semget(), sys_semctl(), sys_semop();
 int sys_msgsnd(), sys_msgrcv(), sys_msgget(), sys_msgctl();
 int sys_shmat(), sys_shmdt(), sys_shmget(), sys_shmctl();
 
-#if !defined(ALPHA) && !defined(MIPS) && !defined(SPARC) && !defined(HPPA)
+#if !defined(ALPHA) && !defined(MIPS) && !defined(HPPA) && \
+	!defined(__ARM_EABI__)
 # ifdef	IA64
    /*
     * IA64 syscall numbers (the only ones available from standard
@@ -249,7 +284,7 @@ int sys_shmat(), sys_shmdt(), sys_shmget(), sys_shmctl();
 #define SYS_sub_shmctl		(SYS_ipc_subcall + 24)
 
 #define SYS_ipc_nsubcalls	25
-#endif /* !(ALPHA || MIPS || SPARC || HPPA) */
+#endif /* !(ALPHA || MIPS || HPPA) */
 
 #if defined SYS_ipc_subcall && !defined SYS_ipc
 # define SYS_ipc SYS_ipc_subcall
@@ -291,6 +326,45 @@ int sys_sysmips();
 int sys_setpgrp(), sys_gethostname(), sys_getdtablesize(), sys_utimes();
 int sys_capget(), sys_capset();
 
-#ifdef M68K
+#if defined M68K || defined SH
 int sys_cacheflush();
+#endif
+
+int sys_pread64(), sys_pwrite64();
+
+#ifdef POWERPC
+int sys_subpage_prot();
+#endif
+
+#ifdef BFIN
+int sys_sram_alloc();
+int sys_cacheflush();
+#endif
+
+#if defined SPARC || defined SPARC64
+#include "sparc/syscall1.h"
+int sys_execv();
+int sys_getpagesize();
+int sys_getmsg(), sys_putmsg();
+
+int	sys_semsys(), sys_semctl(), sys_semget();
+#define SYS_semsys_subcall	200
+#define SYS_semsys_nsubcalls	3
+#define SYS_semctl		(SYS_semsys_subcall + 0)
+#define SYS_semget		(SYS_semsys_subcall + 1)
+#define SYS_semop		(SYS_semsys_subcall + 2)
+int	sys_msgsys(), sys_msgget(), sys_msgctl(), sys_msgrcv(), sys_msgsnd();
+#define SYS_msgsys_subcall	203
+#define SYS_msgsys_nsubcalls	4
+#define SYS_msgget		(SYS_msgsys_subcall + 0)
+#define SYS_msgctl		(SYS_msgsys_subcall + 1)
+#define SYS_msgrcv		(SYS_msgsys_subcall + 2)
+#define SYS_msgsnd		(SYS_msgsys_subcall + 3)
+int	sys_shmsys(), sys_shmat(), sys_shmctl(), sys_shmdt(), sys_shmget();
+#define SYS_shmsys_subcall	207
+#define SYS_shmsys_nsubcalls	4
+#define SYS_shmat		(SYS_shmsys_subcall + 0)
+#define SYS_shmctl		(SYS_shmsys_subcall + 1)
+#define SYS_shmdt		(SYS_shmsys_subcall + 2)
+#define SYS_shmget		(SYS_shmsys_subcall + 3)
 #endif

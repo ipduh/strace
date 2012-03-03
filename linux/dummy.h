@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: dummy.h,v 1.17 2004/04/16 21:48:44 roland Exp $
+ *	$Id$
  */
 
 /* still unfinished */
@@ -41,8 +41,10 @@
 /* machine-specific */
 #ifndef I386
 #define	sys_modify_ldt		printargs
+#ifndef M68K
 #define sys_get_thread_area	printargs
 #define sys_set_thread_area	printargs
+#endif
 #endif
 
 #define sys_sched_yield		printargs
@@ -54,11 +56,12 @@
 #define	sys_umount		sys_chdir
 #define	sys_swapon		sys_chdir
 #define	sys_swapoff		sys_chdir
-#define	sys_delete_module	sys_chdir
+#define	sys_delete_module	sys_open
 #define	sys_fchdir		sys_close
-#define	sys_setfsuid		sys_setuid
-#define	sys_setfsgid		sys_setgid
-#define sys_nanosleep		sys_adjtime
+#define	sys_getgid		sys_getuid
+#define	sys_getegid		sys_getuid
+#define	sys_geteuid		sys_getuid
+#define	sys_setfsgid		sys_setfsuid
 #define	sys_acct		sys_chdir
 #define sys_fdatasync		sys_close
 #define sys_mlock		sys_munmap
@@ -69,12 +72,8 @@
 /* printargs does the right thing */
 #define	sys_setup		printargs
 #define	sys_getpid		printargs
-#define	sys_getuid		printargs
 #define	sys_pause		printargs
 #define	sys_sync		printargs
-#define	sys_getgid		printargs
-#define	sys_geteuid		printargs
-#define	sys_getegid		printargs
 #define	sys_getppid		printargs
 #define	sys_getpgrp		printargs
 #define	sys_setsid		printargs
@@ -223,26 +222,4 @@
 #define	sys_quotactl		printargs
 #define sys_mlockall		printargs
 #define	sys_reboot		printargs
-#endif
-
-
-#ifdef HAVE_ANDROID_OS
-
-#define sys_mq_open printargs
-#define sys_mq_timedsend printargs
-#define sys_mq_timedreceive printargs
-#define sys_mq_notify printargs
-#define sys_mq_getsetattr printargs
-#define sys_semop printargs
-#define sys_semget printargs
-#define sys_semctl printargs
-#define sys_semtimedop printargs
-#define sys_msgsnd printargs
-#define sys_msgrcv printargs
-#define sys_msgget printargs
-#define sys_msgctl printargs
-#define sys_shmat printargs
-#define sys_shmdt printargs
-#define sys_shmget printargs
-#define sys_shmctl printargs
 #endif

@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: resource.c,v 1.13 2004/10/06 22:14:53 roland Exp $
+ *	$Id$
  */
 
 #include "defs.h"
@@ -36,18 +36,7 @@
 #ifdef LINUX
 #include <sys/times.h>
 #include <linux/kernel.h>
-#ifdef HAVE_ANDROID_OS
-#define spinlock_t struct spinlock_t
-#define if_dqblk dqblk
-#define dqb_curblocks dqb_curspace
-#else
-#include <sys/quota.h>
-#endif
-#include <linux/quota.h>
 #endif /* LINUX */
-#ifdef SUNOS4
-#include <ufs/quota.h>
-#endif /* SUNOS4 */
 #if defined(SVR4) || defined(FREEBSD)
 #include <sys/times.h>
 #include <sys/time.h>
@@ -67,55 +56,60 @@
 #endif
 
 static const struct xlat resources[] = {
-#ifdef RLIMIT_CPU
-	{ RLIMIT_CPU,	"RLIMIT_CPU"	},
-#endif
-#ifdef RLIMIT_FSIZE
-	{ RLIMIT_FSIZE,	"RLIMIT_FSIZE"	},
-#endif
-#ifdef RLIMIT_DATA
-	{ RLIMIT_DATA,	"RLIMIT_DATA"	},
-#endif
-#ifdef RLIMIT_STACK
-	{ RLIMIT_STACK,	"RLIMIT_STACK"	},
+#ifdef RLIMIT_AS
+	{ RLIMIT_AS,	"RLIMIT_AS"	},
 #endif
 #ifdef RLIMIT_CORE
 	{ RLIMIT_CORE,	"RLIMIT_CORE"	},
 #endif
-#ifdef RLIMIT_RSS
-	{ RLIMIT_RSS,	"RLIMIT_RSS"	},
+#ifdef RLIMIT_CPU
+	{ RLIMIT_CPU,	"RLIMIT_CPU"	},
 #endif
-#ifdef RLIMIT_NPROC
-	{ RLIMIT_NPROC,"RLIMIT_NPROC"	},
+#ifdef RLIMIT_DATA
+	{ RLIMIT_DATA,	"RLIMIT_DATA"	},
 #endif
-#ifdef RLIMIT_NOFILE
-	{ RLIMIT_NOFILE,"RLIMIT_NOFILE"	},
-#endif
-#ifdef RLIMIT_MEMLOCK
-	{ RLIMIT_MEMLOCK,	"RLIMIT_MEMLOCK"	},
-#endif
-#ifdef RLIMIT_VMEM
-	{ RLIMIT_VMEM,	"RLIMIT_VMEM"	},
-#endif
-#ifdef RLIMIT_AS
-	{ RLIMIT_AS,	"RLIMIT_AS"	},
+#ifdef RLIMIT_FSIZE
+	{ RLIMIT_FSIZE,	"RLIMIT_FSIZE"	},
 #endif
 #ifdef RLIMIT_LOCKS
 	{ RLIMIT_LOCKS,	"RLIMIT_LOCKS"	},
 #endif
-#ifdef RLIMIT_SIGPENDING
-	{ RLIMIT_SIGPENDING,	"RLIMIT_SIGPENDING"	},
+#ifdef RLIMIT_MEMLOCK
+	{ RLIMIT_MEMLOCK,	"RLIMIT_MEMLOCK"	},
 #endif
 #ifdef RLIMIT_MSGQUEUE
 	{ RLIMIT_MSGQUEUE,	"RLIMIT_MSGQUEUE"	},
+#endif
+#ifdef RLIMIT_NICE
+	{ RLIMIT_NICE,	"RLIMIT_NICE"	},
+#endif
+#ifdef RLIMIT_NOFILE
+	{ RLIMIT_NOFILE,	"RLIMIT_NOFILE"	},
+#endif
+#ifdef RLIMIT_NPROC
+	{ RLIMIT_NPROC,	"RLIMIT_NPROC"	},
+#endif
+#ifdef RLIMIT_RSS
+	{ RLIMIT_RSS,	"RLIMIT_RSS"	},
+#endif
+#ifdef RLIMIT_RTPRIO
+	{ RLIMIT_RTPRIO,	"RLIMIT_RTPRIO"	},
+#endif
+#ifdef RLIMIT_SIGPENDING
+	{ RLIMIT_SIGPENDING,	"RLIMIT_SIGPENDING"	},
+#endif
+#ifdef RLIMIT_STACK
+	{ RLIMIT_STACK,	"RLIMIT_STACK"	},
+#endif
+#ifdef RLIMIT_VMEM
+	{ RLIMIT_VMEM,	"RLIMIT_VMEM"	},
 #endif
 	{ 0,		NULL		},
 };
 
 #if !HAVE_LONG_LONG_RLIM_T
 static char *
-sprintrlim(lim)
-long lim;
+sprintrlim(long lim)
 {
 	static char buf[32];
 
@@ -128,9 +122,30 @@ long lim;
 	return buf;
 }
 
+# if defined LINUX && (defined POWERPC64 || defined X86_64)
+static void
+print_rlimit32(struct tcb *tcp)
+{
+	struct rlimit32 {
+		unsigned int rlim_cur;
+		unsigned int rlim_max;
+	} rlim;
+
+	if (umove(tcp, tcp->u_arg[1], &rlim) < 0)
+		tprintf("{...}");
+	else {
+		tprintf("{rlim_cur=%s,",
+			sprintrlim(rlim.rlim_cur == -1 ? RLIM_INFINITY
+				   : rlim.rlim_cur));
+		tprintf(" rlim_max=%s}",
+			sprintrlim(rlim.rlim_max == -1 ? RLIM_INFINITY
+				   : rlim.rlim_max));
+	}
+}
+# endif
+
 int
-sys_getrlimit(tcp)
-struct tcb *tcp;
+sys_getrlimit(struct tcb *tcp)
 {
 	struct rlimit rlim;
 
@@ -141,6 +156,10 @@ struct tcb *tcp;
 	else {
 		if (syserror(tcp) || !verbose(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
+# if defined LINUX && (defined POWERPC64 || defined X86_64)
+		else if (current_personality == 1)
+			print_rlimit32(tcp);
+# endif
 		else if (umove(tcp, tcp->u_arg[1], &rlim) < 0)
 			tprintf("{...}");
 		else {
@@ -152,8 +171,7 @@ struct tcb *tcp;
 }
 
 int
-sys_setrlimit(tcp)
-struct tcb *tcp;
+sys_setrlimit(struct tcb *tcp)
 {
 	struct rlimit rlim;
 
@@ -162,6 +180,10 @@ struct tcb *tcp;
 		tprintf(", ");
 		if (!verbose(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
+# if defined LINUX && (defined POWERPC64 || defined X86_64)
+		else if (current_personality == 1)
+			print_rlimit32(tcp);
+# endif
 		else if (umove(tcp, tcp->u_arg[1], &rlim) < 0)
 			tprintf("{...}");
 		else {
@@ -173,11 +195,9 @@ struct tcb *tcp;
 }
 #endif /* !HAVE_LONG_LONG_RLIM_T */
 
-#ifndef HAVE_ANDROID_OS
 #if _LFS64_LARGEFILE || HAVE_LONG_LONG_RLIM_T
 static char *
-sprintrlim64(lim)
-rlim64_t lim;
+sprintrlim64(rlim64_t lim)
 {
 	static char buf[64];
 
@@ -191,8 +211,7 @@ rlim64_t lim;
 }
 
 int
-sys_getrlimit64(tcp)
-struct tcb *tcp;
+sys_getrlimit64(struct tcb *tcp)
 {
 	struct rlimit64 rlim;
 
@@ -214,8 +233,7 @@ struct tcb *tcp;
 }
 
 int
-sys_setrlimit64(tcp)
-struct tcb *tcp;
+sys_setrlimit64(struct tcb *tcp)
 {
 	struct rlimit64 rlim;
 
@@ -234,7 +252,6 @@ struct tcb *tcp;
 	return 0;
 }
 #endif /* _LFS64_LARGEFILES || HAVE_LONG_LONG_RLIM_T */
-#endif /* HAVE_ANDROID_OS */
 
 #ifndef SVR4
 
@@ -249,70 +266,64 @@ static const struct xlat usagewho[] = {
 
 #ifdef ALPHA
 void
-printrusage32(tcp, addr)
-struct tcb *tcp;
-long addr;
+printrusage32(struct tcb *tcp, long addr)
 {
-    struct timeval32
-    {
-	unsigned tv_sec;
-	unsigned tv_usec;
-    };
-    struct rusage32
-    {
-	struct timeval32 ru_utime;	/* user time used */
-	struct timeval32 ru_stime;	/* system time used */
-	long	ru_maxrss;		/* maximum resident set size */
-	long	ru_ixrss;		/* integral shared memory size */
-	long	ru_idrss;		/* integral unshared data size */
-	long	ru_isrss;		/* integral unshared stack size */
-	long	ru_minflt;		/* page reclaims */
-	long	ru_majflt;		/* page faults */
-	long	ru_nswap;		/* swaps */
-	long	ru_inblock;		/* block input operations */
-	long	ru_oublock;		/* block output operations */
-	long	ru_msgsnd;		/* messages sent */
-	long	ru_msgrcv;		/* messages received */
-	long	ru_nsignals;		/* signals received */
-	long	ru_nvcsw;		/* voluntary context switches */
-	long	ru_nivcsw;		/* involuntary " */
-    } ru;
+	struct timeval32 {
+		unsigned tv_sec;
+		unsigned tv_usec;
+	};
+	struct rusage32 {
+		struct timeval32 ru_utime;	/* user time used */
+		struct timeval32 ru_stime;	/* system time used */
+		long	ru_maxrss;		/* maximum resident set size */
+		long	ru_ixrss;		/* integral shared memory size */
+		long	ru_idrss;		/* integral unshared data size */
+		long	ru_isrss;		/* integral unshared stack size */
+		long	ru_minflt;		/* page reclaims */
+		long	ru_majflt;		/* page faults */
+		long	ru_nswap;		/* swaps */
+		long	ru_inblock;		/* block input operations */
+		long	ru_oublock;		/* block output operations */
+		long	ru_msgsnd;		/* messages sent */
+		long	ru_msgrcv;		/* messages received */
+		long	ru_nsignals;		/* signals received */
+		long	ru_nvcsw;		/* voluntary context switches */
+		long	ru_nivcsw;		/* involuntary " */
+	} ru;
 
-    if (!addr)
-	tprintf("NULL");
-    else if (syserror(tcp) || !verbose(tcp))
-	tprintf("%#lx", addr);
-    else if (umove(tcp, addr, &ru) < 0)
-	tprintf("{...}");
-    else if (!abbrev(tcp)) {
-	tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ",
-		(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
-		(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
-	tprintf("ru_maxrss=%lu, ru_ixrss=%lu, ",
-		ru.ru_maxrss, ru.ru_ixrss);
-	tprintf("ru_idrss=%lu, ru_isrss=%lu, ",
-		ru.ru_idrss, ru.ru_isrss);
-	tprintf("ru_minflt=%lu, ru_majflt=%lu, ru_nswap=%lu, ",
-		ru.ru_minflt, ru.ru_majflt, ru.ru_nswap);
-	tprintf("ru_inblock=%lu, ru_oublock=%lu, ",
-		ru.ru_inblock, ru.ru_oublock);
-	tprintf("ru_msgsnd=%lu, ru_msgrcv=%lu, ",
-		ru.ru_msgsnd, ru.ru_msgrcv);
-	tprintf("ru_nsignals=%lu, ru_nvcsw=%lu, ru_nivcsw=%lu}",
-		ru.ru_nsignals, ru.ru_nvcsw, ru.ru_nivcsw);
-    }
-    else {
-	tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ...}",
-		(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
-		(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
-    }
+	if (!addr)
+		tprintf("NULL");
+	else if (syserror(tcp) || !verbose(tcp))
+		tprintf("%#lx", addr);
+	else if (umove(tcp, addr, &ru) < 0)
+		tprintf("{...}");
+	else if (!abbrev(tcp)) {
+		tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ",
+			(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
+			(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
+		tprintf("ru_maxrss=%lu, ru_ixrss=%lu, ",
+			ru.ru_maxrss, ru.ru_ixrss);
+		tprintf("ru_idrss=%lu, ru_isrss=%lu, ",
+			ru.ru_idrss, ru.ru_isrss);
+		tprintf("ru_minflt=%lu, ru_majflt=%lu, ru_nswap=%lu, ",
+			ru.ru_minflt, ru.ru_majflt, ru.ru_nswap);
+		tprintf("ru_inblock=%lu, ru_oublock=%lu, ",
+			ru.ru_inblock, ru.ru_oublock);
+		tprintf("ru_msgsnd=%lu, ru_msgrcv=%lu, ",
+			ru.ru_msgsnd, ru.ru_msgrcv);
+		tprintf("ru_nsignals=%lu, ru_nvcsw=%lu, ru_nivcsw=%lu}",
+			ru.ru_nsignals, ru.ru_nvcsw, ru.ru_nivcsw);
+	}
+	else {
+		tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ...}",
+			(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
+			(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
+	}
 }
 #endif
 
 void
-printrusage(tcp, addr)
-struct tcb *tcp;
-long addr;
+printrusage(struct tcb *tcp, long addr)
 {
 	struct rusage ru;
 
@@ -347,8 +358,7 @@ long addr;
 }
 
 int
-sys_getrusage(tcp)
-struct tcb *tcp;
+sys_getrusage(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printxval(usagewho, tcp->u_arg[0], "RUSAGE_???");
@@ -361,16 +371,15 @@ struct tcb *tcp;
 
 #ifdef ALPHA
 int
-sys_osf_getrusage(tcp)
-struct tcb *tcp;
+sys_osf_getrusage(struct tcb *tcp)
 {
-    if (entering(tcp)) {
-	printxval(usagewho, tcp->u_arg[0], "RUSAGE_???");
-	tprintf(", ");
-    }
-    else
-	printrusage32(tcp, tcp->u_arg[1]);
-    return 0;
+	if (entering(tcp)) {
+		printxval(usagewho, tcp->u_arg[0], "RUSAGE_???");
+		tprintf(", ");
+	}
+	else
+		printrusage32(tcp, tcp->u_arg[1]);
+	return 0;
 }
 #endif /* ALPHA */
 
@@ -379,8 +388,7 @@ struct tcb *tcp;
 #ifdef LINUX
 
 int
-sys_sysinfo(tcp)
-struct tcb *tcp;
+sys_sysinfo(struct tcb *tcp)
 {
 	struct sysinfo si;
 
@@ -414,8 +422,7 @@ static const struct xlat priorities[] = {
 };
 
 int
-sys_getpriority(tcp)
-struct tcb *tcp;
+sys_getpriority(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printxval(priorities, tcp->u_arg[0], "PRIO_???");
@@ -425,8 +432,7 @@ struct tcb *tcp;
 }
 
 int
-sys_setpriority(tcp)
-struct tcb *tcp;
+sys_setpriority(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printxval(priorities, tcp->u_arg[0], "PRIO_???");
@@ -436,8 +442,7 @@ struct tcb *tcp;
 }
 
 int
-sys_nice(tcp)
-struct tcb *tcp;
+sys_nice(struct tcb *tcp)
 {
 	if (entering(tcp))
 		tprintf("%ld", tcp->u_arg[0]);
@@ -447,8 +452,7 @@ struct tcb *tcp;
 #ifndef SUNOS4
 
 int
-sys_times(tcp)
-struct tcb *tcp;
+sys_times(struct tcb *tcp)
 {
 	struct tms tbuf;
 
@@ -470,144 +474,3 @@ struct tcb *tcp;
 }
 
 #endif /* !SUNOS4 */
-
-
-//#ifndef HAVE_ANDROID_OS
-#ifdef LINUX
-
-#define NEW_CMD(c)      ((0x80<<16)+(c))
-#define XQM_CMD(c)      (('X'<<8)+(c))
-#define NEW_COMMAND(c) (( ((c) >> SUBCMDSHIFT) & (0x80 << 16)))
-#define XQM_COMMAND(c) (( ((c) >> SUBCMDSHIFT) & ('X' << 8)) == ('X' << 8))
-#define OLD_COMMAND(c) (!NEW_COMMAND(c) && !XQM_COMMAND(c))
-
-static const struct xlat quotacmds[] = {
-	{ Q_QUOTAON,	"Q_QUOTAON"	},
-	{ Q_QUOTAOFF,	"Q_QUOTAOFF"	},
-	{ Q_GETQUOTA,	"Q_GETQUOTA"	},
-	{ Q_SETQUOTA,	"Q_SETQUOTA"	},
-#ifndef HAVE_ANDROID_OS
-	{ Q_SETUSE,	"Q_SETUSE"	},
-#endif
-	{ Q_SYNC,	"Q_SYNC"	},
-#ifndef HAVE_ANDROID_OS
-	{ Q_SETQLIM,	"Q_SETQLIM"	},
-	{ Q_GETSTATS,	"Q_GETSTATS"	},
-	{ Q_RSQUASH,	"Q_RSQUASH"	},
-#endif
-	{ NEW_CMD(0x1), "Q_SYNC"        },
-	{ NEW_CMD(0x2), "Q_QUOTAON"     },
-	{ NEW_CMD(0x3), "Q_QUOTAOFF"    },
-	{ NEW_CMD(0x4), "Q_GETFMT"      },
-	{ NEW_CMD(0x5), "Q_GETINFO"     },
-	{ NEW_CMD(0x6), "Q_SETINFO"     },
-	{ NEW_CMD(0x7), "Q_GETQUOTA"    },
-	{ NEW_CMD(0x8), "Q_SETQUOTA"    },
-	{ XQM_CMD(0x1), "Q_XQUOTAON"    },
-	{ XQM_CMD(0x2), "Q_XQUOTAOFF"   },
-	{ XQM_CMD(0x3), "Q_XGETQUOTA"   },
-	{ XQM_CMD(0x4), "Q_XSETQLIM"    },
-	{ XQM_CMD(0x5), "Q_XGETQSTAT"   },
-	{ XQM_CMD(0x6), "Q_XQUOTARM"    },
-	{ 0,		NULL		},
-};
-
-static const struct xlat quotatypes[] = {
-	{ USRQUOTA,	"USRQUOTA"	},
-	{ GRPQUOTA,	"GRPQUOTA"	},
-	{ 0,		NULL		},
-};
-
-int
-sys_quotactl(tcp)
-struct tcb *tcp;
-{
-	/*
-	 * The Linux kernel only looks at the low 32 bits of the command
-	 * argument, but on some 64-bit architectures (s390x) this word
-	 * will have been sign-extended when we see it.  The high 1 bits
-	 * don't mean anything, so don't confuse the output with them.
-	 */
-	unsigned int cmd = tcp->u_arg[0];
-
-	if (entering(tcp)) {
-		printxval(quotacmds, cmd >> SUBCMDSHIFT, "Q_???");
-		tprintf("|");
-		printxval(quotatypes, cmd & SUBCMDMASK, "???QUOTA");
-		tprintf(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
-		tprintf(", %lu, ", tcp->u_arg[2]);
-	}
-	else {
-		struct dqblk dq;
-
-		if (!tcp->u_arg[3])
-			tprintf("NULL");
-               else if (!verbose(tcp) || !OLD_COMMAND(cmd))
-			tprintf("%#lx", tcp->u_arg[3]);
-                else if (umoven(tcp, tcp->u_arg[3], sizeof(struct dqblk),
-                    (char *) &dq) < 0)
-                        tprintf("???");
-		else {
-                        tprintf("{");
-			tprintf("%u, ", dq.dqb_bhardlimit);
-			tprintf("%u, ", dq.dqb_bsoftlimit);
-			tprintf("%u, ", dq.dqb_curblocks);
-			tprintf("%u, ", dq.dqb_ihardlimit);
-			tprintf("%u, ", dq.dqb_isoftlimit);
-			tprintf("%u, ", dq.dqb_curinodes);
-			tprintf("%lu, ", dq.dqb_btime);
-			tprintf("%lu", dq.dqb_itime);
-                        tprintf("}");
-		}
-
-	}
-	return 0;
-}
-
-#endif /* Linux */
-//#endif /* HAVE_ANDROID_OS */
-
-#if defined(SUNOS4) || defined(FREEBSD)
-
-#ifdef FREEBSD
-#include <ufs/ufs/quota.h>
-#endif
-
-static const struct xlat quotacmds[] = {
-	{ Q_QUOTAON,	"Q_QUOTAON"	},
-	{ Q_QUOTAOFF,	"Q_QUOTAOFF"	},
-	{ Q_GETQUOTA,	"Q_GETQUOTA"	},
-	{ Q_SETQUOTA,	"Q_SETQUOTA"	},
-#ifdef Q_SETQLIM
-	{ Q_SETQLIM,	"Q_SETQLIM"	},
-#endif
-#ifdef Q_SETUSE
-	{ Q_SETUSE,	"Q_SETUSE"	},
-#endif
-	{ Q_SYNC,	"Q_SYNC"	},
-	{ 0,		NULL		},
-};
-
-int
-sys_quotactl(tcp)
-struct tcb *tcp;
-{
-	/* fourth arg (addr) not interpreted here */
-	if (entering(tcp)) {
-#ifdef SUNOS4
-		printxval(quotacmds, tcp->u_arg[0], "Q_???");
-		tprintf(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
-#endif
-#ifdef FREEBSD
-		printpath(tcp, tcp->u_arg[0]);
-		tprintf(", ");
-		printxval(quotacmds, tcp->u_arg[1], "Q_???");
-#endif
-		tprintf(", %lu, %#lx", tcp->u_arg[2], tcp->u_arg[3]);
-	}
-	return 0;
-}
-
-#endif /* SUNOS4 || FREEBSD */

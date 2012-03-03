@@ -27,7 +27,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: ioctl.c,v 1.14 2005/02/02 20:32:13 roland Exp $
+ *	$Id$
  */
 
 #include "defs.h"
@@ -152,6 +152,13 @@ long code, arg;
 #ifdef LINUX
 	case 'p':
 		return rtc_ioctl(tcp, code, arg);
+	case 0x03:
+	case 0x12:
+		return block_ioctl(tcp, code, arg);
+#ifndef HAVE_ANDROID_OS
+	case 0x22:
+		return scsi_ioctl(tcp, code, arg);
+#endif
 #endif
 	default:
 		break;
