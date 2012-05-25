@@ -280,7 +280,9 @@
 #define SYS_ustat __NR_ustat
 #define SYS_utime __NR_utime
 #define SYS_utimes __NR_utimes
+#ifdef __NR_vfork
 #define SYS_vfork __NR_vfork
+#endif
 #define SYS_vhangup __NR_vhangup
 #define SYS_vm86 __NR_vm86
 #define SYS_vm86old __NR_vm86old

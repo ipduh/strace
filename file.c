@@ -60,6 +60,7 @@ struct dirent64 {
 
 // ANDROID: From kernel_headers/asm/statfs.h
 
+#if !defined(MIPS)
 /*
  * With EABI there is 4 bytes of padding added to this structure.
  * Let's pack it so the padding goes away to simplify dual ABI support.
@@ -78,6 +79,24 @@ struct statfs64 {
         __u32 f_frsize;
         __u32 f_spare[5];
 } __attribute__ ((packed,aligned(4)));
+#else
+struct statfs64 {
+	__u32 f_type;
+	__u32 f_bsize;
+	__u32 f_frsize;
+	__u32 __pad;
+	__u64 f_blocks;
+	__u64 f_bfree;
+	__u64 f_files;
+	__u64 f_ffree;
+	__u64 f_bavail;
+	__kernel_fsid_t f_fsid;
+	__u32 f_namelen;
+	__u32 f_spare[6];
+};
+#endif
+
+
 #endif /* HAVE_ANDROID_OS */
 
 #ifdef LINUX
@@ -1767,11 +1786,19 @@ printstatfs(struct tcb *tcp, long addr)
 		(unsigned long)statbuf.f_bsize,
 		(unsigned long)statbuf.f_blocks,
 		(unsigned long)statbuf.f_bfree);
+#ifdef MIPS
+	tprintf("f_bavail=%lu, f_files=%lu, f_ffree=%lu, f_fsid={%ld, %ld}",
+		(unsigned long)statbuf.f_bavail,
+		(unsigned long)statbuf.f_files,
+		(unsigned long)statbuf.f_ffree,
+		statbuf.f_fsid.val[0], statbuf.f_fsid.val[1]);
+#else
 	tprintf("f_bavail=%lu, f_files=%lu, f_ffree=%lu, f_fsid={%d, %d}",
 		(unsigned long)statbuf.f_bavail,
 		(unsigned long)statbuf.f_files,
 		(unsigned long)statbuf.f_ffree,
 		statbuf.f_fsid.__val[0], statbuf.f_fsid.__val[1]);
+#endif
 #ifdef LINUX
 	tprintf(", f_namelen=%lu", (unsigned long)statbuf.f_namelen);
 #endif /* LINUX */
@@ -1825,11 +1852,19 @@ printstatfs64(struct tcb *tcp, long addr)
 		(unsigned long long)statbuf.f_bsize,
 		(unsigned long long)statbuf.f_blocks,
 		(unsigned long long)statbuf.f_bfree);
+#ifdef MIPS
+	tprintf("f_bavail=%llu, f_files=%llu, f_ffree=%llu, f_fsid={%ld, %ld}",
+		(unsigned long long)statbuf.f_bavail,
+		(unsigned long long)statbuf.f_files,
+		(unsigned long long)statbuf.f_ffree,
+		statbuf.f_fsid.val[0], statbuf.f_fsid.val[1]);
+#else
 	tprintf("f_bavail=%llu, f_files=%llu, f_ffree=%llu, f_fsid={%d, %d}",
 		(unsigned long long)statbuf.f_bavail,
 		(unsigned long long)statbuf.f_files,
 		(unsigned long long)statbuf.f_ffree,
 		statbuf.f_fsid.__val[0], statbuf.f_fsid.__val[1]);
+#endif
 	tprintf(", f_namelen=%lu", (unsigned long)statbuf.f_namelen);
 #ifdef _STATFS_F_FRSIZE
 	tprintf(", f_frsize=%llu", (unsigned long long)statbuf.f_frsize);

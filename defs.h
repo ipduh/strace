@@ -33,10 +33,6 @@
 #include "config.h"
 #endif
 
-#ifdef MIPS
-#include <sgidefs.h>
-#endif
-
 #ifdef linux
 #include <features.h>
 #endif
