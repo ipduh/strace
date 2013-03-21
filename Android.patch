@@ -146,20 +146,6 @@ diff -r -u -d /Users/jeffbrown/Downloads/strace-4.6/signal.c ./signal.c
  /* Type for data associated with a signal.  */
  typedef union sigval
  {
-diff -r -u -d /Users/jeffbrown/Downloads/strace-4.6/strace.c ./strace.c
---- /Users/jeffbrown/Downloads/strace-4.6/strace.c	2011-03-10 14:25:03.000000000 -0800
-+++ ./strace.c	2012-03-02 16:55:15.000000000 -0800
-@@ -38,7 +38,10 @@
- #include <sys/param.h>
- #include <fcntl.h>
- #include <sys/resource.h>
-+#ifdef HAVE_ANDROID_OS
-+#define wait4 __wait4
- #include <sys/wait.h>
-+#endif
- #include <sys/stat.h>
- #include <pwd.h>
- #include <grp.h>
 diff -r -u -d /Users/jeffbrown/Downloads/strace-4.6/syscall.c ./syscall.c
 --- /Users/jeffbrown/Downloads/strace-4.6/syscall.c	2011-02-18 16:02:27.000000000 -0800
 +++ ./syscall.c	2012-03-02 15:00:35.000000000 -0800

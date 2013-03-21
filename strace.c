@@ -38,10 +38,7 @@
 #include <sys/param.h>
 #include <fcntl.h>
 #include <sys/resource.h>
-#ifdef HAVE_ANDROID_OS
-#define wait4 __wait4
 #include <sys/wait.h>
-#endif
 #include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
