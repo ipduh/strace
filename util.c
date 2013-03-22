@@ -51,10 +51,6 @@
 #include <link.h>
 #endif /* SUNOS4 */
 
-#ifdef HAVE_ANDROID_OS
-#include "syscall-android.h"
-#endif
-
 #if defined(linux) && (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 1))
 #include <linux/ptrace.h>
 #endif

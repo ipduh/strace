@@ -44,10 +44,6 @@
 #include <sys/syscall.h>
 #include <sys/param.h>
 
-#ifdef HAVE_ANDROID_OS
-#include "syscall-android.h"
-#endif
-
 #ifdef HAVE_SYS_REG_H
 #include <sys/reg.h>
 #ifndef PTRACE_PEEKUSR

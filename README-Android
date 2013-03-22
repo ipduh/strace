@@ -11,4 +11,4 @@ ease future upgrades.
 
 This file can be regenerated using:
 
-diff -r -u -d path-to-original-unmodified-strace . | grep -v "Only in" > android.patch
+diff -r -u -d path-to-original-unmodified-strace . | grep -v "Only in" > Android.patch
