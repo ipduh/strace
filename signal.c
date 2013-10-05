@@ -1099,7 +1099,12 @@ struct tcb *tcp;
 
 #ifdef HAVE_SIGACTION
 
-#ifdef LINUX
+/* For MIPS, struct sigaction is common between kernel and userland */
+#if defined(LINUX) && !defined(MIPS)
+#define USE_OLD_SIGACTION
+#endif
+
+#ifdef USE_OLD_SIGACTION
 struct old_sigaction {
 	__sighandler_t __sa_handler;
 	unsigned long sa_mask;
@@ -1107,7 +1112,7 @@ struct old_sigaction {
 	void (*sa_restorer)(void);
 };
 #define SA_HANDLER __sa_handler
-#endif /* LINUX */
+#endif /* USE_OLD_SIGACTION */
 
 #ifndef SA_HANDLER
 #define SA_HANDLER sa_handler
@@ -1118,7 +1123,7 @@ sys_sigaction(tcp)
 struct tcb *tcp;
 {
 	long addr;
-#ifdef LINUX
+#ifdef USE_OLD_SIGACTION
 	sigset_t sigset;
 	struct old_sigaction sa;
 #else
@@ -1167,28 +1172,24 @@ struct tcb *tcp;
 				kill(tcp->pid, SIGSTOP);
 			}
 #endif /* !USE_PROCFS */
-			tprintf("{%#lx, ", (long) sa.SA_HANDLER);
-#ifndef LINUX
-			printsigmask (&sa.sa_mask, 0);
-#else
-			long_to_sigset(sa.sa_mask, &sigset);
-			printsigmask(&sigset, 0);
-#endif
-			tprintf(", ");
-			printflags(sigact_flags, sa.sa_flags, "SA_???");
-#ifdef SA_RESTORER
-			if (sa.sa_flags & SA_RESTORER)
-				tprintf(", %p", sa.sa_restorer);
-#endif
-			tprintf("}");
+			tprintf("{%p, ", sa.SA_HANDLER);
 		}
+#ifndef USE_OLD_SIGACTION
+		printsigmask (&sa.sa_mask, 0);
+#else
+		long_to_sigset(sa.sa_mask, &sigset);
+		printsigmask(&sigset, 0);
+#endif
+		tprintf(", ");
+		printflags(sigact_flags, sa.sa_flags, "SA_???");
+#if defined(SA_RESTORER) && !defined(MIPS)
+		if (sa.sa_flags & SA_RESTORER)
+			tprintf(", %p", sa.sa_restorer);
+#endif
+		tprintf("}");
 	}
 	if (entering(tcp))
 		tprintf(", ");
-#ifdef LINUX
-	else
-		tprintf(", %#lx", (unsigned long) sa.sa_restorer);
-#endif
 	return 0;
 }
 
@@ -1943,9 +1944,13 @@ sys_rt_sigprocmask(tcp)
 
 
 /* Structure describing the action to be taken when a signal arrives.  */
+#ifdef MIPS
+#define new_sigaction sigaction
+#define new_sigaction2 sigaction
+#else
 struct new_sigaction
 {
-	__sighandler_t __sa_handler;
+	__sighandler_t SA_HANDLER;
 	unsigned long sa_flags;
 	void (*sa_restorer) (void);
 	/* Kernel treats sa_mask as an array of longs. */
@@ -1954,12 +1959,12 @@ struct new_sigaction
 /* Same for i386-on-x86_64 and similar cases */
 struct new_sigaction32
 {
-	uint32_t __sa_handler;
+	uint32_t SA_HANDLER;
 	uint32_t sa_flags;
 	uint32_t sa_restorer;
 	uint32_t sa_mask[2 * (NSIG / sizeof(long) ? NSIG / sizeof(long) : 1)];
 };
-
+#endif
 
 int
 sys_rt_sigaction(struct tcb *tcp)
@@ -1992,9 +1997,11 @@ sys_rt_sigaction(struct tcb *tcp)
 		r = umove(tcp, addr, &sa32);
 		if (r >= 0) {
 			memset(&sa, 0, sizeof(sa));
-			sa.__sa_handler = (void*)(unsigned long)sa32.__sa_handler;
+			sa.SA_HANDLER   = (void*)(unsigned long)sa32.SA_HANDLER;
 			sa.sa_flags     = sa32.sa_flags;
+#ifndef MIPS
 			sa.sa_restorer  = (void*)(unsigned long)sa32.sa_restorer;
+#endif
 			/* Kernel treats sa_mask as an array of longs.
 			 * For 32-bit process, "long" is uint32_t, thus, for example,
 			 * 32th bit in sa_mask will end up as bit 0 in sa_mask[1].
@@ -2022,14 +2029,14 @@ sys_rt_sigaction(struct tcb *tcp)
 	 * be manipulated by strace. In order to prevent the
 	 * compiler from generating code to manipulate
 	 * SA_HANDLER we cast the function pointers to long. */
-	if ((long)sa.__sa_handler == (long)SIG_ERR)
+	if ((long)sa.SA_HANDLER == (long)SIG_ERR)
 		tprintf("{SIG_ERR, ");
-	else if ((long)sa.__sa_handler == (long)SIG_DFL)
+	else if ((long)sa.SA_HANDLER == (long)SIG_DFL)
 		tprintf("{SIG_DFL, ");
-	else if ((long)sa.__sa_handler == (long)SIG_IGN)
+	else if ((long)sa.SA_HANDLER == (long)SIG_IGN)
 		tprintf("{SIG_IGN, ");
 	else
-		tprintf("{%#lx, ", (long) sa.__sa_handler);
+		tprintf("{%#lx, ", (long) sa.SA_HANDLER);
 	/* Questionable code below.
 	 * Kernel won't handle sys_rt_sigaction
 	 * with wrong sigset size (just returns EINVAL)
@@ -2048,7 +2055,7 @@ sys_rt_sigaction(struct tcb *tcp)
 	printsigmask(&sigset, 1);
 	tprintf(", ");
 	printflags(sigact_flags, sa.sa_flags, "SA_???");
-#ifdef SA_RESTORER
+#if defined(SA_RESTORER) && !defined(MIPS)
 	if (sa.sa_flags & SA_RESTORER)
 		tprintf(", %p", sa.sa_restorer);
 #endif

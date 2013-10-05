@@ -125,8 +125,8 @@ LOCAL_CFLAGS += -Wno-missing-field-initializers
 
 LOCAL_C_INCLUDES := \
 	$(KERNEL_HEADERS) \
-	$(LOCAL_PATH)/linux \
-	$(LOCAL_PATH)/linux/$(arch)
+	$(LOCAL_PATH)/linux/$(arch) \
+	$(LOCAL_PATH)/linux
 
 LOCAL_MODULE := strace
 
