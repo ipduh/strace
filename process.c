@@ -45,11 +45,7 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
-#ifdef HAVE_ANDROID_OS
-#include <asm/user.h>
-#else
 #include <sys/user.h>
-#endif
 #include <sys/syscall.h>
 #include <signal.h>
 #ifdef SUNOS4
