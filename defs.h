@@ -315,13 +315,19 @@ extern int mp_ioctl (int f, int c, void *a, int s);
 #  define PTRACE_GETSIGINFO	0x4202
 # endif
 # if !HAVE_DECL_PTRACE_O_TRACEFORK
+#  ifndef PTRACE_O_TRACEFORK
 #  define PTRACE_O_TRACEFORK	0x00000002
+#  endif
 # endif
 # if !HAVE_DECL_PTRACE_O_TRACEVFORK
+#  ifndef PTRACE_O_TRACEVFORK
 #  define PTRACE_O_TRACEVFORK	0x00000004
+#  endif
 # endif
 # if !HAVE_DECL_PTRACE_O_TRACECLONE
+#  ifndef PTRACE_O_TRACECLONE
 #  define PTRACE_O_TRACECLONE	0x00000008
+#  endif
 # endif
 
 # if !HAVE_DECL_PTRACE_EVENT_FORK
