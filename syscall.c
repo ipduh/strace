@@ -38,9 +38,7 @@
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
-#ifndef HAVE_ANDROID_OS
 #include <sys/user.h>
-#endif
 #include <sys/syscall.h>
 #include <sys/param.h>
 
