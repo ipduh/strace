@@ -23,29 +23,16 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *	$Id$
  */
 
 #include "defs.h"
-
-#ifdef LINUX
 /*
  * The C library's definition of struct termios might differ from
  * the kernel one, and we need to use the kernel layout.
  */
 #include <linux/termios.h>
-#else
-
-#ifdef HAVE_TERMIO_H
-#include <termio.h>
-#endif /* HAVE_TERMIO_H */
-
-#include <termios.h>
-#endif
-
 #ifdef HAVE_SYS_FILIO_H
-#include <sys/filio.h>
+# include <sys/filio.h>
 #endif
 
 static const struct xlat tcxonc_options[] = {
@@ -177,18 +164,10 @@ static const struct xlat modem_flags[] = {
 	{ 0,		NULL,		},
 };
 
-
 int term_ioctl(struct tcb *tcp, long code, long arg)
 {
 	struct termios tios;
-#ifndef FREEBSD
 	struct termio tio;
-#else
-	#define TCGETS	TIOCGETA
-	#define TCSETS	TIOCSETA
-	#define TCSETSW	TIOCSETAW
-	#define TCSETSF	TIOCSETAF
-#endif
 	struct winsize ws;
 #ifdef TIOCGSIZE
 	struct  ttysize ts;
@@ -212,17 +191,8 @@ int term_ioctl(struct tcb *tcp, long code, long arg)
 		if (!verbose(tcp) || umove(tcp, arg, &tios) < 0)
 			return 0;
 		if (abbrev(tcp)) {
-			tprintf(", {");
-#ifndef FREEBSD
+			tprints(", {");
 			printxval(baud_options, tios.c_cflag & CBAUD, "B???");
-#else
-			printxval(baud_options, tios.c_ispeed, "B???");
-			if (tios.c_ispeed != tios.c_ospeed) {
-				tprintf(" (in)");
-				printxval(baud_options, tios.c_ospeed, "B???");
-				tprintf(" (out)");
-			}
-#endif
 			tprintf(" %sopost %sisig %sicanon %secho ...}",
 				(tios.c_oflag & OPOST) ? "" : "-",
 				(tios.c_lflag & ISIG) ? "" : "-",
@@ -234,9 +204,7 @@ int term_ioctl(struct tcb *tcp, long code, long arg)
 			(long) tios.c_iflag, (long) tios.c_oflag);
 		tprintf("c_cflags=%#lx, c_lflags=%#lx, ",
 			(long) tios.c_cflag, (long) tios.c_lflag);
-#if !defined(SVR4) && !defined(FREEBSD)
 		tprintf("c_line=%u, ", tios.c_line);
-#endif
 		if (!(tios.c_lflag & ICANON))
 			tprintf("c_cc[VMIN]=%d, c_cc[VTIME]=%d, ",
 				tios.c_cc[VMIN], tios.c_cc[VTIME]);
@@ -257,7 +225,7 @@ int term_ioctl(struct tcb *tcp, long code, long arg)
 		if (!verbose(tcp) || umove(tcp, arg, &tio) < 0)
 			return 0;
 		if (abbrev(tcp)) {
-			tprintf(", {");
+			tprints(", {");
 			printxval(baud_options, tio.c_cflag & CBAUD, "B???");
 			tprintf(" %sopost %sisig %sicanon %secho ...}",
 				(tio.c_oflag & OPOST) ? "" : "-",
@@ -316,14 +284,19 @@ int term_ioctl(struct tcb *tcp, long code, long arg)
 	/* ioctls with a direct decodable arg */
 #ifdef TCXONC
 	case TCXONC:
-		tprintf(", ");
+		tprints(", ");
 		printxval(tcxonc_options, arg, "TC???");
 		return 1;
 #endif
 #ifdef TCLFLSH
 	case TCFLSH:
-		tprintf(", ");
+		tprints(", ");
 		printxval(tcflsh_options, arg, "TC???");
+		return 1;
+#endif
+#ifdef TIOCSCTTY
+	case TIOCSCTTY:
+		tprintf(", %ld", arg);
 		return 1;
 #endif
 
@@ -336,9 +309,9 @@ int term_ioctl(struct tcb *tcp, long code, long arg)
 	case TIOCMSET:
 		if (umove(tcp, arg, &i) < 0)
 			return 0;
-		tprintf(", [");
+		tprints(", [");
 		printflags(modem_flags, i, "TIOCM_???");
-		tprintf("]");
+		tprints("]");
 		return 1;
 #endif /* TIOCMGET */
 
@@ -410,7 +383,7 @@ int term_ioctl(struct tcb *tcp, long code, long arg)
 #ifdef TIOCGPTN
 	case TIOCGPTN:
 #endif
-		tprintf(", ");
+		tprints(", ");
 		printnum_int(tcp, arg, "%d");
 		return 1;
 
@@ -419,15 +392,12 @@ int term_ioctl(struct tcb *tcp, long code, long arg)
 #ifdef TIOCSTI
 	case TIOCSTI:
 #endif
-		tprintf(", ");
+		tprints(", ");
 		printstr(tcp, arg, 1);
 		return 1;
 
 	/* ioctls with no parameters */
 
-#ifdef TIOCSCTTY
-	case TIOCSCTTY:
-#endif
 #ifdef TIOCNOTTY
 	case TIOCNOTTY:
 #endif

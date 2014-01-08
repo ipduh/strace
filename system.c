@@ -26,18 +26,10 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *	$Id$
  */
 
 #include "defs.h"
 
-#ifdef HAVE_ANDROID_OS
-#undef __unused
-#include <linux/socket.h>
-#endif
-
-#ifdef LINUX
 #define _LINUX_SOCKET_H
 #define _LINUX_FS_H
 
@@ -73,25 +65,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-#include <sys/syscall.h>
-
 #ifdef HAVE_LINUX_CAPABILITY_H
-#include <linux/capability.h>
+# include <linux/capability.h>
 #endif
-
 #ifdef HAVE_ASM_CACHECTL_H
-#include <asm/cachectl.h>
+# include <asm/cachectl.h>
 #endif
-
 #ifdef HAVE_LINUX_USTNAME_H
-#include <linux/utsname.h>
+# include <linux/utsname.h>
 #endif
-
-#ifdef MIPS
-#include <asm/sysmips.h>
+#ifdef HAVE_ASM_SYSMIPS_H
+# include <asm/sysmips.h>
 #endif
-
 #include <linux/sysctl.h>
 
 static const struct xlat mount_flags[] = {
@@ -141,19 +126,19 @@ sys_mount(struct tcb *tcp)
 			ignore_type = ignore_data = 1;
 
 		printpath(tcp, tcp->u_arg[0]);
-		tprintf(", ");
+		tprints(", ");
 
 		printpath(tcp, tcp->u_arg[1]);
-		tprintf(", ");
+		tprints(", ");
 
 		if (ignore_type && tcp->u_arg[2])
 			tprintf("%#lx", tcp->u_arg[2]);
 		else
 			printstr(tcp, tcp->u_arg[2], -1);
-		tprintf(", ");
+		tprints(", ");
 
 		printflags(mount_flags, tcp->u_arg[3], "MS_???");
-		tprintf(", ");
+		tprints(", ");
 
 		if (ignore_data && tcp->u_arg[4])
 			tprintf("%#lx", tcp->u_arg[4]);
@@ -179,7 +164,7 @@ sys_umount2(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printstr(tcp, tcp->u_arg[0], -1);
-		tprintf(", ");
+		tprints(", ");
 		printflags(umount_flags, tcp->u_arg[1], "MNT_???");
 	}
 	return 0;
@@ -213,11 +198,76 @@ static const struct xlat personality_options[] = {
 };
 
 int
-sys_personality(tcp)
-struct tcb *tcp;
+sys_personality(struct tcb *tcp)
 {
 	if (entering(tcp))
 		printxval(personality_options, tcp->u_arg[0], "PER_???");
+	return 0;
+}
+
+enum {
+	SYSLOG_ACTION_CLOSE = 0,
+	SYSLOG_ACTION_OPEN,
+	SYSLOG_ACTION_READ,
+	SYSLOG_ACTION_READ_ALL,
+	SYSLOG_ACTION_READ_CLEAR,
+	SYSLOG_ACTION_CLEAR,
+	SYSLOG_ACTION_CONSOLE_OFF,
+	SYSLOG_ACTION_CONSOLE_ON,
+	SYSLOG_ACTION_CONSOLE_LEVEL,
+	SYSLOG_ACTION_SIZE_UNREAD,
+	SYSLOG_ACTION_SIZE_BUFFER
+};
+
+static const struct xlat syslog_action_type[] = {
+	{ SYSLOG_ACTION_CLOSE,		"SYSLOG_ACTION_CLOSE"		},
+	{ SYSLOG_ACTION_OPEN,		"SYSLOG_ACTION_OPEN"		},
+	{ SYSLOG_ACTION_READ,		"SYSLOG_ACTION_READ"		},
+	{ SYSLOG_ACTION_READ_ALL,	"SYSLOG_ACTION_READ_ALL"	},
+	{ SYSLOG_ACTION_READ_CLEAR,	"SYSLOG_ACTION_READ_CLEAR"	},
+	{ SYSLOG_ACTION_CLEAR,		"SYSLOG_ACTION_CLEAR"		},
+	{ SYSLOG_ACTION_CONSOLE_OFF,	"SYSLOG_ACTION_CONSOLE_OFF"	},
+	{ SYSLOG_ACTION_CONSOLE_ON,	"SYSLOG_ACTION_CONSOLE_ON"	},
+	{ SYSLOG_ACTION_CONSOLE_LEVEL,	"SYSLOG_ACTION_CONSOLE_LEVEL"	},
+	{ SYSLOG_ACTION_SIZE_UNREAD,	"SYSLOG_ACTION_SIZE_UNREAD"	},
+	{ SYSLOG_ACTION_SIZE_BUFFER,	"SYSLOG_ACTION_SIZE_BUFFER"	},
+	{ 0,				NULL				}
+};
+
+int
+sys_syslog(struct tcb *tcp)
+{
+	int type = tcp->u_arg[0];
+
+	if (entering(tcp)) {
+		/* type */
+		printxval(syslog_action_type, type, "SYSLOG_ACTION_???");
+		tprints(", ");
+	}
+
+	switch (type) {
+		case SYSLOG_ACTION_READ:
+		case SYSLOG_ACTION_READ_ALL:
+		case SYSLOG_ACTION_READ_CLEAR:
+			if (entering(tcp))
+				return 0;
+			break;
+		default:
+			if (entering(tcp)) {
+				tprintf("%#lx, %lu",
+					tcp->u_arg[1], tcp->u_arg[2]);
+			}
+			return 0;
+	}
+
+	/* bufp */
+	if (syserror(tcp))
+		tprintf("%#lx", tcp->u_arg[1]);
+	else
+		printstr(tcp, tcp->u_arg[1], tcp->u_rval);
+	/* len */
+	tprintf(", %d", (int) tcp->u_arg[2]);
+
 	return 0;
 }
 
@@ -245,17 +295,16 @@ static const struct xlat bootflags3[] = {
 };
 
 int
-sys_reboot(tcp)
-struct tcb *tcp;
+sys_reboot(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printflags(bootflags1, tcp->u_arg[0], "LINUX_REBOOT_MAGIC_???");
-		tprintf(", ");
+		tprints(", ");
 		printflags(bootflags2, tcp->u_arg[1], "LINUX_REBOOT_MAGIC_???");
-		tprintf(", ");
+		tprints(", ");
 		printflags(bootflags3, tcp->u_arg[2], "LINUX_REBOOT_CMD_???");
 		if (tcp->u_arg[2] == LINUX_REBOOT_CMD_RESTART2) {
-			tprintf(", ");
+			tprints(", ");
 			printstr(tcp, tcp->u_arg[3], -1);
 		}
 	}
@@ -290,15 +339,14 @@ static const struct xlat cacheflush_flags[] = {
 };
 
 int
-sys_cacheflush(tcp)
-struct tcb *tcp;
+sys_cacheflush(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		/* addr */
 		tprintf("%#lx, ", tcp->u_arg[0]);
 		/* scope */
 		printxval(cacheflush_scope, tcp->u_arg[1], "FLUSH_SCOPE_???");
-		tprintf(", ");
+		tprints(", ");
 		/* flags */
 		printflags(cacheflush_flags, tcp->u_arg[2], "FLUSH_CACHE_???");
 		/* len */
@@ -390,1163 +438,6 @@ sys_cacheflush(struct tcb *tcp)
 }
 #endif /* SH */
 
-#endif /* LINUX */
-
-#ifdef SUNOS4
-
-#include <sys/reboot.h>
-#define NFSCLIENT
-#define LOFS
-#define RFS
-#define PCFS
-#include <sys/mount.h>
-#include <sys/socket.h>
-#include <nfs/export.h>
-#include <rpc/types.h>
-#include <rpc/auth.h>
-
-/*ARGSUSED*/
-int
-sys_sync(tcp)
-struct tcb *tcp;
-{
-	return 0;
-}
-
-static const struct xlat bootflags[] = {
-	{ RB_AUTOBOOT,	"RB_AUTOBOOT"	},	/* for system auto-booting itself */
-	{ RB_ASKNAME,	"RB_ASKNAME"	},	/* ask for file name to reboot from */
-	{ RB_SINGLE,	"RB_SINGLE"	},	/* reboot to single user only */
-	{ RB_NOSYNC,	"RB_NOSYNC"	},	/* dont sync before reboot */
-	{ RB_HALT,	"RB_HALT"	},	/* don't reboot, just halt */
-	{ RB_INITNAME,	"RB_INITNAME"	},	/* name given for /etc/init */
-	{ RB_NOBOOTRC,	"RB_NOBOOTRC"	},	/* don't run /etc/rc.boot */
-	{ RB_DEBUG,	"RB_DEBUG"	},	/* being run under debugger */
-	{ RB_DUMP,	"RB_DUMP"	},	/* dump system core */
-	{ RB_WRITABLE,	"RB_WRITABLE"	},	/* mount root read/write */
-	{ RB_STRING,	"RB_STRING"	},	/* pass boot args to prom monitor */
-	{ 0,		NULL		},
-};
-
-int
-sys_reboot(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printflags(bootflags, tcp->u_arg[0], "RB_???");
-		if (tcp->u_arg[0] & RB_STRING) {
-			printstr(tcp, tcp->u_arg[1], -1);
-		}
-	}
-	return 0;
-}
-
-int
-sys_sysacct(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printstr(tcp, tcp->u_arg[0], -1);
-	}
-	return 0;
-}
-
-int
-sys_swapon(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printstr(tcp, tcp->u_arg[0], -1);
-	}
-	return 0;
-}
-
-int
-sys_nfs_svc(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printsock(tcp, tcp->u_arg[0]);
-	}
-	return 0;
-}
-
-static const struct xlat mountflags[] = {
-	{ M_RDONLY,	"M_RDONLY"	},
-	{ M_NOSUID,	"M_NOSUID"	},
-	{ M_NEWTYPE,	"M_NEWTYPE"	},
-	{ M_GRPID,	"M_GRPID"	},
-#ifdef	M_REMOUNT
-	{ M_REMOUNT,	"M_REMOUNT"	},
-#endif
-#ifdef	M_NOSUB
-	{ M_NOSUB,	"M_NOSUB"	},
-#endif
-#ifdef	M_MULTI
-	{ M_MULTI,	"M_MULTI"	},
-#endif
-#ifdef	M_SYS5
-	{ M_SYS5,	"M_SYS5"	},
-#endif
-	{ 0,		NULL		},
-};
-
-static const struct xlat nfsflags[] = {
-	{ NFSMNT_SOFT,		"NFSMNT_SOFT"		},
-	{ NFSMNT_WSIZE,		"NFSMNT_WSIZE"		},
-	{ NFSMNT_RSIZE,		"NFSMNT_RSIZE"		},
-	{ NFSMNT_TIMEO,		"NFSMNT_TIMEO"		},
-	{ NFSMNT_RETRANS,	"NFSMNT_RETRANS"	},
-	{ NFSMNT_HOSTNAME,	"NFSMNT_HOSTNAME"	},
-	{ NFSMNT_INT,		"NFSMNT_INT"		},
-	{ NFSMNT_NOAC,		"NFSMNT_NOAC"		},
-	{ NFSMNT_ACREGMIN,	"NFSMNT_ACREGMIN"	},
-	{ NFSMNT_ACREGMAX,	"NFSMNT_ACREGMAX"	},
-	{ NFSMNT_ACDIRMIN,	"NFSMNT_ACDIRMIN"	},
-	{ NFSMNT_ACDIRMAX,	"NFSMNT_ACDIRMAX"	},
-#ifdef	NFSMNT_SECURE
-	{ NFSMNT_SECURE,	"NFSMNT_SECURE"		},
-#endif
-#ifdef	NFSMNT_NOCTO
-	{ NFSMNT_NOCTO,		"NFSMNT_NOCTO"		},
-#endif
-#ifdef	NFSMNT_POSIX
-	{ NFSMNT_POSIX,		"NFSMNT_POSIX"		},
-#endif
-	{ 0,			NULL			},
-};
-
-int
-sys_mount(tcp)
-struct tcb *tcp;
-{
-	char type[4];
-
-	if (entering(tcp)) {
-		if (!(tcp->u_arg[2] & M_NEWTYPE) || umovestr(tcp,
-				tcp->u_arg[0],  sizeof type, type) < 0) {
-			tprintf("OLDTYPE:#%lx", tcp->u_arg[0]);
-		} else {
-			tprintf("\"%s\", ", type);
-		}
-		printstr(tcp, tcp->u_arg[1], -1);
-		tprintf(", ");
-		printflags(mountflags, tcp->u_arg[2] & ~M_NEWTYPE, "M_???");
-		tprintf(", ");
-
-		if (strcmp(type, "4.2") == 0) {
-			struct ufs_args a;
-			if (umove(tcp, tcp->u_arg[3], &a) < 0)
-				return 0;
-			printstr(tcp, (int)a.fspec, -1);
-		} else if (strcmp(type, "lo") == 0) {
-			struct lo_args a;
-			if (umove(tcp, tcp->u_arg[3], &a) < 0)
-				return 0;
-			printstr(tcp, (int)a.fsdir, -1);
-		} else if (strcmp(type, "nfs") == 0) {
-			struct nfs_args a;
-			if (umove(tcp, tcp->u_arg[3], &a) < 0)
-				return 0;
-			tprintf("[");
-			printsock(tcp, (int) a.addr);
-			tprintf(", ");
-			printflags(nfsflags, a.flags, "NFSMNT_???");
-			tprintf(", ws:%u,rs:%u,to:%u,re:%u,",
-				a.wsize, a.rsize, a.timeo, a.retrans);
-			if (a.flags & NFSMNT_HOSTNAME && a.hostname)
-				printstr(tcp, (int)a.hostname, -1);
-			else
-				tprintf("%#lx", (unsigned long) a.hostname);
-			tprintf(",reg-min:%u,max:%u,dir-min:%u,max:%u,",
-				a.acregmin, a.acregmax, a.acdirmin, a.acdirmax);
-			if ((a.flags & NFSMNT_SECURE) && a.netname)
-				printstr(tcp, (int) a.netname, -1);
-			else
-				tprintf("%#lx", (unsigned long) a.netname);
-			tprintf("]");
-		} else if (strcmp(type, "rfs") == 0) {
-			struct rfs_args a;
-			struct token t;
-			if (umove(tcp, tcp->u_arg[3], &a) < 0)
-				return 0;
-			tprintf("[");
-			printstr(tcp, (int)a.rmtfs, -1);
-			if (umove(tcp, (int)a.token, &t) < 0)
-				return 0;
-			tprintf(", %u, %s]", t.t_id, t.t_uname);
-		} else if (strcmp(type, "pcfs") == 0) {
-			struct pc_args a;
-			if (umove(tcp, tcp->u_arg[3], &a) < 0)
-				return 0;
-			printstr(tcp, (int)a.fspec, -1);
-		}
-	}
-	return 0;
-}
-
-int
-sys_unmount(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printstr(tcp, tcp->u_arg[0], -1);
-	}
-	return 0;
-}
-
-int
-sys_umount(tcp)
-struct tcb *tcp;
-{
-	return sys_unmount(tcp);
-}
-
-int
-sys_auditsys(tcp)
-struct tcb *tcp;
-{
-	/* XXX - no information available */
-	return printargs(tcp);
-}
-
-static const struct xlat ex_auth_flags[] = {
-	{ AUTH_UNIX,	"AUTH_UNIX"	},
-	{ AUTH_DES,	"AUTH_DES"	},
-	{ 0,		NULL		},
-};
-
-int
-sys_exportfs(tcp)
-struct tcb *tcp;
-{
-	struct export e;
-	int i;
-
-	if (entering(tcp)) {
-		printstr(tcp, tcp->u_arg[0], -1);
-		if (umove(tcp, tcp->u_arg[1], &e) < 0) {
-			tprintf("%#lx", tcp->u_arg[1]);
-			return 0;
-		}
-		tprintf("{fl:%u, anon:%u, ", e.ex_flags, e.ex_anon);
-		printxval(ex_auth_flags, e.ex_auth, "AUTH_???");
-		tprintf(", roots:[");
-		if (e.ex_auth == AUTH_UNIX) {
-			for (i=0; i<e.ex_u.exunix.rootaddrs.naddrs; i++) {
-				printsock(tcp,
-					(int)&e.ex_u.exunix.rootaddrs.addrvec[i]);
-			}
-			tprintf("], writers:[");
-			for (i=0; i<e.ex_writeaddrs.naddrs; i++) {
-				printsock(tcp,
-					(int)&e.ex_writeaddrs.addrvec[i]);
-			}
-			tprintf("]");
-		} else {
-			for (i=0; i<e.ex_u.exdes.nnames; i++) {
-				printsock(tcp,
-					(int)&e.ex_u.exdes.rootnames[i]);
-				tprintf(", ");
-			}
-			tprintf("], window:%u", e.ex_u.exdes.window);
-		}
-		tprintf("}");
-	}
-	return 0;
-}
-
-static const struct xlat sysconflimits[] = {
-#ifdef	_SC_ARG_MAX
-	{ _SC_ARG_MAX,	"_SC_ARG_MAX"	},	/* space for argv & envp */
-#endif
-#ifdef	_SC_CHILD_MAX
-	{ _SC_CHILD_MAX,	"_SC_CHILD_MAX"	},	/* maximum children per process??? */
-#endif
-#ifdef	_SC_CLK_TCK
-	{ _SC_CLK_TCK,	"_SC_CLK_TCK"	},	/* clock ticks/sec */
-#endif
-#ifdef	_SC_NGROUPS_MAX
-	{ _SC_NGROUPS_MAX,	"_SC_NGROUPS_MAX"	},	/* number of groups if multple supp. */
-#endif
-#ifdef	_SC_OPEN_MAX
-	{ _SC_OPEN_MAX,	"_SC_OPEN_MAX"	},	/* max open files per process */
-#endif
-#ifdef	_SC_JOB_CONTROL
-	{ _SC_JOB_CONTROL,	"_SC_JOB_CONTROL"	},	/* do we have job control */
-#endif
-#ifdef	_SC_SAVED_IDS
-	{ _SC_SAVED_IDS,	"_SC_SAVED_IDS"	},	/* do we have saved uid/gids */
-#endif
-#ifdef	_SC_VERSION
-	{ _SC_VERSION,	"_SC_VERSION"	},	/* POSIX version supported */
-#endif
-	{ 0,		NULL		},
-};
-
-int
-sys_sysconf(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printxval(sysconflimits, tcp->u_arg[0], "_SC_???");
-	}
-	return 0;
-}
-
-#endif /* SUNOS4 */
-
-#if defined(SUNOS4) || defined(FREEBSD)
-static const struct xlat pathconflimits[] = {
-#ifdef	_PC_LINK_MAX
-	{ _PC_LINK_MAX,	"_PC_LINK_MAX"	},	/* max links to file/dir */
-#endif
-#ifdef	_PC_MAX_CANON
-	{ _PC_MAX_CANON,	"_PC_MAX_CANON"	},	/* max line length */
-#endif
-#ifdef	_PC_MAX_INPUT
-	{ _PC_MAX_INPUT,	"_PC_MAX_INPUT"	},	/* max "packet" to a tty device */
-#endif
-#ifdef	_PC_NAME_MAX
-	{ _PC_NAME_MAX,	"_PC_NAME_MAX"	},	/* max pathname component length */
-#endif
-#ifdef	_PC_PATH_MAX
-	{ _PC_PATH_MAX,	"_PC_PATH_MAX"	},	/* max pathname length */
-#endif
-#ifdef	_PC_PIPE_BUF
-	{ _PC_PIPE_BUF,	"_PC_PIPE_BUF"	},	/* size of a pipe */
-#endif
-#ifdef	_PC_CHOWN_RESTRICTED
-	{ _PC_CHOWN_RESTRICTED,	"_PC_CHOWN_RESTRICTED"	},	/* can we give away files */
-#endif
-#ifdef	_PC_NO_TRUNC
-	{ _PC_NO_TRUNC,	"_PC_NO_TRUNC"	},	/* trunc or error on >NAME_MAX */
-#endif
-#ifdef	_PC_VDISABLE
-	{ _PC_VDISABLE,	"_PC_VDISABLE"	},	/* best char to shut off tty c_cc */
-#endif
-	{ 0,		NULL		},
-};
-
-
-int
-sys_pathconf(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printstr(tcp, tcp->u_arg[0], -1);
-		tprintf(", ");
-		printxval(pathconflimits, tcp->u_arg[1], "_PC_???");
-	}
-	return 0;
-}
-
-int
-sys_fpathconf(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		tprintf("%lu, ", tcp->u_arg[0]);
-		printxval(pathconflimits, tcp->u_arg[1], "_PC_???");
-	}
-	return 0;
-}
-
-#endif /* SUNOS4 || FREEBSD */
-
-#ifdef SVR4
-
-#ifdef HAVE_SYS_SYSCONFIG_H
-#include <sys/sysconfig.h>
-#endif /* HAVE_SYS_SYSCONFIG_H */
-
-#include <sys/mount.h>
-#include <sys/systeminfo.h>
-#include <sys/utsname.h>
-
-static const struct xlat sysconfig_options[] = {
-#ifdef _CONFIG_NGROUPS
-	{ _CONFIG_NGROUPS,		"_CONFIG_NGROUPS"		},
-#endif
-#ifdef _CONFIG_CHILD_MAX
-	{ _CONFIG_CHILD_MAX,		"_CONFIG_CHILD_MAX"		},
-#endif
-#ifdef _CONFIG_OPEN_FILES
-	{ _CONFIG_OPEN_FILES,		"_CONFIG_OPEN_FILES"		},
-#endif
-#ifdef _CONFIG_POSIX_VER
-	{ _CONFIG_POSIX_VER,		"_CONFIG_POSIX_VER"		},
-#endif
-#ifdef _CONFIG_PAGESIZE
-	{ _CONFIG_PAGESIZE,		"_CONFIG_PAGESIZE"		},
-#endif
-#ifdef _CONFIG_CLK_TCK
-	{ _CONFIG_CLK_TCK,		"_CONFIG_CLK_TCK"		},
-#endif
-#ifdef _CONFIG_XOPEN_VER
-	{ _CONFIG_XOPEN_VER,		"_CONFIG_XOPEN_VER"		},
-#endif
-#ifdef _CONFIG_PROF_TCK
-	{ _CONFIG_PROF_TCK,		"_CONFIG_PROF_TCK"		},
-#endif
-#ifdef _CONFIG_NPROC_CONF
-	{ _CONFIG_NPROC_CONF,		"_CONFIG_NPROC_CONF"		},
-#endif
-#ifdef _CONFIG_NPROC_ONLN
-	{ _CONFIG_NPROC_ONLN,		"_CONFIG_NPROC_ONLN"		},
-#endif
-#ifdef _CONFIG_AIO_LISTIO_MAX
-	{ _CONFIG_AIO_LISTIO_MAX,	"_CONFIG_AIO_LISTIO_MAX"	},
-#endif
-#ifdef _CONFIG_AIO_MAX
-	{ _CONFIG_AIO_MAX,		"_CONFIG_AIO_MAX"		},
-#endif
-#ifdef _CONFIG_AIO_PRIO_DELTA_MAX
-	{ _CONFIG_AIO_PRIO_DELTA_MAX,	"_CONFIG_AIO_PRIO_DELTA_MAX"	},
-#endif
-#ifdef _CONFIG_CONFIG_DELAYTIMER_MAX
-	{ _CONFIG_DELAYTIMER_MAX,	"_CONFIG_DELAYTIMER_MAX"	},
-#endif
-#ifdef _CONFIG_MQ_OPEN_MAX
-	{ _CONFIG_MQ_OPEN_MAX,		"_CONFIG_MQ_OPEN_MAX"		},
-#endif
-#ifdef _CONFIG_MQ_PRIO_MAX
-	{ _CONFIG_MQ_PRIO_MAX,		"_CONFIG_MQ_PRIO_MAX"		},
-#endif
-#ifdef _CONFIG_RTSIG_MAX
-	{ _CONFIG_RTSIG_MAX,		"_CONFIG_RTSIG_MAX"		},
-#endif
-#ifdef _CONFIG_SEM_NSEMS_MAX
-	{ _CONFIG_SEM_NSEMS_MAX,	"_CONFIG_SEM_NSEMS_MAX"		},
-#endif
-#ifdef _CONFIG_SEM_VALUE_MAX
-	{ _CONFIG_SEM_VALUE_MAX,	"_CONFIG_SEM_VALUE_MAX"		},
-#endif
-#ifdef _CONFIG_SIGQUEUE_MAX
-	{ _CONFIG_SIGQUEUE_MAX,		"_CONFIG_SIGQUEUE_MAX"		},
-#endif
-#ifdef _CONFIG_SIGRT_MIN
-	{ _CONFIG_SIGRT_MIN,		"_CONFIG_SIGRT_MIN"		},
-#endif
-#ifdef _CONFIG_SIGRT_MAX
-	{ _CONFIG_SIGRT_MAX,		"_CONFIG_SIGRT_MAX"		},
-#endif
-#ifdef _CONFIG_TIMER_MAX
-	{ _CONFIG_TIMER_MAX,		"_CONFIG_TIMER_MAX"		},
-#endif
-#ifdef _CONFIG_CONFIG_PHYS_PAGES
-	{ _CONFIG_PHYS_PAGES,		"_CONFIG_PHYS_PAGES"		},
-#endif
-#ifdef _CONFIG_AVPHYS_PAGES
-	{ _CONFIG_AVPHYS_PAGES,		"_CONFIG_AVPHYS_PAGES"		},
-#endif
-	{ 0,				NULL				},
-};
-
-int
-sys_sysconfig(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp))
-		printxval(sysconfig_options, tcp->u_arg[0], "_CONFIG_???");
-	return 0;
-}
-
-static const struct xlat sysinfo_options[] = {
-	{ SI_SYSNAME,		"SI_SYSNAME"		},
-	{ SI_HOSTNAME,		"SI_HOSTNAME"		},
-	{ SI_RELEASE,		"SI_RELEASE"		},
-	{ SI_VERSION,		"SI_VERSION"		},
-	{ SI_MACHINE,		"SI_MACHINE"		},
-	{ SI_ARCHITECTURE,	"SI_ARCHITECTURE"	},
-	{ SI_HW_SERIAL,		"SI_HW_SERIAL"		},
-	{ SI_HW_PROVIDER,	"SI_HW_PROVIDER"	},
-	{ SI_SRPC_DOMAIN,	"SI_SRPC_DOMAIN"	},
-#ifdef SI_SET_HOSTNAME
-	{ SI_SET_HOSTNAME,	"SI_SET_HOSTNAME"	},
-#endif
-#ifdef SI_SET_SRPC_DOMAIN
-	{ SI_SET_SRPC_DOMAIN,	"SI_SET_SRPC_DOMAIN"	},
-#endif
-#ifdef SI_SET_KERB_REALM
-	{ SI_SET_KERB_REALM,	"SI_SET_KERB_REALM"	},
-#endif
-#ifdef 	SI_KERB_REALM
-	{ SI_KERB_REALM,	"SI_KERB_REALM"		},
-#endif
-	{ 0,			NULL			},
-};
-
-int
-sys_sysinfo(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printxval(sysinfo_options, tcp->u_arg[0], "SI_???");
-		tprintf(", ");
-	}
-	else {
-		/* Technically some calls write values.  So what. */
-		if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[1]);
-		else
-			printpath(tcp, tcp->u_arg[1]);
-		tprintf(", %lu", tcp->u_arg[2]);
-	}
-	return 0;
-}
-
-#ifdef MIPS
-
-#include <sys/syssgi.h>
-
-static const struct xlat syssgi_options[] = {
-	{ SGI_SYSID,		"SGI_SYSID"		},
-#ifdef SGI_RDUBLK
-	{ SGI_RDUBLK,		"SGI_RDUBLK"		},
-#endif
-	{ SGI_TUNE,		"SGI_TUNE"		},
-	{ SGI_IDBG,		"SGI_IDBG"		},
-	{ SGI_INVENT,		"SGI_INVENT"		},
-	{ SGI_RDNAME,		"SGI_RDNAME"		},
-	{ SGI_SETLED,		"SGI_SETLED"		},
-	{ SGI_SETNVRAM,		"SGI_SETNVRAM"		},
-	{ SGI_GETNVRAM,		"SGI_GETNVRAM"		},
-	{ SGI_QUERY_FTIMER,	"SGI_QUERY_FTIMER"	},
-	{ SGI_QUERY_CYCLECNTR,	"SGI_QUERY_CYCLECNTR"	},
-	{ SGI_PROCSZ,		"SGI_PROCSZ"		},
-	{ SGI_SIGACTION,	"SGI_SIGACTION"		},
-	{ SGI_SIGPENDING,	"SGI_SIGPENDING"	},
-	{ SGI_SIGPROCMASK,	"SGI_SIGPROCMASK"	},
-	{ SGI_SIGSUSPEND,	"SGI_SIGSUSPEND"	},
-	{ SGI_SETSID,		"SGI_SETSID"		},
-	{ SGI_SETPGID,		"SGI_SETPGID"		},
-	{ SGI_SYSCONF,		"SGI_SYSCONF"		},
-	{ SGI_WAIT4,		"SGI_WAIT4"		},
-	{ SGI_PATHCONF,		"SGI_PATHCONF"		},
-	{ SGI_READB,		"SGI_READB"		},
-	{ SGI_WRITEB,		"SGI_WRITEB"		},
-	{ SGI_SETGROUPS,	"SGI_SETGROUPS"		},
-	{ SGI_GETGROUPS,	"SGI_GETGROUPS"		},
-	{ SGI_SETTIMEOFDAY,	"SGI_SETTIMEOFDAY"	},
-	{ SGI_SETTIMETRIM,	"SGI_SETTIMETRIM"	},
-	{ SGI_GETTIMETRIM,	"SGI_GETTIMETRIM"	},
-	{ SGI_SPROFIL,		"SGI_SPROFIL"		},
-	{ SGI_RUSAGE,		"SGI_RUSAGE"		},
-	{ SGI_SIGSTACK,		"SGI_SIGSTACK"		},
-	{ SGI_SIGSTATUS,	"SGI_SIGSTATUS"		},
-	{ SGI_NETPROC,		"SGI_NETPROC"		},
-	{ SGI_SIGALTSTACK,	"SGI_SIGALTSTACK"	},
-	{ SGI_BDFLUSHCNT,	"SGI_BDFLUSHCNT"	},
-	{ SGI_SSYNC,		"SGI_SSYNC"		},
-	{ SGI_NFSCNVT,		"SGI_NFSCNVT"		},
-	{ SGI_GETPGID,		"SGI_GETPGID"		},
-	{ SGI_GETSID,		"SGI_GETSID"		},
-	{ SGI_IOPROBE,		"SGI_IOPROBE"		},
-	{ SGI_CONFIG,		"SGI_CONFIG"		},
-	{ SGI_ELFMAP,		"SGI_ELFMAP"		},
-	{ SGI_MCONFIG,		"SGI_MCONFIG"		},
-	{ SGI_GETPLABEL,	"SGI_GETPLABEL"		},
-	{ SGI_SETPLABEL,	"SGI_SETPLABEL"		},
-	{ SGI_GETLABEL,		"SGI_GETLABEL"		},
-	{ SGI_SETLABEL,		"SGI_SETLABEL"		},
-	{ SGI_SATREAD,		"SGI_SATREAD"		},
-	{ SGI_SATWRITE,		"SGI_SATWRITE"		},
-	{ SGI_SATCTL,		"SGI_SATCTL"		},
-	{ SGI_LOADATTR,		"SGI_LOADATTR"		},
-	{ SGI_UNLOADATTR,	"SGI_UNLOADATTR"	},
-#ifdef SGI_RECVLMSG
-	{ SGI_RECVLMSG,		"SGI_RECVLMSG"		},
-#endif
-	{ SGI_PLANGMOUNT,	"SGI_PLANGMOUNT"	},
-	{ SGI_GETPSOACL,	"SGI_GETPSOACL"		},
-	{ SGI_SETPSOACL,	"SGI_SETPSOACL"		},
-#ifdef SGI_EAG_GET_ATTR
-	{ SGI_EAG_GET_ATTR,	"SGI_EAG_GET_ATTR"	},
-#endif
-#ifdef SGI_EAG_SET_ATTR
-	{ SGI_EAG_SET_ATTR,	"SGI_EAG_SET_ATTR"	},
-#endif
-#ifdef SGI_EAG_GET_PROCATTR
-	{ SGI_EAG_GET_PROCATTR,	"SGI_EAG_GET_PROCATTR"	},
-#endif
-#ifdef SGI_EAG_SET_PROCATTR
-	{ SGI_EAG_SET_PROCATTR,	"SGI_EAG_SET_PROCATTR"	},
-#endif
-#ifdef SGI_FREVOKE
-	{ SGI_FREVOKE,		"SGI_FREVOKE"		},
-#endif
-#ifdef SGI_SBE_GET_INFO
-	{ SGI_SBE_GET_INFO,	"SGI_SBE_GET_INFO"	},
-#endif
-#ifdef SGI_SBE_CLR_INFO
-	{ SGI_SBE_CLR_INFO,	"SGI_SBE_CLR_INFO"	},
-#endif
-	{ SGI_RMI_FIXECC,	"SGI_RMI_FIXECC"	},
-	{ SGI_R4K_CERRS,	"SGI_R4K_CERRS"		},
-	{ SGI_GET_EVCONF,	"SGI_GET_EVCONF"	},
-	{ SGI_MPCWAROFF,	"SGI_MPCWAROFF"		},
-	{ SGI_SET_AUTOPWRON,	"SGI_SET_AUTOPWRON"	},
-	{ SGI_SPIPE,		"SGI_SPIPE"		},
-	{ SGI_SYMTAB,		"SGI_SYMTAB"		},
-#ifdef SGI_SET_FPDEBUG
-	{ SGI_SET_FPDEBUG,	"SGI_SET_FPDEBUG"	},
-#endif
-#ifdef SGI_SET_FP_PRECISE
-	{ SGI_SET_FP_PRECISE,	"SGI_SET_FP_PRECISE"	},
-#endif
-	{ SGI_TOSSTSAVE,	"SGI_TOSSTSAVE"		},
-	{ SGI_FDHI,		"SGI_FDHI"		},
-#ifdef SGI_SET_CONFIG_SMM
-	{ SGI_SET_CONFIG_SMM,	"SGI_SET_CONFIG_SMM"	},
-#endif
-#ifdef SGI_SET_FP_PRESERVE
-	{ SGI_SET_FP_PRESERVE,	"SGI_SET_FP_PRESERVE"	},
-#endif
-	{ SGI_MINRSS,		"SGI_MINRSS"		},
-#ifdef SGI_GRIO
-	{ SGI_GRIO,		"SGI_GRIO"		},
-#endif
-#ifdef SGI_XLV_SET_TAB
-	{ SGI_XLV_SET_TAB,	"SGI_XLV_SET_TAB"	},
-#endif
-#ifdef SGI_XLV_GET_TAB
-	{ SGI_XLV_GET_TAB,	"SGI_XLV_GET_TAB"	},
-#endif
-#ifdef SGI_GET_FP_PRECISE
-	{ SGI_GET_FP_PRECISE,	"SGI_GET_FP_PRECISE"	},
-#endif
-#ifdef SGI_GET_CONFIG_SMM
-	{ SGI_GET_CONFIG_SMM,	"SGI_GET_CONFIG_SMM"	},
-#endif
-#ifdef SGI_FP_IMPRECISE_SUPP
-	{ SGI_FP_IMPRECISE_SUPP,"SGI_FP_IMPRECISE_SUPP"	},
-#endif
-#ifdef SGI_CONFIG_NSMM_SUPP
-	{ SGI_CONFIG_NSMM_SUPP,	"SGI_CONFIG_NSMM_SUPP"	},
-#endif
-#ifdef SGI_RT_TSTAMP_CREATE
-	{ SGI_RT_TSTAMP_CREATE,	"SGI_RT_TSTAMP_CREATE"	},
-#endif
-#ifdef SGI_RT_TSTAMP_DELETE
-	{ SGI_RT_TSTAMP_DELETE,	"SGI_RT_TSTAMP_DELETE"	},
-#endif
-#ifdef SGI_RT_TSTAMP_START
-	{ SGI_RT_TSTAMP_START,	"SGI_RT_TSTAMP_START"	},
-#endif
-#ifdef SGI_RT_TSTAMP_STOP
-	{ SGI_RT_TSTAMP_STOP,	"SGI_RT_TSTAMP_STOP"	},
-#endif
-#ifdef SGI_RT_TSTAMP_ADDR
-	{ SGI_RT_TSTAMP_ADDR,	"SGI_RT_TSTAMP_ADDR"	},
-#endif
-#ifdef SGI_RT_TSTAMP_MASK
-	{ SGI_RT_TSTAMP_MASK,	"SGI_RT_TSTAMP_MASK"	},
-#endif
-#ifdef SGI_RT_TSTAMP_EOB_MODE
-	{ SGI_RT_TSTAMP_EOB_MODE,"SGI_RT_TSTAMP_EOB_MODE"},
-#endif
-#ifdef SGI_USE_FP_BCOPY
-	{ SGI_USE_FP_BCOPY,	"SGI_USE_FP_BCOPY"	},
-#endif
-#ifdef SGI_GET_UST
-	{ SGI_GET_UST,		"SGI_GET_UST"		},
-#endif
-#ifdef SGI_SPECULATIVE_EXEC
-	{ SGI_SPECULATIVE_EXEC,	"SGI_SPECULATIVE_EXEC"	},
-#endif
-#ifdef SGI_XLV_NEXT_RQST
-	{ SGI_XLV_NEXT_RQST,	"SGI_XLV_NEXT_RQST"	},
-#endif
-#ifdef SGI_XLV_ATTR_CURSOR
-	{ SGI_XLV_ATTR_CURSOR,	"SGI_XLV_ATTR_CURSOR"	},
-#endif
-#ifdef SGI_XLV_ATTR_GET
-	{ SGI_XLV_ATTR_GET,	"SGI_XLV_ATTR_GET"	},
-#endif
-#ifdef SGI_XLV_ATTR_SET
-	{ SGI_XLV_ATTR_SET,	"SGI_XLV_ATTR_SET"	},
-#endif
-#ifdef SGI_BTOOLSIZE
-	{ SGI_BTOOLSIZE,	"SGI_BTOOLSIZE"		},
-#endif
-#ifdef SGI_BTOOLGET
-	{ SGI_BTOOLGET,		"SGI_BTOOLGET"		},
-#endif
-#ifdef SGI_BTOOLREINIT
-	{ SGI_BTOOLREINIT,	"SGI_BTOOLREINIT"	},
-#endif
-#ifdef SGI_CREATE_UUID
-	{ SGI_CREATE_UUID,	"SGI_CREATE_UUID"	},
-#endif
-#ifdef SGI_NOFPE
-	{ SGI_NOFPE,		"SGI_NOFPE"		},
-#endif
-#ifdef SGI_OLD_SOFTFP
-	{ SGI_OLD_SOFTFP,	"SGI_OLD_SOFTFP"	},
-#endif
-#ifdef SGI_FS_INUMBERS
-	{ SGI_FS_INUMBERS,	"SGI_FS_INUMBERS"	},
-#endif
-#ifdef SGI_FS_BULKSTAT
-	{ SGI_FS_BULKSTAT,	"SGI_FS_BULKSTAT"	},
-#endif
-#ifdef SGI_RT_TSTAMP_WAIT
-	{ SGI_RT_TSTAMP_WAIT,	"SGI_RT_TSTAMP_WAIT"	},
-#endif
-#ifdef SGI_RT_TSTAMP_UPDATE
-	{ SGI_RT_TSTAMP_UPDATE,	"SGI_RT_TSTAMP_UPDATE"	},
-#endif
-#ifdef SGI_PATH_TO_HANDLE
-	{ SGI_PATH_TO_HANDLE,	"SGI_PATH_TO_HANDLE"	},
-#endif
-#ifdef SGI_PATH_TO_FSHANDLE
-	{ SGI_PATH_TO_FSHANDLE,	"SGI_PATH_TO_FSHANDLE"	},
-#endif
-#ifdef SGI_FD_TO_HANDLE
-	{ SGI_FD_TO_HANDLE,	"SGI_FD_TO_HANDLE"	},
-#endif
-#ifdef SGI_OPEN_BY_HANDLE
-	{ SGI_OPEN_BY_HANDLE,	"SGI_OPEN_BY_HANDLE"	},
-#endif
-#ifdef SGI_READLINK_BY_HANDLE
-	{ SGI_READLINK_BY_HANDLE,"SGI_READLINK_BY_HANDLE"},
-#endif
-#ifdef SGI_READ_DANGID
-	{ SGI_READ_DANGID,	"SGI_READ_DANGID"	},
-#endif
-#ifdef SGI_CONST
-	{ SGI_CONST,		"SGI_CONST"		},
-#endif
-#ifdef SGI_XFS_FSOPERATIONS
-	{ SGI_XFS_FSOPERATIONS,	"SGI_XFS_FSOPERATIONS"	},
-#endif
-#ifdef SGI_SETASH
-	{ SGI_SETASH,		"SGI_SETASH"		},
-#endif
-#ifdef SGI_GETASH
-	{ SGI_GETASH,		"SGI_GETASH"		},
-#endif
-#ifdef SGI_SETPRID
-	{ SGI_SETPRID,		"SGI_SETPRID"		},
-#endif
-#ifdef SGI_GETPRID
-	{ SGI_GETPRID,		"SGI_GETPRID"		},
-#endif
-#ifdef SGI_SETSPINFO
-	{ SGI_SETSPINFO,	"SGI_SETSPINFO"		},
-#endif
-#ifdef SGI_GETSPINFO
-	{ SGI_GETSPINFO,	"SGI_GETSPINFO"		},
-#endif
-#ifdef SGI_SHAREII
-	{ SGI_SHAREII,		"SGI_SHAREII"		},
-#endif
-#ifdef SGI_NEWARRAYSESS
-	{ SGI_NEWARRAYSESS,	"SGI_NEWARRAYSESS"	},
-#endif
-#ifdef SGI_GETDFLTPRID
-	{ SGI_GETDFLTPRID,	"SGI_GETDFLTPRID"	},
-#endif
-#ifdef SGI_SET_DISMISSED_EXC_CNT
-	{ SGI_SET_DISMISSED_EXC_CNT,"SGI_SET_DISMISSED_EXC_CNT"	},
-#endif
-#ifdef SGI_GET_DISMISSED_EXC_CNT
-	{ SGI_GET_DISMISSED_EXC_CNT,"SGI_GET_DISMISSED_EXC_CNT"	},
-#endif
-#ifdef SGI_CYCLECNTR_SIZE
-	{ SGI_CYCLECNTR_SIZE,	"SGI_CYCLECNTR_SIZE"	},
-#endif
-#ifdef SGI_QUERY_FASTTIMER
-	{ SGI_QUERY_FASTTIMER,	"SGI_QUERY_FASTTIMER"	},
-#endif
-#ifdef SGI_PIDSINASH
-	{ SGI_PIDSINASH,	"SGI_PIDSINASH"		},
-#endif
-#ifdef SGI_ULI
-	{ SGI_ULI,		"SGI_ULI"		},
-#endif
-#ifdef SGI_LPG_SHMGET
-	{ SGI_LPG_SHMGET,	"SGI_LPG_SHMGET"	},
-#endif
-#ifdef SGI_LPG_MAP
-	{ SGI_LPG_MAP,		"SGI_LPG_MAP"		},
-#endif
-#ifdef SGI_CACHEFS_SYS
-	{ SGI_CACHEFS_SYS,	"SGI_CACHEFS_SYS"	},
-#endif
-#ifdef SGI_NFSNOTIFY
-	{ SGI_NFSNOTIFY,	"SGI_NFSNOTIFY"		},
-#endif
-#ifdef SGI_LOCKDSYS
-	{ SGI_LOCKDSYS,		"SGI_LOCKDSYS"		},
-#endif
-#ifdef SGI_EVENTCTR
-	{ SGI_EVENTCTR,		"SGI_EVENTCTR"		},
-#endif
-#ifdef SGI_GETPRUSAGE
-	{ SGI_GETPRUSAGE,	"SGI_GETPRUSAGE"	},
-#endif
-#ifdef SGI_PROCMASK_LOCATION
-	{ SGI_PROCMASK_LOCATION,"SGI_PROCMASK_LOCATION"	},
-#endif
-#ifdef SGI_UNUSED
-	{ SGI_UNUSED,		"SGI_UNUSED"		},
-#endif
-#ifdef SGI_CKPT_SYS
-	{ SGI_CKPT_SYS,		"SGI_CKPT_SYS"		},
-#endif
-#ifdef SGI_CKPT_SYS
-	{ SGI_CKPT_SYS,		"SGI_CKPT_SYS"		},
-#endif
-#ifdef SGI_GETGRPPID
-	{ SGI_GETGRPPID,	"SGI_GETGRPPID"		},
-#endif
-#ifdef SGI_GETSESPID
-	{ SGI_GETSESPID,	"SGI_GETSESPID"		},
-#endif
-#ifdef SGI_ENUMASHS
-	{ SGI_ENUMASHS,		"SGI_ENUMASHS"		},
-#endif
-#ifdef SGI_SETASMACHID
-	{ SGI_SETASMACHID,	"SGI_SETASMACHID"	},
-#endif
-#ifdef SGI_GETASMACHID
-	{ SGI_GETASMACHID,	"SGI_GETASMACHID"	},
-#endif
-#ifdef SGI_GETARSESS
-	{ SGI_GETARSESS,	"SGI_GETARSESS"		},
-#endif
-#ifdef SGI_JOINARRAYSESS
-	{ SGI_JOINARRAYSESS,	"SGI_JOINARRAYSESS"	},
-#endif
-#ifdef SGI_SPROC_KILL
-	{ SGI_SPROC_KILL,	"SGI_SPROC_KILL"	},
-#endif
-#ifdef SGI_DBA_CONFIG
-	{ SGI_DBA_CONFIG,	"SGI_DBA_CONFIG"	},
-#endif
-#ifdef SGI_RELEASE_NAME
-	{ SGI_RELEASE_NAME,	"SGI_RELEASE_NAME"	},
-#endif
-#ifdef SGI_SYNCH_CACHE_HANDLER
-	{ SGI_SYNCH_CACHE_HANDLER,"SGI_SYNCH_CACHE_HANDLER"},
-#endif
-#ifdef SGI_SWASH_INIT
-	{ SGI_SWASH_INIT,	"SGI_SWASH_INIT"	},
-#endif
-#ifdef SGI_NUMA_MIGR_PAGE
-	{ SGI_NUMA_MIGR_PAGE,	"SGI_NUMA_MIGR_PAGE"	},
-#endif
-#ifdef SGI_NUMA_MIGR_PAGE_ALT
-	{ SGI_NUMA_MIGR_PAGE_ALT,"SGI_NUMA_MIGR_PAGE_ALT"},
-#endif
-#ifdef SGI_KAIO_USERINIT
-	{ SGI_KAIO_USERINIT,	"SGI_KAIO_USERINIT"	},
-#endif
-#ifdef SGI_KAIO_READ
-	{ SGI_KAIO_READ,	"SGI_KAIO_READ"		},
-#endif
-#ifdef SGI_KAIO_WRITE
-	{ SGI_KAIO_WRITE,	"SGI_KAIO_WRITE"	},
-#endif
-#ifdef SGI_KAIO_SUSPEND
-	{ SGI_KAIO_SUSPEND,	"SGI_KAIO_SUSPEND"	},
-#endif
-#ifdef SGI_KAIO_STATS
-	{ SGI_KAIO_STATS,	"SGI_KAIO_STATS"	},
-#endif
-#ifdef SGI_INITIAL_PT_SPROC
-	{ SGI_INITIAL_PT_SPROC,	"SGI_INITIAL_PT_SPROC"	},
-#endif
-	{ 0,			NULL			},
-};
-
-int
-sys_syssgi(tcp)
-struct tcb *tcp;
-{
-	int i;
-
-	if (entering(tcp)) {
-		printxval(syssgi_options, tcp->u_arg[0], "SGI_???");
-		switch (tcp->u_arg[0]) {
-		default:
-			for (i = 1; i < tcp->u_nargs; i++)
-				tprintf(", %#lx", tcp->u_arg[i]);
-			break;
-		}
-	}
-	return 0;
-}
-
-#include <sys/types.h>
-#include <rpc/rpc.h>
-struct cred;
-struct uio;
-#include <sys/fsid.h>
-#include <sys/vnode.h>
-#include <sys/fs/nfs.h>
-#include <sys/fs/nfs_clnt.h>
-
-static const struct xlat mount_flags[] = {
-	{ MS_RDONLY,	"MS_RDONLY"	},
-	{ MS_FSS,	"MS_FSS"	},
-	{ MS_DATA,	"MS_DATA"	},
-	{ MS_NOSUID,	"MS_NOSUID"	},
-	{ MS_REMOUNT,	"MS_REMOUNT"	},
-	{ MS_NOTRUNC,	"MS_NOTRUNC"	},
-	{ MS_GRPID,	"MS_GRPID"	},
-	{ MS_NODEV,	"MS_NODEV"	},
-	{ MS_BEFORE,	"MS_BEFORE"	},
-	{ MS_AFTER,	"MS_AFTER"	},
-	{ 0,		NULL		},
-};
-
-static const struct xlat nfs_flags[] = {
-	{ NFSMNT_SOFT,		"NFSMNT_SOFT"		},
-	{ NFSMNT_WSIZE,		"NFSMNT_WSIZE"		},
-	{ NFSMNT_RSIZE,		"NFSMNT_RSIZE"		},
-	{ NFSMNT_TIMEO,		"NFSMNT_TIMEO"		},
-	{ NFSMNT_RETRANS,	"NFSMNT_RETRANS"	},
-	{ NFSMNT_HOSTNAME,	"NFSMNT_HOSTNAME"	},
-#ifdef NFSMNT_NOINT	/* IRIX 6 */
-	{ NFSMNT_NOINT,		"NFSMNT_NOINT"		},
-#endif
-#ifdef NFSMNT_INT	/* IRIX 5 */
-	{ NFSMNT_INT,		"NFSMNT_INT"		},
-#endif
-	{ NFSMNT_NOAC,		"NFSMNT_NOAC"		},
-	{ NFSMNT_ACREGMIN,	"NFSMNT_ACREGMIN"	},
-	{ NFSMNT_ACREGMAX,	"NFSMNT_ACREGMAX"	},
-	{ NFSMNT_ACDIRMIN,	"NFSMNT_ACDIRMIN"	},
-	{ NFSMNT_ACDIRMAX,	"NFSMNT_ACDIRMAX"	},
-	{ NFSMNT_PRIVATE,	"NFSMNT_PRIVATE"	},
-	{ NFSMNT_SYMTTL,	"NFSMNT_SYMTTL"		},
-	{ NFSMNT_LOOPBACK,	"NFSMNT_LOOPBACK"	},
-	{ NFSMNT_BASETYPE,	"NFSMNT_BASETYPE"	},
-	{ NFSMNT_NAMEMAX,	"NFSMNT_NAMEMAX"	},
-#ifdef NFSMNT_SHORTUID	/* IRIX 6 */
-	{ NFSMNT_SHORTUID,	"NFSMNT_SHORTUID"	},
-#endif
-#ifdef NFSMNT_ASYNCNLM	/* IRIX 6 */
-	{ NFSMNT_ASYNCNLM,	"NFSMNT_ASYNCNLM"	},
-#endif
-	{ 0,			NULL			},
-};
-
-int
-sys_mount(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprintf(", ");
-		printpath(tcp, tcp->u_arg[1]);
-		tprintf(", ");
-		printflags(mount_flags, tcp->u_arg[2], "MS_???");
-		if (tcp->u_arg[2] & (MS_FSS | MS_DATA)) {
-			tprintf(", ");
-			tprintf("%ld", tcp->u_arg[3]);
-		}
-		if (tcp->u_arg[2] & MS_DATA) {
-			int nfs_type = sysfs(GETFSIND, FSID_NFS);
-
-			tprintf(", ");
-			if (tcp->u_arg[3] == nfs_type) {
-				struct nfs_args args;
-				if (umove(tcp, tcp->u_arg[4], &args) < 0)
-					tprintf("%#lx", tcp->u_arg[4]);
-				else {
-					tprintf("addr=");
-					printsock(tcp, (int) args.addr);
-					tprintf(", flags=");
-					printflags(nfs_flags, args.flags, "NFSMNT_???");
-					tprintf(", hostname=");
-					printstr(tcp, (int) args.hostname, -1);
-					tprintf(", ...}");
-				}
-			}
-			else
-				tprintf("%#lx", tcp->u_arg[4]);
-			tprintf(", %ld", tcp->u_arg[5]);
-		}
-	}
-	return 0;
-}
-
-#else /* !MIPS */
-
-#if UNIXWARE
-
-#include <sys/types.h>
-#include <sys/fstyp.h>
-#include <sys/mount.h>
-#include <sys/xti.h>
-
-#define NFSCLIENT	1
-#include <nfs/mount.h>
-
-#include <sys/fs/vx_ioctl.h>
-
-static const struct xlat mount_flags[] = {
-	{ MS_RDONLY,	"MS_RDONLY"	},
-	{ MS_FSS,	"MS_FSS"	},
-	{ MS_DATA,	"MS_DATA"	},
-	{ MS_HADBAD,	"MS_HADBAD"	},
-	{ MS_NOSUID,	"MS_NOSUID"	},
-	{ MS_REMOUNT,	"MS_REMOUNT"	},
-	{ MS_NOTRUNC,	"MS_NOTRUNC"	},
-	{ MS_SOFTMNT,	"MS_SOFTMNT"	},
-	{ MS_SYSSPACE,	"MS_SYSSPACE"	},
-	{ 0,		NULL		},
-};
-
-#ifdef VX_MS_MASK
-static const struct xlat vxfs_flags[] = {
-	{ VX_MS_NOLOG,		"VX_MS_NOLOG"		},
-	{ VX_MS_BLKCLEAR,	"VX_MS_BLKCLEAR"	},
-	{ VX_MS_SNAPSHOT,	"VX_MS_SNAPSHOT"	},
-	{ VX_MS_NODATAINLOG,	"VX_MS_NODATAINLOG"	},
-	{ VX_MS_DELAYLOG,	"VX_MS_DELAYLOG"	},
-	{ VX_MS_TMPLOG,		"VX_MS_TMPLOG"		},
-	{ VX_MS_FILESET,	"VX_MS_FILESET"		},
-
-	{ VX_MS_CACHE_DIRECT,	"VX_MS_CACHE_DIRECT"	},
-	{ VX_MS_CACHE_DSYNC,	"VX_MS_CACHE_DSYNC"	},
-	{ VX_MS_CACHE_CLOSESYNC,"VX_MS_CACHE_CLOSESYNC"	},
-	{ VX_MS_CACHE_TMPCACHE,	"VX_MS_CACHE_TMPCACHE"	},
-
-	{ VX_MS_OSYNC_DIRECT,	"VX_MS_OSYNC_DIRECT"	},
-	{ VX_MS_OSYNC_DSYNC,	"VX_MS_OSYNC_DSYNC"	},
-	{ VX_MS_OSYNC_CLOSESYNC,"VX_MS_OSYNC_CLOSESYNC"	},
-	{ VX_MS_OSYNC_DELAY,	"VX_MS_OSYNC_DELAY"	},
-	{ 0,			NULL,			},
-};
-#endif
-
-static const struct xlat nfs_flags[] = {
-	{ NFSMNT_SOFT,		"NFSMNT_SOFT"		},
-	{ NFSMNT_WSIZE,		"NFSMNT_WSIZE"		},
-	{ NFSMNT_RSIZE,		"NFSMNT_RSIZE"		},
-	{ NFSMNT_TIMEO,		"NFSMNT_TIMEO"		},
-	{ NFSMNT_RETRANS,	"NFSMNT_RETRANS"	},
-	{ NFSMNT_HOSTNAME,	"NFSMNT_HOSTNAME"	},
-	{ NFSMNT_INT,		"NFSMNT_INT"		},
-	{ NFSMNT_NOAC,		"NFSMNT_NOAC"		},
-	{ NFSMNT_ACREGMIN,	"NFSMNT_ACREGMIN"	},
-	{ NFSMNT_ACREGMAX,	"NFSMNT_ACREGMAX"	},
-	{ NFSMNT_ACDIRMIN,	"NFSMNT_ACDIRMIN"	},
-	{ NFSMNT_ACDIRMAX,	"NFSMNT_ACDIRMAX"	},
-	{ NFSMNT_SECURE,	"NFSMNT_SECURE"		},
-	{ NFSMNT_NOCTO,		"NFSMNT_NOCTO"		},
-	{ NFSMNT_GRPID,		"NFSMNT_GRPID"		},
-	{ NFSMNT_RPCTIMESYNC,	"NFSMNT_RPCTIMESYNC"	},
-	{ NFSMNT_LWPSMAX,	"NFSMNT_LWPSMAX"	},
-	{ 0,			NULL			},
-};
-
-int
-sys_mount(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		char fstyp [FSTYPSZ];
-		printpath(tcp, tcp->u_arg[0]);
-		tprintf(", ");
-		printpath(tcp, tcp->u_arg[1]);
-		tprintf(", ");
-		printflags(mount_flags, tcp->u_arg[2], "MS_???");
-		/* The doc sez that the file system type is given as a
-		   fsindex, and we should use sysfs to work out the name.
-		   This appears to be untrue for UW.  Maybe it's untrue
-		   for all SVR4's? */
-		if (tcp->u_arg[2] & (MS_FSS | MS_DATA)) {
-			if (umovestr(tcp, tcp->u_arg[3], FSTYPSZ, fstyp) < 0) {
-				*fstyp = 0;
-				tprintf(", %ld", tcp->u_arg[3]);
-			}
-			else
-				tprintf(", \"%s\"", fstyp);
-		}
-		if (tcp->u_arg[2] & MS_DATA) {
-			tprintf(", ");
-#ifdef VX_MS_MASK
-			/* On UW7 they don't give us the defines and structs
-			   we need to see what is going on.  Bummer. */
-			if (strcmp (fstyp, "vxfs") == 0) {
-				struct vx_mountargs5 args;
-				if (umove(tcp, tcp->u_arg[4], &args) < 0)
-					tprintf("%#lx", tcp->u_arg[4]);
-				else {
-					tprintf("{ flags=");
-					printflags(vxfs_flags, args.mflags, "VX_MS_???");
-					if (args.mflags & VX_MS_SNAPSHOT) {
-						tprintf (", snapof=");
-						printstr (tcp,
-							  (long) args.primaryspec,
-							  -1);
-						if (args.snapsize > 0)
-							tprintf (", snapsize=%ld", args.snapsize);
-					}
-					tprintf(" }");
-				}
-			}
-			else
-#endif
-			if (strcmp (fstyp, "specfs") == 0) {
-				tprintf ("dev=");
-				printstr (tcp, tcp->u_arg[4], -1);
-			}
-			else
-			if (strcmp (fstyp, "nfs") == 0) {
-				struct nfs_args args;
-				if (umove(tcp, tcp->u_arg[4], &args) < 0)
-					tprintf("%#lx", tcp->u_arg[4]);
-				else {
-					struct netbuf addr;
-					tprintf("{ addr=");
-					if (umove (tcp, (int) args.addr, &addr) < 0) {
-						tprintf ("%#lx", (long) args.addr);
-					}
-					else {
-						printsock(tcp, (int) addr.buf, addr.len);
-					}
-					tprintf(", flags=");
-					printflags(nfs_flags, args.flags, "NFSMNT_???");
-					tprintf(", hostname=");
-					printstr(tcp, (int) args.hostname, -1);
-					tprintf(", ...}");
-				}
-			}
-			else
-				tprintf("%#lx", tcp->u_arg[4]);
-			tprintf(", %ld", tcp->u_arg[5]);
-		}
-	}
-	return 0;
-}
-
-#else /* !UNIXWARE */
-
-int
-sys_mount(tcp)
-struct tcb *tcp;
-{
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprintf(", ");
-		printpath(tcp, tcp->u_arg[1]);
-		tprintf(", ...");
-	}
-	return 0;
-}
-#endif /* !UNIXWARE */
-
-#endif /* !MIPS */
-
-#endif /* SVR4 */
-
 #ifdef SYS_capget
 
 static const struct xlat capabilities[] = {
@@ -1592,131 +483,107 @@ static const struct xlat capabilities[] = {
 #ifdef CAP_SETFCAP
 	{ 1<<CAP_SETFCAP,	"CAP_SETFCAP"	},
 #endif
-	{ 0,                    NULL            },
+	{ 0,		NULL		},
 };
 
+#ifndef _LINUX_CAPABILITY_VERSION_1
+# define _LINUX_CAPABILITY_VERSION_1 0x19980330
+#endif
+#ifndef _LINUX_CAPABILITY_VERSION_2
+# define _LINUX_CAPABILITY_VERSION_2 0x20071026
+#endif
+#ifndef _LINUX_CAPABILITY_VERSION_3
+# define _LINUX_CAPABILITY_VERSION_3 0x20080522
+#endif
+
+static const struct xlat cap_version[] = {
+	{ _LINUX_CAPABILITY_VERSION_1,	"_LINUX_CAPABILITY_VERSION_1"	},
+	{ _LINUX_CAPABILITY_VERSION_2,	"_LINUX_CAPABILITY_VERSION_3"	},
+	{ _LINUX_CAPABILITY_VERSION_3,	"_LINUX_CAPABILITY_VERSION_3"	},
+	{ 0,				NULL				}
+};
+
+static void
+print_cap_header(struct tcb *tcp, unsigned long addr)
+{
+	union { cap_user_header_t p; long *a; char *c; } arg;
+	long a[sizeof(*arg.p) / sizeof(long) + 1];
+	arg.a = a;
+
+	if (!addr)
+		tprints("NULL");
+	else if (!verbose(tcp) ||
+		 umoven(tcp, addr, sizeof(*arg.p), arg.c) < 0)
+		tprintf("%#lx", addr);
+	else {
+		tprints("{");
+		printxval(cap_version, arg.p->version,
+			  "_LINUX_CAPABILITY_VERSION_???");
+		tprintf(", %d}", arg.p->pid);
+	}
+}
+
+static void
+print_cap_data(struct tcb *tcp, unsigned long addr)
+{
+	union { cap_user_data_t p; long *a; char *c; } arg;
+	long a[sizeof(*arg.p) / sizeof(long) + 1];
+	arg.a = a;
+
+	if (!addr)
+		tprints("NULL");
+	else if (!verbose(tcp) ||
+		 (exiting(tcp) && syserror(tcp)) ||
+		 umoven(tcp, addr, sizeof(*arg.p), arg.c) < 0)
+		tprintf("%#lx", addr);
+	else {
+		tprints("{");
+		printflags(capabilities, arg.p->effective, "CAP_???");
+		tprints(", ");
+		printflags(capabilities, arg.p->permitted, "CAP_???");
+		tprints(", ");
+		printflags(capabilities, arg.p->inheritable, "CAP_???");
+		tprints("}");
+	}
+}
 
 int
-sys_capget(tcp)
-struct tcb *tcp;
+sys_capget(struct tcb *tcp)
 {
-	static cap_user_header_t       arg0 = NULL;
-	static cap_user_data_t         arg1 = NULL;
-
-	if(!entering(tcp)) {
-		if (!arg0) {
-			if ((arg0 = malloc(sizeof(*arg0))) == NULL) {
-				fprintf(stderr, "out of memory\n");
-				tprintf("%#lx, %#lx", tcp->u_arg[0], tcp->u_arg[1]);
-				return -1;
-			}
-		}
-		if (!arg1) {
-			if ((arg1 = malloc(sizeof(*arg1))) == NULL) {
-				fprintf(stderr, "out of memory\n");
-				tprintf("%#lx, %#lx", tcp->u_arg[0], tcp->u_arg[1]);
-				return -1;
-			}
-		}
-
-		if (!tcp->u_arg[0])
-			tprintf("NULL");
-		else if (!verbose(tcp))
-			tprintf("%#lx", tcp->u_arg[0]);
-		else if (umoven(tcp, tcp->u_arg[0], sizeof(*arg0), (char *) arg0) < 0)
-			tprintf("???");
-		else {
-			tprintf("%#x, %d", arg0->version, arg0->pid);
-		}
-		tprintf(", ");
-		if (!tcp->u_arg[1])
-			tprintf("NULL");
-		else if (!verbose(tcp))
-			tprintf("%#lx", tcp->u_arg[1]);
-		else if (umoven(tcp, tcp->u_arg[1], sizeof(*arg1), (char *) arg1) < 0)
-			tprintf("???");
-		else {
-			tprintf("{");
-			printflags(capabilities, arg1->effective, "CAP_???");
-			tprintf(", ");
-			printflags(capabilities, arg1->permitted, "CAP_???");
-			tprintf(", ");
-			printflags(capabilities, arg1->inheritable, "CAP_???");
-			tprintf("}");
-		}
+	if (entering(tcp)) {
+		print_cap_header(tcp, tcp->u_arg[0]);
+		tprints(", ");
+	} else {
+		print_cap_data(tcp, tcp->u_arg[1]);
 	}
 	return 0;
 }
 
 int
-sys_capset(tcp)
-struct tcb *tcp;
+sys_capset(struct tcb *tcp)
 {
-	static cap_user_header_t       arg0 = NULL;
-	static cap_user_data_t         arg1 = NULL;
-
-	if(entering(tcp)) {
-		if (!arg0) {
-			if ((arg0 = malloc(sizeof(*arg0))) == NULL) {
-				fprintf(stderr, "out of memory\n");
-				tprintf("%#lx, %#lx", tcp->u_arg[0], tcp->u_arg[1]);
-				return -1;
-			}
-		}
-		if (!arg1) {
-			if ((arg1 = malloc(sizeof(*arg1))) == NULL) {
-				fprintf(stderr, "out of memory\n");
-				tprintf("%#lx, %#lx", tcp->u_arg[0], tcp->u_arg[1]);
-				return -1;
-			}
-		}
-
-		if (!tcp->u_arg[0])
-			tprintf("NULL");
-		else if (!verbose(tcp))
-			tprintf("%#lx", tcp->u_arg[0]);
-		else if (umoven(tcp, tcp->u_arg[0], sizeof(*arg0), (char *) arg0) < 0)
-			tprintf("???");
-		else {
-			tprintf("%#x, %d", arg0->version, arg0->pid);
-		}
-		tprintf(", ");
-		if (!tcp->u_arg[1])
-			tprintf("NULL");
-		else if (!verbose(tcp))
-			tprintf("%#lx", tcp->u_arg[1]);
-		else if (umoven(tcp, tcp->u_arg[1], sizeof(*arg1), (char *) arg1) < 0)
-			tprintf("???");
-		else {
-			tprintf("{");
-			printflags(capabilities, arg1->effective, "CAP_???");
-			tprintf(", ");
-			printflags(capabilities, arg1->permitted, "CAP_???");
-			tprintf(", ");
-			printflags(capabilities, arg1->inheritable, "CAP_???");
-			tprintf("}");
-		}
+	if (entering(tcp)) {
+		print_cap_header(tcp, tcp->u_arg[0]);
+		tprints(", ");
+		print_cap_data(tcp, tcp->u_arg[1]);
 	}
 	return 0;
 }
 
 #else
 
-int sys_capget(tcp)
-struct tcb *tcp;
+int sys_capget(struct tcb *tcp)
 {
 	return printargs(tcp);
 }
 
-int sys_capset(tcp)
-struct tcb *tcp;
+int sys_capset(struct tcb *tcp)
 {
 	return printargs(tcp);
 }
 
 #endif
 
-#ifdef LINUX
 /* Linux 2.6.18+ headers removed CTL_PROC enum.  */
 # define CTL_PROC 4
 # define CTL_CPU 10		/* older headers lack */
@@ -1963,18 +830,17 @@ static const struct xlat sysctl_net_ipv6_route[] = {
 };
 
 int
-sys_sysctl(tcp)
-struct tcb *tcp;
+sys_sysctl(struct tcb *tcp)
 {
 	struct __sysctl_args info;
 	int *name;
 	unsigned long size;
 
-	if (umove (tcp, tcp->u_arg[0], &info) < 0)
+	if (umove(tcp, tcp->u_arg[0], &info) < 0)
 		return printargs(tcp);
 
-	size = sizeof (int) * (unsigned long) info.nlen;
-	name = (size / sizeof (int) != info.nlen) ? NULL : malloc (size);
+	size = sizeof(int) * (unsigned long) info.nlen;
+	name = (size / sizeof(int) != info.nlen) ? NULL : malloc(size);
 	if (name == NULL ||
 	    umoven(tcp, (unsigned long) info.name, size, (char *) name) < 0) {
 		free(name);
@@ -1988,7 +854,7 @@ struct tcb *tcp;
 	if (entering(tcp)) {
 		int cnt = 0, max_cnt;
 
-		tprintf("{{");
+		tprints("{{");
 
 		if (info.nlen == 0)
 			goto out;
@@ -1999,17 +865,17 @@ struct tcb *tcp;
 			goto out;
 		switch (name[0]) {
 		case CTL_KERN:
-			tprintf(", ");
+			tprints(", ");
 			printxval(sysctl_kern, name[1], "KERN_???");
 			++cnt;
 			break;
 		case CTL_VM:
-			tprintf(", ");
+			tprints(", ");
 			printxval(sysctl_vm, name[1], "VM_???");
 			++cnt;
 			break;
 		case CTL_NET:
-			tprintf(", ");
+			tprints(", ");
 			printxval(sysctl_net, name[1], "NET_???");
 			++cnt;
 
@@ -2017,17 +883,17 @@ struct tcb *tcp;
 				goto out;
 			switch (name[1]) {
 			case NET_CORE:
-				tprintf(", ");
+				tprints(", ");
 				printxval(sysctl_net_core, name[2],
 					  "NET_CORE_???");
 				break;
 			case NET_UNIX:
-				tprintf(", ");
+				tprints(", ");
 				printxval(sysctl_net_unix, name[2],
 					  "NET_UNIX_???");
 				break;
 			case NET_IPV4:
-				tprintf(", ");
+				tprints(", ");
 				printxval(sysctl_net_ipv4, name[2],
 					  "NET_IPV4_???");
 
@@ -2035,13 +901,13 @@ struct tcb *tcp;
 					goto out;
 				switch (name[2]) {
 				case NET_IPV4_ROUTE:
-					tprintf(", ");
+					tprints(", ");
 					printxval(sysctl_net_ipv4_route,
 						  name[3],
 						  "NET_IPV4_ROUTE_???");
 					break;
 				case NET_IPV4_CONF:
-					tprintf(", ");
+					tprints(", ");
 					printxval(sysctl_net_ipv4_conf,
 						  name[3],
 						  "NET_IPV4_CONF_???");
@@ -2051,7 +917,7 @@ struct tcb *tcp;
 				}
 				break;
 			case NET_IPV6:
-				tprintf(", ");
+				tprints(", ");
 				printxval(sysctl_net_ipv6, name[2],
 					  "NET_IPV6_???");
 
@@ -2059,7 +925,7 @@ struct tcb *tcp;
 					goto out;
 				switch (name[2]) {
 				case NET_IPV6_ROUTE:
-					tprintf(", ");
+					tprints(", ");
 					printxval(sysctl_net_ipv6_route,
 						  name[3],
 						  "NET_IPV6_ROUTE_???");
@@ -2082,7 +948,7 @@ struct tcb *tcp;
 		while (cnt < max_cnt)
 			tprintf(", %x", name[cnt++]);
 		if (cnt < info.nlen)
-			tprintf(", ...");
+			tprints(", ...");
 		tprintf("}, %d, ", info.nlen);
 	} else {
 		size_t oldlen;
@@ -2101,7 +967,7 @@ struct tcb *tcp;
 			printpath(tcp, (size_t)info.oldval);
 			tprintf(", %Zu, ", oldlen);
 			if (info.newval == 0)
-				tprintf("NULL");
+				tprints("NULL");
 			else if (syserror(tcp))
 				tprintf("%p", info.newval);
 			else
@@ -2111,240 +977,12 @@ struct tcb *tcp;
 			tprintf("%p, %Zd, %p, %Zd", info.oldval, oldlen,
 				info.newval, info.newlen);
 		}
-		tprintf("}");
+		tprints("}");
 	}
 
 	free(name);
 	return 0;
 }
-#else
-int sys_sysctl(tcp)
-struct tcb *tcp;
-{
-	return printargs(tcp);
-}
-#endif
-
-#ifdef FREEBSD
-#include <sys/sysctl.h>
-
-int sys___sysctl(tcp)
-struct tcb *tcp;
-{
-	int qoid[CTL_MAXNAME+2];
-	char ctl[1024];
-	size_t len;
-	int i, numeric;
-
-	if (entering(tcp)) {
-		if (tcp->u_arg[1] < 0 || tcp->u_arg[1] > CTL_MAXNAME ||
-		    (umoven(tcp, tcp->u_arg[0], tcp->u_arg[1] * sizeof(int),
-			    (char *) (qoid + 2)) < 0))
-			tprintf("[...], ");
-		else {
-			/* Use sysctl to ask the name of the current MIB
-			   This uses the undocumented "Staff-functions" used
-			   by the sysctl program. See kern_sysctl.c for
-			   details. */
-			qoid[0] = 0; /* sysctl */
-			qoid[1] = 1; /* name */
-			i = sizeof(ctl);
-			tprintf("[");
-			if (sysctl(qoid, tcp->u_arg[1] + 2, ctl, &i, 0, 0) >= 0) {
-				numeric = !abbrev(tcp);
-				tprintf("%s%s", ctl, numeric ? ", " : "");
-			} else
-				numeric = 1;
-			if (numeric) {
-				for (i = 0; i < tcp->u_arg[1]; i++)
-					tprintf("%s%d", i ? "." : "", qoid[i + 2]);
-			}
-			tprintf("], ");
-			tprintf("%lu, ", tcp->u_arg[1]);
-		}
-	} else {
-		if (!syserror(tcp) && (umove(tcp, tcp->u_arg[3], &len) >= 0)) {
-			printstr(tcp, tcp->u_arg[2], len);
-			tprintf(", [%u], ", len);
-		} else
-			tprintf("%#lx, %#lx, ", tcp->u_arg[2], tcp->u_arg[3]);
-		printstr(tcp, tcp->u_arg[4], tcp->u_arg[5]);
-		tprintf(", %lu", tcp->u_arg[5]);
-	}
-	return 0;
-}
-#endif
-
-#if UNIXWARE >= 2
-
-#include <sys/ksym.h>
-#include <sys/elf.h>
-
-static const struct xlat ksym_flags[] = {
-	{ STT_NOTYPE,	"STT_NOTYPE"	},
-	{ STT_FUNC,	"STT_FUNC"	},
-	{ STT_OBJECT,	"STT_OBJECT"	},
-	{ 0,		NULL		},
-};
-
-int
-sys_getksym(tcp)
-struct tcb *tcp;
-{
-	if (entering (tcp)) {
-		printstr(tcp, tcp->u_arg[0], -1);
-		tprintf(", ");
-	}
-	else {
-		if (syserror(tcp)) {
-			tprintf("%#lx, %#lx",
-				tcp->u_arg[1], tcp->u_arg[2]);
-		}
-		else {
-			int val;
-			printnum (tcp, tcp->u_arg[1], "%#lx");
-			tprintf(", ");
-			if (umove(tcp, tcp->u_arg[2], &val) < 0) {
-				tprintf("%#lx", tcp->u_arg[2]);
-			}
-			else {
-				tprintf("[");
-				printxval (ksym_flags, val, "STT_???");
-				tprintf("]");
-			}
-		}
-	}
-
-	return 0;
-}
-
-#ifdef HAVE_SYS_NSCSYS_H
-
-struct cred;
-#include <sys/nscsys.h>
-
-static const struct xlat ssi_cmd [] = {
-	{ SSISYS_BADOP,	"SSISYS_BADOP"	},
-	{ SSISYS_LDLVL_INIT,"SSISYS_LDLVL_INIT"},
-	{ SSISYS_LDLVL_GETVEC,"SSISYS_LDLVL_GETVEC"},
-	{ SSISYS_LDLVL_PUTVEC,"SSISYS_LDLVL_PUTVEC"},
-	{ SSISYS_LDLVL_PUTRCMDS,"SSISYS_LDLVL_PUTRCMDS"},
-	{ SSISYS_LDLVL_SETREXEC,"SSISYS_LDLVL_SETREXEC"},
-	{ SSISYS_CMS_CLUSTERID,"SSISYS_CMS_CLUSTERID"},
-	{ SSISYS_CFS_STATVFS,"SSISYS_CFS_STATVFS"},
-	{ SSISYS_NODE_GETNUM,"SSISYS_NODE_GETNUM"},
-	{ SSISYS_NODE_TABLE,"SSISYS_NODE_TABLE"},
-	{ SSISYS_NODE_DOWN,"SSISYS_NODE_DOWN"},
-	{ SSISYS_RECLAIM_CHILD,"SSISYS_RECLAIM_CHILD"},
-	{ SSISYS_IPC_GETINFO,"SSISYS_IPC_GETINFO"},
-	{ SSISYS_ICS_TEST,"SSISYS_ICS_TEST"},
-	{ SSISYS_NODE_PID,"SSISYS_NODE_PID"},
-	{ SSISYS_ISLOCAL,"SSISYS_ISLOCAL"},
-	{ SSISYS_CFS_ISSTACKED,"SSISYS_CFS_ISSTACKED"},
-	{ SSISYS_DNET_SYNC,"SSISYS_DNET_SYNC"},
-	{ SSISYS_CFS_WAIT_MODE,"SSISYS_CFS_WAIT_MODE"},
-	{ SSISYS_CFS_UMOUNT,"SSISYS_CFS_UMOUNT"},
-	{ SSISYS_LLSTAT,"SSISYS_LLSTAT"	},
-	{ SSISYS_LTS_PERFTEST,"SSISYS_LTS_PERFTEST"},
-	{ SSISYS_LTS_CONFIG,"SSISYS_LTS_CONFIG"},
-	{ SSISYS_SNET_PERFTEST,"SSISYS_SNET_PERFTEST"},
-	{ SSISYS_IGNORE_HALFUP,"SSISYS_IGNORE_HALFUP"},
-	{ SSISYS_NODE_ROOTDEV,"SSISYS_NODE_ROOTDEV"},
-	{ SSISYS_GET_PRIMARY,"SSISYS_GET_PRIMARY"},
-	{ SSISYS_GET_SECONDARY,"SSISYS_GET_SECONDARY"},
-	{ SSISYS_GET_ROOTDISK,"SSISYS_GET_ROOTDISK"},
-	{ SSISYS_CLUSTERNODE_NUM,"SSISYS_CLUSTERNODE_NUM"},
-	{ SSISYS_CLUSTER_MEMBERSHIP,"SSISYS_CLUSTER_MEMBERSHIP"},
-	{ SSISYS_CLUSTER_DETAILEDTRANS,"SSISYS_CLUSTER_DETAILEDTRANS"},
-	{ SSISYS_CLUSTERNODE_INFO,"SSISYS_CLUSTERNODE_INFO"},
-	{ SSISYS_CLUSTERNODE_SETINFO,"SSISYS_CLUSTERNODE_SETINFO"},
-	{ SSISYS_CLUSTERNODE_AVAIL,"SSISYS_CLUSTERNODE_AVAIL"},
-	{ SSISYS_CLUSTER_MAXNODES,"SSISYS_CLUSTER_MAXNODES"},
-	{ SSISYS_SET_MEMPRIO,"SSISYS_SET_MEMPRIO"},
-	{ SSISYS_GET_USERS,"SSISYS_GET_USERS"},
-	{ SSISYS_FORCE_ROOT_NODE,"SSISYS_FORCE_ROOT_NODE"},
-	{ SSISYS_CVIP_SET,"SSISYS_CVIP_SET"},
-	{ SSISYS_CVIP_GET,"SSISYS_CVIP_GET"},
-	{ SSISYS_GET_NODE_COUNTS,"SSISYS_GET_NODE_COUNTS"},
-	{ SSISYS_GET_TRANSPORT,"SSISYS_GET_TRANSPORT"},
-	{ 0,		NULL		},
-};
-
-int sys_ssisys (tcp)
-struct tcb *tcp;
-{
-	struct ssisys_iovec iov;
-	cls_nodeinfo_args_t cni;
-	clusternode_info_t info;
-
-	if (entering (tcp)) {
-		ts_reclaim_child_inargs_t trc;
-		if (tcp->u_arg[1] != sizeof iov ||
-		    umove (tcp, tcp->u_arg[0], &iov) < 0)
-		{
-			tprintf ("%#lx, %ld", tcp->u_arg[0], tcp->u_arg[1]);
-			return 0;
-		}
-		tprintf ("{id=");
-		printxval(ssi_cmd, iov.tio_id.id_cmd, "SSISYS_???");
-		tprintf (":%d", iov.tio_id.id_ver);
-		switch (iov.tio_id.id_cmd) {
-		    case SSISYS_RECLAIM_CHILD:
-			if (iov.tio_udatainlen != sizeof trc ||
-			    umove (tcp, (long) iov.tio_udatain, &trc) < 0)
-				goto bad;
-			tprintf (", in={pid=%ld, start=%ld}",
-				 trc.trc_pid, trc.trc_start);
-			break;
-		    case SSISYS_CLUSTERNODE_INFO:
-			if (iov.tio_udatainlen != sizeof cni ||
-			    umove (tcp, (long) iov.tio_udatain, &cni) < 0)
-				goto bad;
-			tprintf (", in={node=%ld, len=%d}",
-				 cni.nodenum, cni.info_len);
-			break;
-		    default:
-		    bad:
-			if (iov.tio_udatainlen) {
-				tprintf (", in=[/* %d bytes */]",
-					 iov.tio_udatainlen);
-			}
-		}
-	}
-	else {
-		if (tcp->u_arg[1] != sizeof iov ||
-		    umove (tcp, tcp->u_arg[0], &iov) < 0)
-		    goto done;
-		switch (iov.tio_id.id_cmd) {
-		    case SSISYS_CLUSTERNODE_INFO:
-			if (iov.tio_udatainlen != sizeof cni ||
-			    umove (tcp, (long) iov.tio_udatain, &cni) < 0)
-				goto bad_out;
-			if (cni.info_len != sizeof info ||
-			    iov.tio_udataoutlen != sizeof &info ||
-			    umove (tcp, (long) iov.tio_udataout, &info) < 0)
-				goto bad_out;
-			tprintf (", out={node=%ld, cpus=%d, online=%d}",
-				 info.node_num, info.node_totalcpus,
-				 info.node_onlinecpus);
-			break;
-
-		    default:
-		    bad_out:
-			if (iov.tio_udataoutlen) {
-				tprintf (", out=[/* %d bytes */]",
-					 iov.tio_udataoutlen);
-			}
-		}
-	    done:
-		tprintf ("}, %ld", tcp->u_arg[1]);
-	}
-	return 0;
-}
-
-#endif
-
-#endif /* UNIXWARE > 2 */
 
 #ifdef MIPS
 
@@ -2361,19 +999,18 @@ static const struct xlat sysmips_operations[] = {
 	{ 0, NULL }
 };
 
-int sys_sysmips(tcp)
-struct tcb *tcp;
+int sys_sysmips(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printxval(sysmips_operations, tcp->u_arg[0], "???");
 		if (!verbose(tcp)) {
 			tprintf("%ld, %ld, %ld", tcp->u_arg[1], tcp->u_arg[2], tcp->u_arg[3]);
-		} else if (tcp->u_arg[0]==SETNAME) {
+		} else if (tcp->u_arg[0] == SETNAME) {
 			char nodename[__NEW_UTS_LEN + 1];
 			if (umovestr(tcp, tcp->u_arg[1], (__NEW_UTS_LEN + 1), nodename) < 0)
 				tprintf(", %#lx", tcp->u_arg[1]);
 			else
-				tprintf(", \"%s\"", nodename);
+				tprintf(", \"%.*s\"", (int)(__NEW_UTS_LEN + 1), nodename);
 		} else if (tcp->u_arg[0] == MIPS_ATOMIC_SET) {
 			tprintf(", %#lx, 0x%lx", tcp->u_arg[1], tcp->u_arg[2]);
 		} else if (tcp->u_arg[0] == MIPS_FIXADE) {

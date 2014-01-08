@@ -27,15 +27,9 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *	$Id$
  */
 
 #include "defs.h"
-
-#ifdef LINUX
-
-#include <inttypes.h>
 
 #define SUBCMDMASK  0x00ff
 #define SUBCMDSHIFT 8
@@ -330,20 +324,17 @@ struct xfs_dqstats
 static void
 decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 {
-	switch (cmd)
-	{
+	switch (cmd) {
 		case Q_GETQUOTA:
 		case Q_SETQUOTA:
 		{
 			struct if_dqblk dq;
 
-			if (cmd == Q_GETQUOTA && syserror(tcp))
-			{
+			if (cmd == Q_GETQUOTA && syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
@@ -353,16 +344,15 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 			tprintf("ihardlimit=%" PRIu64 ", ", dq.dqb_ihardlimit);
 			tprintf("isoftlimit=%" PRIu64 ", ", dq.dqb_isoftlimit);
 			tprintf("curinodes=%" PRIu64 ", ", dq.dqb_curinodes);
-			if (!abbrev(tcp))
-			{
+			if (!abbrev(tcp)) {
 				tprintf("btime=%" PRIu64 ", ", dq.dqb_btime);
 				tprintf("itime=%" PRIu64 ", ", dq.dqb_itime);
-				tprintf("valid=");
+				tprints("valid=");
 				printflags(if_dqblk_valid,
 					   dq.dqb_valid, "QIF_???");
-				tprintf("}");
+				tprints("}");
 			} else
-				tprintf("...}");
+				tprints("...}");
 			break;
 		}
 		case Q_V1_GETQUOTA:
@@ -370,13 +360,11 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct v1_dqblk dq;
 
-			if (cmd == Q_V1_GETQUOTA && syserror(tcp))
-			{
+			if (cmd == Q_V1_GETQUOTA && syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
@@ -386,8 +374,8 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 			tprintf("ihardlimit=%u, ", dq.dqb_ihardlimit);
 			tprintf("isoftlimit=%u, ", dq.dqb_isoftlimit);
 			tprintf("curinodes=%u, ", dq.dqb_curinodes);
-			tprintf("btime=%lu, ", dq.dqb_btime);
-			tprintf("itime=%lu}", dq.dqb_itime);
+			tprintf("btime=%lu, ", (long) dq.dqb_btime);
+			tprintf("itime=%lu}", (long) dq.dqb_itime);
 			break;
 		}
 		case Q_V2_GETQUOTA:
@@ -395,13 +383,11 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct v2_dqblk dq;
 
-			if (cmd == Q_V2_GETQUOTA && syserror(tcp))
-			{
+			if (cmd == Q_V2_GETQUOTA && syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
@@ -411,8 +397,8 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 			tprintf("bhardlimit=%u, ", dq.dqb_bhardlimit);
 			tprintf("bsoftlimit=%u, ", dq.dqb_bsoftlimit);
 			tprintf("curspace=%" PRIu64 ", ", dq.dqb_curspace);
-			tprintf("btime=%lu, ", dq.dqb_btime);
-			tprintf("itime=%lu}", dq.dqb_itime);
+			tprintf("btime=%lu, ", (long) dq.dqb_btime);
+			tprintf("itime=%lu}", (long) dq.dqb_itime);
 			break;
 		}
 		case Q_XGETQUOTA:
@@ -420,18 +406,16 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct xfs_dqblk dq;
 
-			if (cmd == Q_XGETQUOTA && syserror(tcp))
-			{
+			if (cmd == Q_XGETQUOTA && syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
 			tprintf("{version=%d, ", dq.d_version);
-			tprintf("flags=");
+			tprints("flags=");
 			printflags(xfs_dqblk_flags,
 				   dq.d_flags, "XFS_???_QUOTA");
 			tprintf(", fieldmask=%#x, ", dq.d_fieldmask);
@@ -442,8 +426,7 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 			tprintf("ino_softlimit=%" PRIu64 ", ", dq.d_ino_softlimit);
 			tprintf("bcount=%" PRIu64 ", ", dq.d_bcount);
 			tprintf("icount=%" PRIu64 ", ", dq.d_icount);
-			if (!abbrev(tcp))
-			{
+			if (!abbrev(tcp)) {
 				tprintf("itimer=%d, ", dq.d_itimer);
 				tprintf("btimer=%d, ", dq.d_btimer);
 				tprintf("iwarns=%u, ", dq.d_iwarns);
@@ -452,26 +435,24 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 				tprintf("rtbtimer=%d, ", dq.d_rtbtimer);
 				tprintf("rtbwarns=%u}", dq.d_rtbwarns);
 			} else
-				tprintf("...}");
+				tprints("...}");
 			break;
 		}
 		case Q_GETFMT:
 		{
 			u_int32_t fmt;
 
-			if (syserror(tcp))
-			{
+			if (syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &fmt) < 0)
-			{
+			if (umove(tcp, data, &fmt) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
-			tprintf("{");
+			tprints("{");
 			printxval(quota_formats, fmt, "QFMT_VFS_???");
-			tprintf("}");
+			tprints("}");
 			break;
 		}
 		case Q_GETINFO:
@@ -479,22 +460,20 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct if_dqinfo dq;
 
-			if (cmd == Q_GETINFO && syserror(tcp))
-			{
+			if (cmd == Q_GETINFO && syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
 			tprintf("{bgrace=%" PRIu64 ", ", dq.dqi_bgrace);
 			tprintf("igrace=%" PRIu64 ", ", dq.dqi_igrace);
 			tprintf("flags=%#x, ", dq.dqi_flags);
-			tprintf("valid=");
+			tprints("valid=");
 			printflags(if_dqinfo_valid, dq.dqi_valid, "IIF_???");
-			tprintf("}");
+			tprints("}");
 			break;
 		}
 		case Q_V2_GETINFO:
@@ -502,13 +481,11 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct v2_dqinfo dq;
 
-			if (cmd == Q_V2_GETINFO && syserror(tcp))
-			{
+			if (cmd == Q_V2_GETINFO && syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
@@ -524,13 +501,11 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct v1_dqstats dq;
 
-			if (syserror(tcp))
-			{
+			if (syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
@@ -548,13 +523,11 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct v2_dqstats dq;
 
-			if (syserror(tcp))
-			{
+			if (syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
@@ -573,23 +546,20 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			struct xfs_dqstats dq;
 
-			if (syserror(tcp))
-			{
+			if (syserror(tcp)) {
 				tprintf("%#lx", data);
 				break;
 			}
-			if (umove(tcp, data, &dq) < 0)
-			{
+			if (umove(tcp, data, &dq) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
 			tprintf("{version=%d, ", dq.qs_version);
-			if (abbrev(tcp))
-			{
-				tprintf("...}");
+			if (abbrev(tcp)) {
+				tprints("...}");
 				break;
 			}
-			tprintf("flags=");
+			tprints("flags=");
 			printflags(xfs_quota_flags,
 				   dq.qs_flags, "XFS_QUOTA_???");
 			tprintf(", incoredqs=%u, ", dq.qs_incoredqs);
@@ -610,14 +580,13 @@ decode_cmd_data(struct tcb *tcp, u_int32_t cmd, unsigned long data)
 		{
 			u_int32_t flag;
 
-			if (umove(tcp, data, &flag) < 0)
-			{
+			if (umove(tcp, data, &flag) < 0) {
 				tprintf("{???} %#lx", data);
 				break;
 			}
-			tprintf("{");
+			tprints("{");
 			printflags(xfs_quota_flags, flag, "XFS_QUOTA_???");
-			tprintf("}");
+			tprints("}");
 			break;
 		}
 		default:
@@ -643,16 +612,14 @@ sys_quotactl(struct tcb *tcp)
 	if (!verbose(tcp))
 		return printargs(tcp);
 
-	if (entering(tcp))
-	{
+	if (entering(tcp)) {
 		printxval(quotacmds, cmd, "Q_???");
-		tprintf("|");
+		tprints("|");
 		printxval(quotatypes, type, "???QUOTA");
-		tprintf(", ");
+		tprints(", ");
 		printstr(tcp, tcp->u_arg[1], -1);
-		tprintf(", ");
-		switch (cmd)
-		{
+		tprints(", ");
+		switch (cmd) {
 			case Q_V1_QUOTAON:
 			case Q_QUOTAON:
 				printxval(quota_formats, id, "QFMT_VFS_???");
@@ -674,63 +641,12 @@ sys_quotactl(struct tcb *tcp)
 				tprintf("%#lx", tcp->u_arg[2]);
 				break;
 		}
-		tprintf(", ");
-	} else
-	{
+		tprints(", ");
+	} else {
 		if (!tcp->u_arg[3])
-			tprintf("NULL");
+			tprints("NULL");
 		else
 			decode_cmd_data(tcp, cmd, tcp->u_arg[3]);
 	}
 	return 0;
 }
-
-#endif /* Linux */
-
-#if defined(SUNOS4) || defined(FREEBSD)
-
-#ifdef SUNOS4
-#include <ufs/quota.h>
-#endif
-
-#ifdef FREEBSD
-#include <ufs/ufs/quota.h>
-#endif
-
-static const struct xlat quotacmds[] = {
-	{Q_QUOTAON, "Q_QUOTAON"},
-	{Q_QUOTAOFF, "Q_QUOTAOFF"},
-	{Q_GETQUOTA, "Q_GETQUOTA"},
-	{Q_SETQUOTA, "Q_SETQUOTA"},
-#ifdef Q_SETQLIM
-	{Q_SETQLIM, "Q_SETQLIM"},
-#endif
-#ifdef Q_SETUSE
-	{Q_SETUSE, "Q_SETUSE"},
-#endif
-	{Q_SYNC, "Q_SYNC"},
-	{0, NULL},
-};
-
-int
-sys_quotactl(struct tcb *tcp)
-{
-	/* fourth arg (addr) not interpreted here */
-	if (entering(tcp))
-	{
-#ifdef SUNOS4
-		printxval(quotacmds, tcp->u_arg[0], "Q_???");
-		tprintf(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
-#endif
-#ifdef FREEBSD
-		printpath(tcp, tcp->u_arg[0]);
-		tprintf(", ");
-		printxval(quotacmds, tcp->u_arg[1], "Q_???");
-#endif
-		tprintf(", %lu, %#lx", tcp->u_arg[2], tcp->u_arg[3]);
-	}
-	return 0;
-}
-
-#endif /* SUNOS4 || FREEBSD */

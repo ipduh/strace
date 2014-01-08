@@ -26,22 +26,15 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *	$Id$
  */
+
 #include "defs.h"
-
-#if defined(LINUX)
-
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
 #include <sys/user.h>
-#include <sys/syscall.h>
-#include <signal.h>
 
 /* Bits of module.flags.  */
 
@@ -49,7 +42,7 @@
 #define MOD_RUNNING		1
 #define MOD_DELETED		2
 #define MOD_AUTOCLEAN		4
-#define MOD_VISITED  		8
+#define MOD_VISITED		8
 #define MOD_USED_ONCE		16
 #define MOD_JUST_FREED		32
 #define MOD_INITIALIZING	64
@@ -102,9 +95,9 @@ sys_query_module(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printstr(tcp, tcp->u_arg[0], -1);
-		tprintf(", ");
+		tprints(", ");
 		printxval(which, tcp->u_arg[1], "QM_???");
-		tprintf(", ");
+		tprints(", ");
 	} else {
 		size_t ret;
 
@@ -126,7 +119,7 @@ sys_query_module(struct tcb *tcp)
 		} else if ((tcp->u_arg[1]==QM_MODULES) ||
 			   (tcp->u_arg[1]==QM_DEPS) ||
 			   (tcp->u_arg[1]==QM_REFS)) {
-			tprintf("{");
+			tprints("{");
 			if (!abbrev(tcp)) {
 				char*	data	= malloc(tcp->u_arg[3]);
 				char*	mod	= data;
@@ -140,7 +133,7 @@ sys_query_module(struct tcb *tcp)
 						tcp->u_arg[3], data) < 0) {
 						tprintf(" /* %Zu entries */ ", ret);
 					} else {
-						for (idx=0; idx<ret; idx++) {
+						for (idx = 0; idx < ret; idx++) {
 							tprintf("%s%s",
 								(idx ? ", " : ""),
 								mod);
@@ -153,7 +146,7 @@ sys_query_module(struct tcb *tcp)
 				tprintf(" /* %Zu entries */ ", ret);
 			tprintf("}, %Zu", ret);
 		} else if (tcp->u_arg[1]==QM_SYMBOLS) {
-			tprintf("{");
+			tprints("{");
 			if (!abbrev(tcp)) {
 				char*			data	= malloc(tcp->u_arg[3]);
 				struct module_symbol*	sym	= (struct module_symbol*)data;
@@ -167,7 +160,7 @@ sys_query_module(struct tcb *tcp)
 						tcp->u_arg[3], data) < 0) {
 						tprintf(" /* %Zu entries */ ", ret);
 					} else {
-						for (idx=0; idx<ret; idx++) {
+						for (idx = 0; idx < ret; idx++) {
 							tprintf("%s{name=%s, value=%lu}",
 								(idx ? " " : ""),
 								data+(long)sym->name,
@@ -189,8 +182,7 @@ sys_query_module(struct tcb *tcp)
 }
 
 int
-sys_create_module(tcp)
-struct tcb *tcp;
+sys_create_module(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
@@ -200,8 +192,7 @@ struct tcb *tcp;
 }
 
 int
-sys_init_module(tcp)
-struct tcb *tcp;
+sys_init_module(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		tprintf("%#lx, ", tcp->u_arg[0]);
@@ -210,4 +201,3 @@ struct tcb *tcp;
 	}
 	return 0;
 }
-#endif /* LINUX */

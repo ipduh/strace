@@ -1,5 +1,4 @@
 #! /bin/sh
-#
 # Copyright (c) 2001 Wichert Akkerman <wichert@cistron.nl>
 # All rights reserved.
 #
@@ -24,9 +23,6 @@
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-#	$Id$
-#
 
 # Validate arg count.
 case $# in
@@ -56,7 +52,6 @@ lookup_ioctls()
 s/^\(.*\):[[:space:]]*#[[:space:]]*define[[:space:]]*\([A-Z0-9_]*\)[[:space:]]*\(0x'"$type"'..\).*/	{ "\1",	"\2",	\3	},/p' \
 		>> ioctls.h
 }
-
 
 > ioctls.h
 
@@ -101,7 +96,6 @@ regexp='^[[:space:]]*#[[:space:]]*define[[:space:]]\+[A-Z][A-Z0-9_]*[[:space:]]\
 
 # Sort and drop dups?
 # sort -u <ioctls.h >ioctls1.h && mv ioctls1.h ioctls.h
-
 
 > ioctldefs.h
 

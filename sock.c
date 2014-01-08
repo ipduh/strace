@@ -23,27 +23,18 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *	$Id$
  */
 
 #include "defs.h"
-
-#ifdef LINUX
 #include <sys/socket.h>
 #include <linux/sockios.h>
-#else
-#include <sys/socket.h>
-#include <sys/sockio.h>
-#endif
 #include <arpa/inet.h>
-
-#if defined (ALPHA) || defined(SH) || defined(SH64)
-#ifdef HAVE_SYS_IOCTL_H
-#include <sys/ioctl.h>
-#elif defined(HAVE_IOCTLS_H)
-#include <ioctls.h>
-#endif
+#if defined(ALPHA) || defined(SH) || defined(SH64)
+# if defined(HAVE_SYS_IOCTL_H)
+#  include <sys/ioctl.h>
+# elif defined(HAVE_IOCTLS_H)
+#  include <ioctls.h>
+# endif
 #endif
 #include <net/if.h>
 
@@ -66,12 +57,8 @@ static const struct xlat iffflags[] = {
 	{ 0,			NULL			}
 };
 
-
 static void
-print_addr(tcp, addr, ifr)
-struct tcb *tcp;
-long addr;
-struct ifreq *ifr;
+print_addr(struct tcb *tcp, long addr, struct ifreq *ifr)
 {
 	if (ifr->ifr_addr.sa_family == AF_INET) {
 		struct sockaddr_in *sinp;
@@ -95,7 +82,7 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 			    && ifc.ifc_buf == NULL)
 				tprintf(", {%d -> ", ifc.ifc_len);
 			else
-				tprintf(", {");
+				tprints(", {");
 		}
 		return 0;
 	}
@@ -130,7 +117,6 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 #endif
 		printnum(tcp, arg, ", %#d");
 		return 1;
-#ifdef LINUX
 	case SIOCGIFNAME:
 	case SIOCSIFNAME:
 	case SIOCGIFINDEX:
@@ -191,12 +177,12 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 				printxval(addrfams,
 					  ifr.ifr_addr.sa_family,
 					  "AF_???");
-				tprintf(", ");
+				tprints(", ");
 				print_addr(tcp, ((long) tcp->u_arg[2]
-						 + offsetof (struct ifreq,
+						 + offsetof(struct ifreq,
 							     ifr_addr.sa_data)),
 					   &ifr);
-				tprintf("}");
+				tprints("}");
 				break;
 			case SIOCGIFHWADDR:
 			case SIOCSIFHWADDR:
@@ -209,7 +195,7 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 				break;
 			case SIOCGIFFLAGS:
 			case SIOCSIFFLAGS:
-				tprintf("ifr_flags=");
+				tprints("ifr_flags=");
 				printflags(iffflags, ifr.ifr_flags, "IFF_???");
 				break;
 			case SIOCGIFMETRIC:
@@ -241,19 +227,19 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 					(unsigned) ifr.ifr_map.port);
 				break;
 			}
-			tprintf("}");
+			tprints("}");
 		}
 		return 1;
 	case SIOCGIFCONF:
 		if (umove(tcp, tcp->u_arg[2], &ifc) < 0) {
-			tprintf("???}");
+			tprints("???}");
 			return 1;
 		}
 		tprintf("%d, ", ifc.ifc_len);
 		if (syserror(tcp)) {
 			tprintf("%lx", (unsigned long) ifc.ifc_buf);
 		} else if (ifc.ifc_buf == NULL) {
-			tprintf("NULL");
+			tprints("NULL");
 		} else {
 			int i;
 			unsigned nifra = ifc.ifc_len / sizeof(struct ifreq);
@@ -264,33 +250,38 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 				tprintf("%lx}", (unsigned long) ifc.ifc_buf);
 				return 1;
 			}
-			tprintf("{");
+			tprints("{");
 			for (i = 0; i < nifra; ++i ) {
 				if (i > 0)
-					tprintf(", ");
+					tprints(", ");
 				tprintf("{\"%s\", {",
 					ifra[i].ifr_name);
 				if (verbose(tcp)) {
 					printxval(addrfams,
 						  ifra[i].ifr_addr.sa_family,
 						  "AF_???");
-					tprintf(", ");
+					tprints(", ");
 					print_addr(tcp, ((long) tcp->u_arg[2]
-							 + offsetof (struct ifreq,
+							 + offsetof(struct ifreq,
 								     ifr_addr.sa_data)
 							 + ((char *) &ifra[i]
 							    - (char *) &ifra[0])),
 						   &ifra[i]);
 				} else
-					tprintf("...");
-				tprintf("}}");
+					tprints("...");
+				tprints("}}");
 			}
-			tprintf("}");
+			tprints("}");
 		}
-		tprintf("}");
+		tprints("}");
 		return 1;
-#endif
 	default:
 		return 0;
 	}
+}
+
+int
+sys_socketcall(struct tcb *tcp)
+{
+	return printargs(tcp);
 }

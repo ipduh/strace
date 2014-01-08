@@ -1,6 +1,6 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 4.6
+Version: 4.7
 Release: 1%{?dist}
 License: BSD
 Group: Development/Debuggers
@@ -74,8 +74,9 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
-%doc CREDITS ChangeLog ChangeLog-CVS COPYRIGHT NEWS PORTING README
+%doc CREDITS ChangeLog ChangeLog-CVS COPYRIGHT NEWS README
 %{_bindir}/strace
+%{_bindir}/strace-log-merge
 %{_mandir}/man1/*
 
 %ifarch %{strace64_arches}
@@ -85,6 +86,13 @@ rm -rf %{buildroot}
 %endif
 
 %changelog
+* Wed May 02 2012 Dmitry V. Levin <ldv@altlinux.org> 4.7-1
+- New upstream release.
+  + implemented proper handling of real SIGTRAPs (#162774).
+
+* Sat Jan 14 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 4.6-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
 * Mon Mar 14 2011 Dmitry V. Levin <ldv@altlinux.org> - 4.6-1
 - New upstream release.
   + fixed a corner case in waitpid handling (#663547).

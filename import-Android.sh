@@ -28,25 +28,21 @@ UNNEEDED_SOURCES="\
   freebsd \
   install-sh \
   linux/alpha \
-  linux/arm/ioctlent.h.in \
   linux/avr32 \
   linux/bfin \
   linux/hppa \
-  linux/i386/ioctlent.h.in \
   linux/ia64 \
-  linux/ioctlent.h.in \
   linux/m68k \
   linux/microblaze \
-  linux/mips/ioctlent.h.in \
   linux/powerpc \
   linux/s390 \
   linux/s390x \
-  linux/sh/ioctlent.h.in \
+  linux/sh \
   linux/sh64 \
   linux/sparc \
   linux/sparc64 \
   linux/tile \
-  linux/x86_64 \
+  linux/x32 \
   m4 \
   missing \
   mkinstalldirs \
@@ -59,5 +55,5 @@ UNNEEDED_SOURCES="\
   xlate.el \
 "
 
-rm -rvf $UNNEEDED_SOURCES
-
+rm -rf $UNNEEDED_SOURCES
+find . -name ioctlent.h.in -print0 | xargs -0 rm -f
