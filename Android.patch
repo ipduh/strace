@@ -1,19 +1,6 @@
-diff -r -u -d /tmp/strace-4.6/bjm.c ./bjm.c
---- /tmp/strace-4.6/bjm.c	2009-11-06 09:27:46.000000000 -0800
-+++ ./bjm.c	2013-01-04 12:26:34.977221825 -0800
-@@ -39,7 +39,9 @@
- #include <sys/wait.h>
- #include <sys/resource.h>
- #include <sys/utsname.h>
-+#ifndef HAVE_ANDROID_OS
- #include <sys/user.h>
-+#endif
- #include <sys/syscall.h>
- #include <signal.h>
- 
-diff -r -u -d /tmp/strace-4.6/defs.h ./defs.h
---- /tmp/strace-4.6/defs.h	2011-03-15 10:19:09.000000000 -0700
-+++ ./defs.h	2013-01-04 12:26:34.977221825 -0800
+diff -r -u -d /home/enh/Downloads/strace-4.6/defs.h ./defs.h
+--- /home/enh/Downloads/strace-4.6/defs.h	2011-03-15 10:19:09.000000000 -0700
++++ ./defs.h	2014-01-03 15:29:29.552592456 -0800
 @@ -33,10 +33,6 @@
  #include "config.h"
  #endif
@@ -25,10 +12,30 @@ diff -r -u -d /tmp/strace-4.6/defs.h ./defs.h
  #ifdef linux
  #include <features.h>
  #endif
-diff -r -u -d /tmp/strace-4.6/file.c ./file.c
---- /tmp/strace-4.6/file.c	2011-03-03 18:08:02.000000000 -0800
-+++ ./file.c	2013-01-04 12:26:34.977221825 -0800
-@@ -45,6 +45,60 @@
+@@ -319,13 +315,19 @@
+ #  define PTRACE_GETSIGINFO	0x4202
+ # endif
+ # if !HAVE_DECL_PTRACE_O_TRACEFORK
++#  ifndef PTRACE_O_TRACEFORK
+ #  define PTRACE_O_TRACEFORK	0x00000002
++#  endif
+ # endif
+ # if !HAVE_DECL_PTRACE_O_TRACEVFORK
++#  ifndef PTRACE_O_TRACEVFORK
+ #  define PTRACE_O_TRACEVFORK	0x00000004
++#  endif
+ # endif
+ # if !HAVE_DECL_PTRACE_O_TRACECLONE
++#  ifndef PTRACE_O_TRACECLONE
+ #  define PTRACE_O_TRACECLONE	0x00000008
++#  endif
+ # endif
+ 
+ # if !HAVE_DECL_PTRACE_EVENT_FORK
+diff -r -u -d /home/enh/Downloads/strace-4.6/file.c ./file.c
+--- /home/enh/Downloads/strace-4.6/file.c	2011-03-03 18:08:02.000000000 -0800
++++ ./file.c	2014-01-03 15:29:29.552592456 -0800
+@@ -45,6 +45,21 @@
  # define kernel_dirent dirent
  #endif
  
@@ -45,93 +52,14 @@ diff -r -u -d /tmp/strace-4.6/file.c ./file.c
 + char d_name[256];
 +};
 +
-+// ANDROID: From kernel_headers/asm/statfs.h
-+
-+#if !defined(MIPS)
-+/*
-+ * With EABI there is 4 bytes of padding added to this structure.
-+ * Let's pack it so the padding goes away to simplify dual ABI support.
-+ * Note that user space does NOT have to pack this structure.
-+ */
-+struct statfs64 {
-+        __u32 f_type;
-+        __u32 f_bsize;
-+        __u64 f_blocks;
-+        __u64 f_bfree;
-+        __u64 f_bavail;
-+        __u64 f_files;
-+        __u64 f_ffree;
-+        __kernel_fsid_t f_fsid;
-+        __u32 f_namelen;
-+        __u32 f_frsize;
-+        __u32 f_spare[5];
-+} __attribute__ ((packed,aligned(4)));
-+#else
-+struct statfs64 {
-+	__u32 f_type;
-+	__u32 f_bsize;
-+	__u32 f_frsize;
-+	__u32 __pad;
-+	__u64 f_blocks;
-+	__u64 f_bfree;
-+	__u64 f_files;
-+	__u64 f_ffree;
-+	__u64 f_bavail;
-+	__kernel_fsid_t f_fsid;
-+	__u32 f_namelen;
-+	__u32 f_spare[6];
-+};
-+#endif
-+
-+
 +#endif /* HAVE_ANDROID_OS */
 +
  #ifdef LINUX
  #  ifdef LINUXSPARC
  struct stat {
-@@ -1732,11 +1786,19 @@
- 		(unsigned long)statbuf.f_bsize,
- 		(unsigned long)statbuf.f_blocks,
- 		(unsigned long)statbuf.f_bfree);
-+#ifdef MIPS
-+	tprintf("f_bavail=%lu, f_files=%lu, f_ffree=%lu, f_fsid={%ld, %ld}",
-+		(unsigned long)statbuf.f_bavail,
-+		(unsigned long)statbuf.f_files,
-+		(unsigned long)statbuf.f_ffree,
-+		statbuf.f_fsid.val[0], statbuf.f_fsid.val[1]);
-+#else
- 	tprintf("f_bavail=%lu, f_files=%lu, f_ffree=%lu, f_fsid={%d, %d}",
- 		(unsigned long)statbuf.f_bavail,
- 		(unsigned long)statbuf.f_files,
- 		(unsigned long)statbuf.f_ffree,
- 		statbuf.f_fsid.__val[0], statbuf.f_fsid.__val[1]);
-+#endif
- #ifdef LINUX
- 	tprintf(", f_namelen=%lu", (unsigned long)statbuf.f_namelen);
- #endif /* LINUX */
-@@ -1790,11 +1852,19 @@
- 		(unsigned long long)statbuf.f_bsize,
- 		(unsigned long long)statbuf.f_blocks,
- 		(unsigned long long)statbuf.f_bfree);
-+#ifdef MIPS
-+	tprintf("f_bavail=%llu, f_files=%llu, f_ffree=%llu, f_fsid={%ld, %ld}",
-+		(unsigned long long)statbuf.f_bavail,
-+		(unsigned long long)statbuf.f_files,
-+		(unsigned long long)statbuf.f_ffree,
-+		statbuf.f_fsid.val[0], statbuf.f_fsid.val[1]);
-+#else
- 	tprintf("f_bavail=%llu, f_files=%llu, f_ffree=%llu, f_fsid={%d, %d}",
- 		(unsigned long long)statbuf.f_bavail,
- 		(unsigned long long)statbuf.f_files,
- 		(unsigned long long)statbuf.f_ffree,
- 		statbuf.f_fsid.__val[0], statbuf.f_fsid.__val[1]);
-+#endif
- 	tprintf(", f_namelen=%lu", (unsigned long)statbuf.f_namelen);
- #ifdef _STATFS_F_FRSIZE
- 	tprintf(", f_frsize=%llu", (unsigned long long)statbuf.f_frsize);
-diff -r -u -d /tmp/strace-4.6/ioctl.c ./ioctl.c
---- /tmp/strace-4.6/ioctl.c	2011-01-15 12:15:31.000000000 -0800
-+++ ./ioctl.c	2013-01-04 12:26:34.977221825 -0800
+diff -r -u -d /home/enh/Downloads/strace-4.6/ioctl.c ./ioctl.c
+--- /home/enh/Downloads/strace-4.6/ioctl.c	2011-01-15 12:15:31.000000000 -0800
++++ ./ioctl.c	2014-01-03 15:29:29.552592456 -0800
 @@ -155,9 +155,11 @@
  	case 0x03:
  	case 0x12:
@@ -144,9 +72,9 @@ diff -r -u -d /tmp/strace-4.6/ioctl.c ./ioctl.c
  	default:
  		break;
  	}
-diff -r -u -d /tmp/strace-4.6/ipc.c ./ipc.c
---- /tmp/strace-4.6/ipc.c	2010-03-31 15:22:01.000000000 -0700
-+++ ./ipc.c	2013-01-04 12:26:34.977221825 -0800
+diff -r -u -d /home/enh/Downloads/strace-4.6/ipc.c ./ipc.c
+--- /home/enh/Downloads/strace-4.6/ipc.c	2010-03-31 15:22:01.000000000 -0700
++++ ./ipc.c	2014-01-03 15:29:29.552592456 -0800
 @@ -40,9 +40,15 @@
  
  #include <fcntl.h>
@@ -163,22 +91,10 @@ diff -r -u -d /tmp/strace-4.6/ipc.c ./ipc.c
  
  #ifndef MSG_STAT
  #define MSG_STAT 11
-diff -r -u -d /tmp/strace-4.6/process.c ./process.c
---- /tmp/strace-4.6/process.c	2011-03-14 14:58:59.000000000 -0700
-+++ ./process.c	2013-01-04 12:26:34.987221830 -0800
-@@ -45,7 +45,11 @@
- #include <sys/wait.h>
- #include <sys/resource.h>
- #include <sys/utsname.h>
-+#ifdef HAVE_ANDROID_OS
-+#include <asm/user.h>
-+#else
- #include <sys/user.h>
-+#endif
- #include <sys/syscall.h>
- #include <signal.h>
- #ifdef SUNOS4
-@@ -114,6 +118,10 @@
+diff -r -u -d /home/enh/Downloads/strace-4.6/process.c ./process.c
+--- /home/enh/Downloads/strace-4.6/process.c	2011-03-14 14:58:59.000000000 -0700
++++ ./process.c	2014-01-03 15:29:29.552592456 -0800
+@@ -114,6 +114,10 @@
  #define GETGROUPS32_T __kernel_gid32_t
  #endif /* LINUX */
  
@@ -189,16 +105,11 @@ diff -r -u -d /tmp/strace-4.6/process.c ./process.c
  #if defined(LINUX) && defined(IA64)
  # include <asm/ptrace_offsets.h>
  # include <asm/rse.h>
-diff -r -u -d /tmp/strace-4.6/signal.c ./signal.c
---- /tmp/strace-4.6/signal.c	2011-03-10 15:14:47.000000000 -0800
-+++ ./signal.c	2013-01-04 12:26:34.987221830 -0800
-@@ -37,9 +37,17 @@
- 
- #include <stdint.h>
- #include <signal.h>
-+#ifndef HAVE_ANDROID_OS
+diff -r -u -d /home/enh/Downloads/strace-4.6/signal.c ./signal.c
+--- /home/enh/Downloads/strace-4.6/signal.c	2011-03-10 15:14:47.000000000 -0800
++++ ./signal.c	2014-01-07 14:53:10.703113250 -0800
+@@ -40,6 +40,12 @@
  #include <sys/user.h>
-+#endif
  #include <fcntl.h>
  
 +#ifdef HAVE_ANDROID_OS
@@ -210,7 +121,7 @@ diff -r -u -d /tmp/strace-4.6/signal.c ./signal.c
  #ifdef SVR4
  #include <sys/ucontext.h>
  #endif /* SVR4 */
-@@ -455,7 +463,7 @@
+@@ -455,7 +461,7 @@
  
  #endif /* LINUX */
  
@@ -219,7 +130,80 @@ diff -r -u -d /tmp/strace-4.6/signal.c ./signal.c
  /* Type for data associated with a signal.  */
  typedef union sigval
  {
-@@ -1492,6 +1500,7 @@
+@@ -1091,7 +1097,12 @@
+ 
+ #ifdef HAVE_SIGACTION
+ 
+-#ifdef LINUX
++/* For MIPS, struct sigaction is common between kernel and userland */
++#if defined(LINUX) && !defined(MIPS)
++#define USE_OLD_SIGACTION
++#endif
++
++#ifdef USE_OLD_SIGACTION
+ struct old_sigaction {
+ 	__sighandler_t __sa_handler;
+ 	unsigned long sa_mask;
+@@ -1099,7 +1110,7 @@
+ 	void (*sa_restorer)(void);
+ };
+ #define SA_HANDLER __sa_handler
+-#endif /* LINUX */
++#endif /* USE_OLD_SIGACTION */
+ 
+ #ifndef SA_HANDLER
+ #define SA_HANDLER sa_handler
+@@ -1110,7 +1121,7 @@
+ struct tcb *tcp;
+ {
+ 	long addr;
+-#ifdef LINUX
++#ifdef USE_OLD_SIGACTION
+ 	sigset_t sigset;
+ 	struct old_sigaction sa;
+ #else
+@@ -1159,28 +1170,24 @@
+ 				kill(tcp->pid, SIGSTOP);
+ 			}
+ #endif /* !USE_PROCFS */
+-			tprintf("{%#lx, ", (long) sa.SA_HANDLER);
+-#ifndef LINUX
+-			printsigmask (&sa.sa_mask, 0);
++			tprintf("{%p, ", sa.SA_HANDLER);
++		}
++#ifndef USE_OLD_SIGACTION
++		printsigmask (&sa.sa_mask, 0);
+ #else
+-			long_to_sigset(sa.sa_mask, &sigset);
+-			printsigmask(&sigset, 0);
++		long_to_sigset(sa.sa_mask, &sigset);
++		printsigmask(&sigset, 0);
+ #endif
+-			tprintf(", ");
+-			printflags(sigact_flags, sa.sa_flags, "SA_???");
+-#ifdef SA_RESTORER
+-			if (sa.sa_flags & SA_RESTORER)
+-				tprintf(", %p", sa.sa_restorer);
++		tprintf(", ");
++		printflags(sigact_flags, sa.sa_flags, "SA_???");
++#if defined(SA_RESTORER) && !defined(MIPS)
++		if (sa.sa_flags & SA_RESTORER)
++			tprintf(", %p", sa.sa_restorer);
+ #endif
+-			tprintf("}");
+-		}
++		tprintf("}");
+ 	}
+ 	if (entering(tcp))
+ 		tprintf(", ");
+-#ifdef LINUX
+-	else
+-		tprintf(", %#lx", (unsigned long) sa.sa_restorer);
+-#endif
+ 	return 0;
+ }
+ 
+@@ -1492,6 +1499,7 @@
  		tcp->u_arg[0] = 0;
  		sp = regs.regs[29];
  		if (umove(tcp, sp, &si) < 0)
@@ -227,20 +211,81 @@ diff -r -u -d /tmp/strace-4.6/signal.c ./signal.c
  		tcp->u_arg[0] = 1;
  		tcp->u_arg[1] = si.si_mask;
  	} else {
-diff -r -u -d /tmp/strace-4.6/syscall.c ./syscall.c
---- /tmp/strace-4.6/syscall.c	2011-02-18 16:02:27.000000000 -0800
-+++ ./syscall.c	2013-03-21 17:57:17.999238040 -0700
-@@ -38,7 +38,9 @@
- #include <signal.h>
- #include <time.h>
- #include <errno.h>
-+#ifndef HAVE_ANDROID_OS
- #include <sys/user.h>
-+#endif
- #include <sys/syscall.h>
- #include <sys/param.h>
+@@ -1934,9 +1942,13 @@
  
-@@ -2600,6 +2602,7 @@
+ 
+ /* Structure describing the action to be taken when a signal arrives.  */
++#ifdef MIPS
++#define new_sigaction sigaction
++#define new_sigaction2 sigaction
++#else
+ struct new_sigaction
+ {
+-	__sighandler_t __sa_handler;
++	__sighandler_t SA_HANDLER;
+ 	unsigned long sa_flags;
+ 	void (*sa_restorer) (void);
+ 	/* Kernel treats sa_mask as an array of longs. */
+@@ -1945,12 +1957,12 @@
+ /* Same for i386-on-x86_64 and similar cases */
+ struct new_sigaction32
+ {
+-	uint32_t __sa_handler;
++	uint32_t SA_HANDLER;
+ 	uint32_t sa_flags;
+ 	uint32_t sa_restorer;
+ 	uint32_t sa_mask[2 * (NSIG / sizeof(long) ? NSIG / sizeof(long) : 1)];
+ };
+-
++#endif
+ 
+ int
+ sys_rt_sigaction(struct tcb *tcp)
+@@ -1983,9 +1995,11 @@
+ 		r = umove(tcp, addr, &sa32);
+ 		if (r >= 0) {
+ 			memset(&sa, 0, sizeof(sa));
+-			sa.__sa_handler = (void*)(unsigned long)sa32.__sa_handler;
++			sa.SA_HANDLER   = (void*)(unsigned long)sa32.SA_HANDLER;
+ 			sa.sa_flags     = sa32.sa_flags;
++#ifndef MIPS
+ 			sa.sa_restorer  = (void*)(unsigned long)sa32.sa_restorer;
++#endif
+ 			/* Kernel treats sa_mask as an array of longs.
+ 			 * For 32-bit process, "long" is uint32_t, thus, for example,
+ 			 * 32th bit in sa_mask will end up as bit 0 in sa_mask[1].
+@@ -2013,14 +2027,14 @@
+ 	 * be manipulated by strace. In order to prevent the
+ 	 * compiler from generating code to manipulate
+ 	 * SA_HANDLER we cast the function pointers to long. */
+-	if ((long)sa.__sa_handler == (long)SIG_ERR)
++	if ((long)sa.SA_HANDLER == (long)SIG_ERR)
+ 		tprintf("{SIG_ERR, ");
+-	else if ((long)sa.__sa_handler == (long)SIG_DFL)
++	else if ((long)sa.SA_HANDLER == (long)SIG_DFL)
+ 		tprintf("{SIG_DFL, ");
+-	else if ((long)sa.__sa_handler == (long)SIG_IGN)
++	else if ((long)sa.SA_HANDLER == (long)SIG_IGN)
+ 		tprintf("{SIG_IGN, ");
+ 	else
+-		tprintf("{%#lx, ", (long) sa.__sa_handler);
++		tprintf("{%#lx, ", (long) sa.SA_HANDLER);
+ 	/* Questionable code below.
+ 	 * Kernel won't handle sys_rt_sigaction
+ 	 * with wrong sigset size (just returns EINVAL)
+@@ -2039,7 +2053,7 @@
+ 	printsigmask(&sigset, 1);
+ 	tprintf(", ");
+ 	printflags(sigact_flags, sa.sa_flags, "SA_???");
+-#ifdef SA_RESTORER
++#if defined(SA_RESTORER) && !defined(MIPS)
+ 	if (sa.sa_flags & SA_RESTORER)
+ 		tprintf(", %p", sa.sa_restorer);
+ #endif
+diff -r -u -d /home/enh/Downloads/strace-4.6/syscall.c ./syscall.c
+--- /home/enh/Downloads/strace-4.6/syscall.c	2011-02-18 16:02:27.000000000 -0800
++++ ./syscall.c	2014-01-07 14:53:32.312851042 -0800
+@@ -2600,6 +2600,7 @@
  	}
  
  	switch (known_scno(tcp)) {
@@ -248,7 +293,7 @@ diff -r -u -d /tmp/strace-4.6/syscall.c ./syscall.c
  #ifdef SYS_socket_subcall
  	case SYS_socketcall:
  		decode_subcall(tcp, SYS_socket_subcall,
-@@ -2612,6 +2615,7 @@
+@@ -2612,6 +2613,7 @@
  			SYS_ipc_nsubcalls, shift_style);
  		break;
  #endif
@@ -256,9 +301,9 @@ diff -r -u -d /tmp/strace-4.6/syscall.c ./syscall.c
  #ifdef SVR4
  #ifdef SYS_pgrpsys_subcall
  	case SYS_pgrpsys:
-diff -r -u -d /tmp/strace-4.6/system.c ./system.c
---- /tmp/strace-4.6/system.c	2011-02-22 02:22:13.000000000 -0800
-+++ ./system.c	2013-03-21 17:27:34.050083824 -0700
+diff -r -u -d /home/enh/Downloads/strace-4.6/system.c ./system.c
+--- /home/enh/Downloads/strace-4.6/system.c	2011-02-22 02:22:13.000000000 -0800
++++ ./system.c	2014-01-03 15:29:29.552592456 -0800
 @@ -32,6 +32,11 @@
  
  #include "defs.h"
@@ -280,9 +325,9 @@ diff -r -u -d /tmp/strace-4.6/system.c ./system.c
  #include <asm/sysmips.h>
  #endif
  
-diff -r -u -d /tmp/strace-4.6/time.c ./time.c
---- /tmp/strace-4.6/time.c	2011-03-03 18:08:02.000000000 -0800
-+++ ./time.c	2013-01-04 12:26:34.987221830 -0800
+diff -r -u -d /home/enh/Downloads/strace-4.6/time.c ./time.c
+--- /home/enh/Downloads/strace-4.6/time.c	2011-03-03 18:08:02.000000000 -0800
++++ ./time.c	2014-01-03 15:29:29.552592456 -0800
 @@ -33,7 +33,11 @@
  
  #ifdef LINUX
@@ -295,16 +340,3 @@ diff -r -u -d /tmp/strace-4.6/time.c ./time.c
  #include <linux/ioctl.h>
  #include <linux/rtc.h>
  
-diff -r -u -d /tmp/strace-4.6/util.c ./util.c
---- /tmp/strace-4.6/util.c	2011-03-03 18:08:02.000000000 -0800
-+++ ./util.c	2013-03-21 17:57:25.519150107 -0700
-@@ -37,7 +37,9 @@
- 
- #include <signal.h>
- #include <sys/syscall.h>
-+#ifndef HAVE_ANDROID_OS
- #include <sys/user.h>
-+#endif
- #include <sys/param.h>
- #include <fcntl.h>
- #if HAVE_SYS_UIO_H

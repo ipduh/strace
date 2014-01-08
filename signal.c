@@ -37,9 +37,7 @@
 
 #include <stdint.h>
 #include <signal.h>
-#ifndef HAVE_ANDROID_OS
 #include <sys/user.h>
-#endif
 #include <fcntl.h>
 
 #ifdef HAVE_ANDROID_OS

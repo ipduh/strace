@@ -39,9 +39,7 @@
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
-#ifndef HAVE_ANDROID_OS
 #include <sys/user.h>
-#endif
 #include <sys/syscall.h>
 #include <signal.h>
 
