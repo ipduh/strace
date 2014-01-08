@@ -14,7 +14,7 @@ strace-devel@lists.sourceforge.net mailing list.
 
 	Aaron Ucko <ucko@vax1.rockhurst.edu>
 	Adrien Kunysz <adrien@kunysz.be>
-	Andi Kleen <ak@suse.de>
+	Andi Kleen <ak@linux.intel.com>
 	Andreas Schwab <schwab@linux-m68k.org>
 	Anton Blanchard <anton@samba.org>
 	Arkadiusz Miskiewicz <misiek@pld.org.pl>
@@ -26,12 +26,13 @@ strace-devel@lists.sourceforge.net mailing list.
 	Carmelo AMOROSO <carmelo.amoroso@st.com>
 	Chris Metcalf <cmetcalf@tilera.com>
 	D.J. Barrow <djbarrow@de.ibm.com>
+	Damir Shayhutdinov <damir@altlinux.ru>
 	David Daney <ddaney@caviumnetworks.com>
 	David Mosberger-Tang <davidm@hpl.hp.com>
 	David S. Miller <davem@caip.rutgers.edu>
 	David Wilder <wilder@us.ibm.com>
 	David Woodhouse <dwmw2@redhat.com>
-	Denys Vlasenko <dvlasenk@redhat.com>
+	Denys Vlasenko <vda.linux@googlemail.com>
 	Dmitry V. Levin <ldv@altlinux.org>
 	Douglas Mencken <dougmencken@gmail.com>
 	Edgar E. Iglesias <edgar.iglesias@gmail.com>
@@ -41,7 +42,9 @@ strace-devel@lists.sourceforge.net mailing list.
 	Gabor Gombas <gombasg@sztaki.hu>
 	Ganesan Rajagopal <rganesan@myrealbox.com>
 	Gaël Roualland <gael.roualland@iname.com>
+	Grant Edwards <grant.b.edwards@gmail.com>
 	Greg Banks <gbanks@pocketpenguins.com>
+	H.J. Lu <hongjiu.lu@intel.com>
 	Heiko Carstens <heiko.carstens@de.ibm.com>
 	Henrik Storner <storner@osiris.ping.dk>
 	Holger Hans Peter Freyther <holger@freyther.de>
@@ -93,6 +96,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Sami Farin <safari@u.safari.iki.fi>
 	Scott Tsai <scottt958@yahoo.com.tw>
 	Sebastian Pipping <sebastian@pipping.org>
+	Sergei Trofimovich <slyfox@gentoo.org>
 	Simon Murray <simon@transitive.com>
 	Solar Designer <solar@openwall.com>
 	Srinivasa Ds <srinivasa@in.ibm.com>

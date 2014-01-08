@@ -26,18 +26,12 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *	$Id$
  */
 
 #include "defs.h"
-
-#if defined(LINUX) || defined(SUNOS4) || defined(FREEBSD)
-
-# ifdef HAVE_MQUEUE_H
-#  include <mqueue.h>
-# endif
-
+#ifdef HAVE_MQUEUE_H
+# include <mqueue.h>
+#endif
 #include <fcntl.h>
 #include <sys/ipc.h>
 #ifdef HAVE_ANDROID_OS
@@ -69,7 +63,7 @@
 #define SEM_INFO 19
 #endif
 
-#if defined LINUX && !defined IPC_64
+#if !defined IPC_64
 # define IPC_64 0x100
 #endif
 
@@ -79,11 +73,9 @@ static const struct xlat msgctl_flags[] = {
 	{ IPC_RMID,	"IPC_RMID"	},
 	{ IPC_SET,	"IPC_SET"	},
 	{ IPC_STAT,	"IPC_STAT"	},
-#ifdef LINUX
 	{ IPC_INFO,	"IPC_INFO"	},
 	{ MSG_STAT,	"MSG_STAT"	},
 	{ MSG_INFO,	"MSG_INFO"	},
-#endif /* LINUX */
 	{ 0,		NULL		},
 };
 
@@ -91,11 +83,9 @@ static const struct xlat semctl_flags[] = {
 	{ IPC_RMID,	"IPC_RMID"	},
 	{ IPC_SET,	"IPC_SET"	},
 	{ IPC_STAT,	"IPC_STAT"	},
-#ifdef LINUX
 	{ IPC_INFO,	"IPC_INFO"	},
 	{ SEM_STAT,	"SEM_STAT"	},
 	{ SEM_INFO,	"SEM_INFO"	},
-#endif /* LINUX */
 	{ GETPID,	"GETPID"	},
 	{ GETVAL,	"GETVAL"	},
 	{ GETALL,	"GETALL"	},
@@ -110,11 +100,9 @@ static const struct xlat shmctl_flags[] = {
 	{ IPC_RMID,	"IPC_RMID"	},
 	{ IPC_SET,	"IPC_SET"	},
 	{ IPC_STAT,	"IPC_STAT"	},
-#ifdef LINUX
 	{ IPC_INFO,	"IPC_INFO"	},
 	{ SHM_STAT,	"SHM_STAT"	},
 	{ SHM_INFO,	"SHM_INFO"	},
-#endif /* LINUX */
 #ifdef SHM_LOCK
 	{ SHM_LOCK,	"SHM_LOCK"	},
 #endif
@@ -141,9 +129,7 @@ static const struct xlat shm_resource_flags[] = {
 };
 
 static const struct xlat shm_flags[] = {
-#ifdef LINUX
 	{ SHM_REMAP,	"SHM_REMAP"	},
-#endif /* LINUX */
 	{ SHM_RDONLY,	"SHM_RDONLY"	},
 	{ SHM_RND,	"SHM_RND"	},
 	{ 0,		NULL		},
@@ -151,9 +137,7 @@ static const struct xlat shm_flags[] = {
 
 static const struct xlat msg_flags[] = {
 	{ MSG_NOERROR,	"MSG_NOERROR"	},
-#ifdef LINUX
 	{ MSG_EXCEPT,	"MSG_EXCEPT"	},
-#endif /* LINUX */
 	{ IPC_NOWAIT,	"IPC_NOWAIT"	},
 	{ 0,		NULL		},
 };
@@ -164,17 +148,16 @@ static const struct xlat semop_flags[] = {
 	{ 0,		NULL		},
 };
 
-int sys_msgget(tcp)
-struct tcb *tcp;
+int sys_msgget(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		if (tcp->u_arg[0])
 			tprintf("%#lx", tcp->u_arg[0]);
 		else
-			tprintf("IPC_PRIVATE");
-		tprintf(", ");
+			tprints("IPC_PRIVATE");
+		tprints(", ");
 		if (printflags(resource_flags, tcp->u_arg[1] & ~0777, NULL) != 0)
-			tprintf("|");
+			tprints("|");
 		tprintf("%#lo", tcp->u_arg[1] & 0777);
 	}
 	return 0;
@@ -182,32 +165,28 @@ struct tcb *tcp;
 
 #ifdef IPC_64
 # define PRINTCTL(flagset, arg, dflt) \
-	if ((arg) & IPC_64) tprintf("IPC_64|"); \
+	if ((arg) & IPC_64) tprints("IPC_64|"); \
 	printxval((flagset), (arg) &~ IPC_64, dflt)
 #else
 # define PRINTCTL printxval
 #endif
 
 static int
-indirect_ipccall(tcp)
-struct tcb *tcp;
+indirect_ipccall(struct tcb *tcp)
 {
-#ifdef LINUX
 #ifdef X86_64
-	return current_personality > 0;
+	return current_personality == 1;
 #endif
 #if defined IA64
 	return tcp->scno < 1024; /* ia32 emulation syscalls are low */
 #endif
-#if !defined MIPS && !defined HPPA
-	return 1;
-#endif
-#endif	/* LINUX */
+#if defined(ALPHA) || defined(MIPS) || defined(HPPA) || defined(__ARM_EABI__)
 	return 0;
+#endif
+	return 1;
 }
 
-int sys_msgctl(tcp)
-struct tcb *tcp;
+int sys_msgctl(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		tprintf("%lu, ", tcp->u_arg[0]);
@@ -228,7 +207,7 @@ tprint_msgsnd(struct tcb *tcp, long addr, unsigned long count,
 	} else {
 		tprintf("{%lu, ", mtype);
 		printstr(tcp, addr + sizeof(mtype), count);
-		tprintf("}");
+		tprints("}");
 	}
 	tprintf(", %lu, ", count);
 	printflags(msg_flags, flags, "MSG_???");
@@ -259,7 +238,7 @@ tprint_msgrcv(struct tcb *tcp, long addr, unsigned long count, long msgtyp)
 	} else {
 		tprintf("{%lu, ", mtype);
 		printstr(tcp, addr + sizeof(mtype), count);
-		tprintf("}");
+		tprints("}");
 	}
 	tprintf(", %lu, %ld, ", count, msgtyp);
 }
@@ -307,13 +286,13 @@ tprint_sembuf(struct tcb *tcp, long addr, unsigned long count)
 		return;
 	}
 
-	for(i = 0; i < max_count; ++i) {
+	for (i = 0; i < max_count; ++i) {
 		struct sembuf sb;
 		if (i)
-			tprintf(", ");
+			tprints(", ");
 		if (umove(tcp, addr + i * sizeof(struct sembuf), &sb) < 0) {
 			if (i) {
-				tprintf("{???}");
+				tprints("{???}");
 				break;
 			} else {
 				tprintf("%#lx, %lu", addr, count);
@@ -321,15 +300,15 @@ tprint_sembuf(struct tcb *tcp, long addr, unsigned long count)
 			}
 		} else {
 			if (!i)
-				tprintf("{");
+				tprints("{");
 			tprintf("{%u, %d, ", sb.sem_num, sb.sem_op);
 			printflags(semop_flags, sb.sem_flg, "SEM_???");
-			tprintf("}");
+			tprints("}");
 		}
 	}
 
 	if (i < max_count || max_count < count)
-		tprintf(", ...");
+		tprints(", ...");
 
 	tprintf("}, %lu", count);
 }
@@ -347,44 +326,44 @@ int sys_semop(struct tcb *tcp)
 	return 0;
 }
 
-#ifdef LINUX
 int sys_semtimedop(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		tprintf("%lu, ", tcp->u_arg[0]);
 		if (indirect_ipccall(tcp)) {
 			tprint_sembuf(tcp, tcp->u_arg[3], tcp->u_arg[1]);
-			tprintf(", ");
+			tprints(", ");
+#if defined(S390)
+			printtv(tcp, tcp->u_arg[2]);
+#else
 			printtv(tcp, tcp->u_arg[5]);
+#endif
 		} else {
 			tprint_sembuf(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-			tprintf(", ");
+			tprints(", ");
 			printtv(tcp, tcp->u_arg[3]);
 		}
 	}
 	return 0;
 }
-#endif
 
-int sys_semget(tcp)
-struct tcb *tcp;
+int sys_semget(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		if (tcp->u_arg[0])
 			tprintf("%#lx", tcp->u_arg[0]);
 		else
-			tprintf("IPC_PRIVATE");
+			tprints("IPC_PRIVATE");
 		tprintf(", %lu", tcp->u_arg[1]);
-		tprintf(", ");
+		tprints(", ");
 		if (printflags(resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
-			tprintf("|");
+			tprints("|");
 		tprintf("%#lo", tcp->u_arg[2] & 0777);
 	}
 	return 0;
 }
 
-int sys_semctl(tcp)
-struct tcb *tcp;
+int sys_semctl(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		tprintf("%lu", tcp->u_arg[0]);
@@ -395,25 +374,23 @@ struct tcb *tcp;
 	return 0;
 }
 
-int sys_shmget(tcp)
-struct tcb *tcp;
+int sys_shmget(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		if (tcp->u_arg[0])
 			tprintf("%#lx", tcp->u_arg[0]);
 		else
-			tprintf("IPC_PRIVATE");
+			tprints("IPC_PRIVATE");
 		tprintf(", %lu", tcp->u_arg[1]);
-		tprintf(", ");
+		tprints(", ");
 		if (printflags(shm_resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
-			tprintf("|");
+			tprints("|");
 		tprintf("%#lo", tcp->u_arg[2] & 0777);
 	}
 	return 0;
 }
 
-int sys_shmctl(tcp)
-struct tcb *tcp;
+int sys_shmctl(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		tprintf("%lu, ", tcp->u_arg[0]);
@@ -427,39 +404,33 @@ struct tcb *tcp;
 	return 0;
 }
 
-int sys_shmat(tcp)
-struct tcb *tcp;
+int sys_shmat(struct tcb *tcp)
 {
-#ifdef LINUX
-	unsigned long raddr;
-#endif /* LINUX */
-
 	if (exiting(tcp)) {
 		tprintf("%lu", tcp->u_arg[0]);
 		if (indirect_ipccall(tcp)) {
 			tprintf(", %#lx", tcp->u_arg[3]);
-			tprintf(", ");
+			tprints(", ");
 			printflags(shm_flags, tcp->u_arg[1], "SHM_???");
 		} else {
 			tprintf(", %#lx", tcp->u_arg[1]);
-			tprintf(", ");
+			tprints(", ");
 			printflags(shm_flags, tcp->u_arg[2], "SHM_???");
 		}
 		if (syserror(tcp))
 			return 0;
-/* HPPA does not use an IPC multiplexer on Linux.  */
-#if defined(LINUX) && !defined(HPPA)
-		if (umove(tcp, tcp->u_arg[2], &raddr) < 0)
-			return RVAL_NONE;
-		tcp->u_rval = raddr;
-#endif /* LINUX */
+		if (indirect_ipccall(tcp)) {
+			unsigned long raddr;
+			if (umove(tcp, tcp->u_arg[2], &raddr) < 0)
+				return RVAL_NONE;
+			tcp->u_rval = raddr;
+		}
 		return RVAL_HEX;
 	}
 	return 0;
 }
 
-int sys_shmdt(tcp)
-struct tcb *tcp;
+int sys_shmdt(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		if (indirect_ipccall(tcp)) {
@@ -471,15 +442,12 @@ struct tcb *tcp;
 	return 0;
 }
 
-#endif /* defined(LINUX) || defined(SUNOS4) || defined(FREEBSD) */
-
-#ifdef LINUX
 int
 sys_mq_open(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
-		tprintf(", ");
+		tprints(", ");
 		/* flags */
 		tprint_open_modes(tcp->u_arg[1]);
 		if (tcp->u_arg[1] & O_CREAT) {
@@ -490,10 +458,11 @@ sys_mq_open(struct tcb *tcp)
 			/* mode */
 			tprintf(", %#lo, ", tcp->u_arg[2]);
 			if (umove(tcp, tcp->u_arg[3], &attr) < 0)
-				tprintf("{ ??? }");
+				tprints("{ ??? }");
 			else
 				tprintf("{mq_maxmsg=%ld, mq_msgsize=%ld}",
-					attr.mq_maxmsg, attr.mq_msgsize);
+					(long) attr.mq_maxmsg,
+					(long) attr.mq_msgsize);
 # endif
 		}
 	}
@@ -539,20 +508,21 @@ static void
 printmqattr(struct tcb *tcp, long addr)
 {
 	if (addr == 0)
-		tprintf("NULL");
+		tprints("NULL");
 	else {
 # ifndef HAVE_MQUEUE_H
 		tprintf("%#lx", addr);
 # else
 		struct mq_attr attr;
 		if (umove(tcp, addr, &attr) < 0) {
-			tprintf("{...}");
+			tprints("{...}");
 			return;
 		}
-		tprintf("{mq_flags=");
+		tprints("{mq_flags=");
 		tprint_open_modes(attr.mq_flags);
 		tprintf(", mq_maxmsg=%ld, mq_msgsize=%ld, mq_curmsg=%ld}",
-			attr.mq_maxmsg, attr.mq_msgsize, attr.mq_curmsgs);
+			(long) attr.mq_maxmsg, (long) attr.mq_msgsize,
+			(long) attr.mq_curmsgs);
 # endif
 	}
 }
@@ -563,9 +533,14 @@ sys_mq_getsetattr(struct tcb *tcp)
 	if (entering(tcp)) {
 		tprintf("%ld, ", tcp->u_arg[0]);
 		printmqattr(tcp, tcp->u_arg[1]);
-		tprintf(", ");
+		tprints(", ");
 	} else
 		printmqattr(tcp, tcp->u_arg[2]);
 	return 0;
 }
-#endif
+
+int
+sys_ipc(struct tcb *tcp)
+{
+	return printargs(tcp);
+}

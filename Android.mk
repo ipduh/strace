@@ -3,23 +3,47 @@
 LOCAL_PATH := $(my-dir)
 include $(CLEAR_VARS)
 
-# From autoconf-generated Makefile
-strace_SOURCES = strace.c syscall.c count.c util.c desc.c file.c ipc.c \
-                 io.c ioctl.c mem.c net.c process.c bjm.c quota.c \
-                 resource.c signal.c sock.c system.c term.c time.c \
-                 proc.c stream.c block.c
+strace_VERSION = 4.7
 
-#excluded_sources = scsi.c
-
-strace_VERSION = 4.6
-
-LOCAL_SRC_FILES:= $(strace_SOURCES)
+LOCAL_SRC_FILES := \
+    bjm.c \
+    block.c \
+    count.c \
+    desc.c \
+    file.c \
+    io.c \
+    ioctl.c \
+    ipc.c \
+    loop.c \
+    mem.c \
+    mtd.c \
+    net.c \
+    pathtrace.c \
+    proc.c \
+    process.c \
+    quota.c \
+    resource.c \
+    signal.c \
+    sock.c \
+    strace.c \
+    stream.c \
+    syscall.c \
+    system.c \
+    term.c \
+    time.c \
+    util.c \
 
 LOCAL_SHARED_LIBRARIES :=
 
 LOCAL_CFLAGS := -DLINUX=1 \
 	-DGETGROUPS_T=gid_t \
 	-DHAVE_ASM_SIGCONTEXT_H=1 \
+	-DHAVE_DECL_PTRACE_O_TRACECLONE=1 \
+	-DHAVE_DECL_PTRACE_O_TRACEEXEC=1 \
+	-DHAVE_DECL_PTRACE_O_TRACEEXIT=1 \
+	-DHAVE_DECL_PTRACE_O_TRACEFORK=1 \
+	-DHAVE_DECL_PTRACE_O_TRACESYSGOOD=1 \
+	-DHAVE_DECL_PTRACE_O_TRACEVFORK=1 \
 	-DHAVE_DECL_SYS_ERRLIST=1 \
 	-DHAVE_DECL_SYS_SIGLIST=1 \
 	-DHAVE_DECL_____PTRACE_EVENT_CLONE=1 \
@@ -45,6 +69,7 @@ LOCAL_CFLAGS := -DLINUX=1 \
 	-DHAVE_LINUX_IN6_H=1 \
 	-DHAVE_LINUX_NETLINK_H=1 \
 	-DHAVE_LINUX_UTSNAME_H=1 \
+	-DHAVE_LITTLE_ENDIAN_LONG_LONG=1 \
 	-DHAVE_LONG_LONG=1 \
 	-DHAVE_LONG_LONG_RLIM_T=1 \
 	-DHAVE_MEMORY_H=1 \
@@ -91,6 +116,7 @@ LOCAL_CFLAGS := -DLINUX=1 \
 	-DPACKAGE_TARNAME='"strace"' \
 	-DPACKAGE_VERSION='"$(strace_VERSION)"' \
 	-DRETSIGTYPE=void \
+	-DSIZEOF_RLIM_T=8 \
 	-DSTDC_HEADER=1 \
 	-DVERSION='"$(strace_VERSION)"' \
 	-D_GNU_SOURCE=1 \
@@ -98,7 +124,12 @@ LOCAL_CFLAGS := -DLINUX=1 \
 	-Dfopen64=fopen \
 	-Dd_fileno=d_ino \
 	-D_LFS64_LARGEFILE=1 \
-	-D__KERNEL__=1
+	-D__KERNEL__=1 \
+
+# bionic doesn't have fputs_unlocked.
+LOCAL_CFLAGS += -Dfputs_unlocked=fputs
+# uapi's asm/sigcontext.h doesn't have sigcontext_struct.
+LOCAL_CFLAGS += -Dsigcontext_struct=sigcontext
 
 #These are defined in AndroidConfig.h so we omit them above.
 #	-DHAVE_SYS_UIO_H=1 \
@@ -107,21 +138,22 @@ LOCAL_CFLAGS := -DLINUX=1 \
 
 arch := $(TARGET_ARCH)
 ifeq ($(TARGET_ARCH),arm)
-	LOCAL_CFLAGS += -DARM=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+	LOCAL_CFLAGS += -DARM=1
 	LOCAL_CFLAGS += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
+else ifeq ($(TARGET_ARCH),mips)
+	LOCAL_CFLAGS += -DMIPS=1
+	LOCAL_CFLAGS += -DHAVE_ASM_SYSMIPS_H=1
+#	Mips does not use STRUCT__OLD_KERNEL_STAT type
 else ifeq ($(TARGET_ARCH),x86)
-	LOCAL_CFLAGS += -DI386=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+	LOCAL_CFLAGS += -DI386=1
         LOCAL_CFLAGS += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
 	arch := i386
-else ifeq ($(TARGET_ARCH),sh)
-	LOCAL_CFLAGS += -DSH=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
-        LOCAL_CFLAGS += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
-else ifeq ($(TARGET_ARCH),mips)
-	LOCAL_CFLAGS += -DMIPS=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
-#	Mips does not use STRUCT__OLD_KERNEL_STAT type
 endif
 
-LOCAL_CFLAGS += -Wno-missing-field-initializers
+LOCAL_CFLAGS += \
+    -Wno-missing-field-initializers \
+    -Wno-unused-parameter \
+    -Wno-sign-compare \
 
 LOCAL_C_INCLUDES := \
 	$(KERNEL_HEADERS) \
@@ -133,5 +165,7 @@ LOCAL_MODULE := strace
 LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
 
 LOCAL_MODULE_TAGS := debug
+
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 
 include $(BUILD_EXECUTABLE)

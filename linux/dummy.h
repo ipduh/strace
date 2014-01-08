@@ -24,202 +24,136 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *	$Id$
  */
 
 /* still unfinished */
+#define	sys_add_key		printargs
+#define	sys_fanotify_init	printargs
+#define	sys_fanotify_mark	printargs
 #define	sys_ioperm		printargs
-#define	sys_syslog		printargs
 #define	sys_iopl		printargs
-#define	sys_vm86old		printargs
-#define	sys_get_kernel_syms	printargs
-#define	sys_bdflush		printargs
+#define	sys_ioprio_get		printargs
+#define	sys_ioprio_set		printargs
+#define	sys_kexec_load		printargs
+#define	sys_keyctl		printargs
+#define	sys_lookup_dcookie	printargs
+#define	sys_name_to_handle_at	printargs
+#define	sys_open_by_handle_at	printargs
+#define	sys_perf_event_open	printargs
+#define	sys_request_key		printargs
+#define	sys_sync_file_range	printargs
 #define	sys_sysfs		printargs
-#define	sys_afs_syscall		printargs
+#define	sys_vm86old		printargs
+#define	sys_vm86		printargs
 
 /* machine-specific */
 #ifndef I386
 #define	sys_modify_ldt		printargs
 #ifndef M68K
-#define sys_get_thread_area	printargs
-#define sys_set_thread_area	printargs
+#define	sys_get_thread_area	printargs
+#define	sys_set_thread_area	printargs
 #endif
 #endif
-
-#define sys_sched_yield		printargs
-#define sys_sched_get_priority_max sys_sched_get_priority_min
-#define sys_sched_rr_get_interval printargs
 
 /* like another call */
-#define	sys_uselib		sys_chdir
-#define	sys_umount		sys_chdir
-#define	sys_swapon		sys_chdir
-#define	sys_swapoff		sys_chdir
+#define	sys_acct		sys_chdir
+#define	sys_chroot		sys_chdir
+#define	sys_clock_getres	sys_clock_gettime
 #define	sys_delete_module	sys_open
+#define	sys_dup			sys_close
 #define	sys_fchdir		sys_close
-#define	sys_getgid		sys_getuid
+#define	sys_fdatasync		sys_close
+#define	sys_fsync		sys_close
 #define	sys_getegid		sys_getuid
 #define	sys_geteuid		sys_getuid
+#define	sys_getgid		sys_getuid
+#define	sys_getresgid		sys_getresuid
+#define	sys_mlock		sys_munmap
+#define	sys_mq_unlink		sys_chdir
+#define	sys_munlock		sys_munmap
+#define	sys_pivotroot		sys_link
+#define	sys_rename		sys_link
+#define	sys_rmdir		sys_chdir
+#define	sys_sched_get_priority_max	sys_sched_get_priority_min
+#define	sys_set_robust_list	sys_munmap
 #define	sys_setfsgid		sys_setfsuid
-#define	sys_acct		sys_chdir
-#define sys_fdatasync		sys_close
-#define sys_mlock		sys_munmap
-#define sys_munlock		sys_munmap
-#define sys_clock_getres	sys_clock_gettime
-#define sys_mq_unlink		sys_unlink
+#define	sys_setgid		sys_setuid
+#define	sys_setns		sys_inotify_rm_watch
+#define	sys_setregid		sys_setreuid
+#define	sys_setresgid		sys_setresuid
+#define	sys_swapoff		sys_chdir
+#define	sys_symlink		sys_link
+#define	sys_syncfs		sys_close
+#define	sys_umount		sys_chdir
+#define	sys_unlink		sys_chdir
+#define	sys_uselib		sys_chdir
 
 /* printargs does the right thing */
-#define	sys_setup		printargs
-#define	sys_getpid		printargs
-#define	sys_pause		printargs
-#define	sys_sync		printargs
-#define	sys_getppid		printargs
-#define	sys_getpgrp		printargs
-#define	sys_setsid		printargs
-#define	sys_vhangup		printargs
-#define	sys_idle		printargs
 #define	sys_getpgid		printargs
-#define sys_munlockall		printargs
-#define sys_timer_getoverrun	printargs
-#define sys_timer_delete	printargs
+#define	sys_getpid		printargs
+#define	sys_getppid		printargs
+#define	sys_gettid		printargs
+#define	sys_idle		printargs
+#define	sys_inotify_init	printargs
+#define	sys_munlockall		printargs
+#define	sys_pause		printargs
+#define	sys_rt_sigreturn	printargs
+#define	sys_sched_yield		printargs
+#define	sys_setsid		printargs
+#define	sys_set_tid_address	printargs
+#define	sys_setup		printargs
+#define	sys_sync		printargs
+#define	sys_timer_delete	printargs
+#define	sys_timer_getoverrun	printargs
+#define	sys_vhangup		printargs
 
-/* subcall entry points */
-#define	sys_socketcall		printargs
-#define	sys_ipc			printargs
+/* printargs_lu/ld does the right thing */
+#define	sys_alarm		printargs_lu
+#define	sys_getpgrp		printargs_lu
+#define	sys_getsid		printargs_lu
+#define	sys_nice		printargs_ld
+#define	sys_setpgid		printargs_lu
+#define	sys_setpgrp		printargs_lu
 
 /* unimplemented */
-#define	sys_stty		printargs
-#define	sys_gtty		printargs
+#define	sys_afs_syscall		printargs
+#define	sys_break		printargs
 #define	sys_ftime		printargs
-#define	sys_prof		printargs
-#define	sys_phys		printargs
+#define	sys_get_kernel_syms	printargs
+#define	sys_gtty		printargs
 #define	sys_lock		printargs
 #define	sys_mpx			printargs
-#define	sys_ulimit		printargs
+#define	sys_nfsservctl		printargs
+#define	sys_phys		printargs
 #define	sys_profil		printargs
+#define	sys_prof		printargs
+#define	sys_security		printargs
+#define	sys_stty		printargs
+#define	sys_tuxcall		printargs
+#define	sys_ulimit		printargs
 #define	sys_ustat		printargs
-#define	sys_break		printargs
+#define	sys_vserver		printargs
 
 /* deprecated */
-#define	sys_olduname		printargs
+#define	sys_bdflush		printargs
 #define	sys_oldolduname		printargs
+#define	sys_olduname		printargs
 
 /* no library support */
 #ifndef HAVE_SENDMSG
-#define sys_sendmsg		printargs
-#define sys_recvmsg		printargs
+#define	sys_recvmsg		printargs
+#define	sys_sendmsg		printargs
 #endif
 
 #ifndef SYS_getpmsg
-#define sys_getpmsg		printargs
+#define	sys_getpmsg		printargs
 #endif
 #ifndef SYS_putpmsg
-#define sys_putpmsg		printargs
+#define	sys_putpmsg		printargs
 #endif
 
 #ifndef HAVE_STRUCT___OLD_KERNEL_STAT
-#define sys_oldstat		printargs
-#define sys_oldfstat		printargs
-#define sys_oldlstat		printargs
-#endif
-
-#if DONE
-#define sys_oldselect		printargs
-#define	sys_msync		printargs
-#define	sys_flock		printargs
-#define	sys_getdents		printargs
-#define	sys_stime		printargs
-#define	sys_time		printargs
-#define	sys_times		printargs
-#define	sys_mount		printargs
-#define	sys_nice		printargs
-#define	sys_mprotect		printargs
-#define	sys_sigprocmask		printargs
-#define	sys_adjtimex		printargs
-#define	sys_sysinfo		printargs
-#define	sys_ipc			printargs
-#define	sys_setdomainname	printargs
-#define	sys_statfs		printargs
-#define	sys_fstatfs		printargs
-#define	sys_ptrace		printargs
-#define	sys_sigreturn		printargs
-#define	sys_fsync		printargs
-#define	sys_alarm		printargs
-#define	sys_socketcall		printargs
-#define	sys_sigsuspend		printargs
-#define	sys_utime		printargs
-#define	sys_brk			printargs
-#define	sys_mmap		printargs
-#define	sys_munmap		printargs
-#define	sys_select		printargs
-#define	sys_setuid		printargs
-#define	sys_setgid		printargs
-#define	sys_setreuid		printargs
-#define	sys_setregid		printargs
-#define	sys_getgroups		printargs
-#define	sys_setgroups		printargs
-#define	sys_setrlimit		printargs
-#define	sys_getrlimit		printargs
-#define	sys_getrusage		printargs
-#define	sys_getpriority		printargs
-#define	sys_setpriority		printargs
-#define	sys_setpgid		printargs
-#define	sys_access		printargs
-#define	sys_sethostname		printargs
-#define	sys_readdir		printargs
-#define	sys_waitpid		printargs
-#define	sys_wait4		printargs
-#define	sys_execve		printargs
-#define	sys_fork		printargs
-#define	sys_uname		printargs
-#define	sys_pipe		printargs
-#define	sys_siggetmask		printargs
-#define	sys_sigsetmask		printargs
-#define	sys_exit		printargs
-#define	sys_kill		printargs
-#define	sys_signal		printargs
-#define	sys_sigaction		printargs
-#define	sys_sigpending		printargs
-#define	sys_fcntl		printargs
-#define	sys_dup			printargs
-#define	sys_dup2		printargs
-#define	sys_close		printargs
-#define	sys_ioctl		printargs
-#define	sys_read		printargs
-#define	sys_write		printargs
-#define	sys_open		printargs
-#define	sys_creat		printargs
-#define	sys_link		printargs
-#define	sys_unlink		printargs
-#define	sys_chdir		printargs
-#define	sys_mknod		printargs
-#define	sys_chmod		printargs
-#define	sys_chown		printargs
-#define	sys_lseek		printargs
-#define	sys_rename		printargs
-#define	sys_mkdir		printargs
-#define	sys_rmdir		printargs
-#define	sys_umask		printargs
-#define	sys_chroot		printargs
-#define	sys_gettimeofday	printargs
-#define	sys_settimeofday	printargs
-#define	sys_symlink		printargs
-#define	sys_readlink		printargs
-#define	sys_truncate		printargs
-#define	sys_ftruncate		printargs
-#define	sys_fchmod		printargs
-#define	sys_fchown		printargs
-#define	sys_setitimer		printargs
-#define	sys_getitimer		printargs
-#define	sys_stat		printargs
-#define	sys_lstat		printargs
-#define	sys_fstat		printargs
-#define	sys_personality		printargs
-#define sys_poll		printargs
-#define	sys_create_module	printargs
-#define	sys_init_module		printargs
-#define	sys_quotactl		printargs
-#define sys_mlockall		printargs
-#define	sys_reboot		printargs
+#define	sys_oldfstat		printargs
+#define	sys_oldlstat		printargs
+#define	sys_oldstat		printargs
 #endif
