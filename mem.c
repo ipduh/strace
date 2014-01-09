@@ -39,16 +39,16 @@
 #  define modify_ldt_ldt_s user_desc
 # endif
 #endif
-#if defined(SH64)
-# include <asm/page.h>	    /* for PAGE_SHIFT */
-#endif
 
-#ifdef HAVE_LONG_LONG_OFF_T
-/*
- * Ugly hacks for systems that have a long long off_t
- */
-# define sys_mmap64	sys_mmap
-#endif
+static unsigned long
+get_pagesize()
+{
+	static unsigned long pagesize;
+
+	if (!pagesize)
+		pagesize = sysconf(_SC_PAGESIZE);
+	return pagesize;
+}
 
 int
 sys_brk(struct tcb *tcp)
@@ -159,56 +159,20 @@ static const struct xlat mmap_flags[] = {
 #ifdef MAP_STACK
 	{ MAP_STACK,	"MAP_STACK"	},
 #endif
+#if defined MAP_UNINITIALIZED && MAP_UNINITIALIZED > 0
+	{ MAP_UNINITIALIZED,"MAP_UNINITIALIZED"},
+#endif
 #ifdef MAP_NOSYNC
 	{ MAP_NOSYNC,	"MAP_NOSYNC"	},
 #endif
 #ifdef MAP_NOCORE
 	{ MAP_NOCORE,	"MAP_NOCORE"	},
 #endif
-#ifdef TILE
-	{ MAP_CACHE_NO_LOCAL, "MAP_CACHE_NO_LOCAL" },
-	{ MAP_CACHE_NO_L2, "MAP_CACHE_NO_L2" },
-	{ MAP_CACHE_NO_L1, "MAP_CACHE_NO_L1" },
-#endif
 	{ 0,		NULL		},
 };
 
-#ifdef TILE
 static int
-addtileflags(long flags)
-{
-	long home = flags & _MAP_CACHE_MKHOME(_MAP_CACHE_HOME_MASK);
-	flags &= ~_MAP_CACHE_MKHOME(_MAP_CACHE_HOME_MASK);
-
-	if (flags & _MAP_CACHE_INCOHERENT) {
-		flags &= ~_MAP_CACHE_INCOHERENT;
-		if (home == MAP_CACHE_HOME_NONE) {
-			tprints("|MAP_CACHE_INCOHERENT");
-			return flags;
-		}
-		tprints("|_MAP_CACHE_INCOHERENT");
-	}
-
-	switch (home) {
-	case 0:	break;
-	case MAP_CACHE_HOME_HERE: tprints("|MAP_CACHE_HOME_HERE"); break;
-	case MAP_CACHE_HOME_NONE: tprints("|MAP_CACHE_HOME_NONE"); break;
-	case MAP_CACHE_HOME_SINGLE: tprints("|MAP_CACHE_HOME_SINGLE"); break;
-	case MAP_CACHE_HOME_TASK: tprints("|MAP_CACHE_HOME_TASK"); break;
-	case MAP_CACHE_HOME_HASH: tprints("|MAP_CACHE_HOME_HASH"); break;
-	default:
-		tprintf("|MAP_CACHE_HOME(%d)",
-			(home >> _MAP_CACHE_HOME_SHIFT) );
-		break;
-	}
-
-	return flags;
-}
-#endif
-
-#if !HAVE_LONG_LONG_OFF_T
-static int
-print_mmap(struct tcb *tcp, long *u_arg, long long offset)
+print_mmap(struct tcb *tcp, long *u_arg, unsigned long long offset)
 {
 	if (entering(tcp)) {
 		/* addr */
@@ -224,16 +188,12 @@ print_mmap(struct tcb *tcp, long *u_arg, long long offset)
 		/* flags */
 #ifdef MAP_TYPE
 		printxval(mmap_flags, u_arg[3] & MAP_TYPE, "MAP_???");
-#ifdef TILE
-		addflags(mmap_flags, addtileflags(u_arg[3] & ~MAP_TYPE));
-#else
 		addflags(mmap_flags, u_arg[3] & ~MAP_TYPE);
-#endif
 #else
 		printflags(mmap_flags, u_arg[3], "MAP_???");
 #endif
-		/* fd */
 		tprints(", ");
+		/* fd */
 		printfd(tcp, u_arg[4]);
 		/* offset */
 		tprintf(", %#llx", offset);
@@ -241,161 +201,101 @@ print_mmap(struct tcb *tcp, long *u_arg, long long offset)
 	return RVAL_HEX;
 }
 
-int sys_old_mmap(struct tcb *tcp)
+/* Syscall name<->function correspondence is messed up on many arches.
+ * For example:
+ * i386 has __NR_mmap == 90, and it is "old mmap", and
+ * also it has __NR_mmap2 == 192, which is a "new mmap with page offsets".
+ * But x86_64 has just one __NR_mmap == 9, a "new mmap with byte offsets".
+ * Confused? Me too!
+ */
+
+/* Params are pointed to by u_arg[0], offset is in bytes */
+int
+sys_old_mmap(struct tcb *tcp)
 {
+	long u_arg[6];
 #if defined(IA64)
 	/*
 	 * IA64 processes never call this routine, they only use the
-	 * new `sys_mmap' interface.
-	 * For IA32 processes, this code converts the integer arguments
-	 * that they pushed onto the stack, into longs.
-	 *
-	 * Note that addresses with bit 31 set will be sign extended.
-	 * Fortunately, those addresses are not currently being generated
-	 * for IA32 processes so it's not a problem.
+	 * new 'sys_mmap' interface. Only IA32 processes come here.
 	 */
 	int i;
-	long u_arg[6];
-	int narrow_arg[6];
+	unsigned narrow_arg[6];
 	if (umoven(tcp, tcp->u_arg[0], sizeof(narrow_arg), (char *) narrow_arg) == -1)
 		return 0;
 	for (i = 0; i < 6; i++)
-		u_arg[i] = narrow_arg[i];
-#elif defined(SH) || defined(SH64)
-	/* SH has always passed the args in registers */
-	long *u_arg = tcp->u_arg;
+		u_arg[i] = (unsigned long) narrow_arg[i];
+#elif defined(X86_64)
+	/* We are here only in personality 1 (i386) */
+	int i;
+	unsigned narrow_arg[6];
+	if (umoven(tcp, tcp->u_arg[0], sizeof(narrow_arg), (char *) narrow_arg) == -1)
+		return 0;
+	for (i = 0; i < 6; ++i)
+		u_arg[i] = (unsigned long) narrow_arg[i];
 #else
-	long u_arg[6];
-# if defined(X86_64)
-	if (current_personality == 1) {
-		int i;
-		unsigned narrow_arg[6];
-		if (umoven(tcp, tcp->u_arg[0], sizeof(narrow_arg), (char *) narrow_arg) == -1)
-			return 0;
-		for (i = 0; i < 6; ++i)
-			u_arg[i] = narrow_arg[i];
-	}
-	else
-# endif
 	if (umoven(tcp, tcp->u_arg[0], sizeof(u_arg), (char *) u_arg) == -1)
 		return 0;
-#endif /* other architectures */
-
-	return print_mmap(tcp, u_arg, u_arg[5]);
+#endif
+	return print_mmap(tcp, u_arg, (unsigned long) u_arg[5]);
 }
 
+#if defined(S390)
+/* Params are pointed to by u_arg[0], offset is in pages */
+int
+sys_old_mmap_pgoff(struct tcb *tcp)
+{
+	long u_arg[5];
+	int i;
+	unsigned narrow_arg[6];
+	unsigned long long offset;
+	if (umoven(tcp, tcp->u_arg[0], sizeof(narrow_arg), (char *) narrow_arg) == -1)
+		return 0;
+	for (i = 0; i < 5; i++)
+		u_arg[i] = (unsigned long) narrow_arg[i];
+	offset = narrow_arg[5];
+	offset *= get_pagesize();
+	return print_mmap(tcp, u_arg, offset);
+}
+#endif
+
+/* Params are passed directly, offset is in bytes */
 int
 sys_mmap(struct tcb *tcp)
 {
-	long long offset = tcp->u_arg[5];
-
-	/* FIXME: why only SH64? i386 mmap2 syscall ends up
-	 * in this function, but does not convert offset
-	 * from pages to bytes. See test/mmap_offset_decode.c
-	 * Why SH64 and i386 are handled differently?
-	 */
-#if defined(SH64)
-	/*
-	 * Old mmap differs from new mmap in specifying the
-	 * offset in units of bytes rather than pages.  We
-	 * pretend it's in byte units so the user only ever
-	 * sees bytes in the printout.
-	 */
-	offset <<= PAGE_SHIFT;
-#endif
-#if defined(LINUX_MIPSN32)
+	unsigned long long offset = (unsigned long) tcp->u_arg[5];
+#if defined(LINUX_MIPSN32) || defined(X32)
+	/* Try test/x32_mmap.c */
 	offset = tcp->ext_arg[5];
 #endif
+	/* Example of kernel-side handling of this variety of mmap:
+	 * arch/x86/kernel/sys_x86_64.c::SYSCALL_DEFINE6(mmap, ...) calls
+	 * sys_mmap_pgoff(..., off >> PAGE_SHIFT); i.e. off is in bytes,
+	 * since the above code converts off to pages.
+	 */
 	return print_mmap(tcp, tcp->u_arg, offset);
 }
-#endif /* !HAVE_LONG_LONG_OFF_T */
 
-#if _LFS64_LARGEFILE || HAVE_LONG_LONG_OFF_T
-# if defined(X32)
-int sys_old_mmap(struct tcb *tcp)
-{
-	long u_arg[6];
-	if (umoven(tcp, tcp->u_arg[0], sizeof(u_arg), (char *) u_arg) == -1)
-		return 0;
-	if (entering(tcp)) {
-		/* addr */
-		if (!u_arg[0])
-			tprints("NULL, ");
-		else
-			tprintf("%#lx, ", u_arg[0]);
-		/* len */
-		tprintf("%lu, ", u_arg[1]);
-		/* prot */
-		printflags(mmap_prot, u_arg[2], "PROT_???");
-		tprints(", ");
-		/* flags */
-#  ifdef MAP_TYPE
-		printxval(mmap_flags, u_arg[3] & MAP_TYPE, "MAP_???");
-		addflags(mmap_flags, u_arg[3] & ~MAP_TYPE);
-#  else
-		printflags(mmap_flags, u_arg[3], "MAP_???");
-#  endif
-		/* fd */
-		tprints(", ");
-		printfd(tcp, u_arg[4]);
-		/* offset */
-		tprintf(", %#lx", u_arg[5]);
-	}
-	return RVAL_HEX;
-}
-# endif
-
-/* TODO: comment which arches use this routine.
- * For one, does ALPHA on Linux use this??
- * From code it seems that it might use 7 or 8 registers,
- * which is strange - Linux syscalls can pass maximum of 6 parameters!
- */
+/* Params are passed directly, offset is in pages */
 int
-sys_mmap64(struct tcb *tcp)
+sys_mmap_pgoff(struct tcb *tcp)
 {
-	if (entering(tcp)) {
-#if defined(ALPHA) || defined(X32)
-		long *u_arg = tcp->u_arg;
-#else
-		long u_arg[7];
-		if (umoven(tcp, tcp->u_arg[0], sizeof u_arg,
-				(char *) u_arg) == -1)
-			return 0;
-#endif
-		/* addr */
-		if (!u_arg[0])
-			tprints("NULL, ");
-		else
-			tprintf("%#lx, ", u_arg[0]);
-		/* len */
-		tprintf("%lu, ", u_arg[1]);
-		/* prot */
-		printflags(mmap_prot, u_arg[2], "PROT_???");
-		tprints(", ");
-		/* flags */
-#ifdef MAP_TYPE
-		printxval(mmap_flags, u_arg[3] & MAP_TYPE, "MAP_???");
-		addflags(mmap_flags, u_arg[3] & ~MAP_TYPE);
-#else
-		printflags(mmap_flags, u_arg[3], "MAP_???");
-#endif
-		/* fd */
-		tprints(", ");
-		printfd(tcp, u_arg[4]);
-		/* offset */
-#if defined(ALPHA) || defined(X32)
-		printllval(tcp, ", %#llx", 5);
-#else
-		/* NOTE: not verified that [5] and [6] should be used.
-		 * It's possible that long long is 64-bit aligned in memory
-		 * and we need to use [6] and [7] here instead:
-		 */
-		tprintf(", %#llx", LONG_LONG(u_arg[5], u_arg[6]));
-#endif
-	}
-	return RVAL_HEX;
+	/* Try test/mmap_offset_decode.c */
+	unsigned long long offset;
+	offset = (unsigned long) tcp->u_arg[5];
+	offset *= get_pagesize();
+	return print_mmap(tcp, tcp->u_arg, offset);
 }
-#endif /* _LFS64_LARGEFILE || HAVE_LONG_LONG_OFF_T */
+
+/* Params are passed directly, offset is in 4k units */
+int
+sys_mmap_4koff(struct tcb *tcp)
+{
+	unsigned long long offset;
+	offset = (unsigned long) tcp->u_arg[5];
+	offset <<= 12;
+	return print_mmap(tcp, tcp->u_arg, offset);
+}
 
 int
 sys_munmap(struct tcb *tcp)
@@ -457,6 +357,39 @@ static const struct xlat madvise_cmds[] = {
 #endif
 #ifdef MADV_DONTNEED
 	{ MADV_DONTNEED,	"MADV_DONTNEED" },
+#endif
+#ifdef MADV_REMOVE
+	{ MADV_REMOVE,		"MADV_REMOVE" },
+#endif
+#ifdef MADV_DONTFORK
+	{ MADV_DONTFORK,	"MADV_DONTFORK" },
+#endif
+#ifdef MADV_DOFORK
+	{ MADV_DOFORK,		"MADV_DOFORK" },
+#endif
+#ifdef MADV_HWPOISON
+	{ MADV_HWPOISON,	"MADV_HWPOISON" },
+#endif
+#ifdef MADV_SOFT_OFFLINE
+	{ MADV_SOFT_OFFLINE,	"MADV_SOFT_OFFLINE" },
+#endif
+#ifdef MADV_MERGEABLE
+	{ MADV_MERGEABLE,	"MADV_MERGEABLE" },
+#endif
+#ifdef MADV_UNMERGEABLE
+	{ MADV_UNMERGEABLE,	"MADV_UNMERGEABLE" },
+#endif
+#ifdef MADV_HUGEPAGE
+	{ MADV_HUGEPAGE,	"MADV_HUGEPAGE" },
+#endif
+#ifdef MADV_NOHUGEPAGE
+	{ MADV_NOHUGEPAGE,	"MADV_NOHUGEPAGE" },
+#endif
+#ifdef MADV_DONTDUMP
+	{ MADV_DONTDUMP,	"MADV_DONTDUMP" },
+#endif
+#ifdef MADV_DODUMP
+	{ MADV_DODUMP,		"MADV_DODUMP" },
 #endif
 	{ 0,			NULL },
 };

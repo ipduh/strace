@@ -98,7 +98,7 @@ int sys_getgroups32();
 int sys_gethostname();
 int sys_getitimer();
 int sys_getpeername();
-int sys_getpmsg();
+int sys_getpmsg(); /* TODO: non-Linux, remove? */
 int sys_getpriority();
 int sys_getresuid();
 int sys_getrlimit();
@@ -126,8 +126,6 @@ int sys_listen();
 int sys_listxattr();
 int sys_llseek();
 int sys_lseek();
-int sys_lstat();
-int sys_lstat64();
 int sys_madvise();
 int sys_mbind();
 int sys_migrate_pages();
@@ -138,6 +136,8 @@ int sys_mknod();
 int sys_mknodat();
 int sys_mlockall();
 int sys_mmap();
+int sys_mmap_pgoff();
+int sys_mmap_4koff();
 int sys_modify_ldt();
 int sys_mount();
 int sys_move_pages();
@@ -157,12 +157,13 @@ int sys_munmap();
 int sys_nanosleep();
 int sys_newfstatat();
 int sys_old_mmap();
+int sys_old_mmap_pgoff();
 int sys_oldfstat();
-int sys_oldlstat();
 int sys_oldselect();
 int sys_oldstat();
 int sys_open();
 int sys_openat();
+int sys_perf_event_open();
 int sys_personality();
 int sys_pipe();
 int sys_pipe2();
@@ -177,7 +178,7 @@ int sys_process_vm_readv();
 int sys_process_vm_writev();
 int sys_pselect6();
 int sys_ptrace();
-int sys_putpmsg();
+int sys_putpmsg(); /* TODO: non-Linux, remove? */
 int sys_pwrite();
 int sys_pwritev();
 int sys_query_module();
@@ -312,31 +313,8 @@ int sys_osf_utimes();
 int sys_osf_wait4();
 #endif
 
-#if !defined(ALPHA) && !defined(MIPS) && !defined(HPPA) && \
-	!defined(__ARM_EABI__)
-# if defined(SPARC) || defined(SPARC64)
-#  define SYS_socket_subcall	353
-# else
-#  define SYS_socket_subcall	400
-# endif
-
-#define SYS_socket_nsubcalls	20
-#endif /* !(ALPHA || MIPS || HPPA) */
-
-#if !defined(ALPHA) && !defined(MIPS) && !defined(HPPA) && \
-	!defined(__ARM_EABI__)
-#define SYS_ipc_subcall		((SYS_socket_subcall)+(SYS_socket_nsubcalls))
-#define SYS_ipc_nsubcalls	25
-#endif /* !(ALPHA || MIPS || HPPA) */
-
 #if defined(ALPHA) || defined(IA64) || defined(SPARC) || defined(SPARC64)
 int sys_getpagesize();
-#endif
-
-#ifdef IA64
-/* STREAMS stuff */
-int sys_getpmsg();
-int sys_putpmsg();
 #endif
 
 #ifdef MIPS
@@ -345,6 +323,10 @@ int sys_sysmips();
 
 #if defined M68K || defined SH
 int sys_cacheflush();
+#endif
+
+#if defined OR1K
+int sys_or1k_atomic();
 #endif
 
 #ifdef POWERPC
@@ -360,18 +342,5 @@ int sys_sram_alloc();
 #include "sparc/syscall1.h"
 int sys_execv();
 int sys_getmsg();
-int sys_msgsys();
 int sys_putmsg();
-int sys_semsys();
-int sys_shmsys();
-#define SYS_semsys_subcall	200
-#define SYS_semsys_nsubcalls	3
-#define SYS_msgsys_subcall	203
-#define SYS_msgsys_nsubcalls	4
-#define SYS_shmsys_subcall	207
-#define SYS_shmsys_nsubcalls	4
-#endif
-
-#ifdef X32
-int sys_lseek32();
 #endif

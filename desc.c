@@ -37,13 +37,8 @@
 #ifdef HAVE_LIBAIO_H
 # include <libaio.h>
 #endif
-
-#if HAVE_LONG_LONG_OFF_T
-/*
- * Hacks for systems that have a long long off_t
- */
-# define flock64	flock		/* Horrid hack */
-# define printflock printflock64	/* Horrider hack */
+#ifdef HAVE_LINUX_PERF_EVENT_H
+# include  <linux/perf_event.h>
 #endif
 
 static const struct xlat fcntlcmds[] = {
@@ -215,14 +210,42 @@ static const struct xlat notifyflags[] = {
 };
 #endif
 
-static const struct xlat whence[] = {
-	{ SEEK_SET,	"SEEK_SET"	},
-	{ SEEK_CUR,	"SEEK_CUR"	},
-	{ SEEK_END,	"SEEK_END"	},
-	{ 0,		NULL		},
+static const struct xlat perf_event_open_flags[] = {
+#ifdef PERF_FLAG_FD_NO_GROUP
+	{ PERF_FLAG_FD_NO_GROUP,	"PERF_FLAG_FD_NO_GROUP"	},
+#endif
+#ifdef PERF_FLAG_FD_OUTPUT
+	{ PERF_FLAG_FD_OUTPUT,		"PERF_FLAG_FD_OUTPUT"	},
+#endif
+#ifdef PERF_FLAG_PID_CGROUP
+	{ PERF_FLAG_PID_CGROUP,		"PERF_FLAG_PID_CGROUP"	},
+#endif
+	{ 0,				NULL			},
 };
 
-#ifndef HAVE_LONG_LONG_OFF_T
+#if _LFS64_LARGEFILE
+/* fcntl/lockf */
+static void
+printflock64(struct tcb *tcp, long addr, int getlk)
+{
+	struct flock64 fl;
+
+	if (umove(tcp, addr, &fl) < 0) {
+		tprints("{...}");
+		return;
+	}
+	tprints("{type=");
+	printxval(lockfcmds, fl.l_type, "F_???");
+	tprints(", whence=");
+	printxval(whence_codes, fl.l_whence, "SEEK_???");
+	tprintf(", start=%lld, len=%lld", (long long) fl.l_start, (long long) fl.l_len);
+	if (getlk)
+		tprintf(", pid=%lu}", (unsigned long) fl.l_pid);
+	else
+		tprints("}");
+}
+#endif
+
 /* fcntl/lockf */
 static void
 printflock(struct tcb *tcp, long addr, int getlk)
@@ -230,6 +253,12 @@ printflock(struct tcb *tcp, long addr, int getlk)
 	struct flock fl;
 
 #if SUPPORTED_PERSONALITIES > 1
+# ifdef X32
+	if (current_personality == 0) {
+		printflock64(tcp, addr, getlk);
+		return;
+	}
+# endif
 	if (current_wordsize != sizeof(fl.l_start)) {
 		if (current_wordsize == 4) {
 			/* 32-bit x86 app on x86_64 and similar cases */
@@ -251,7 +280,7 @@ printflock(struct tcb *tcp, long addr, int getlk)
 			fl.l_pid = fl32.l_pid;
 		} else {
 			/* let people know we have a problem here */
-			tprintf("{ <decode error: unsupported wordsize %d> }",
+			tprintf("<decode error: unsupported wordsize %d>",
 				current_wordsize);
 			return;
 		}
@@ -266,37 +295,17 @@ printflock(struct tcb *tcp, long addr, int getlk)
 	tprints("{type=");
 	printxval(lockfcmds, fl.l_type, "F_???");
 	tprints(", whence=");
-	printxval(whence, fl.l_whence, "SEEK_???");
+	printxval(whence_codes, fl.l_whence, "SEEK_???");
+#ifdef X32
+	tprintf(", start=%lld, len=%lld", fl.l_start, fl.l_len);
+#else
 	tprintf(", start=%ld, len=%ld", fl.l_start, fl.l_len);
+#endif
 	if (getlk)
 		tprintf(", pid=%lu}", (unsigned long) fl.l_pid);
 	else
 		tprints("}");
 }
-#endif
-
-#if _LFS64_LARGEFILE || HAVE_LONG_LONG_OFF_T
-/* fcntl/lockf */
-static void
-printflock64(struct tcb *tcp, long addr, int getlk)
-{
-	struct flock64 fl;
-
-	if (umove(tcp, addr, &fl) < 0) {
-		tprints("{...}");
-		return;
-	}
-	tprints("{type=");
-	printxval(lockfcmds, fl.l_type, "F_???");
-	tprints(", whence=");
-	printxval(whence, fl.l_whence, "SEEK_???");
-	tprintf(", start=%lld, len=%lld", (long long) fl.l_start, (long long) fl.l_len);
-	if (getlk)
-		tprintf(", pid=%lu}", (unsigned long) fl.l_pid);
-	else
-		tprints("}");
-}
-#endif
 
 int
 sys_fcntl(struct tcb *tcp)
@@ -855,10 +864,14 @@ iocb_cmd_lookup(unsigned cmd, enum iocb_sub *sub)
 static void
 print_common_flags(struct iocb *iocb)
 {
+#if HAVE_STRUCT_IOCB_U_C_FLAGS
 	if (iocb->u.c.flags & IOCB_RESFD)
-		tprintf("resfd=%d, ", iocb->u.c.resfd);
+		tprintf(", resfd=%d", iocb->u.c.resfd);
 	if (iocb->u.c.flags & ~IOCB_RESFD)
-		tprintf("flags=%x, ", iocb->u.c.flags);
+		tprintf(", flags=%x", iocb->u.c.flags);
+#else
+# warning "libaio.h is too old => limited io_submit decoding"
+#endif
 }
 
 #endif /* HAVE_LIBAIO_H */
@@ -902,24 +915,31 @@ sys_io_submit(struct tcb *tcp)
 				tprintf("filedes:%d", iocb.aio_fildes);
 				switch (sub) {
 				case SUB_COMMON:
+#if HAVE_DECL_IO_CMD_PWRITE
 					if (iocb.aio_lio_opcode == IO_CMD_PWRITE) {
 						tprints(", str:");
 						printstr(tcp, (unsigned long)iocb.u.c.buf,
 							 iocb.u.c.nbytes);
-					} else {
+					} else
+#endif
 						tprintf(", buf:%p", iocb.u.c.buf);
-					}
-					tprintf(", nbytes:%lu, offset:%llx",
+					tprintf(", nbytes:%lu, offset:%lld",
 						iocb.u.c.nbytes,
 						iocb.u.c.offset);
 					print_common_flags(&iocb);
 					break;
 				case SUB_VECTOR:
-					tprintf(", %llx, ", iocb.u.v.offset);
+					tprintf(", %lld", iocb.u.v.offset);
 					print_common_flags(&iocb);
+					tprints(", ");
 					tprint_iov(tcp, iocb.u.v.nr,
 						   (unsigned long)iocb.u.v.vec,
-						   iocb.aio_lio_opcode == IO_CMD_PWRITEV);
+#if HAVE_DECL_IO_CMD_PWRITEV
+						   iocb.aio_lio_opcode == IO_CMD_PWRITEV
+#else
+						   0
+#endif
+						  );
 					break;
 				case SUB_POLL:
 					tprintf(", %x", iocb.u.poll.events);
@@ -932,7 +952,7 @@ sys_io_submit(struct tcb *tcp)
 			if (i)
 				tprints("}");
 #else
-#warning "libaio-devel is not available => no io_submit decoding"
+#warning "libaio.h is not available => no io_submit decoding"
 			tprintf("%#lx", tcp->u_arg[2]);
 #endif
 		}
@@ -1067,4 +1087,19 @@ int
 sys_eventfd2(struct tcb *tcp)
 {
 	return do_eventfd(tcp, 1);
+}
+
+int
+sys_perf_event_open(struct tcb *tcp)
+{
+	if (entering(tcp)) {
+		tprintf("%#lx, %d, %d, %d, ",
+			tcp->u_arg[0],
+			(int) tcp->u_arg[1],
+			(int) tcp->u_arg[2],
+			(int) tcp->u_arg[3]);
+		printflags(perf_event_open_flags, tcp->u_arg[4],
+			   "PERF_FLAG_???");
+	}
+	return 0;
 }

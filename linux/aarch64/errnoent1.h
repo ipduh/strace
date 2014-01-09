@@ -1,2 +1,2 @@
-/* x32 personality */
+/* Native AArch64 */
 #include "../errnoent.h"

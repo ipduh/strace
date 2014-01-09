@@ -8,6 +8,8 @@
 #
 
 UNNEEDED_SOURCES="\
+  .tarball-version \
+  .version \
   Makefile.am \
   Makefile.in \
   README-freebsd \
@@ -33,7 +35,9 @@ UNNEEDED_SOURCES="\
   linux/hppa \
   linux/ia64 \
   linux/m68k \
+  linux/metag \
   linux/microblaze \
+  linux/or1k \
   linux/powerpc \
   linux/s390 \
   linux/s390x \
@@ -42,6 +46,7 @@ UNNEEDED_SOURCES="\
   linux/sparc \
   linux/sparc64 \
   linux/tile \
+  linux/xtensa \
   m4 \
   missing \
   mkinstalldirs \

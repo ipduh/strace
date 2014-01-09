@@ -37,8 +37,8 @@
 
 #include "syscall.h"
 
-#define MAXSELECTED  256	/* max number of "selected" paths */
-static const char *selected[MAXSELECTED];	/* paths selected for tracing */
+const char **paths_selected = NULL;
+static unsigned num_selected = 0;
 
 /*
  * Return true if specified path matches one that we're tracing.
@@ -46,12 +46,10 @@ static const char *selected[MAXSELECTED];	/* paths selected for tracing */
 static int
 pathmatch(const char *path)
 {
-	unsigned int i;
+	unsigned i;
 
-	for (i = 0; i < ARRAY_SIZE(selected); ++i) {
-		if (selected[i] == NULL)
-			return 0;
-		if (strcmp(path, selected[i]) == 0)
+	for (i = 0; i < num_selected; ++i) {
+		if (strcmp(path, paths_selected[i]) == 0)
 			return 1;
 	}
 	return 0;
@@ -65,7 +63,7 @@ upathmatch(struct tcb *tcp, unsigned long upath)
 {
 	char path[PATH_MAX + 1];
 
-	return umovestr(tcp, upath, sizeof path, path) >= 0 &&
+	return umovestr(tcp, upath, sizeof path, path) > 0 &&
 		pathmatch(path);
 }
 
@@ -75,79 +73,79 @@ upathmatch(struct tcb *tcp, unsigned long upath)
 static int
 fdmatch(struct tcb *tcp, int fd)
 {
-	const char *path = getfdpath(tcp, fd);
+	char path[PATH_MAX + 1];
+	int n = getfdpath(tcp, fd, path, sizeof(path));
 
-	return path && pathmatch(path);
+	return n >= 0 && pathmatch(path);
 }
 
 /*
  * Add a path to the set we're tracing.
  * Secifying NULL will delete all paths.
  */
-static int
+static void
 storepath(const char *path)
 {
-	unsigned int i;
+	unsigned i;
 
-	for (i = 0; i < ARRAY_SIZE(selected); ++i) {
-		if (!selected[i]) {
-			selected[i] = path;
-			return 0;
-		}
-	}
+	if (pathmatch(path))
+		return; /* already in table */
 
-	fprintf(stderr, "Max trace paths exceeded, only using first %u\n",
-		(unsigned int) ARRAY_SIZE(selected));
-	return -1;
+	i = num_selected++;
+	paths_selected = realloc(paths_selected, num_selected * sizeof(paths_selected[0]));
+	if (!paths_selected)
+		die_out_of_memory();
+	paths_selected[i] = path;
 }
 
 /*
  * Get path associated with fd.
  */
-const char *
-getfdpath(struct tcb *tcp, int fd)
+int
+getfdpath(struct tcb *tcp, int fd, char *buf, unsigned bufsize)
 {
-	static char path[PATH_MAX+1];
 	char linkpath[sizeof("/proc/%u/fd/%u") + 2 * sizeof(int)*3];
 	ssize_t n;
 
 	if (fd < 0)
-		return NULL;
+		return -1;
 
 	sprintf(linkpath, "/proc/%u/fd/%u", tcp->pid, fd);
-	n = readlink(linkpath, path, (sizeof path) - 1);
-	if (n <= 0)
-		return NULL;
-	path[n] = '\0';
-	return path;
+	n = readlink(linkpath, buf, bufsize - 1);
+	/*
+	 * NB: if buf is too small, readlink doesn't fail,
+	 * it returns truncated result (IOW: n == bufsize - 1).
+	 */
+	if (n >= 0)
+		buf[n] = '\0';
+	return n;
 }
 
 /*
  * Add a path to the set we're tracing.  Also add the canonicalized
  * version of the path.  Secifying NULL will delete all paths.
  */
-int
+void
 pathtrace_select(const char *path)
 {
 	char *rpath;
 
-	if (storepath(path))
-		return -1;
+	storepath(path);
 
 	rpath = realpath(path, NULL);
 
 	if (rpath == NULL)
-		return 0;
+		return;
 
 	/* if realpath and specified path are same, we're done */
 	if (strcmp(path, rpath) == 0) {
 		free(rpath);
-		return 0;
+		return;
 	}
 
 	fprintf(stderr, "Requested path '%s' resolved into '%s'\n",
 		path, rpath);
-	return storepath(rpath);
+	storepath(rpath);
 }
 
 /*
@@ -157,15 +155,9 @@ pathtrace_select(const char *path)
 int
 pathtrace_match(struct tcb *tcp)
 {
-	const struct sysent *s;
+	const struct_sysent *s;
 
-	if (selected[0] == NULL)
-		return 1;
-
-	if (!SCNO_IN_RANGE(tcp->scno))
-		return 0;
-
-	s = &sysent[tcp->scno];
+	s = tcp->s_ent;
 
 	if (!(s->sys_flags & (TRACE_FILE | TRACE_DESC)))
 		return 0;
@@ -213,6 +205,12 @@ pathtrace_match(struct tcb *tcp)
 			upathmatch(tcp, tcp->u_arg[1]);
 	}
 
+	if (s->sys_func == sys_quotactl)
+	{
+		/* x, path */
+		return upathmatch(tcp, tcp->u_arg[1]);
+	}
+
 	if (s->sys_func == sys_renameat ||
 	    s->sys_func == sys_linkat)
 	{
@@ -225,7 +223,13 @@ pathtrace_match(struct tcb *tcp)
 
 	if (
 	    s->sys_func == sys_old_mmap ||
-	    s->sys_func == sys_mmap) {
+#if defined(S390)
+	    s->sys_func == sys_old_mmap_pgoff ||
+#endif
+	    s->sys_func == sys_mmap ||
+	    s->sys_func == sys_mmap_pgoff ||
+	    s->sys_func == sys_mmap_4koff
+	) {
 		/* x, x, x, x, fd */
 		return fdmatch(tcp, tcp->u_arg[4]);
 	}

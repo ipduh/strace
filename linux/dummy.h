@@ -26,22 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef HAVE_STRUCT___OLD_KERNEL_STAT
+#define	sys_oldfstat		printargs
+#define	sys_oldstat		printargs
+#endif
+
 /* still unfinished */
 #define	sys_add_key		printargs
 #define	sys_fanotify_init	printargs
 #define	sys_fanotify_mark	printargs
+#define	sys_finit_module	printargs
 #define	sys_ioperm		printargs
 #define	sys_iopl		printargs
 #define	sys_ioprio_get		printargs
 #define	sys_ioprio_set		printargs
+#define	sys_kcmp		printargs
 #define	sys_kexec_load		printargs
 #define	sys_keyctl		printargs
 #define	sys_lookup_dcookie	printargs
 #define	sys_name_to_handle_at	printargs
 #define	sys_open_by_handle_at	printargs
-#define	sys_perf_event_open	printargs
 #define	sys_request_key		printargs
 #define	sys_sync_file_range	printargs
+#define	sys_sync_file_range2	printargs
 #define	sys_sysfs		printargs
 #define	sys_vm86old		printargs
 #define	sys_vm86		printargs
@@ -68,9 +75,12 @@
 #define	sys_geteuid		sys_getuid
 #define	sys_getgid		sys_getuid
 #define	sys_getresgid		sys_getresuid
+#define	sys_lstat		sys_stat
+#define	sys_lstat64		sys_stat64
 #define	sys_mlock		sys_munmap
 #define	sys_mq_unlink		sys_chdir
 #define	sys_munlock		sys_munmap
+#define	sys_oldlstat		sys_oldstat
 #define	sys_pivotroot		sys_link
 #define	sys_rename		sys_link
 #define	sys_rmdir		sys_chdir
@@ -145,15 +155,15 @@
 #define	sys_sendmsg		printargs
 #endif
 
-#ifndef SYS_getpmsg
+/* Who has STREAMS syscalls?
+ * Linux hasn't. Solaris has (had?).
+ * Just in case I miss something, retain in for Sparc.
+ * Note: SYS_get/putpmsg may be defined even though syscalls
+ * return ENOSYS. Can't just check defined(SYS_getpmsg).
+ */
+#if (!defined(SPARC) && !defined(SPARC64)) || !defined(SYS_getpmsg)
 #define	sys_getpmsg		printargs
 #endif
-#ifndef SYS_putpmsg
+#if (!defined(SPARC) && !defined(SPARC64)) || !defined(SYS_putpmsg)
 #define	sys_putpmsg		printargs
-#endif
-
-#ifndef HAVE_STRUCT___OLD_KERNEL_STAT
-#define	sys_oldfstat		printargs
-#define	sys_oldlstat		printargs
-#define	sys_oldstat		printargs
 #endif

@@ -152,10 +152,9 @@ int sys_msgget(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		if (tcp->u_arg[0])
-			tprintf("%#lx", tcp->u_arg[0]);
+			tprintf("%#lx, ", tcp->u_arg[0]);
 		else
-			tprints("IPC_PRIVATE");
-		tprints(", ");
+			tprints("IPC_PRIVATE, ");
 		if (printflags(resource_flags, tcp->u_arg[1] & ~0777, NULL) != 0)
 			tprints("|");
 		tprintf("%#lo", tcp->u_arg[1] & 0777);
@@ -180,7 +179,7 @@ indirect_ipccall(struct tcb *tcp)
 #if defined IA64
 	return tcp->scno < 1024; /* ia32 emulation syscalls are low */
 #endif
-#if defined(ALPHA) || defined(MIPS) || defined(HPPA) || defined(__ARM_EABI__)
+#if defined(ALPHA) || defined(MIPS) || defined(HPPA) || defined(__ARM_EABI__) || defined(AARCH64)
 	return 0;
 #endif
 	return 1;
@@ -333,10 +332,10 @@ int sys_semtimedop(struct tcb *tcp)
 		if (indirect_ipccall(tcp)) {
 			tprint_sembuf(tcp, tcp->u_arg[3], tcp->u_arg[1]);
 			tprints(", ");
-#if defined(S390)
+#if defined(S390) || defined(S390X)
 			printtv(tcp, tcp->u_arg[2]);
 #else
-			printtv(tcp, tcp->u_arg[5]);
+			printtv(tcp, tcp->u_arg[4]);
 #endif
 		} else {
 			tprint_sembuf(tcp, tcp->u_arg[1], tcp->u_arg[2]);
@@ -354,8 +353,7 @@ int sys_semget(struct tcb *tcp)
 			tprintf("%#lx", tcp->u_arg[0]);
 		else
 			tprints("IPC_PRIVATE");
-		tprintf(", %lu", tcp->u_arg[1]);
-		tprints(", ");
+		tprintf(", %lu, ", tcp->u_arg[1]);
 		if (printflags(resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
 			tprints("|");
 		tprintf("%#lo", tcp->u_arg[2] & 0777);
@@ -366,8 +364,7 @@ int sys_semget(struct tcb *tcp)
 int sys_semctl(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		tprintf("%lu", tcp->u_arg[0]);
-		tprintf(", %lu, ", tcp->u_arg[1]);
+		tprintf("%lu, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
 		PRINTCTL(semctl_flags, tcp->u_arg[2], "SEM_???");
 		tprintf(", %#lx", tcp->u_arg[3]);
 	}
@@ -381,8 +378,7 @@ int sys_shmget(struct tcb *tcp)
 			tprintf("%#lx", tcp->u_arg[0]);
 		else
 			tprints("IPC_PRIVATE");
-		tprintf(", %lu", tcp->u_arg[1]);
-		tprints(", ");
+		tprintf(", %lu, ", tcp->u_arg[1]);
 		if (printflags(shm_resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
 			tprints("|");
 		tprintf("%#lo", tcp->u_arg[2] & 0777);
@@ -409,12 +405,10 @@ int sys_shmat(struct tcb *tcp)
 	if (exiting(tcp)) {
 		tprintf("%lu", tcp->u_arg[0]);
 		if (indirect_ipccall(tcp)) {
-			tprintf(", %#lx", tcp->u_arg[3]);
-			tprints(", ");
+			tprintf(", %#lx, ", tcp->u_arg[3]);
 			printflags(shm_flags, tcp->u_arg[1], "SHM_???");
 		} else {
-			tprintf(", %#lx", tcp->u_arg[1]);
-			tprints(", ");
+			tprintf(", %#lx, ", tcp->u_arg[1]);
 			printflags(shm_flags, tcp->u_arg[2], "SHM_???");
 		}
 		if (syserror(tcp))
@@ -458,7 +452,7 @@ sys_mq_open(struct tcb *tcp)
 			/* mode */
 			tprintf(", %#lo, ", tcp->u_arg[2]);
 			if (umove(tcp, tcp->u_arg[3], &attr) < 0)
-				tprints("{ ??? }");
+				tprints("{???}");
 			else
 				tprintf("{mq_maxmsg=%ld, mq_msgsize=%ld}",
 					(long) attr.mq_maxmsg,

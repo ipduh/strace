@@ -19,14 +19,18 @@ strace-devel@lists.sourceforge.net mailing list.
 	Anton Blanchard <anton@samba.org>
 	Arkadiusz Miskiewicz <misiek@pld.org.pl>
 	Bai Weidong <baiwd@cn.fujitsu.com>
+	Ben Noordhuis <info@bnoordhuis.nl>
 	Bernhard Reutner-Fischer <rep.dot.nop@gmail.com>
 	Bo Kullmar <bk@kullmar.se>
 	Cai Fei <caifei@cn.fujitsu.com>
 	Carlos O'Donell <carlos@systemhalted.org>
 	Carmelo AMOROSO <carmelo.amoroso@st.com>
 	Chris Metcalf <cmetcalf@tilera.com>
+	Chris Zankel <chris@zankel.net>
+	Christian Svensson <blue@cmd.nu>
 	D.J. Barrow <djbarrow@de.ibm.com>
 	Damir Shayhutdinov <damir@altlinux.ru>
+	Daniel P. Berrange <berrange@redhat.com>
 	David Daney <ddaney@caviumnetworks.com>
 	David Mosberger-Tang <davidm@hpl.hp.com>
 	David S. Miller <davem@caip.rutgers.edu>
@@ -50,11 +54,13 @@ strace-devel@lists.sourceforge.net mailing list.
 	Holger Hans Peter Freyther <holger@freyther.de>
 	Jakub Bogusz <qboosh@pld-linux.org>
 	Jakub Jelinek <jj@ultra.linux.cz>
+	James Hogan <james.hogan@imgtec.com>
 	Jan Kratochvil <jan.kratochvil@redhat.com>
 	Jeff Mahoney <jeffm@suse.com>
 	Joe Ilacqua <spike@world.std.com>
 	Johannes Stezenbach <js@sig21.net>
 	John Hughes <john@Calva.COM>
+	John Spencer <maillist-strace@barfooze.de>
 	Ju"rgen Fluk <louis@marco.de>
 	Juergen Weigert <jnweiger@immd4.informatik.uni-erlangen.de>
 	Keith Thompson <kst@alsys.com>
@@ -69,6 +75,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Matt Day <mday@artisoft.com>
 	Matthias Pfaller <leo@dachau.marco.de>
 	Maxim Shchetynin <maxim@de.ibm.com>
+	Maxin B. John <maxin.john@enea.com>
 	Michael E Chastain <mec@duracef.shout.net>
 	Michael Holzheu <holzheu@de.ibm.com>
 	Michail Litvak <mci@owl.openwall.com>
@@ -76,6 +83,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Mike Frysinger <vapier@gentoo.org>
 	Mike Stroyan <mike.stroyan@hp.com>
 	Muttley Meen <muttley.meen@gmail.com>
+	Namhyung Kim <namhyung.kim@lge.com>
 	Nate Eldredge <nate@cartsys.com>
 	Nate Sammons <nate@users.sourceforge.net>
 	Neil Campbell <lists@thebatcave.org.uk>
@@ -100,7 +108,9 @@ strace-devel@lists.sourceforge.net mailing list.
 	Simon Murray <simon@transitive.com>
 	Solar Designer <solar@openwall.com>
 	Srinivasa Ds <srinivasa@in.ibm.com>
+	Stanislav Brabec <sbrabec@suse.cz>
 	Steve Bennett <steveb@workware.net.au>
+	Steve McIntyre <steve.mcintyre@linaro.org>
 	Thanh Ma <tma@encore.com>
 	Thiemo Seufer <ths@networkno.de>
 	Thomas Bogendoerfer <tsbogend@bigbug.franken.de>
@@ -115,5 +125,6 @@ strace-devel@lists.sourceforge.net mailing list.
 	Xiaoning Ding <dingxn@gmail.com>
 	Yang Zhiguo <yzgcsu@cn.fujitsu.com>
 	Zach Brown <zach.brown@oracle.com>
+	Zev Weiss <zev@bewilderbeest.net>
 	Zhang Le <zhilg@users.sourceforge.net>
 	Марк Коренберг <socketpair@gmail.com>

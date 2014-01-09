@@ -32,7 +32,7 @@
 #include <dirent.h>
 #include <sys/swap.h>
 
-#ifdef LINUXSPARC
+#if defined(SPARC) || defined(SPARC64)
 struct stat {
 	unsigned short	st_dev;
 	unsigned int	st_ino;
@@ -117,6 +117,21 @@ struct stat64 {
 	unsigned long		st_ctime;
 	unsigned long		st_ctime_nsec;
 	unsigned long long	st_ino;
+} __attribute__((packed));
+# define HAVE_STAT64	1
+
+struct __old_kernel_stat {
+	unsigned short st_dev;
+	unsigned short st_ino;
+	unsigned short st_mode;
+	unsigned short st_nlink;
+	unsigned short st_uid;
+	unsigned short st_gid;
+	unsigned short st_rdev;
+	unsigned int   st_size;
+	unsigned int   st_atime;
+	unsigned int   st_mtime;
+	unsigned int   st_ctime;
 };
 #else
 # undef dev_t
@@ -156,9 +171,6 @@ struct stat64 {
 # define loff_t loff_t
 #endif
 
-#ifdef HPPA	/* asm-parisc/stat.h defines stat64 */
-# undef stat64
-#endif
 #define stat libc_stat
 #define stat64 libc_stat64
 #include <sys/stat.h>
@@ -168,9 +180,6 @@ struct stat64 {
 #undef st_atime
 #undef st_mtime
 #undef st_ctime
-#ifdef HPPA
-# define stat64 hpux_stat64
-#endif
 
 #include <fcntl.h>
 #ifdef HAVE_SYS_VFS_H
@@ -181,19 +190,6 @@ struct stat64 {
 #else
 # define XATTR_CREATE 1
 # define XATTR_REPLACE 2
-#endif
-
-#if HAVE_LONG_LONG_OFF_T
-/*
- * Ugly hacks for systems that have typedef long long off_t
- */
-# define stat64 stat
-# define HAVE_STAT64 1	/* Ugly hack */
-# define sys_stat64	sys_stat
-# define sys_fstat64	sys_fstat
-# define sys_lstat64	sys_lstat
-# define sys_truncate64	sys_truncate
-# define sys_ftruncate64	sys_ftruncate
 #endif
 
 #ifdef MAJOR_IN_SYSMACROS
@@ -421,7 +417,7 @@ sys_openat(struct tcb *tcp)
 	return decode_open(tcp, 1);
 }
 
-#ifdef LINUXSPARC
+#if defined(SPARC) || defined(SPARC64)
 static const struct xlat openmodessol[] = {
 	{ 0,		"O_RDWR"	},
 	{ 1,		"O_RDONLY"	},
@@ -516,103 +512,100 @@ sys_umask(struct tcb *tcp)
 	return RVAL_OCTAL;
 }
 
-static const struct xlat whence[] = {
+const struct xlat whence_codes[] = {
 	{ SEEK_SET,	"SEEK_SET"	},
 	{ SEEK_CUR,	"SEEK_CUR"	},
 	{ SEEK_END,	"SEEK_END"	},
+#ifdef SEEK_DATA
+	{ SEEK_DATA,	"SEEK_DATA"	},
+#endif
+#ifdef SEEK_HOLE
+	{ SEEK_HOLE,	"SEEK_HOLE"	},
+#endif
 	{ 0,		NULL		},
 };
 
+/* Linux kernel has exactly one version of lseek:
+ * fs/read_write.c::SYSCALL_DEFINE3(lseek, unsigned, fd, off_t, offset, unsigned, origin)
+ * In kernel, off_t is always the same as (kernel's) long
+ * (see include/uapi/asm-generic/posix_types.h),
+ * which means that on x32 we need to use tcp->ext_arg[N] to get offset argument.
+ * Use test/x32_lseek.c to test lseek decoding.
+ */
 #if defined(LINUX_MIPSN32) || defined(X32)
 int
 sys_lseek(struct tcb *tcp)
 {
 	long long offset;
-	int _whence;
+	int whence;
 
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
 		offset = tcp->ext_arg[1];
-		_whence = tcp->u_arg[2];
-		if (_whence == SEEK_SET)
-			tprintf("%llu, ", offset);
+		whence = tcp->u_arg[2];
+		if (whence == SEEK_SET)
+			tprintf(", %llu, ", offset);
 		else
-			tprintf("%lld, ", offset);
-		printxval(whence, _whence, "SEEK_???");
+			tprintf(", %lld, ", offset);
+		printxval(whence_codes, whence, "SEEK_???");
 	}
 	return RVAL_LUDECIMAL;
 }
-
-# if defined(X32)
-int
-sys_lseek32(struct tcb *tcp)
-{
-	long offset;
-	int _whence;
-
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		offset = tcp->u_arg[1];
-		_whence = tcp->u_arg[2];
-		if (_whence == SEEK_SET)
-			tprintf("%lu, ", offset);
-		else
-			tprintf("%ld, ", offset);
-		printxval(whence, _whence, "SEEK_???");
-	}
-	return RVAL_UDECIMAL;
-}
-# endif
 #else
 int
 sys_lseek(struct tcb *tcp)
 {
-	off_t offset;
-	int _whence;
+	long offset;
+	int whence;
 
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
 		offset = tcp->u_arg[1];
-		_whence = tcp->u_arg[2];
-		if (_whence == SEEK_SET)
-			tprintf("%lu, ", offset);
+		whence = tcp->u_arg[2];
+		if (whence == SEEK_SET)
+			tprintf(", %lu, ", offset);
 		else
-			tprintf("%ld, ", offset);
-		printxval(whence, _whence, "SEEK_???");
+			tprintf(", %ld, ", offset);
+		printxval(whence_codes, whence, "SEEK_???");
 	}
 	return RVAL_UDECIMAL;
 }
 #endif
 
+/* llseek syscall takes explicitly two ulong arguments hi, lo,
+ * rather than one 64-bit argument for which LONG_LONG works
+ * appropriate for the native byte order.
+ *
+ * See kernel's fs/read_write.c::SYSCALL_DEFINE5(llseek, ...)
+ *
+ * hi,lo are "unsigned longs" and combined exactly this way in kernel:
+ * ((loff_t) hi << 32) | lo
+ * Note that for architectures with kernel's long wider than userspace long
+ * (such as x32), combining code will use *kernel's*, i.e. *wide* longs
+ * for hi and lo. We would need to use tcp->ext_arg[N] on x32...
+ * ...however, x32 (and x86_64) does not _have_ llseek syscall as such.
+ */
 int
 sys_llseek(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
-		/*
-		 * This one call takes explicitly two 32-bit arguments hi, lo,
-		 * rather than one 64-bit argument for which LONG_LONG works
-		 * appropriate for the native byte order.
-		 */
 		if (tcp->u_arg[4] == SEEK_SET)
 			tprintf(", %llu, ",
-				((long long int) tcp->u_arg[1]) << 32 |
+				((long long) tcp->u_arg[1]) << 32 |
 				(unsigned long long) (unsigned) tcp->u_arg[2]);
 		else
 			tprintf(", %lld, ",
-				((long long int) tcp->u_arg[1]) << 32 |
+				((long long) tcp->u_arg[1]) << 32 |
 				(unsigned long long) (unsigned) tcp->u_arg[2]);
 	}
 	else {
-		long long int off;
+		long long off;
 		if (syserror(tcp) || umove(tcp, tcp->u_arg[3], &off) < 0)
 			tprintf("%#lx, ", tcp->u_arg[3]);
 		else
 			tprintf("[%llu], ", off);
-		printxval(whence, tcp->u_arg[4], "SEEK_???");
+		printxval(whence_codes, tcp->u_arg[4], "SEEK_???");
 	}
 	return 0;
 }
@@ -623,14 +616,12 @@ sys_readahead(struct tcb *tcp)
 	if (entering(tcp)) {
 		int argn;
 		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		argn = printllval(tcp, "%lld", 1);
+		argn = printllval(tcp, ", %lld", 1);
 		tprintf(", %ld", tcp->u_arg[argn]);
 	}
 	return 0;
 }
 
-#ifndef HAVE_LONG_LONG_OFF_T
 int
 sys_truncate(struct tcb *tcp)
 {
@@ -640,9 +631,8 @@ sys_truncate(struct tcb *tcp)
 	}
 	return 0;
 }
-#endif
 
-#if _LFS64_LARGEFILE || HAVE_LONG_LONG_OFF_T
+#if _LFS64_LARGEFILE
 int
 sys_truncate64(struct tcb *tcp)
 {
@@ -654,7 +644,6 @@ sys_truncate64(struct tcb *tcp)
 }
 #endif
 
-#ifndef HAVE_LONG_LONG_OFF_T
 int
 sys_ftruncate(struct tcb *tcp)
 {
@@ -664,16 +653,14 @@ sys_ftruncate(struct tcb *tcp)
 	}
 	return 0;
 }
-#endif
 
-#if _LFS64_LARGEFILE || HAVE_LONG_LONG_OFF_T
+#if _LFS64_LARGEFILE
 int
 sys_ftruncate64(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printllval(tcp, "%llu", 1);
+		printllval(tcp, ", %llu", 1);
 	}
 	return 0;
 }
@@ -738,7 +725,7 @@ sprinttime(time_t t)
 	return buf;
 }
 
-#ifdef LINUXSPARC
+#if defined(SPARC) || defined(SPARC64)
 typedef struct {
 	int     tv_sec;
 	int     tv_nsec;
@@ -808,7 +795,7 @@ printstatsol(struct tcb *tcp, long addr)
 		tprints("...}");
 }
 
-#if defined(SPARC64)
+# if defined(SPARC64)
 static void
 printstat_sparc64(struct tcb *tcp, long addr)
 {
@@ -854,8 +841,8 @@ printstat_sparc64(struct tcb *tcp, long addr)
 	else
 		tprints("...}");
 }
-#endif /* SPARC64 */
-#endif /* LINUXSPARC */
+# endif /* SPARC64 */
+#endif /* SPARC[64] */
 
 #if defined POWERPC64
 struct stat_powerpc32 {
@@ -925,7 +912,6 @@ static const struct xlat fileflags[] = {
 	{ 0,		NULL		},
 };
 
-#ifndef HAVE_LONG_LONG_OFF_T
 static void
 realprintstat(struct tcb *tcp, struct stat *statbuf)
 {
@@ -991,6 +977,7 @@ realprintstat(struct tcb *tcp, struct stat *statbuf)
 		tprints("...}");
 }
 
+#ifndef X32
 static void
 printstat(struct tcb *tcp, long addr)
 {
@@ -1005,7 +992,7 @@ printstat(struct tcb *tcp, long addr)
 		return;
 	}
 
-#ifdef LINUXSPARC
+#if defined(SPARC) || defined(SPARC64)
 	if (current_personality == 1) {
 		printstatsol(tcp, addr);
 		return;
@@ -1016,7 +1003,7 @@ printstat(struct tcb *tcp, long addr)
 		return;
 	}
 #endif
-#endif /* LINUXSPARC */
+#endif /* SPARC[64] */
 
 #if defined POWERPC64
 	if (current_personality == 1) {
@@ -1032,7 +1019,9 @@ printstat(struct tcb *tcp, long addr)
 
 	realprintstat(tcp, &statbuf);
 }
-#endif	/* !HAVE_LONG_LONG_OFF_T */
+#else /* X32 */
+# define printstat printstat64
+#endif
 
 #if !defined HAVE_STAT64 && defined X86_64
 /*
@@ -1070,7 +1059,11 @@ struct stat64 {
 static void
 printstat64(struct tcb *tcp, long addr)
 {
+#ifdef X32
+	struct stat statbuf;
+#else
 	struct stat64 statbuf;
+#endif
 
 #ifdef STAT64_SIZE
 	(void) sizeof(char[sizeof statbuf == STAT64_SIZE ? 1 : -1]);
@@ -1085,7 +1078,7 @@ printstat64(struct tcb *tcp, long addr)
 		return;
 	}
 
-#ifdef LINUXSPARC
+#if defined(SPARC) || defined(SPARC64)
 	if (current_personality == 1) {
 		printstatsol(tcp, addr);
 		return;
@@ -1096,7 +1089,7 @@ printstat64(struct tcb *tcp, long addr)
 		return;
 	}
 # endif
-#endif /* LINUXSPARC */
+#endif /* SPARC[64] */
 
 #if defined X86_64
 	if (current_personality != 1) {
@@ -1186,7 +1179,7 @@ printstat64(struct tcb *tcp, long addr)
 }
 #endif /* HAVE_STAT64 */
 
-#if defined(HAVE_STRUCT___OLD_KERNEL_STAT) && !defined(HAVE_LONG_LONG_OFF_T)
+#if defined(HAVE_STRUCT___OLD_KERNEL_STAT)
 static void
 convertoldstat(const struct __old_kernel_stat *oldbuf, struct stat *newbuf)
 {
@@ -1220,7 +1213,7 @@ printoldstat(struct tcb *tcp, long addr)
 		return;
 	}
 
-# ifdef LINUXSPARC
+# if defined(SPARC) || defined(SPARC64)
 	if (current_personality == 1) {
 		printstatsol(tcp, addr);
 		return;
@@ -1237,7 +1230,6 @@ printoldstat(struct tcb *tcp, long addr)
 }
 #endif
 
-#ifndef HAVE_LONG_LONG_OFF_T
 int
 sys_stat(struct tcb *tcp)
 {
@@ -1249,7 +1241,63 @@ sys_stat(struct tcb *tcp)
 	}
 	return 0;
 }
-#endif
+
+#ifdef X32
+static void
+printstat64_x32(struct tcb *tcp, long addr)
+{
+	struct stat64 statbuf;
+
+	if (!addr) {
+		tprints("NULL");
+		return;
+	}
+	if (syserror(tcp) || !verbose(tcp)) {
+		tprintf("%#lx", addr);
+		return;
+	}
+
+	if (umove(tcp, addr, &statbuf) < 0) {
+		tprints("{...}");
+		return;
+	}
+
+	if (!abbrev(tcp)) {
+		tprintf("{st_dev=makedev(%lu, %lu), st_ino=%llu, st_mode=%s, ",
+			(unsigned long) major(statbuf.st_dev),
+			(unsigned long) minor(statbuf.st_dev),
+			(unsigned long long) statbuf.st_ino,
+			sprintmode(statbuf.st_mode));
+		tprintf("st_nlink=%lu, st_uid=%lu, st_gid=%lu, ",
+			(unsigned long) statbuf.st_nlink,
+			(unsigned long) statbuf.st_uid,
+			(unsigned long) statbuf.st_gid);
+		tprintf("st_blksize=%lu, ",
+			(unsigned long) statbuf.st_blksize);
+		tprintf("st_blocks=%lu, ", (unsigned long) statbuf.st_blocks);
+	}
+	else
+		tprintf("{st_mode=%s, ", sprintmode(statbuf.st_mode));
+	switch (statbuf.st_mode & S_IFMT) {
+	case S_IFCHR: case S_IFBLK:
+		tprintf("st_rdev=makedev(%lu, %lu), ",
+			(unsigned long) major(statbuf.st_rdev),
+			(unsigned long) minor(statbuf.st_rdev));
+		break;
+	default:
+		tprintf("st_size=%llu, ", (unsigned long long) statbuf.st_size);
+		break;
+	}
+	if (!abbrev(tcp)) {
+		tprintf("st_atime=%s, ", sprinttime(statbuf.st_atime));
+		tprintf("st_mtime=%s, ", sprinttime(statbuf.st_mtime));
+		tprintf("st_ctime=%s", sprinttime(statbuf.st_ctime));
+		tprints("}");
+	}
+	else
+		tprints("...}");
+}
+#endif /* X32 */
 
 int
 sys_stat64(struct tcb *tcp)
@@ -1259,7 +1307,11 @@ sys_stat64(struct tcb *tcp)
 		printpath(tcp, tcp->u_arg[0]);
 		tprints(", ");
 	} else {
+# ifdef X32
+		printstat64_x32(tcp, tcp->u_arg[1]);
+# else
 		printstat64(tcp, tcp->u_arg[1]);
+# endif
 	}
 	return 0;
 #else
@@ -1316,7 +1368,7 @@ sys_newfstatat(struct tcb *tcp)
 	return 0;
 }
 
-#if defined(HAVE_STRUCT___OLD_KERNEL_STAT) && !defined(HAVE_LONG_LONG_OFF_T)
+#if defined(HAVE_STRUCT___OLD_KERNEL_STAT)
 int
 sys_oldstat(struct tcb *tcp)
 {
@@ -1330,7 +1382,6 @@ sys_oldstat(struct tcb *tcp)
 }
 #endif
 
-#ifndef HAVE_LONG_LONG_OFF_T
 int
 sys_fstat(struct tcb *tcp)
 {
@@ -1342,7 +1393,6 @@ sys_fstat(struct tcb *tcp)
 	}
 	return 0;
 }
-#endif
 
 int
 sys_fstat64(struct tcb *tcp)
@@ -1352,7 +1402,11 @@ sys_fstat64(struct tcb *tcp)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 	} else {
+# ifdef X32
+		printstat64_x32(tcp, tcp->u_arg[1]);
+# else
 		printstat64(tcp, tcp->u_arg[1]);
+# endif
 	}
 	return 0;
 #else
@@ -1360,7 +1414,7 @@ sys_fstat64(struct tcb *tcp)
 #endif
 }
 
-#if defined(HAVE_STRUCT___OLD_KERNEL_STAT) && !defined(HAVE_LONG_LONG_OFF_T)
+#if defined(HAVE_STRUCT___OLD_KERNEL_STAT)
 int
 sys_oldfstat(struct tcb *tcp)
 {
@@ -1374,51 +1428,7 @@ sys_oldfstat(struct tcb *tcp)
 }
 #endif
 
-#ifndef HAVE_LONG_LONG_OFF_T
-int
-sys_lstat(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printstat(tcp, tcp->u_arg[1]);
-	}
-	return 0;
-}
-#endif
-
-int
-sys_lstat64(struct tcb *tcp)
-{
-#ifdef HAVE_STAT64
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printstat64(tcp, tcp->u_arg[1]);
-	}
-	return 0;
-#else
-	return printargs(tcp);
-#endif
-}
-
-#if defined(HAVE_STRUCT___OLD_KERNEL_STAT) && !defined(HAVE_LONG_LONG_OFF_T)
-int
-sys_oldlstat(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		printoldstat(tcp, tcp->u_arg[1]);
-	}
-	return 0;
-}
-#endif
-
-#if defined(LINUXSPARC)
+#if defined(SPARC) || defined(SPARC64)
 
 int
 sys_xstat(struct tcb *tcp)
@@ -1594,7 +1604,7 @@ sys_aclipc(struct tcb *tcp)
 
 # endif /* HAVE_SYS_ACL_H */
 
-#endif /* LINUXSPARC */
+#endif /* SPARC[64] */
 
 static const struct xlat fsmagic[] = {
 	{ 0x73757245,	"CODA_SUPER_MAGIC"	},
@@ -2123,12 +2133,15 @@ sys_utime(struct tcb *tcp)
 	union {
 		long utl[2];
 		int uti[2];
+		long paranoia_for_huge_wordsize[4];
 	} u;
-	unsigned wordsize = current_wordsize;
+	unsigned wordsize;
 
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
 		tprints(", ");
+
+		wordsize = current_wordsize;
 		if (!tcp->u_arg[1])
 			tprints("NULL");
 		else if (!verbose(tcp))
@@ -2144,7 +2157,8 @@ sys_utime(struct tcb *tcp)
 			tprintf(" %s]", sprinttime(u.uti[1]));
 		}
 		else
-			abort();
+			tprintf("<decode error: unsupported wordsize %d>",
+				wordsize);
 	}
 	return 0;
 }
@@ -2160,7 +2174,7 @@ decode_mknod(struct tcb *tcp, int offset)
 		switch (mode & S_IFMT) {
 		case S_IFCHR:
 		case S_IFBLK:
-#ifdef LINUXSPARC
+#if defined(SPARC) || defined(SPARC64)
 			if (current_personality == 1)
 				tprintf(", makedev(%lu, %lu)",
 				(unsigned long) ((tcp->u_arg[offset + 2] >> 18) & 0x3fff),
@@ -2193,22 +2207,31 @@ sys_mknodat(struct tcb *tcp)
 }
 
 static void
-printdir(struct tcb *tcp, long addr)
+print_old_dirent(struct tcb *tcp, long addr)
 {
-	struct dirent d;
+#ifdef SH64
+	typedef struct kernel_dirent old_dirent_t;
+#else
+	typedef struct {
+		uint32_t	d_ino;
+		uint32_t	d_off;
+		unsigned short  d_reclen;
+		char            d_name[1];
+	} old_dirent_t;
+#endif
+	old_dirent_t d;
 
-	if (!verbose(tcp)) {
+	if (!verbose(tcp) || umove(tcp, addr, &d) < 0) {
 		tprintf("%#lx", addr);
 		return;
 	}
-	if (umove(tcp, addr, &d) < 0) {
-		tprints("{...}");
-		return;
-	}
-	tprintf("{d_ino=%ld, ", (unsigned long) d.d_ino);
-	tprints("d_name=");
-	printpathn(tcp, (long) ((struct dirent *) addr)->d_name, d.d_reclen);
-	tprints("}");
+
+	tprintf("{d_ino=%lu, d_off=%lu, d_reclen=%u, d_name=\"",
+		(unsigned long) d.d_ino, (unsigned long) d.d_off, d.d_reclen);
+	if (d.d_reclen > 256)
+		d.d_reclen = 256;
+	printpathn(tcp, addr + offsetof(old_dirent_t, d_name), d.d_reclen);
+	tprints("\"}");
 }
 
 int
@@ -2221,7 +2244,7 @@ sys_readdir(struct tcb *tcp)
 		if (syserror(tcp) || tcp->u_rval == 0 || !verbose(tcp))
 			tprintf("%#lx", tcp->u_arg[1]);
 		else
-			printdir(tcp, tcp->u_arg[1]);
+			print_old_dirent(tcp, tcp->u_arg[1]);
 		/* Not much point in printing this out, it is always 1. */
 		if (tcp->u_arg[2] != 1)
 			tprintf(", %lu", tcp->u_arg[2]);
@@ -2278,8 +2301,10 @@ sys_getdents(struct tcb *tcp)
 		if (!abbrev(tcp)) {
 			tprintf("%s{d_ino=%lu, d_off=%lu, ",
 				i ? " " : "", d->d_ino, d->d_off);
-			tprintf("d_reclen=%u, d_name=\"%s\"}",
+			tprintf("d_reclen=%u, d_name=\"%s\", d_type=",
 				d->d_reclen, d->d_name);
+			printxval(direnttypes, buf[i + d->d_reclen - 1], "DT_???");
+			tprints("}");
 		}
 		if (!d->d_reclen) {
 			tprints("/* d_reclen == 0, problem here */");
@@ -2466,6 +2491,8 @@ print_xattr_val(struct tcb *tcp, int failed,
 		unsigned long insize,
 		unsigned long size)
 {
+	if (insize == 0)
+		failed = 1;
 	if (!failed) {
 		unsigned long capacity = 4 * size + 1;
 		unsigned char *buf = (capacity < size) ? NULL : malloc(capacity);
@@ -2478,7 +2505,7 @@ print_xattr_val(struct tcb *tcp, int failed,
 			unsigned char *in = &buf[3 * size];
 			size_t i;
 			for (i = 0; i < size; ++i) {
-				if (isprint(in[i]))
+				if (in[i] >= ' ' && in[i] <= 0x7e)
 					*out++ = in[i];
 				else {
 #define tohex(n) "0123456789abcdef"[n]
@@ -2635,8 +2662,7 @@ sys_fadvise64(struct tcb *tcp)
 	if (entering(tcp)) {
 		int argn;
 		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		argn = printllval(tcp, "%lld", 1);
+		argn = printllval(tcp, ", %lld", 1);
 		tprintf(", %ld, ", tcp->u_arg[argn++]);
 		printxval(advise, tcp->u_arg[argn], "POSIX_FADV_???");
 	}
@@ -2649,14 +2675,9 @@ sys_fadvise64_64(struct tcb *tcp)
 	if (entering(tcp)) {
 		int argn;
 		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-#if defined ARM || defined POWERPC
-		argn = printllval(tcp, "%lld, ", 2);
-#else
-		argn = printllval(tcp, "%lld, ", 1);
-#endif
+		argn = printllval(tcp, ", %lld, ", 1);
 		argn = printllval(tcp, "%lld, ", argn);
-#if defined ARM || defined POWERPC
+#if defined __ARM_EABI__ || defined AARCH64 || defined POWERPC || defined XTENSA
 		printxval(advise, tcp->u_arg[1], "POSIX_FADV_???");
 #else
 		printxval(advise, tcp->u_arg[argn], "POSIX_FADV_???");
@@ -2732,8 +2753,7 @@ sys_fallocate(struct tcb *tcp)
 	if (entering(tcp)) {
 		int argn;
 		printfd(tcp, tcp->u_arg[0]);		/* fd */
-		tprints(", ");
-		tprintf("%#lo, ", tcp->u_arg[1]);	/* mode */
+		tprintf(", %#lo, ", tcp->u_arg[1]);	/* mode */
 		argn = printllval(tcp, "%llu, ", 2);	/* offset */
 		printllval(tcp, "%llu", argn);		/* len */
 	}
@@ -2766,88 +2786,3 @@ sys_swapon(struct tcb *tcp)
 	}
 	return 0;
 }
-
-#ifdef X32
-# undef stat64
-# undef sys_fstat64
-# undef sys_stat64
-
-static void
-realprintstat64(struct tcb *tcp, long addr)
-{
-	struct stat64 statbuf;
-
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (syserror(tcp) || !verbose(tcp)) {
-		tprintf("%#lx", addr);
-		return;
-	}
-
-	if (umove(tcp, addr, &statbuf) < 0) {
-		tprints("{...}");
-		return;
-	}
-
-	if (!abbrev(tcp)) {
-		tprintf("{st_dev=makedev(%lu, %lu), st_ino=%llu, st_mode=%s, ",
-			(unsigned long) major(statbuf.st_dev),
-			(unsigned long) minor(statbuf.st_dev),
-			(unsigned long long) statbuf.st_ino,
-			sprintmode(statbuf.st_mode));
-		tprintf("st_nlink=%lu, st_uid=%lu, st_gid=%lu, ",
-			(unsigned long) statbuf.st_nlink,
-			(unsigned long) statbuf.st_uid,
-			(unsigned long) statbuf.st_gid);
-		tprintf("st_blksize=%lu, ",
-			(unsigned long) statbuf.st_blksize);
-		tprintf("st_blocks=%lu, ", (unsigned long) statbuf.st_blocks);
-	}
-	else
-		tprintf("{st_mode=%s, ", sprintmode(statbuf.st_mode));
-	switch (statbuf.st_mode & S_IFMT) {
-	case S_IFCHR: case S_IFBLK:
-		tprintf("st_rdev=makedev(%lu, %lu), ",
-			(unsigned long) major(statbuf.st_rdev),
-			(unsigned long) minor(statbuf.st_rdev));
-		break;
-	default:
-		tprintf("st_size=%llu, ", (unsigned long long) statbuf.st_size);
-		break;
-	}
-	if (!abbrev(tcp)) {
-		tprintf("st_atime=%s, ", sprinttime(statbuf.st_atime));
-		tprintf("st_mtime=%s, ", sprinttime(statbuf.st_mtime));
-		tprintf("st_ctime=%s", sprinttime(statbuf.st_ctime));
-		tprints("}");
-	}
-	else
-		tprints("...}");
-}
-
-int
-sys_fstat64(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		realprintstat64(tcp, tcp->u_arg[1]);
-	}
-	return 0;
-}
-
-int
-sys_stat64(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		realprintstat64(tcp, tcp->u_arg[1]);
-	}
-	return 0;
-}
-#endif
