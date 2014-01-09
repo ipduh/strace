@@ -36,6 +36,20 @@
 #  define _LFS64_LARGEFILE 1
 # endif
 #endif
+
+#ifdef MIPS
+# include <sgidefs.h>
+# if _MIPS_SIM == _MIPS_SIM_ABI64
+#  define LINUX_MIPSN64
+# elif _MIPS_SIM == _MIPS_SIM_NABI32
+#  define LINUX_MIPSN32
+# elif _MIPS_SIM == _MIPS_SIM_ABI32
+#  define LINUX_MIPSO32
+# else
+#  error Unsupported _MIPS_SIM
+# endif
+#endif
+
 #include <features.h>
 #ifdef HAVE_STDBOOL_H
 # include <stdbool.h>
@@ -49,7 +63,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <ctype.h>
+/* Open-coding isprint(ch) et al proved more efficient than calling
+ * generalized libc interface. We don't *want* to do non-ASCII anyway.
+ */
+/* #include <ctype.h> */
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
@@ -80,6 +97,15 @@ extern char *stpcpy(char *dst, const char *src);
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
+/* macros */
+#ifndef MAX
+# define MAX(a, b)		(((a) > (b)) ? (a) : (b))
+#endif
+#ifndef MIN
+# define MIN(a, b)		(((a) < (b)) ? (a) : (b))
+#endif
+#define CLAMP(val, min, max) MIN(MAX(min, val), max)
+
 /* Glibc has an efficient macro for sigemptyset
  * (it just does one or two assignments of 0 to internal vector of longs).
  */
@@ -88,13 +114,6 @@ extern char *stpcpy(char *dst, const char *src);
 #endif
 
 /* Configuration section */
-#ifndef MAX_QUALS
-# if defined(MIPS)
-#  define MAX_QUALS	7000	/* maximum number of syscalls, signals, etc. */
-# else
-#  define MAX_QUALS	2048	/* maximum number of syscalls, signals, etc. */
-# endif
-#endif
 #ifndef DEFAULT_STRLEN
 /* default maximum # of bytes printed in `printstr', change with -s switch */
 # define DEFAULT_STRLEN	32
@@ -106,32 +125,37 @@ extern char *stpcpy(char *dst, const char *src);
  * Maximum number of args to a syscall.
  *
  * Make sure that all entries in all syscallent.h files have nargs <= MAX_ARGS!
- * linux/<ARCH>/syscallent.h: all have nargs <= 6.
+ * linux/<ARCH>/syscallent*.h:
+ * 	all have nargs <= 6 except mips o32 which has nargs <= 7.
  */
 #ifndef MAX_ARGS
-# define MAX_ARGS	6
+# ifdef LINUX_MIPSO32
+#  define MAX_ARGS	7
+# else
+#  define MAX_ARGS	6
+# endif
 #endif
 /* default sorting method for call profiling */
 #ifndef DEFAULT_SORTBY
 # define DEFAULT_SORTBY "time"
 #endif
+/*
+ * Experimental code using PTRACE_SEIZE can be enabled here.
+ * This needs Linux kernel 3.4.x or later to work.
+ */
+#define USE_SEIZE 1
+/* To force NOMMU build, set to 1 */
+#define NOMMU_SYSTEM 0
 
-#if defined(SPARC) || defined(SPARC64)
-# define LINUXSPARC
-#endif
-#if defined(MIPS) && _MIPS_SIM == _MIPS_SIM_ABI32
-# define LINUX_MIPSO32
-#endif
-#if defined(MIPS) && _MIPS_SIM == _MIPS_SIM_NABI32
-# define LINUX_MIPSN32
-# define LINUX_MIPS64
-#endif
-#if defined(MIPS) && _MIPS_SIM == _MIPS_SIM_ABI64
-# define LINUX_MIPSN64
-# define LINUX_MIPS64
-#endif
-
-#if (defined(LINUXSPARC) || defined(X86_64) || defined(ARM) || defined(AVR32)) && defined(__GLIBC__)
+#if (defined(SPARC) || defined(SPARC64) \
+    || defined(I386) || defined(X32) || defined(X86_64) \
+    || defined(ARM) || defined(AARCH64) \
+    || defined(AVR32) \
+    || defined(OR1K) \
+    || defined(METAG) \
+    || defined(TILE) \
+    || defined(XTENSA) \
+    ) && defined(__GLIBC__)
 # include <sys/ptrace.h>
 #else
 /* Work around awkward prototype in ptrace.h. */
@@ -146,107 +170,8 @@ extern char *stpcpy(char *dst, const char *src);
 extern long ptrace(int, int, char *, long);
 #endif
 
-#if !defined(__GLIBC__) && !defined(__BIONIC__)
-# define PTRACE_PEEKUSER PTRACE_PEEKUSR
-# define PTRACE_POKEUSER PTRACE_POKEUSR
-#endif
-#if defined(X86_64) || defined(X32) || defined(I386)
-/* For struct pt_regs. x86 strace uses PTRACE_GETREGS.
- * PTRACE_GETREGS returns registers in the layout of this struct.
- */
-# include <asm/ptrace.h>
-#endif
-#ifdef ALPHA
-# define REG_R0 0
-# define REG_A0 16
-# define REG_A3 19
-# define REG_FP 30
-# define REG_PC 64
-#endif /* ALPHA */
-#ifdef MIPS
-# define REG_V0 2
-# define REG_A0 4
-# define REG_A3 7
-# define REG_SP 29
-# define REG_EPC 64
-#endif /* MIPS */
-#ifdef HPPA
-# define PT_GR20 (20*4)
-# define PT_GR26 (26*4)
-# define PT_GR28 (28*4)
-# define PT_IAOQ0 (106*4)
-# define PT_IAOQ1 (107*4)
-#endif /* HPPA */
-#ifdef SH64
-   /* SH64 Linux - this code assumes the following kernel API for system calls:
-          PC           Offset 0
-          System Call  Offset 16 (actually, (syscall no.) | (0x1n << 16),
-                       where n = no. of parameters.
-          Other regs   Offset 24+
-
-          On entry:    R2-7 = parameters 1-6 (as many as necessary)
-          On return:   R9   = result. */
-
-   /* Offset for peeks of registers */
-# define REG_OFFSET         (24)
-# define REG_GENERAL(x)     (8*(x)+REG_OFFSET)
-# define REG_PC             (0*8)
-# define REG_SYSCALL        (2*8)
-#endif /* SH64 */
-
-#define SUPPORTED_PERSONALITIES 1
-#define DEFAULT_PERSONALITY 0
-
-#ifdef LINUXSPARC
-/* Indexes into the pt_regs.u_reg[] array -- UREG_XX from kernel are all off
- * by 1 and use Ix instead of Ox.  These work for both 32 and 64 bit Linux. */
-# define U_REG_G1 0
-# define U_REG_O0 7
-# define U_REG_O1 8
-# define PERSONALITY0_WORDSIZE 4
-# define PERSONALITY1_WORDSIZE 4
-# undef  SUPPORTED_PERSONALITIES
-# if defined(SPARC64)
-#  include <asm/psrcompat.h>
-#  define SUPPORTED_PERSONALITIES 3
-#  define PERSONALITY2_WORDSIZE 8
-# else
-#  include <asm/psr.h>
-#  define SUPPORTED_PERSONALITIES 2
-# endif /* SPARC64 */
-#endif /* LINUXSPARC */
-
-#ifdef X86_64
-# undef SUPPORTED_PERSONALITIES
-# define SUPPORTED_PERSONALITIES 3
-# define PERSONALITY0_WORDSIZE 8
-# define PERSONALITY1_WORDSIZE 4
-# define PERSONALITY2_WORDSIZE 4
-#endif
-
-#ifdef X32
-# undef SUPPORTED_PERSONALITIES
-# define SUPPORTED_PERSONALITIES 2
-# define PERSONALITY0_WORDSIZE 4
-# define PERSONALITY1_WORDSIZE 4
-#endif
-
-#ifdef ARM
-# undef SUPPORTED_PERSONALITIES
-# define SUPPORTED_PERSONALITIES 2
-# define PERSONALITY0_WORDSIZE 4
-# define PERSONALITY1_WORDSIZE 4
-#endif
-
-#ifdef POWERPC64
-# undef SUPPORTED_PERSONALITIES
-# define SUPPORTED_PERSONALITIES 2
-# define PERSONALITY0_WORDSIZE 8
-# define PERSONALITY1_WORDSIZE 4
-#endif
-
-#ifndef PERSONALITY0_WORDSIZE
-# define PERSONALITY0_WORDSIZE sizeof(long)
+#if defined(TILE)
+# include <asm/ptrace.h>  /* struct pt_regs */
 #endif
 
 #if !HAVE_DECL_PTRACE_SETOPTIONS
@@ -297,51 +222,196 @@ extern long ptrace(int, int, char *, long);
 # define PTRACE_EVENT_EXIT	6
 #endif
 
-/* Experimental code using PTRACE_SEIZE can be enabled here: */
-//# define USE_SEIZE 1
+#if !defined(__GLIBC__) && !defined(__BIONIC__)
+# define PTRACE_PEEKUSER PTRACE_PEEKUSR
+# define PTRACE_POKEUSER PTRACE_POKEUSR
+#endif
 
-#ifdef USE_SEIZE
+#if USE_SEIZE
 # undef PTRACE_SEIZE
 # define PTRACE_SEIZE		0x4206
 # undef PTRACE_INTERRUPT
 # define PTRACE_INTERRUPT	0x4207
 # undef PTRACE_LISTEN
 # define PTRACE_LISTEN		0x4208
-# undef PTRACE_SEIZE_DEVEL
-# define PTRACE_SEIZE_DEVEL	0x80000000
 # undef PTRACE_EVENT_STOP
-# define PTRACE_EVENT_STOP	7
-# define PTRACE_EVENT_STOP1	128
+# define PTRACE_EVENT_STOP	128
+#endif
+
+#ifdef ALPHA
+# define REG_R0 0
+# define REG_A0 16
+# define REG_A3 19
+# define REG_FP 30
+# define REG_PC 64
+#endif /* ALPHA */
+#ifdef MIPS
+# define REG_V0 2
+# define REG_A0 4
+# define REG_A3 7
+# define REG_SP 29
+# define REG_EPC 64
+#endif /* MIPS */
+#ifdef HPPA
+# define PT_GR20 (20*4)
+# define PT_GR26 (26*4)
+# define PT_GR28 (28*4)
+# define PT_IAOQ0 (106*4)
+# define PT_IAOQ1 (107*4)
+#endif /* HPPA */
+#ifdef SH64
+   /* SH64 Linux - this code assumes the following kernel API for system calls:
+          PC           Offset 0
+          System Call  Offset 16 (actually, (syscall no.) | (0x1n << 16),
+                       where n = no. of parameters.
+          Other regs   Offset 24+
+
+          On entry:    R2-7 = parameters 1-6 (as many as necessary)
+          On return:   R9   = result. */
+
+   /* Offset for peeks of registers */
+# define REG_OFFSET         (24)
+# define REG_GENERAL(x)     (8*(x)+REG_OFFSET)
+# define REG_PC             (0*8)
+# define REG_SYSCALL        (2*8)
+#endif /* SH64 */
+#ifdef AARCH64
+struct arm_pt_regs {
+        int uregs[18];
+};
+# define ARM_cpsr       uregs[16]
+# define ARM_pc         uregs[15]
+# define ARM_lr         uregs[14]
+# define ARM_sp         uregs[13]
+# define ARM_ip         uregs[12]
+# define ARM_fp         uregs[11]
+# define ARM_r10        uregs[10]
+# define ARM_r9         uregs[9]
+# define ARM_r8         uregs[8]
+# define ARM_r7         uregs[7]
+# define ARM_r6         uregs[6]
+# define ARM_r5         uregs[5]
+# define ARM_r4         uregs[4]
+# define ARM_r3         uregs[3]
+# define ARM_r2         uregs[2]
+# define ARM_r1         uregs[1]
+# define ARM_r0         uregs[0]
+# define ARM_ORIG_r0    uregs[17]
+#endif /* AARCH64 */
+
+#if defined(SPARC) || defined(SPARC64)
+/* Indexes into the pt_regs.u_reg[] array -- UREG_XX from kernel are all off
+ * by 1 and use Ix instead of Ox.  These work for both 32 and 64 bit Linux. */
+# define U_REG_G1 0
+# define U_REG_O0 7
+# define U_REG_O1 8
+# define PERSONALITY0_WORDSIZE 4
+# define PERSONALITY1_WORDSIZE 4
+# if defined(SPARC64)
+#  include <asm/psrcompat.h>
+#  define SUPPORTED_PERSONALITIES 3
+#  define PERSONALITY2_WORDSIZE 8
+# else
+#  include <asm/psr.h>
+#  define SUPPORTED_PERSONALITIES 2
+# endif /* SPARC64 */
+#endif /* SPARC[64] */
+
+#ifdef X86_64
+# define SUPPORTED_PERSONALITIES 3
+# define PERSONALITY0_WORDSIZE 8
+# define PERSONALITY1_WORDSIZE 4
+# define PERSONALITY2_WORDSIZE 4
+#endif
+
+#ifdef X32
+# define SUPPORTED_PERSONALITIES 2
+# define PERSONALITY0_WORDSIZE 4
+# define PERSONALITY1_WORDSIZE 4
+#endif
+
+#ifdef ARM
+/* one personality */
+#endif
+
+#ifdef AARCH64
+/* The existing ARM personality, then AArch64 */
+# define SUPPORTED_PERSONALITIES 2
+# define PERSONALITY0_WORDSIZE 4
+# define PERSONALITY1_WORDSIZE 8
+# define DEFAULT_PERSONALITY 1
+#endif
+
+#ifdef POWERPC64
+# define SUPPORTED_PERSONALITIES 2
+# define PERSONALITY0_WORDSIZE 8
+# define PERSONALITY1_WORDSIZE 4
+#endif
+
+#ifdef TILE
+# define SUPPORTED_PERSONALITIES 2
+# define PERSONALITY0_WORDSIZE 8
+# define PERSONALITY1_WORDSIZE 4
+# ifdef __tilepro__
+#  define DEFAULT_PERSONALITY 1
+# endif
+#endif
+
+#ifndef SUPPORTED_PERSONALITIES
+# define SUPPORTED_PERSONALITIES 1
+#endif
+#ifndef DEFAULT_PERSONALITY
+# define DEFAULT_PERSONALITY 0
+#endif
+#ifndef PERSONALITY0_WORDSIZE
+# define PERSONALITY0_WORDSIZE (int)(sizeof(long))
 #endif
 
 #if defined(I386)
-extern struct pt_regs i386_regs;
-#endif
-#if defined(IA64)
+extern struct user_regs_struct i386_regs;
+#elif defined(IA64)
 extern long ia32;
+#elif defined(SPARC) || defined(SPARC64)
+extern struct pt_regs sparc_regs;
+#elif defined(ARM)
+extern struct pt_regs arm_regs;
+#elif defined(TILE)
+extern struct pt_regs tile_regs;
 #endif
+
+typedef struct sysent {
+	unsigned nargs;
+	int	sys_flags;
+	int	(*sys_func)();
+	const char *sys_name;
+} struct_sysent;
+
+typedef struct ioctlent {
+	const char *doth;
+	const char *symbol;
+	unsigned long code;
+} struct_ioctlent;
 
 /* Trace Control Block */
 struct tcb {
 	int flags;		/* See below for TCB_ values */
 	int pid;		/* Process Id of this entry */
-	int u_nargs;		/* System call argument count */
+	int qual_flg;		/* qual_flags[scno] or DEFAULT_QUAL_FLAGS + RAW */
 	int u_error;		/* Error code */
 	long scno;		/* System call number */
 	long u_arg[MAX_ARGS];	/* System call arguments */
 #if defined(LINUX_MIPSN32) || defined(X32)
-	long long ext_arg[MAX_ARGS];	/* System call arguments */
-#endif
-	long u_rval;		/* return value */
-#if defined(LINUX_MIPSN32) || defined(X32)
+	long long ext_arg[MAX_ARGS];
 	long long u_lrval;	/* long long return value */
 #endif
+	long u_rval;		/* Return value */
 #if SUPPORTED_PERSONALITIES > 1
 	int currpers;		/* Personality at the time of scno update */
 #endif
 	int curcol;		/* Output column for this process */
 	FILE *outf;		/* Output file for this process */
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
+	const struct_sysent *s_ent; /* sysent[scno] or dummy struct for bad scno */
 	struct timeval stime;	/* System time usage as of last process wait */
 	struct timeval dtime;	/* Delta for system time usage */
 	struct timeval etime;	/* Syscall entry time */
@@ -380,14 +450,23 @@ struct tcb {
 #define TCB_REPRINT	00200	/* We should reprint this syscall on exit */
 #define TCB_FILTERED	00400	/* This system call has been filtered out */
 /* x86 does not need TCB_WAITEXECVE.
- * It can detect SIGTRAP by looking at eax/rax.
- * See "not a syscall entry (eax = %ld)\n" message
- * in syscall_fixup_on_sysenter().
+ * It can detect post-execve SIGTRAP by looking at eax/rax.
+ * See "not a syscall entry (eax = %ld)\n" message.
+ *
+ * Note! On new kernels (about 2.5.46+), we use PTRACE_O_TRACEEXEC, which
+ * suppresses post-execve SIGTRAP. If you are adding a new arch which is
+ * only supported by newer kernels, you most likely don't need to define
+ * TCB_WAITEXECVE!
  */
-#if defined(ALPHA) || defined(AVR32) || defined(SPARC) || defined(SPARC64) \
-  || defined(POWERPC) || defined(IA64) || defined(HPPA) \
-  || defined(SH) || defined(SH64) || defined(S390) || defined(S390X) \
-  || defined(ARM) || defined(MIPS) || defined(BFIN) || defined(TILE)
+#if defined(ALPHA) \
+ || defined(SPARC) || defined(SPARC64) \
+ || defined(POWERPC) \
+ || defined(IA64) \
+ || defined(HPPA) \
+ || defined(SH) || defined(SH64) \
+ || defined(S390) || defined(S390X) \
+ || defined(ARM) \
+ || defined(MIPS)
 /* This tracee has entered into execve syscall. Expect post-execve SIGTRAP
  * to happen. (When it is detected, tracee is continued and this bit is cleared.)
  */
@@ -395,20 +474,23 @@ struct tcb {
 #endif
 
 /* qualifier flags */
-#define QUAL_TRACE	0001	/* this system call should be traced */
-#define QUAL_ABBREV	0002	/* abbreviate the structures of this syscall */
-#define QUAL_VERBOSE	0004	/* decode the structures of this syscall */
-#define QUAL_RAW	0010	/* print all args in hex for this syscall */
-#define QUAL_SIGNAL	0020	/* report events with this signal */
-#define QUAL_FAULT	0040	/* report events with this fault */
-#define QUAL_READ	0100	/* dump data read on this file descriptor */
-#define QUAL_WRITE	0200	/* dump data written to this file descriptor */
+#define QUAL_TRACE	0x001	/* this system call should be traced */
+#define QUAL_ABBREV	0x002	/* abbreviate the structures of this syscall */
+#define QUAL_VERBOSE	0x004	/* decode the structures of this syscall */
+#define QUAL_RAW	0x008	/* print all args in hex for this syscall */
+#define QUAL_SIGNAL	0x010	/* report events with this signal */
+#define QUAL_READ	0x020	/* dump data read on this file descriptor */
+#define QUAL_WRITE	0x040	/* dump data written to this file descriptor */
+typedef uint8_t qualbits_t;
+#define UNDEFINED_SCNO	0x100	/* Used only in tcp->qual_flg */
+
+#define DEFAULT_QUAL_FLAGS (QUAL_TRACE | QUAL_ABBREV | QUAL_VERBOSE)
 
 #define entering(tcp)	(!((tcp)->flags & TCB_INSYSCALL))
 #define exiting(tcp)	((tcp)->flags & TCB_INSYSCALL)
 #define syserror(tcp)	((tcp)->u_error != 0)
-#define verbose(tcp)	(qual_flags[(tcp)->scno] & QUAL_VERBOSE)
-#define abbrev(tcp)	(qual_flags[(tcp)->scno] & QUAL_ABBREV)
+#define verbose(tcp)	((tcp)->qual_flg & QUAL_VERBOSE)
+#define abbrev(tcp)	((tcp)->qual_flg & QUAL_ABBREV)
 #define filtered(tcp)	((tcp)->flags & TCB_FILTERED)
 
 struct xlat {
@@ -420,6 +502,7 @@ extern const struct xlat open_mode_flags[];
 extern const struct xlat addrfams[];
 extern const struct xlat struct_user_offsets[];
 extern const struct xlat open_access_modes[];
+extern const struct xlat whence_codes[];
 
 /* Format of syscall return values */
 #define RVAL_DECIMAL	000	/* decimal format */
@@ -445,7 +528,8 @@ extern const struct xlat open_access_modes[];
 #define TRACE_PROCESS	010	/* Trace process-related syscalls. */
 #define TRACE_SIGNAL	020	/* Trace signal-related syscalls. */
 #define TRACE_DESC	040	/* Trace file descriptor-related syscalls. */
-#define SYSCALL_NEVER_FAILS	0100	/* Syscall is always successful. */
+#define TRACE_MEMORY	0100	/* Trace memory mapping-related syscalls. */
+#define SYSCALL_NEVER_FAILS	0200	/* Syscall is always successful. */
 
 typedef enum {
 	CFLAG_NONE = 0,
@@ -453,17 +537,23 @@ typedef enum {
 	CFLAG_BOTH
 } cflag_t;
 extern cflag_t cflag;
-extern int *qual_flags;
 extern bool debug_flag;
 extern bool Tflag;
-extern bool qflag;
+extern unsigned int qflag;
 extern bool not_failing_only;
 extern bool show_fd_path;
-extern bool tracing_paths;
-extern unsigned int xflag;
-extern unsigned int followfork;
-extern unsigned int ptrace_setoptions;
-extern unsigned int max_strlen;
+extern bool hide_log_until_execve;
+/* are we filtering traces based on paths? */
+extern const char **paths_selected;
+#define tracing_paths (paths_selected != NULL)
+extern bool need_fork_exec_workarounds;
+extern unsigned xflag;
+extern unsigned followfork;
+extern unsigned ptrace_setoptions;
+extern unsigned max_strlen;
+extern unsigned os_release;
+#undef KERNEL_VERSION
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
 enum bitness_t { BITNESS_CURRENT = 0, BITNESS_32 };
 
@@ -497,6 +587,23 @@ extern int trace_syscall(struct tcb *);
 extern void count_syscall(struct tcb *, struct timeval *);
 extern void call_summary(FILE *);
 
+#if defined(AVR32) \
+ || defined(I386) \
+ || defined(X86_64) || defined(X32) \
+ || defined(AARCH64) \
+ || defined(ARM) \
+ || defined(SPARC) || defined(SPARC64) \
+ || defined(TILE) \
+ || defined(OR1K) \
+ || defined(METAG)
+extern long get_regs_error;
+# define clear_regs()  (get_regs_error = -1)
+extern void get_regs(pid_t pid);
+#else
+# define get_regs_error 0
+# define clear_regs()  ((void)0)
+# define get_regs(pid) ((void)0)
+#endif
 extern int umoven(struct tcb *, long, int, char *);
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof(*(objp)), (char *) (objp))
@@ -516,28 +623,27 @@ extern int clearbpt(struct tcb *);
 
 extern const char *signame(int);
 extern int is_restart_error(struct tcb *);
-extern int pathtrace_select(const char *);
+extern void pathtrace_select(const char *);
 extern int pathtrace_match(struct tcb *);
-extern const char *getfdpath(struct tcb *, int);
+extern int getfdpath(struct tcb *, int, char *, unsigned);
 
 extern const char *xlookup(const struct xlat *, int);
 
 extern int string_to_uint(const char *str);
 extern int string_quote(const char *, char *, long, int);
 
-#if HAVE_LONG_LONG
-/* _l refers to the lower numbered u_arg,
- * _h refers to the higher numbered u_arg
+/* a refers to the lower numbered u_arg,
+ * b refers to the higher numbered u_arg
  */
-# if HAVE_LITTLE_ENDIAN_LONG_LONG
-#  define LONG_LONG(_l,_h) \
-	((long long)((unsigned long long)(unsigned)(_l) | ((unsigned long long)(_h)<<32)))
-# else
-#  define LONG_LONG(_l,_h) \
-	((long long)((unsigned long long)(unsigned)(_h) | ((unsigned long long)(_l)<<32)))
-# endif
-extern int printllval(struct tcb *, const char *, int);
+#if HAVE_LITTLE_ENDIAN_LONG_LONG
+# define LONG_LONG(a,b) \
+	((long long)((unsigned long long)(unsigned)(a) | ((unsigned long long)(b)<<32)))
+#else
+# define LONG_LONG(a,b) \
+	((long long)((unsigned long long)(unsigned)(b) | ((unsigned long long)(a)<<32)))
 #endif
+extern int printllval(struct tcb *, const char *, int);
+
 extern void printxval(const struct xlat *, int, const char *);
 extern int printargs(struct tcb *);
 extern int printargs_lu(struct tcb *);
@@ -564,6 +670,7 @@ extern void print_timespec(struct tcb *, long);
 extern void sprint_timespec(char *, struct tcb *, long);
 #ifdef HAVE_SIGINFO_T
 extern void printsiginfo(siginfo_t *, int);
+extern void printsiginfo_at(struct tcb *tcp, long addr);
 #endif
 extern void printfd(struct tcb *, int);
 extern void printsock(struct tcb *, long, int);
@@ -582,8 +689,8 @@ extern void tprint_open_modes(mode_t);
 extern const char *sprint_open_modes(mode_t);
 extern void print_loff_t(struct tcb *, long);
 
-extern const struct ioctlent *ioctl_lookup(long);
-extern const struct ioctlent *ioctl_next_match(const struct ioctlent *);
+extern const struct_ioctlent *ioctl_lookup(long);
+extern const struct_ioctlent *ioctl_next_match(const struct_ioctlent *);
 extern int ioctl_decode(struct tcb *, long, long);
 extern int term_ioctl(struct tcb *, long, long);
 extern int sock_ioctl(struct tcb *, long, long);
@@ -592,6 +699,7 @@ extern int rtc_ioctl(struct tcb *, long, long);
 extern int scsi_ioctl(struct tcb *, long, long);
 extern int block_ioctl(struct tcb *, long, long);
 extern int mtd_ioctl(struct tcb *, long, long);
+extern int ubi_ioctl(struct tcb *, long, long);
 extern int loop_ioctl(struct tcb *, long, long);
 
 extern int tv_nz(struct timeval *);
@@ -628,36 +736,61 @@ extern void tprints(const char *str);
 
 #if SUPPORTED_PERSONALITIES > 1
 extern void set_personality(int personality);
-extern int current_personality;
-extern const int personality_wordsize[];
-# define current_wordsize (personality_wordsize[current_personality])
+extern unsigned current_personality;
 #else
 # define set_personality(personality) ((void)0)
 # define current_personality 0
-# define current_wordsize    PERSONALITY0_WORDSIZE
 #endif
 
-struct sysent {
-	unsigned nargs;
-	int	sys_flags;
-	int	(*sys_func)();
-	const char *sys_name;
-};
+#if SUPPORTED_PERSONALITIES == 1
+# define current_wordsize PERSONALITY0_WORDSIZE
+#else
+# if SUPPORTED_PERSONALITIES == 2 && PERSONALITY0_WORDSIZE == PERSONALITY1_WORDSIZE
+#  define current_wordsize PERSONALITY0_WORDSIZE
+# else
+extern unsigned current_wordsize;
+# endif
+#endif
 
-struct ioctlent {
-	const char *doth;
-	const char *symbol;
-	unsigned long code;
-};
+/* In many, many places we play fast and loose and use
+ * tprintf("%d", (int) tcp->u_arg[N]) to print fds, pids etc.
+ * We probably need to use widen_to_long() instead:
+ */
+#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
+# define widen_to_long(v) (current_wordsize == 4 ? (long)(int32_t)(v) : (long)(v))
+#else
+# define widen_to_long(v) ((long)(v))
+#endif
 
-extern const struct sysent *sysent;
-extern unsigned nsyscalls;
+extern const struct_sysent sysent0[];
+extern const char *const errnoent0[];
+extern const char *const signalent0[];
+extern const struct_ioctlent ioctlent0[];
+extern qualbits_t *qual_vec[SUPPORTED_PERSONALITIES];
+#define qual_flags (qual_vec[current_personality])
+#if SUPPORTED_PERSONALITIES > 1
+extern const struct_sysent *sysent;
 extern const char *const *errnoent;
-extern unsigned nerrnos;
-extern const struct ioctlent *ioctlent;
-extern unsigned nioctlents;
 extern const char *const *signalent;
+extern const struct_ioctlent *ioctlent;
+#else
+# define sysent     sysent0
+# define errnoent   errnoent0
+# define signalent  signalent0
+# define ioctlent   ioctlent0
+#endif
+extern unsigned nsyscalls;
+extern unsigned nerrnos;
 extern unsigned nsignals;
+extern unsigned nioctlents;
+extern unsigned num_quals;
 
+/*
+ * If you need non-NULL sysent[scno].sys_func and sysent[scno].sys_name
+ */
+#define SCNO_IS_VALID(scno) \
+	((unsigned long)(scno) < nsyscalls && sysent[scno].sys_func)
+
+/* Only ensures that sysent[scno] isn't out of range */
 #define SCNO_IN_RANGE(scno) \
-  ((unsigned long)(scno) < nsyscalls && sysent[scno].sys_func)
+	((unsigned long)(scno) < nsyscalls)

@@ -56,6 +56,7 @@
 #define MS_KERNMOUNT	(1<<22)
 #define MS_I_VERSION	(1<<23)
 #define MS_STRICTATIME	(1<<24)
+#define MS_NOSEC	(1<<28)
 #define MS_BORN		(1<<29)
 #define MS_ACTIVE	(1<<30)
 #define MS_NOUSER	(1<<31)
@@ -91,6 +92,7 @@ static const struct xlat mount_flags[] = {
 	{ MS_KERNMOUNT,	"MS_KERNMOUNT"	},
 	{ MS_I_VERSION,	"MS_I_VERSION"	},
 	{ MS_STRICTATIME,"MS_STRICTATIME"},
+	{ MS_NOSEC,	"MS_NOSEC"	},
 	{ MS_BORN,	"MS_BORN"	},
 	{ MS_MANDLOCK,	"MS_MANDLOCK"	},
 	{ MS_NOATIME,	"MS_NOATIME"	},
@@ -376,7 +378,7 @@ sys_sram_alloc(struct tcb *tcp)
 		/* size */
 		tprintf("%lu, ", tcp->u_arg[0]);
 		/* flags */
-		printxval(sram_alloc_flags, tcp->u_arg[1], "???_SRAM");
+		printflags(sram_alloc_flags, tcp->u_arg[1], "???_SRAM");
 	}
 	return 1;
 }
@@ -845,9 +847,9 @@ sys_sysctl(struct tcb *tcp)
 	    umoven(tcp, (unsigned long) info.name, size, (char *) name) < 0) {
 		free(name);
 		if (entering(tcp))
-			tprintf("{%p, %d, %p, %p, %p, %Zu}",
+			tprintf("{%p, %d, %p, %p, %p, %lu}",
 				info.name, info.nlen, info.oldval,
-				info.oldlenp, info.newval, info.newlen);
+				info.oldlenp, info.newval, (unsigned long)info.newlen);
 		return 0;
 	}
 
@@ -951,33 +953,33 @@ sys_sysctl(struct tcb *tcp)
 			tprints(", ...");
 		tprintf("}, %d, ", info.nlen);
 	} else {
-		size_t oldlen;
-		if (umove(tcp, (size_t)info.oldlenp, &oldlen) >= 0
-		    && info.nlen >= 2
-		    && ((name[0] == CTL_KERN
-			 && (name[1] == KERN_OSRELEASE
-			     || name[1] == KERN_OSTYPE
+		size_t oldlen = 0;
+		if (info.oldval == NULL) {
+			tprints("NULL");
+		} else if (umove(tcp, (long)info.oldlenp, &oldlen) >= 0
+			   && info.nlen >= 2
+			   && ((name[0] == CTL_KERN
+				&& (name[1] == KERN_OSRELEASE
+				    || name[1] == KERN_OSTYPE
 #ifdef KERN_JAVA_INTERPRETER
-			     || name[1] == KERN_JAVA_INTERPRETER
+				    || name[1] == KERN_JAVA_INTERPRETER
 #endif
 #ifdef KERN_JAVA_APPLETVIEWER
-			     || name[1] == KERN_JAVA_APPLETVIEWER
+				    || name[1] == KERN_JAVA_APPLETVIEWER
 #endif
-				 )))) {
+					)))) {
 			printpath(tcp, (size_t)info.oldval);
-			tprintf(", %Zu, ", oldlen);
-			if (info.newval == 0)
-				tprints("NULL");
-			else if (syserror(tcp))
-				tprintf("%p", info.newval);
-			else
-				printpath(tcp, (size_t)info.newval);
-			tprintf(", %Zd", info.newlen);
 		} else {
-			tprintf("%p, %Zd, %p, %Zd", info.oldval, oldlen,
-				info.newval, info.newlen);
+			tprintf("%p", info.oldval);
 		}
-		tprints("}");
+		tprintf(", %lu, ", (unsigned long)oldlen);
+		if (info.newval == NULL)
+			tprints("NULL");
+		else if (syserror(tcp))
+			tprintf("%p", info.newval);
+		else
+			printpath(tcp, (size_t)info.newval);
+		tprintf(", %lu", (unsigned long)info.newlen);
 	}
 
 	free(name);
@@ -1024,3 +1026,63 @@ int sys_sysmips(struct tcb *tcp)
 }
 
 #endif /* MIPS */
+
+#ifdef OR1K
+#define OR1K_ATOMIC_SWAP        1
+#define OR1K_ATOMIC_CMPXCHG     2
+#define OR1K_ATOMIC_XCHG        3
+#define OR1K_ATOMIC_ADD         4
+#define OR1K_ATOMIC_DECPOS      5
+#define OR1K_ATOMIC_AND         6
+#define OR1K_ATOMIC_OR          7
+#define OR1K_ATOMIC_UMAX        8
+#define OR1K_ATOMIC_UMIN        9
+
+static const struct xlat atomic_ops[] = {
+	{ OR1K_ATOMIC_SWAP,		"SWAP"		},
+	{ OR1K_ATOMIC_CMPXCHG,		"CMPXCHG"	},
+	{ OR1K_ATOMIC_XCHG,		"XCHG"		},
+	{ OR1K_ATOMIC_ADD,		"ADD"		},
+	{ OR1K_ATOMIC_DECPOS,		"DECPOS"	},
+	{ OR1K_ATOMIC_AND,		"AND"		},
+	{ OR1K_ATOMIC_OR,		"OR"		},
+	{ OR1K_ATOMIC_UMAX,		"UMAX"		},
+	{ OR1K_ATOMIC_UMIN,		"UMIN"		},
+	{ 0, NULL }
+};
+
+int sys_or1k_atomic(struct tcb *tcp)
+{
+	if (entering(tcp)) {
+		printxval(atomic_ops, tcp->u_arg[0], "???");
+		switch(tcp->u_arg[0]) {
+		case OR1K_ATOMIC_SWAP:
+			tprintf(", 0x%lx, 0x%lx", tcp->u_arg[1], tcp->u_arg[2]);
+			break;
+		case OR1K_ATOMIC_CMPXCHG:
+			tprintf(", 0x%lx, %#lx, %#lx", tcp->u_arg[1], tcp->u_arg[2],
+				tcp->u_arg[3]);
+			break;
+
+		case OR1K_ATOMIC_XCHG:
+		case OR1K_ATOMIC_ADD:
+		case OR1K_ATOMIC_AND:
+		case OR1K_ATOMIC_OR:
+		case OR1K_ATOMIC_UMAX:
+		case OR1K_ATOMIC_UMIN:
+			tprintf(", 0x%lx, %#lx", tcp->u_arg[1], tcp->u_arg[2]);
+			break;
+
+		case OR1K_ATOMIC_DECPOS:
+			tprintf(", 0x%lx", tcp->u_arg[1]);
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return RVAL_HEX;
+}
+
+#endif /* OR1K */

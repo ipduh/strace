@@ -1,6 +1,6 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 4.7
+Version: 4.8
 Release: 1%{?dist}
 License: BSD
 Group: Development/Debuggers
@@ -74,7 +74,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root)
-%doc CREDITS ChangeLog ChangeLog-CVS COPYRIGHT NEWS README
+%doc CREDITS ChangeLog ChangeLog-CVS COPYING NEWS README
 %{_bindir}/strace
 %{_bindir}/strace-log-merge
 %{_mandir}/man1/*
@@ -86,6 +86,19 @@ rm -rf %{buildroot}
 %endif
 
 %changelog
+* Mon Jun 03 2013 Dmitry V. Levin <ldv@altlinux.org> - 4.8-1
+- New upstream release:
+  + fixed ERESTARTNOINTR leaking to userspace on ancient kernels (#659382);
+  + fixed decoding of *xattr syscalls (#885233);
+  + fixed handling of files with 64-bit inode numbers by 32-bit strace (#912790);
+  + added aarch64 support (#969858).
+
+* Fri Feb 15 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 4.7-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
+
+* Sat Jul 21 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 4.7-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
+
 * Wed May 02 2012 Dmitry V. Levin <ldv@altlinux.org> 4.7-1
 - New upstream release.
   + implemented proper handling of real SIGTRAPs (#162774).

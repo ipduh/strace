@@ -39,10 +39,6 @@
 # include <sys/uio.h>
 #endif
 
-#if __GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 1)
-# include <linux/ptrace.h>
-#endif
-
 #if defined(IA64)
 # include <asm/ptrace_offsets.h>
 # include <asm/rse.h>
@@ -64,21 +60,6 @@
 # include <linux/ptrace.h>
 # undef ia64_fpreg
 # undef pt_all_user_regs
-#endif
-
-#if defined(SPARC64)
-# undef PTRACE_GETREGS
-# define PTRACE_GETREGS PTRACE_GETREGS64
-# undef PTRACE_SETREGS
-# define PTRACE_SETREGS PTRACE_SETREGS64
-#endif
-
-/* macros */
-#ifndef MAX
-# define MAX(a,b)		(((a) > (b)) ? (a) : (b))
-#endif
-#ifndef MIN
-# define MIN(a,b)		(((a) < (b)) ? (a) : (b))
 #endif
 
 int
@@ -191,39 +172,56 @@ printxval(const struct xlat *xlat, int val, const char *dflt)
 		tprintf("%#x /* %s */", val, dflt);
 }
 
-#if HAVE_LONG_LONG
 /*
- * Print 64bit argument at position llarg and return the index of the next
+ * Print 64bit argument at position arg_no and return the index of the next
  * argument.
  */
 int
-printllval(struct tcb *tcp, const char *format, int llarg)
+printllval(struct tcb *tcp, const char *format, int arg_no)
 {
-# if defined(X86_64) || defined(POWERPC64)
-	if (current_personality == 0) {
-		tprintf(format, tcp->u_arg[llarg]);
-		llarg++;
-	} else {
-#  ifdef POWERPC64
-		/* Align 64bit argument to 64bit boundary.  */
-		llarg = (llarg + 1) & 0x1e;
-#  endif
-		tprintf(format, LONG_LONG(tcp->u_arg[llarg], tcp->u_arg[llarg + 1]));
-		llarg += 2;
-	}
-# elif defined IA64 || defined ALPHA
-	tprintf(format, tcp->u_arg[llarg]);
-	llarg++;
-# elif defined LINUX_MIPSN32 || defined X32
-	tprintf(format, tcp->ext_arg[llarg]);
-	llarg++;
-# else
-	tprintf(format, LONG_LONG(tcp->u_arg[llarg], tcp->u_arg[llarg + 1]));
-	llarg += 2;
+#if SIZEOF_LONG > 4 && SIZEOF_LONG == SIZEOF_LONG_LONG
+# if SUPPORTED_PERSONALITIES > 1
+	if (current_wordsize > 4) {
 # endif
-	return llarg;
-}
+		tprintf(format, tcp->u_arg[arg_no]);
+		arg_no++;
+# if SUPPORTED_PERSONALITIES > 1
+	} else {
+#  if defined(AARCH64) || defined(POWERPC64)
+		/* Align arg_no to the next even number. */
+		arg_no = (arg_no + 1) & 0xe;
+#  endif
+		tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+		arg_no += 2;
+	}
+# endif /* SUPPORTED_PERSONALITIES */
+#elif SIZEOF_LONG > 4
+#  error Unsupported configuration: SIZEOF_LONG > 4 && SIZEOF_LONG_LONG > SIZEOF_LONG
+#elif defined LINUX_MIPSN32
+	tprintf(format, tcp->ext_arg[arg_no]);
+	arg_no++;
+#elif defined X32
+	if (current_personality == 0) {
+		tprintf(format, tcp->ext_arg[arg_no]);
+		arg_no++;
+	} else {
+		tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+		arg_no += 2;
+	}
+#else
+# if defined __ARM_EABI__ || \
+     defined LINUX_MIPSO32 || \
+     defined POWERPC || \
+     defined XTENSA
+	/* Align arg_no to the next even number. */
+	arg_no = (arg_no + 1) & 0xe;
+# endif
+	tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+	arg_no += 2;
 #endif
+
+	return arg_no;
+}
 
 /*
  * Interpret `xlat' as an array of flags
@@ -357,10 +355,10 @@ printnum_int(struct tcb *tcp, long addr, const char *fmt)
 void
 printfd(struct tcb *tcp, int fd)
 {
-	const char *p;
+	char path[PATH_MAX + 1];
 
-	if (show_fd_path && (p = getfdpath(tcp, fd)))
-		tprintf("%d<%s>", fd, p);
+	if (show_fd_path && getfdpath(tcp, fd, path, sizeof(path)) >= 0)
+		tprintf("%d<%s>", fd, path);
 	else
 		tprintf("%d", fd);
 }
@@ -404,7 +402,16 @@ string_quote(const char *instr, char *outstr, long len, int size)
 			/* Check for NUL-terminated string. */
 			if (c == eol)
 				break;
-			if (!isprint(c) && !isspace(c)) {
+
+			/* Force hex unless c is printable or whitespace */
+			if (c > 0x7e) {
+				usehex = 1;
+				break;
+			}
+			/* In ASCII isspace is only these chars: "\t\n\v\f\r".
+			 * They happen to have ASCII codes 9,10,11,12,13.
+			 */
+			if (c < ' ' && (unsigned)(c - 9) >= 5) {
 				usehex = 1;
 				break;
 			}
@@ -457,7 +464,7 @@ string_quote(const char *instr, char *outstr, long len, int size)
 					*s++ = 'v';
 					break;
 				default:
-					if (isprint(c))
+					if (c >= ' ' && c <= 0x7e)
 						*s++ = c;
 					else {
 						/* Print \octal */
@@ -665,54 +672,70 @@ dumpstr(struct tcb *tcp, long addr, int len)
 {
 	static int strsize = -1;
 	static unsigned char *str;
-	char *s;
-	int i, j;
 
-	if (strsize < len) {
+	char outbuf[
+		(
+			(sizeof(
+			"xx xx xx xx xx xx xx xx  xx xx xx xx xx xx xx xx  "
+			"1234567890123456") + /*in case I'm off by few:*/ 4)
+		/*align to 8 to make memset easier:*/ + 7) & -8
+	];
+	const unsigned char *src;
+	int i;
+
+	memset(outbuf, ' ', sizeof(outbuf));
+
+	if (strsize < len + 16) {
 		free(str);
-		str = malloc(len);
+		str = malloc(len + 16);
 		if (!str) {
 			strsize = -1;
 			fprintf(stderr, "Out of memory\n");
 			return;
 		}
-		strsize = len;
+		strsize = len + 16;
 	}
 
 	if (umoven(tcp, addr, len, (char *) str) < 0)
 		return;
 
-	for (i = 0; i < len; i += 16) {
-		char outstr[80];
+	/* Space-pad to 16 bytes */
+	i = len;
+	while (i & 0xf)
+		str[i++] = ' ';
 
-		s = outstr;
-		sprintf(s, " | %05x ", i);
-		s += 9;
-		for (j = 0; j < 16; j++) {
-			if (j == 8)
-				*s++ = ' ';
-			if (i + j < len) {
-				sprintf(s, " %02x", str[i + j]);
-				s += 3;
+	i = 0;
+	src = str;
+	while (i < len) {
+		char *dst = outbuf;
+		/* Hex dump */
+		do {
+			if (i < len) {
+				*dst++ = "0123456789abcdef"[*src >> 4];
+				*dst++ = "0123456789abcdef"[*src & 0xf];
 			}
 			else {
-				*s++ = ' '; *s++ = ' '; *s++ = ' ';
+				*dst++ = ' ';
+				*dst++ = ' ';
 			}
-		}
-		*s++ = ' '; *s++ = ' ';
-		for (j = 0; j < 16; j++) {
-			if (j == 8)
-				*s++ = ' ';
-			if (i + j < len) {
-				if (isprint(str[i + j]))
-					*s++ = str[i + j];
-				else
-					*s++ = '.';
-			}
+			dst++; /* space is there by memset */
+			i++;
+			if ((i & 7) == 0)
+				dst++; /* space is there by memset */
+			src++;
+		} while (i & 0xf);
+		/* ASCII dump */
+		i -= 16;
+		src -= 16;
+		do {
+			if (*src >= ' ' && *src < 0x7f)
+				*dst++ = *src;
 			else
-				*s++ = ' ';
-		}
-		tprintf("%s |\n", outstr);
+				*dst++ = '.';
+			src++;
+		} while (++i & 0xf);
+		*dst = '\0';
+		tprintf(" | %05x  %s |\n", i - 16, outbuf);
 	}
 }
 
@@ -737,7 +760,8 @@ static bool process_vm_readv_not_supported = 0;
 
 #if defined(__NR_process_vm_readv)
 static bool process_vm_readv_not_supported = 0;
-static ssize_t process_vm_readv(pid_t pid,
+/* Have to avoid duplicating with the C library headers. */
+static ssize_t strace_process_vm_readv(pid_t pid,
 		 const struct iovec *lvec,
 		 unsigned long liovcnt,
 		 const struct iovec *rvec,
@@ -746,6 +770,7 @@ static ssize_t process_vm_readv(pid_t pid,
 {
 	return syscall(__NR_process_vm_readv, (long)pid, lvec, liovcnt, rvec, riovcnt, flags);
 }
+#define process_vm_readv strace_process_vm_readv
 #else
 static bool process_vm_readv_not_supported = 1;
 # define process_vm_readv(...) (errno = ENOSYS, -1)
@@ -762,14 +787,13 @@ int
 umoven(struct tcb *tcp, long addr, int len, char *laddr)
 {
 	int pid = tcp->pid;
-	int n, m;
-	int started;
+	int n, m, nread;
 	union {
 		long val;
 		char x[sizeof(long)];
 	} u;
 
-#if SUPPORTED_PERSONALITIES > 1
+#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
 	if (current_wordsize < sizeof(addr))
 		addr &= (1ul << 8 * current_wordsize) - 1;
 #endif
@@ -781,57 +805,88 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 		local[0].iov_base = laddr;
 		remote[0].iov_base = (void*)addr;
 		local[0].iov_len = remote[0].iov_len = len;
-		r = process_vm_readv(pid,
-				local, 1,
-				remote, 1,
-				/*flags:*/ 0
-		);
-		if (r < 0) {
-			if (errno == ENOSYS)
-				process_vm_readv_not_supported = 1;
-			else if (errno != EINVAL) /* EINVAL is seen if process is gone */
-				/* strange... */
-				perror("process_vm_readv");
-			goto vm_readv_didnt_work;
+		r = process_vm_readv(pid, local, 1, remote, 1, 0);
+		if (r == len)
+			return 0;
+		if (r >= 0) {
+			error_msg("umoven: short read (%d < %d) @0x%lx",
+				  r, len, addr);
+			return -1;
 		}
-		return r;
+		switch (errno) {
+			case ENOSYS:
+				process_vm_readv_not_supported = 1;
+				break;
+			case ESRCH:
+				/* the process is gone */
+				return -1;
+			case EFAULT: case EIO: case EPERM:
+				/* address space is inaccessible */
+				return -1;
+			default:
+				/* all the rest is strange and should be reported */
+				perror_msg("process_vm_readv");
+				return -1;
+		}
 	}
- vm_readv_didnt_work:
 
-	started = 0;
+	nread = 0;
 	if (addr & (sizeof(long) - 1)) {
 		/* addr not a multiple of sizeof(long) */
 		n = addr - (addr & -sizeof(long)); /* residue */
 		addr &= -sizeof(long); /* residue */
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *) addr, 0);
-		if (errno) {
-			/* But if not started, we had a bogus address. */
-			if (addr != 0 && errno != EIO && errno != ESRCH)
-				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%lx", pid, addr);
-			return -1;
+		switch (errno) {
+			case 0:
+				break;
+			case ESRCH: case EINVAL:
+				/* these could be seen if the process is gone */
+				return -1;
+			case EFAULT: case EIO: case EPERM:
+				/* address space is inaccessible */
+				return -1;
+			default:
+				/* all the rest is strange and should be reported */
+				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%lx",
+					    pid, addr);
+				return -1;
 		}
-		started = 1;
 		m = MIN(sizeof(long) - n, len);
 		memcpy(laddr, &u.x[n], m);
-		addr += sizeof(long), laddr += m, len -= m;
+		addr += sizeof(long);
+		laddr += m;
+		nread += m;
+		len -= m;
 	}
 	while (len) {
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *) addr, 0);
-		if (errno) {
-			if (started && (errno==EPERM || errno==EIO)) {
-				/* Ran into 'end of memory' - stupid "printpath" */
-				return 0;
-			}
-			if (addr != 0 && errno != EIO && errno != ESRCH)
-				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%lx", pid, addr);
-			return -1;
+		switch (errno) {
+			case 0:
+				break;
+			case ESRCH: case EINVAL:
+				/* these could be seen if the process is gone */
+				return -1;
+			case EFAULT: case EIO: case EPERM:
+				/* address space is inaccessible */
+				if (nread) {
+					perror_msg("umoven: short read (%d < %d) @0x%lx",
+						   nread, nread + len, addr - nread);
+				}
+				return -1;
+			default:
+				/* all the rest is strange and should be reported */
+				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%lx",
+					    pid, addr);
+				return -1;
 		}
-		started = 1;
 		m = MIN(sizeof(long), len);
 		memcpy(laddr, u.x, m);
-		addr += sizeof(long), laddr += m, len -= m;
+		addr += sizeof(long);
+		laddr += m;
+		nread += m;
+		len -= m;
 	}
 
 	return 0;
@@ -852,19 +907,29 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 int
 umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 {
-	int started;
+#if SIZEOF_LONG == 4
+	const unsigned long x01010101 = 0x01010101ul;
+	const unsigned long x80808080 = 0x80808080ul;
+#elif SIZEOF_LONG == 8
+	const unsigned long x01010101 = 0x0101010101010101ul;
+	const unsigned long x80808080 = 0x8080808080808080ul;
+#else
+# error SIZEOF_LONG > 8
+#endif
+
 	int pid = tcp->pid;
-	int i, n, m;
+	int n, m, nread;
 	union {
-		long val;
+		unsigned long val;
 		char x[sizeof(long)];
 	} u;
 
-#if SUPPORTED_PERSONALITIES > 1
+#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
 	if (current_wordsize < sizeof(addr))
 		addr &= (1ul << 8 * current_wordsize) - 1;
 #endif
 
+	nread = 0;
 	if (!process_vm_readv_not_supported) {
 		struct iovec local[1], remote[1];
 
@@ -891,68 +956,103 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 				chunk_len = r; /* chunk_len -= end_in_page */
 
 			local[0].iov_len = remote[0].iov_len = chunk_len;
-			r = process_vm_readv(pid,
-					local, 1,
-					remote, 1,
-					/*flags:*/ 0
-			);
-			if (r < 0) {
-				if (errno == ENOSYS)
-					process_vm_readv_not_supported = 1;
-				else if (errno != EINVAL) /* EINVAL is seen if process is gone */
-					/* strange... */
-					perror("process_vm_readv");
-				goto vm_readv_didnt_work;
+			r = process_vm_readv(pid, local, 1, remote, 1, 0);
+			if (r > 0) {
+				if (memchr(local[0].iov_base, '\0', r))
+					return 1;
+				local[0].iov_base += r;
+				remote[0].iov_base += r;
+				len -= r;
+				nread += r;
+				continue;
 			}
-			if (memchr(local[0].iov_base, '\0', r))
-				return 1;
-			local[0].iov_base += r;
-			remote[0].iov_base += r;
-			len -= r;
+			switch (errno) {
+				case ENOSYS:
+					process_vm_readv_not_supported = 1;
+					goto vm_readv_didnt_work;
+				case ESRCH:
+					/* the process is gone */
+					return -1;
+				case EFAULT: case EIO: case EPERM:
+					/* address space is inaccessible */
+					if (nread) {
+						perror_msg("umovestr: short read (%d < %d) @0x%lx",
+							   nread, nread + len, addr);
+					}
+					return -1;
+				default:
+					/* all the rest is strange and should be reported */
+					perror_msg("process_vm_readv");
+					return -1;
+			}
 		}
 		return 0;
 	}
  vm_readv_didnt_work:
 
-	started = 0;
 	if (addr & (sizeof(long) - 1)) {
 		/* addr not a multiple of sizeof(long) */
 		n = addr - (addr & -sizeof(long)); /* residue */
 		addr &= -sizeof(long); /* residue */
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *)addr, 0);
-		if (errno) {
-			if (addr != 0 && errno != EIO && errno != ESRCH)
-				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%lx", pid, addr);
-			return -1;
+		switch (errno) {
+			case 0:
+				break;
+			case ESRCH: case EINVAL:
+				/* these could be seen if the process is gone */
+				return -1;
+			case EFAULT: case EIO: case EPERM:
+				/* address space is inaccessible */
+				return -1;
+			default:
+				/* all the rest is strange and should be reported */
+				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%lx",
+					    pid, addr);
+				return -1;
 		}
-		started = 1;
 		m = MIN(sizeof(long) - n, len);
 		memcpy(laddr, &u.x[n], m);
 		while (n & (sizeof(long) - 1))
 			if (u.x[n++] == '\0')
 				return 1;
-		addr += sizeof(long), laddr += m, len -= m;
+		addr += sizeof(long);
+		laddr += m;
+		nread += m;
+		len -= m;
 	}
+
 	while (len) {
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *)addr, 0);
-		if (errno) {
-			if (started && (errno==EPERM || errno==EIO)) {
-				/* Ran into 'end of memory' - stupid "printpath" */
-				return 0;
-			}
-			if (addr != 0 && errno != EIO && errno != ESRCH)
-				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%lx", pid, addr);
-			return -1;
+		switch (errno) {
+			case 0:
+				break;
+			case ESRCH: case EINVAL:
+				/* these could be seen if the process is gone */
+				return -1;
+			case EFAULT: case EIO: case EPERM:
+				/* address space is inaccessible */
+				if (nread) {
+					perror_msg("umovestr: short read (%d < %d) @0x%lx",
+						   nread, nread + len, addr - nread);
+				}
+				return -1;
+			default:
+				/* all the rest is strange and should be reported */
+				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%lx",
+					   pid, addr);
+				return -1;
 		}
-		started = 1;
 		m = MIN(sizeof(long), len);
 		memcpy(laddr, u.x, m);
-		for (i = 0; i < sizeof(long); i++)
-			if (u.x[i] == '\0')
-				return 1;
-		addr += sizeof(long), laddr += m, len -= m;
+		/* "If a NUL char exists in this word" */
+		if ((u.val - x01010101) & ~u.val & x80808080)
+			return 1;
+		addr += sizeof(long);
+		laddr += m;
+		nread += m;
+		len -= m;
 	}
 	return 0;
 }
@@ -974,162 +1074,12 @@ upeek(struct tcb *tcp, long off, long *res)
 	return 0;
 }
 
-void
-printcall(struct tcb *tcp)
-{
-#define PRINTBADPC tprintf(sizeof(long) == 4 ? "[????????] " : \
-			   sizeof(long) == 8 ? "[????????????????] " : \
-			   NULL /* crash */)
-
-#if defined(I386)
-	long eip;
-
-	if (upeek(tcp, 4*EIP, &eip) < 0) {
-		PRINTBADPC;
-		return;
-	}
-	tprintf("[%08lx] ", eip);
-#elif defined(S390) || defined(S390X)
-	long psw;
-	if (upeek(tcp, PT_PSWADDR, &psw) < 0) {
-		PRINTBADPC;
-		return;
-	}
-# ifdef S390
-	tprintf("[%08lx] ", psw);
-# elif S390X
-	tprintf("[%16lx] ", psw);
-# endif
-
-#elif defined(X86_64) || defined(X32)
-	long rip;
-
-	if (upeek(tcp, 8*RIP, &rip) < 0) {
-		PRINTBADPC;
-		return;
-	}
-	tprintf("[%16lx] ", rip);
-#elif defined(IA64)
-	long ip;
-
-	if (upeek(tcp, PT_B0, &ip) < 0) {
-		PRINTBADPC;
-		return;
-	}
-	tprintf("[%08lx] ", ip);
-#elif defined(POWERPC)
-	long pc;
-
-	if (upeek(tcp, sizeof(unsigned long)*PT_NIP, &pc) < 0) {
-		PRINTBADPC;
-		return;
-	}
-# ifdef POWERPC64
-	tprintf("[%016lx] ", pc);
-# else
-	tprintf("[%08lx] ", pc);
-# endif
-#elif defined(M68K)
-	long pc;
-
-	if (upeek(tcp, 4*PT_PC, &pc) < 0) {
-		tprints("[????????] ");
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(ALPHA)
-	long pc;
-
-	if (upeek(tcp, REG_PC, &pc) < 0) {
-		tprints("[????????????????] ");
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(SPARC) || defined(SPARC64)
-	struct pt_regs regs;
-	if (ptrace(PTRACE_GETREGS, tcp->pid, (char *)&regs, 0) < 0) {
-		PRINTBADPC;
-		return;
-	}
-# if defined(SPARC64)
-	tprintf("[%08lx] ", regs.tpc);
-# else
-	tprintf("[%08lx] ", regs.pc);
-# endif
-#elif defined(HPPA)
-	long pc;
-
-	if (upeek(tcp, PT_IAOQ0, &pc) < 0) {
-		tprints("[????????] ");
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(MIPS)
-	long pc;
-
-	if (upeek(tcp, REG_EPC, &pc) < 0) {
-		tprints("[????????] ");
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(SH)
-	long pc;
-
-	if (upeek(tcp, 4*REG_PC, &pc) < 0) {
-		tprints("[????????] ");
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(SH64)
-	long pc;
-
-	if (upeek(tcp, REG_PC, &pc) < 0) {
-		tprints("[????????????????] ");
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(ARM)
-	long pc;
-
-	if (upeek(tcp, 4*15, &pc) < 0) {
-		PRINTBADPC;
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(AVR32)
-	long pc;
-
-	if (upeek(tcp, REG_PC, &pc) < 0) {
-		tprints("[????????] ");
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(BFIN)
-	long pc;
-
-	if (upeek(tcp, PT_PC, &pc) < 0) {
-		PRINTBADPC;
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(CRISV10)
-	long pc;
-
-	if (upeek(tcp, 4*PT_IRP, &pc) < 0) {
-		PRINTBADPC;
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#elif defined(CRISV32)
-	long pc;
-
-	if (upeek(tcp, 4*PT_ERP, &pc) < 0) {
-		PRINTBADPC;
-		return;
-	}
-	tprintf("[%08lx] ", pc);
-#endif /* architecture */
-}
+/* Note! On new kernels (about 2.5.46+), we use PTRACE_O_TRACECLONE
+ * and PTRACE_O_TRACE[V]FORK for tracing children.
+ * If you are adding a new arch which is only supported by newer kernels,
+ * you most likely don't need to add any code below
+ * beside a dummy "return 0" block in change_syscall().
+ */
 
 /*
  * These #if's are huge, please indent them correctly.
@@ -1147,116 +1097,6 @@ printcall(struct tcb *tcp)
 #ifndef CLONE_VM
 # define CLONE_VM        0x00000100
 #endif
-
-static int
-change_syscall(struct tcb *tcp, int new)
-{
-#if defined(I386)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(ORIG_EAX * 4), new) < 0)
-		return -1;
-	return 0;
-#elif defined(X86_64) || defined(X32)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(ORIG_RAX * 8), new) < 0)
-		return -1;
-	return 0;
-#elif defined(POWERPC)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid,
-		   (char*)(sizeof(unsigned long)*PT_R0), new) < 0)
-		return -1;
-	return 0;
-#elif defined(S390) || defined(S390X)
-	/* s390 linux after 2.4.7 has a hook in entry.S to allow this */
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_GPR2), new) < 0)
-		return -1;
-	return 0;
-#elif defined(M68K)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*PT_ORIG_D0), new) < 0)
-		return -1;
-	return 0;
-#elif defined(SPARC) || defined(SPARC64)
-	struct pt_regs regs;
-	if (ptrace(PTRACE_GETREGS, tcp->pid, (char*)&regs, 0) < 0)
-		return -1;
-	regs.u_regs[U_REG_G1] = new;
-	if (ptrace(PTRACE_SETREGS, tcp->pid, (char*)&regs, 0) < 0)
-		return -1;
-	return 0;
-#elif defined(MIPS)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_V0), new) < 0)
-		return -1;
-	return 0;
-#elif defined(ALPHA)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_A3), new) < 0)
-		return -1;
-	return 0;
-#elif defined(AVR32)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_R8), new) < 0)
-		return -1;
-	return 0;
-#elif defined(BFIN)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_P0), new) < 0)
-		return -1;
-	return 0;
-#elif defined(IA64)
-	if (ia32) {
-		switch (new) {
-		case 2:
-			break;	/* x86 SYS_fork */
-		case SYS_clone:
-			new = 120;
-			break;
-		default:
-			fprintf(stderr, "%s: unexpected syscall %d\n",
-				__FUNCTION__, new);
-			return -1;
-		}
-		if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_R1), new) < 0)
-			return -1;
-	} else if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_R15), new) < 0)
-		return -1;
-	return 0;
-#elif defined(HPPA)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_GR20), new) < 0)
-		return -1;
-	return 0;
-#elif defined(SH)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*(REG_REG0+3)), new) < 0)
-		return -1;
-	return 0;
-#elif defined(SH64)
-	/* Top half of reg encodes the no. of args n as 0x1n.
-	   Assume 0 args as kernel never actually checks... */
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_SYSCALL),
-				0x100000 | new) < 0)
-		return -1;
-	return 0;
-#elif defined(CRISV10) || defined(CRISV32)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*PT_R9), new) < 0)
-		return -1;
-	return 0;
-#elif defined(ARM)
-	/* Some kernels support this, some (pre-2.6.16 or so) don't.  */
-# ifndef PTRACE_SET_SYSCALL
-#  define PTRACE_SET_SYSCALL 23
-# endif
-	if (ptrace(PTRACE_SET_SYSCALL, tcp->pid, 0, new & 0xffff) != 0)
-		return -1;
-	return 0;
-#elif defined(TILE)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid,
-		   (char*)PTREGS_OFFSET_REG(0),
-		   new) != 0)
-		return -1;
-	return 0;
-#elif defined(MICROBLAZE)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_GPR(0)), new) < 0)
-		return -1;
-	return 0;
-#else
-#warning Do not know how to handle change_syscall for this architecture
-#endif /* architecture */
-	return -1;
-}
 
 #ifdef IA64
 
@@ -1357,6 +1197,13 @@ set_arg1(struct tcb *tcp, arg_setup_state *state, long val)
 
 #elif defined(SPARC) || defined(SPARC64)
 
+# if defined(SPARC64)
+#  undef PTRACE_GETREGS
+#  define PTRACE_GETREGS PTRACE_GETREGS64
+#  undef PTRACE_SETREGS
+#  define PTRACE_SETREGS PTRACE_SETREGS64
+# endif
+
 typedef struct pt_regs arg_setup_state;
 
 # define arg_setup(tcp, state) \
@@ -1386,9 +1233,6 @@ typedef struct pt_regs arg_setup_state;
 # elif defined(ALPHA) || defined(MIPS)
 #  define arg0_offset	REG_A0
 #  define arg1_offset	(REG_A0+1)
-# elif defined(AVR32)
-#  define arg0_offset	(REG_R12)
-#  define arg1_offset	(REG_R11)
 # elif defined(POWERPC)
 #  define arg0_offset	(sizeof(unsigned long)*PT_R3)
 #  define arg1_offset	(sizeof(unsigned long)*PT_R4)
@@ -1455,6 +1299,119 @@ set_arg1(struct tcb *tcp, void *cookie, long val)
 # define arg1_index 1
 #endif
 
+static int
+change_syscall(struct tcb *tcp, arg_setup_state *state, int new)
+{
+#if defined(I386)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(ORIG_EAX * 4), new) < 0)
+		return -1;
+	return 0;
+#elif defined(X86_64)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(ORIG_RAX * 8), new) < 0)
+		return -1;
+	return 0;
+#elif defined(X32)
+	/* setbpt/clearbpt never used: */
+	/* X32 is only supported since about linux-3.0.30 */
+#elif defined(POWERPC)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid,
+		   (char*)(sizeof(unsigned long)*PT_R0), new) < 0)
+		return -1;
+	return 0;
+#elif defined(S390) || defined(S390X)
+	/* s390 linux after 2.4.7 has a hook in entry.S to allow this */
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_GPR2), new) < 0)
+		return -1;
+	return 0;
+#elif defined(M68K)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*PT_ORIG_D0), new) < 0)
+		return -1;
+	return 0;
+#elif defined(SPARC) || defined(SPARC64)
+	state->u_regs[U_REG_G1] = new;
+	return 0;
+#elif defined(MIPS)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_V0), new) < 0)
+		return -1;
+	return 0;
+#elif defined(ALPHA)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_A3), new) < 0)
+		return -1;
+	return 0;
+#elif defined(AVR32)
+	/* setbpt/clearbpt never used: */
+	/* AVR32 is only supported since about linux-2.6.19 */
+#elif defined(BFIN)
+	/* setbpt/clearbpt never used: */
+	/* Blackfin is only supported since about linux-2.6.23 */
+#elif defined(IA64)
+	if (ia32) {
+		switch (new) {
+		case 2:
+			break;	/* x86 SYS_fork */
+		case SYS_clone:
+			new = 120;
+			break;
+		default:
+			fprintf(stderr, "%s: unexpected syscall %d\n",
+				__FUNCTION__, new);
+			return -1;
+		}
+		if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_R1), new) < 0)
+			return -1;
+	} else if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_R15), new) < 0)
+		return -1;
+	return 0;
+#elif defined(HPPA)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_GR20), new) < 0)
+		return -1;
+	return 0;
+#elif defined(SH)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*(REG_REG0+3)), new) < 0)
+		return -1;
+	return 0;
+#elif defined(SH64)
+	/* Top half of reg encodes the no. of args n as 0x1n.
+	   Assume 0 args as kernel never actually checks... */
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_SYSCALL),
+				0x100000 | new) < 0)
+		return -1;
+	return 0;
+#elif defined(CRISV10) || defined(CRISV32)
+	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*PT_R9), new) < 0)
+		return -1;
+	return 0;
+#elif defined(ARM)
+	/* Some kernels support this, some (pre-2.6.16 or so) don't.  */
+# ifndef PTRACE_SET_SYSCALL
+#  define PTRACE_SET_SYSCALL 23
+# endif
+	if (ptrace(PTRACE_SET_SYSCALL, tcp->pid, 0, new & 0xffff) != 0)
+		return -1;
+	return 0;
+#elif defined(AARCH64)
+	/* setbpt/clearbpt never used: */
+	/* AARCH64 is only supported since about linux-3.0.31 */
+#elif defined(TILE)
+	/* setbpt/clearbpt never used: */
+	/* Tilera CPUs are only supported since about linux-2.6.34 */
+#elif defined(MICROBLAZE)
+	/* setbpt/clearbpt never used: */
+	/* microblaze is only supported since about linux-2.6.30 */
+#elif defined(OR1K)
+	/* never reached; OR1K is only supported by kernels since 3.1.0. */
+#elif defined(METAG)
+	/* setbpt/clearbpt never used: */
+	/* Meta is only supported since linux-3.7 */
+#elif defined(XTENSA)
+	/* setbpt/clearbpt never used: */
+	/* Xtensa is only supported since linux 2.6.13 */
+#else
+#warning Do not know how to handle change_syscall for this architecture
+#endif /* architecture */
+	return -1;
+}
+
 int
 setbpt(struct tcb *tcp)
 {
@@ -1480,12 +1437,13 @@ setbpt(struct tcb *tcp)
 			}
 	}
 
-	if (sysent[tcp->scno].sys_func == sys_fork ||
-	    sysent[tcp->scno].sys_func == sys_vfork) {
+	if (tcp->s_ent->sys_func == sys_fork ||
+	    tcp->s_ent->sys_func == sys_vfork) {
 		if (arg_setup(tcp, &state) < 0
 		    || get_arg0(tcp, &state, &tcp->inst[0]) < 0
 		    || get_arg1(tcp, &state, &tcp->inst[1]) < 0
-		    || change_syscall(tcp, clone_scno[current_personality]) < 0
+		    || change_syscall(tcp, &state,
+				      clone_scno[current_personality]) < 0
 		    || set_arg0(tcp, &state, CLONE_PTRACE|SIGCHLD) < 0
 		    || set_arg1(tcp, &state, 0) < 0
 		    || arg_finish_change(tcp, &state) < 0)
@@ -1496,7 +1454,7 @@ setbpt(struct tcb *tcp)
 		return 0;
 	}
 
-	if (sysent[tcp->scno].sys_func == sys_clone) {
+	if (tcp->s_ent->sys_func == sys_clone) {
 		/* ia64 calls directly `clone (CLONE_VFORK | CLONE_VM)'
 		   contrary to x86 vfork above.  Even on x86 we turn the
 		   vfork semantics into plain fork - each application must not
@@ -1512,9 +1470,9 @@ setbpt(struct tcb *tcp)
 		 || set_arg0(tcp, &state, new_arg0) < 0
 		 || arg_finish_change(tcp, &state) < 0)
 			return -1;
-		tcp->flags |= TCB_BPTSET;
 		tcp->inst[0] = tcp->u_arg[arg0_index];
 		tcp->inst[1] = tcp->u_arg[arg1_index];
+		tcp->flags |= TCB_BPTSET;
 		return 0;
 	}
 
@@ -1528,6 +1486,7 @@ clearbpt(struct tcb *tcp)
 {
 	arg_setup_state state;
 	if (arg_setup(tcp, &state) < 0
+	    || change_syscall(tcp, &state, tcp->scno) < 0
 	    || restore_arg0(tcp, &state, tcp->inst[0]) < 0
 	    || restore_arg1(tcp, &state, tcp->inst[1]) < 0
 	    || arg_finish_change(tcp, &state))

@@ -1,4 +1,2308 @@
+2013-06-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ioctlent: add UAPI support.
+	* Makefile.am (IOCTLSORT_INCLUDEDIR): Define.
+	(ioctlsort): Use it.
+	* linux/ioctlent.sh (lookup_ioctls): Look into uapi directory tree.
+	Strip "uapi/" prefix from output path names.
+	* linux/ioctlent.h.in: Regenerate from v3.9 headers.
+	* NEWS: Mention it.
+
+	Prepare for 4.8 release.
+	* NEWS: Update for 4.8 release.
+	* debian/changelog: 4.8-1.
+	* strace.spec: 4.8-1.
+
+2013-06-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix "make dist" on recently added architectures.
+	* Makefile.am (EXTRA_DIST): Add linux/aarch64/errnoent1.h,
+	linux/aarch64/ioctlent.h.in, linux/aarch64/ioctlent1.h,
+	linux/aarch64/signalent1.h, linux/aarch64/syscallent.h,
+	linux/aarch64/syscallent1.h, linux/metag/ioctlent.h.in,
+	linux/metag/syscallent.h, linux/or1k/ioctlent.h.in,
+	linux/or1k/syscallent.h, linux/tile/errnoent1.h, linux/tile/ioctlent1.h,
+	linux/tile/signalent1.h, linux/tile/syscallent1.h, linux/ubi-user.h,
+	linux/xtensa/ioctlent.h.in, and linux/xtensa/syscallent.h.
+
+	Fix "make dist" regression introduced by commit v4.7-184-gd648f29.
+	* Makefile.am (EXTRA_DIST): Add linux/ubi-user.h.
+
+2013-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Do not suppress signal delivery messages with -qq.
+	Current implementation of -qq does not allow suppressing exit status
+	messages without suppressing signal delivery messages, which is not
+	good.  There is a traditional "-e signal=none" syntax that can be used
+	to suppress all signal delivery messages.
+	This partially reverts commit v4.7-222-g01997cf.
+
+	* strace.c (trace): Do not suppress signal delivery messages with -qq.
+	* strace.1: Update documentation about -qq option.
+
+2013-05-23  Chris Metcalf  <cmetcalf@tilera.com>
+
+	tile: use siginfo_t, not struct siginfo.
+	As of glibc 2.16, "struct siginfo" is no longer supported,
+	and "siginfo_t" must be used instead.
+
+	tile: remove MAP_CACHE_xxx support in mem.c.
+	These flags support functionality in mmap() that has not been
+	pushed back to the community, and which may or may not eventually
+	end up being the final community model.  In the interim, having
+	these flags unconditionally present for "#ifdef TILE" just means
+	that the TILE build breaks if using the community versions of
+	the kernel and glibc, so just revert the code until such time
+	as it may end up in the community.
+
+2013-05-17  Mike Frysinger  <vapier@gentoo.org>
+
+	Rename COPYRIGHT to COPYING.
+	The standard name people have adopted is "COPYING" rather than
+	"COPYRIGHT".  Use that as a lot of license scanning tools look for it.
+
+	* COPYRIGHT: Rename to ...
+	* COPYING: ... this.
+	* Makefile.am (EXTRA_DIST): Rename COPYRIGHT to COPYING.
+	* README: Likewise.
+	* strace.spec (%files): Likewise.
+
+2013-05-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Sync strace.spec and debian/ with packages.
+	* debian/changelog: Sync with 4.7-1.
+	* debian/strace.docs: Likewise.
+	* strace.spec: Sync with 4.7-3.
+
+	Update PTRACE_O_* constants.
+	* process.c (ptrace_setoptions_flags): Sync with Linux 3.9.
+
+	Update AF_*, PF_*, MSG_*, and TCP_* constants.
+	* net.c (domains, addrfams, protocols, socktcpoptions): Sync with
+	Linux 3.9.
+
+2013-05-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	NOMMU: do not hide startup syscalls unless in -D mode.
+	On NOMMU systems in "strace PROG" case, we have no way to attach to
+	the tracee before it calls execve unless in -D mode.  That is, the
+	first execve call is very likely to be missed, and setting
+	hide_log_until_execve just results to empty log.
+
+	* strace.c (init) [NOMMU_SYSTEM]: Do not set hide_log_until_execve
+	unless in -D mode.
+
+	Make -D mode work when the Yama LSM is enabled.
+	* strace.c [HAVE_PRCTL]: Include sys/prctl.h.
+	(startup_child) [HAVE_PRCTL && PR_SET_PTRACER && PR_SET_PTRACER_ANY]:
+	In -D mode, allow tracing the process that is going to become the
+	tracee.
+
+	Update PR_* constants.
+	* process.c (prctl_options): Add PR_SET_PTRACER.
+
+2013-05-14  Denys Vlasenko  <dvlasenk@redhat.com>
+
+	Hide startup syscalls.
+	Tested with "./strace [-D] [-q] [-bexecve] env true",
+	all cases seem to work.
+
+	* defs.h: Declare new variable: bool hide_log_until_execve.
+	* strace.c: Define hide_log_until_execve.
+	Rename skip_startup_execve to skip_one_b_execve.
+	(startup_child): Do not set skip_one_b_execve = 1 here.
+	(init): If "strace PROG" case (as opposed to "strace -pPID"),
+	set skip_one_b_execve and hide_log_until_execve to 1.
+	(trace): Don't print signal messages if hide_log_until_execve == 1.
+	* syscall.c (trace_syscall_entering):
+	Skip syscall printing if hide_log_until_execve == 1.
+	Reset hide_log_until_execve if we enter execve syscall.
+	(trace_syscall_exiting): Skip syscall printing if hide_log_until_execve == 1.
+
+2013-05-13  Daniel P. Berrange  <berrange@redhat.com>
+
+	Allow -q to be repeated for very quiet output.
+	Even with the -q flag specified, tracing output is still mixed
+	with messages about signals and process exit status, which is
+	often irrelevant.  Allow the -q option to be repeated to force
+	the suppression of signals / exit status info too.
+
+	* defs.h: Change 'qflag' from 'bool' to 'unsigned int'.
+	* strace.1: Document ability to repeat '-q' option.
+	* strace.c: Allow '-q' to be repeated to quieten process
+	exit status and signal messages.
+
+2013-05-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mips o32: fix syscall table.
+	* linux/mips/syscallent-o32.h: Add entries for getpmsg, putpmsg,
+	get_mempolicy, set_mempolicy and vserver.  Fix names for umount,
+	umount2, mmap, mmap2, pread64, pwrite64, sigaltstack and fstatat64
+	syscalls.
+
+2013-05-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mips n64: fix syscall table.
+	* linux/mips/syscallent-n64.h: Add entries for get_mempolicy,
+	set_mempolicy and timerfd syscalls.  Fix entry for socket syscall.
+	Fix names for pread64, pwrite64, shmat, rt_sigsuspend, sigaltstack
+	and umount2 syscalls.
+
+	mips n32: fix syscall table.
+	* linux/mips/syscallent-n32.h: Add entries for mbind, get_mempolicy,
+	set_mempolicy and timerfd syscalls.  Fix entry for socket syscall.
+	Fix handlers for truncate, ftruncate and getdents64 syscalls.
+	Fix names for pread64, pwrite64, shmat, rt_sigsuspend, sigaltstack,
+	umount2, and getdents64 syscalls.
+
+2013-05-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	sync_file_range: fix number of syscall arguments.
+	* linux/avr32/syscallent.h: Set the number of sync_file_range arguments
+	to 6.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/or1k/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/powerpc/syscallent.h: Change sync_file_range to
+	sync_file_range2, set the number of sync_file_range2 arguments to 6.
+	* linux/tile/syscallent.h: Change sync_file_range to sync_file_range2,
+	set the number of sync_file_range2 arguments to 4.
+	* linux/tile/syscallent1.h: Change sync_file_range to sync_file_range2.
+	update handler.
+	* linux/xtensa/syscallent.h: Likewise.
+
+	Add syscall entries for new linux syscalls.
+	* linux/dummy.h: Add printargs aliases for sys_finit_module, sys_kcmp
+	and sys_sync_file_range2.
+	* linux/alpha/syscallent.h: Add entries for process_vm_readv
+	and process_vm_writev.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/arm/syscallent.h: Add entries for sync_file_range2, kcmp
+	and finit_module.
+	* linux/hppa/syscallent.h: Add entries for process_vm_readv,
+	process_vm_writev, kcmp and finit_module.
+	* linux/tile/syscallent.h: Likewise.
+	* linux/tile/syscallent1.h: Likewise.
+	* linux/ia64/syscallent.h: Add entry for finit_module.
+	* linux/i386/syscallent.h: Add entries for kcmp and finit_module.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/metag/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/or1k/syscallent.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Add entries for s390_runtime_instr, kcmp
+	and finit_module.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Add entries for kern_features, kcmp
+	and finit_module.
+
+	tests/net: fix portability issues.
+	* tests/net-accept-connect.c: Fix address length passed to bind()
+	and connect().
+	* tests/net: Update regexps.
+
+	tests: add a test for basic network syscalls.
+	* tests/.gitignore: Add net-accept-connect, *.o and *.log.*.
+	* tests/Makefile.am (AM_CFLAGS): New variable.
+	(check_PROGRAMS): Add net-accept-connect.
+	(TESTS): Add net.
+	* tests/net-accept-connect.c: New file.
+	* tests/net: New file.
+
+	tests: do not skip tests when timeout utility is not available.
+	* tests/init.sh (check_timeout): New function.
+	* tests/ptrace_setoptions: Use it.
+	* tests/qual_syscall: Likewise.
+	* tests/stat: Likewise.
+	* tests/strace-f: Likewise.
+
+2013-05-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move subcall decoding configuration out of the common code.
+	* Makefile.am (EXTRA_DIST): Add linux/subcall.h.
+	* linux/syscall.h (SYS_socket_subcall): Remove.
+	(SYS_socket_nsubcalls, SYS_ipc_subcall, SYS_ipc_nsubcalls): Move to ...
+	* linux/subcall.h: ... new file.
+	* linux/arm/syscallent.h: Define SYS_socket_subcall, include subcall.h.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+
+	Suggested by Mike Frysinger and Chris Metcalf.
+
+	sparc: remove some unused declarations and macros.
+	* linux/syscall.h [SPARC || SPARC64] (sys_msgsys, sys_semsys,
+	sys_shmsys): Remove declarations.
+	[SPARC || SPARC64] (SYS_semsys_subcall, SYS_semsys_nsubcalls,
+	SYS_msgsys_subcall, SYS_msgsys_nsubcalls, SYS_shmsys_subcall,
+	SYS_shmsys_nsubcalls): Remove macros.
+
+2013-05-07  Mike Frysinger  <vapier@gentoo.org>
+
+	mips: fix build regression.
+	The recent commit (2690fadc8b35190dddd29274a7405bac13adc469) shuffled
+	the mips headers around causing it to check the ABI defines before it
+	included the header which set those up.  Now all mips builds fail with:
+		In file included from count.c:36:0:
+		defs.h:48:4: error: #error Unsupported _MIPS_SIM
+
+	* defs.h [MIPS]: Move sgidefs.h above _MIPS_SIM check.
+
+2013-05-07  James Hogan  <james.hogan@imgtec.com>
+
+	metag: rename llseek syscall to _llseek.
+	The raw llseek syscall is called _llseek from userland, so fix the
+	naming of it for metag to allow the stat test to pass.
+
+	* linux/metag/syscallent.h: Rename llseek syscall to _llseek.
+
+	metag: disable socket and ipc subcall support.
+	The metag architecture also uses dedicated syscalls and doesn't need to
+	multiplex ipc and socket subcalls.
+
+	* linux/syscall.h [METAG]: Do not define SYS_socket_subcall and
+	SYS_ipc_subcall.
+
+2013-05-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	pread, pwrite: fix number of syscall arguments.
+	The number of pread and pwrite arguments depends on architecture and
+	personality.  For 64bit and ilp32 it equals to 4, for unaligned
+	32bit it equals to 5, and for aligned 32bit it equals to 6.
+
+	* linux/aarch64/syscallent1.h: Change the number of pread and pwrite
+	arguments to 4.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/tile/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/or1k/syscallent.h: Change the number of pread and pwrite
+	arguments to 5.
+
+	preadv, pwritev: fix number of syscall arguments.
+	The number of preadv and pwritev arguments depends on architecture and
+	personality.  For 64bit and ilp32 it equals to 4, for unaligned 32bit
+	it equals to 5, and for aligned 32bit it equals to 6.
+
+	* linux/aarch64/syscallent1.h: Change the number of preadv and pwritev
+	arguments to 4.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/tile/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/powerpc/syscallent.h: Change the number of preadv and pwritev
+	arguments to 6.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+
+	ftruncate64, truncate64: fix number of syscall arguments.
+	The number of ftruncate64/truncate64 arguments depends on architecture
+	and personality.  For 64bit and ilp32 it equals to 2, for unaligned
+	32bit it equals to 3, and for aligned 32bit it equals to 4.
+
+	* linux/or1k/syscallent.h: Change the number of ftruncate64 and
+	truncate64 arguments to 3.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Change ftruncate64 and truncate64 handlers.
+	* linux/sparc/syscallent.h: Change ftruncate64 handler, change the
+	number of its arguments to 3.
+	* linux/xtensa/syscallent.h: Change the number of ftruncate64 and
+	truncate64 arguments to 4.
+
+	fallocate: fix number of syscall arguments.
+	The number of fallocate arguments depends on architecture and
+	personality.  For 64bit and ilp32 it equals to 4,
+	for 32bit it equals to 6.
+
+	* linux/aarch64/syscallent1.h: Change the number of fallocate arguments
+	to 4.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/tile/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Set fallocate handler and flags.
+
+	fadvise64, fadvise64_64: fix handlers and number of syscall arguments.
+	The number of fadvise64 arguments depends on architecture and
+	personality.  For 64bit and ilp32 it equals to 4, for unaligned
+	32bit it equals to 5, and for aligned 32bit it equals to 6.
+
+	The number of fadvise64_64 arguments is 4 for 64bit and ilp32, for
+	unaligned 32bit and most of aligned 32bit it equals to 6, and for
+	mips o32 it equals to 7.
+
+	* linux/alpha/syscallent.h: Set fadvise64 handler.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Set fadvise64_64 handler, change the number
+	of syscall arguments to 6.
+	* linux/ia64/syscallent.h: Change the number of fadvise64 arguments
+	to 4.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/tile/syscallent1.h: Change the number of fadvise64 arguments
+	to 5.
+	* linux/mips/syscallent-o32.h: Change the number of fadvise64_64
+	arguments to 7.
+	* linux/s390x/syscallent.h: Change fadvise64_64 handler.  Set fadvise64
+	handler.  Change numbers of fadvise64 and fadvise64_64 arguments to 4.
+	* linux/sh64/syscallent.h: Change fadvise64_64 handler.
+	Change numbers of fadvise64 and fadvise64_64 arguments to 4.
+	* linux/sparc/syscallent.h: Set fadvise64 and fadvise64_64 handlers,
+	change numbers of their arguments to 5 and 6.
+	* linux/x86_64/syscallent.h: Change fadvise64 handler.
+
+	mips o32: raise the max number of syscall arguments to 7.
+	On mips o32, fadvise64_64 takes 7 arguments.
+
+	* defs.h [LINUX_MIPSO32]: Raise MAX_ARGS to 7.
+
+	mips: split syscallent.h.
+	linux/mips/syscallent.h consisted of several parts that had little in
+	common.  Split them into separate files to ease maintenance.
+
+	* linux/mips/syscallent-compat.h: New file.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/mips/syscallent.h: Include them.
+	* Makefile.am (EXTRA_DIST): Add them.
+
+	readahead: fix number of syscall arguments.
+	The number of readahead arguments depends on architecture and
+	personality.  For 64bit and ilp32 it equals to 3, for unaligned 32bit it
+	equals to 4, and for aligned 32bit it equals to 5.
+
+	* linux/aarch64/syscallent1.h: Set number of readahead arguments to 3.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/or1k/syscallent.h: Set number of readahead arguments to 4.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/tile/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Set number of readahead arguments to 5.
+
+2013-05-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	linux/syscall.h: make subcall decoding configuration more readable.
+	* linux/syscall.h: Inverse and sort the subcall ifdef,
+	add a comment why subcall decoding support is not enabled
+	on some architectures.
+
+2013-05-06  Chris Zankel  <chris@zankel.net>
+
+	xtensa: disable socket and ipc subcall support.
+	The Xtensa architecture also uses dedicated syscalls and doesn't
+	need to multiplex ipc and socket subcalls.
+
+	* linux/syscall.h [XTENSA]: Do not define SYS_socket_subcall and
+	SYS_ipc_subcall.
+
+2013-05-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix syscall flags.
+	* linux/aarch64/syscallent1.h: Fix syscall flags for send.
+	* linux/alpha/syscallent.h: Fix syscall flags for fchdir, getcwd,
+	oldumount, sigaltstack, umount, uselib, and utimes.
+	* linux/arm/syscallent.h: Fix syscall flags for close, creat, dup, dup2,
+	fchdir, fchmod, fchown, fchown32, fcntl, fcntl64, fdatasync, flock,
+	fsetxattr, fsync, getdents, getdents64, ioctl, oldfstat, oldselect,
+	open, pipe, poll, pread, pwrite, read, readahead, readdir, readv,
+	select, socketcall, write, and writev.
+	* linux/avr32/syscallent.h: Fix syscall flags for inotify_init and
+	unshare.
+	* linux/bfin/syscallent.h: Fix syscall flags for pread64 and pwrite64.
+	* linux/hppa/syscallent.h: Fix syscall flags for fchdir, flistxattr,
+	getcwd, pause, signal, umount2, uselib, utime, and vfork.
+	* linux/ia64/syscallent.h: Fix syscall flags for creat, fchdir,
+	lstat, umount, uselib, and utimes.  Fix syscall handlers for
+	fgetxattr, flistxattr, fremovexattr, and fsetxattr.
+	* linux/m68k/syscallent.h: Fix syscall flags for close, creat, dup,
+	dup2, fchdir, fchmod, fchown, fchown32, fcntl, fcntl64, fdatasync,
+	flock, fsetxattr, getdents, ioctl, oldfstat, oldselect, open, pipe,
+	poll, pread64, pwrite64, read, readahead, readdir, readv, select,
+	socketcall, write, and writev.
+	* linux/metag/syscallent.h: Fix syscall flags for fanotify_init,
+	prlimit64, process_vm_readv, process_vm_writev, and quotactl.
+	* linux/microblaze/syscallent.h: Fix syscall flags for close, creat,
+	dup, dup2, fchdir, fchmod, fchown, fchown32, fcntl, fcntl64,
+	fdatasync, flock, fsetxattr, getdents, ioctl, oldfstat, oldselect,
+	open, perf_event_open, pipe, poll, pread64, pwrite64, read, readahead,
+	readdir, readv, select, socketcall, write, and writev.
+	* linux/mips/syscallent.h: Fix syscall flags for close, creat, dup,
+	dup2, fchdir, fchmod, fchown, fcntl, fcntl64, fdatasync, flock,
+	fsetxattr, getdents, getdents64, getxattr, ioctl, lgetxattr,
+	listxattr, llistxattr, lremovexattr, lsetxattr, oldfstat, open, pipe,
+	pivot_root, poll, pread, pwrite, read, readahead, readv, removexattr,
+	select, setxattr, socketcall, statfs, write, and writev.
+	* linux/or1k/syscallent.h: Fix syscall flags for fchdir and quotactl.
+	* linux/powerpc/syscallent.h: Fix syscall flags for fchdir.
+	* linux/sh/syscallent.h: Fix syscall flags for getcwd.
+	* linux/sparc/syscallent.h: Fix syscall flags for getresgid, getresuid,
+	setresgid, setresgid32, and setresuid.
+	* linux/xtensa/syscallent.h: Fix syscall flags for close, creat, dup,
+	dup2, fallocate, fchdir, fchmod, fchown, fcntl, fcntl64, fdatasync,
+	flock, fsetxattr, fstatfs, fstatfs64, fsync, getdents, getdents64,
+	ioctl, open, pipe, pivot_root, poll, pread64, pwrite64, read,
+	readahead, readv, rt_sigreturn, select, setfsgid, setfsuid, setuid,
+	swapoff, times, utime, write, and writev.
+
+	tests/stat: enhance regexps.
+	* tests/stat: Enhance regexps that check tracing of stat/stat64 and
+	fstatat/fstatat64 syscalls.
+
+2013-05-06  Chris Metcalf  <cmetcalf@tilera.com>
+
+	tests/stat: support fstatat syscall for stat()
+	Newer Linux architectures don't support the stat/stat64 syscalls.
+	Instead they use fstatat() with AT_FDCWD and an extra flags argument.
+	Support seeing this output in the 'strace -efile' test.
+
+	As part of this change, use "grep -E -x" syntax consistently for
+	all stat tests, since the number of \(foo\)\? expressions was becoming
+	pretty unwieldy.
+
+	* tests/stat: Update stat/stat64 check regexp to handle architectures
+	that use fstatat instead.  Use "grep -E -x" syntax consistently.
+
+2013-05-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ARM OABI: fix 64-bit arguments decoding.
+	ARM OABI and ARM EABI have different function parameters passing rules,
+	see commit v4.6-11-g7a5b08f for details.
+
+	* util.c (printllval): Do not align argument number in case of ARM OABI.
+	* file.c (sys_fadvise64_64): Likewise.
+
+2013-05-06  Mike Frysinger  <vapier@gentoo.org>
+
+	printllval: fix 64bit unpacking on mips/o32 and xtensa.
+	The mips/o32 ABI and xtensa arch also do 64bit aligning, so add it to the
+	printllval list for this.
+
+	Normally for sys_fadvise64_64 we'd handle the same list of arches, but
+	mips/o32 ABI is funky and doesn't shift -- it has 7 args.  So just add
+	xtensa to it.
+
+	* file.c (sys_fadvise64_64): Add XTENSA to the shifted list.
+	* util.c (printllval): Add LINUX_MIPSO32 and XTENSA to the shifted list.
+
+2013-05-06  Chris Metcalf  <cmetcalf@tilera.com>
+
+	tile: disable socket and ipc subcall support.
+	The tile arch just has the dedicated syscalls, so disable
+	the logic for parsing subcalls.
+
+	* linux/syscall.h [TILE]: Do not define SYS_socket_subcall and
+	SYS_ipc_subcall.
+
+2013-05-06  Mike Frysinger  <vapier@gentoo.org>
+
+	Blackfin: disable socketcall and ipc subcall support.
+	The Blackfin arch does not have a socketcall or ipc subcall
+	(it has dedicated syscalls broken out), so disable the logic for it.
+
+	* linux/syscall.h [BFIN]: Do not define SYS_socket_subcall and
+	SYS_ipc_subcall.
+
+2013-05-05  Mike Frysinger  <vapier@gentoo.org>
+
+	s390: fix # of args truncate64/ftruncate64 takes.
+	* linux/s390/syscallent.h: Change nargs to 3 for truncate64/ftruncate64.
+
+	mtd: clamp ubi name strings.
+	Since the length fields with the ubi volnames are signed 16bit values,
+	make sure we clamp that number to the size of the buffer we've allocated
+	on the stack to prevent buffer overflows.
+
+	* mtd.c (ubi_ioctl): Clamp length to string_quote to 0/UBI_MAX_VOLUME_NAME.
+	Check the return of string_quote and tweak the output accordingly.
+
+2013-05-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	printxval: support more architectures.
+	* configure.ac: Define SIZEOF_LONG_LONG.
+	* util.c (printllval): Handle all architectures with sizeof(long) > 4
+	and sizeof(long) == sizeof(long long).
+
+2013-05-04  Mike Frysinger  <vapier@gentoo.org>
+
+	Fix building for sparc64 targets.
+	* util.c (printllval): Handle SPARC64 define.
+
+	Fix building for mips n64 targets.
+	* util.c (printllval): Handle LINUX_MIPSN64 define.
+
+2013-05-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	hppa: fix stat64 and fstat64 decoding.
+	* file.c [HPPA]: Do not redefine stat64 to hpux_stat64.
+
+	arm, aarch64, ppc: fix printllval-based decoders.
+	* util.c (printllval) [ARM || POWERPC]: Align argument number.
+	[AARCH64]: Align argument number in 32bit mode.
+	* file.c (sys_fadvise64_64) [ARM || POWERPC]: Remove no longer needed
+	printllval workaround.
+	[AARCH64]: Fix printing POSIX_FADV_* constants in 32bit mode.
+
+2013-05-02  Mike Frysinger  <vapier@gentoo.org>
+
+	Decode mtd/ubi ioctls.
+	Been playing with UBI of late and it'd help if I could see what it was
+	doing.  Not entirely sure about the decoding of UBI_IOCVOLUP -- it takes
+	a pointer to a 64bit value, not a strict.
+
+	* util.c (MAX, MIN): Move to ...
+	* defs.h (MAX, MIN): ... here.
+	(CLAMP): Define.
+	(ubi_ioctl): New prototype.
+	* ioctl.c (ioctl_decode): Call ubi_ioctl when code is 'o' or 'O'.
+	* mtd.c: Include ubi user API header.
+	(ubi_volume_types): New enum decode.
+	(ubi_volume_props): Likewise.
+	(ubi_ioctl): Define.
+	* linux/ubi-user.h: Import from linux 3.8.
+
+	test: add mtd/ubi test helpers.
+	I used these to develop the mtd/ubi ioctl decoders.
+
+	* test/.gitignore: Add mtd/ubi.
+	* test/Makefile: Declare all tests in a PROGS var.
+	Declare build targets .PHONY.
+	(all): Depend on $(PROGS) instead of hardcoded list.
+	(clean): Remove $(PROGS) instead of hardcoded list.
+	* test/mtd.c: New file.
+	* test/ubi.c: Likewise.
+
+	test: include headers for used funcs.
+	These funcs use things like wait/write/read/strcmp but sometimes
+	don't include the right header for them.
+
+	* test/Makefile: Add -Wall to CFLAGS.
+	* test/clone.c: Include unistd.h.
+	* test/fork.c: Include sys/wait.h.
+	* test/sig.c: Include unistd.h.
+	* test/sigkill_rain.c: Include sys/wait.h.
+	* test/vfork.c: Include sys/wait.h.
+	* test/wait_must_be_interruptible.c: Include string.h
+
+2013-05-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ia64: fix compilation warnings introduced by commit v4.7-174-g44f0ed1.
+	* linux/ia64/syscallent.h: Undefine sys_oldlstat, sys_lstat and
+	sys_lstat64 before redefining them to printargs.
+
+	Reported-by: Mike Frysinger <vapier@gentoo.org>
+
+2013-05-02  Mike Frysinger  <vapier@gentoo.org>
+
+	tests: stat: fix clean up of sample file.
+	* tests/stat: Also rm the sample file at the end of the test.
+
+	Ignore more files.
+	* .gitignore: Add gdb related files.
+	* tests/.gitignore: Ignore test logs.
+
+2013-05-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	x32: fix decoding of i386 truncate and ftruncate syscalls.
+	* linux/x32/syscallent1.h: Remove sys_*truncate64 redirections.
+
+	x32: fix printllval-based decoders of i386 syscalls.
+	* util.c (printllval) [X32]: Handle i386 personality.
+
+	tests: add basic test for ftruncate, lseek and stat family syscalls.
+	* tests/stat: New test.
+	* tests/Makefile.am (TESTS): Add stat.
+
+2013-05-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	x32: fix build regressions introduced by commit v4.7-96-g8435d67.
+	* desc.c (printflock) [X32]: Add special handling required for
+	this architecture with sizeof(long) < sizeof(off_t).
+	* file.c [X32] (struct stat64): Add __attribute__((packed)).
+	[X32] (HAVE_STAT64): Define.
+	(printstat) [X32]: Redirect to printstat64.
+	(printstat64) [X32]: Use "struct stat" instead of "struct stat64".
+	[X32] (realprintstat64): Rename to printstat64_x32.
+	(sys_stat64, sys_fstat64) [X32]: Remove second definitions of these
+	functions.  Call printstat64_x32 instead of printstat64
+	* linux/x32/syscallent.h: Fix handlers for truncate and ftruncate.
+
+	Alias sys_*lstat* syscall printing functions.
+	* file.c (sys_lstat, sys_lstat64, sys_oldlstat): Remove.
+	* linux/dummy.h: Move !HAVE_STRUCT___OLD_KERNEL_STAT aliases forward.
+	(sys_lstat): Alias to sys_stat.
+	(sys_lstat64): Alias to sys_stat64.
+	(sys_oldlstat): Alias to sys_oldstat.
+	* linux/syscall.h (sys_lstat, sys_lstat64, sys_oldlstat): Remove.
+	* linux/x32/syscallent1.h (sys_lstat64): Remove.
+
+	x86_64: decode __old_kernel_stat based syscalls.
+	* linux/x86_64/syscallent1.h: Remove sys_old*stat redirections.
+
+	x32: fix decoding of __old_kernel_stat based syscalls.
+	* file.c [X32] (struct __old_kernel_stat): Define.
+	* linux/x32/syscallent1.h: Remove sys_old*stat redirections.
+
+2013-05-01  James Hogan  <james.hogan@imgtec.com>
+
+	test/threaded_execve: fix on metag.
+	The metag ABI has stacks growing upwards so clone expects the stack
+	argument to point at the bottom of the stack instead of the top.
+
+	* test/threaded_execve.c [__metag__]: Define clone2 differently
+	to avoid a segfault at runtime.
+
+	test/skodic: make a bit more portable.
+	* test/skodic.c (main): Don't use MAP_FIXED since valid virtual addresses
+	vary between architectures (as far as I can tell the use of MAP_FIXED is
+	not relevant to the test).  Also don't assume the file desriptor returned
+	by open call is 3 when passing it to mmap.
+
+2013-05-01  Mike Frysinger  <vapier@gentoo.org>
+
+	printllval: handle s390x.
+	This is a 64bit arch w/no personalities, so fix printing.
+	It can now trace a simple call like readahead:
+	$ cat test.c
+	main(){readahead(-1, (unsigned long long)1 << 50, 0);}
+	$ gcc test.c
+	$ ./strace -ereadahead ./a.out
+	readahead(-1, 1125899906842624, 0)      = -1 EBADF (Bad file descriptor)
+
+	* util.c (printllval): Handle S390X define.
+
+	Stop using old AM_CONFIG_HEADER macro.
+	Building with automake-1.13 throws an error:
+	configure.ac:6: error: 'AM_CONFIG_HEADER': this macro is obsolete.
+	    You should use the 'AC_CONFIG_HEADERS' macro instead.
+
+	* configure.ac (AM_CONFIG_HEADER): Rename to AC_CONFIG_HEADERS.
+
+2013-04-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	build: introduce git-version-gen.
+	* .gitignore: Add .version.
+	* Makefile.am (EXTRA_DIST, BUILT_SOURCES): Add $(srcdir)/.version.
+	Add rules to check NEWS, generate $(srcdir)/.version and
+	$(distdir)/.tarball-version files.
+	Change ChangeLog and CREDITS generation rules to depend on
+	$(srcdir)/.version instead of $(srcdir)/.git/refs/heads/*.
+	* NEWS: Add dates to recent releases.
+	* configure.ac (AC_INIT): Use git-version-gen.
+	(AM_INIT_AUTOMAKE): Remove check-news.
+	* git-version-gen: Import from gnulib.
+	* make-dist: Check NEWS.
+
+	Makefile.am: sort long lists to ease maintenance.
+	* Makefile.am (strace_SOURCES, EXTRA_DIST): Sort, place one list element
+	per line.
+
+	build: fix "make dist" regression introduced by commit v4.7-105-g7270de5
+	* Makefile.am (EXTRA_DIST): Remove linux/arm/syscallent1.h,
+	linux/arm/signalent1.h, linux/arm/ioctlent1.h and linux/arm/errnoent1.h.
+
+	build: fix "make dist" regression introduced by commit v4.7-29-g17e3860.
+	* Makefile.am (EXTRA_DIST): Add linux/ioctlent-filter.awk.
+
+2013-04-30  Mike Frysinger  <vapier@gentoo.org>
+
+	Blackfin: tweak sram_alloc syscall decode.
+	* system.c (sys_sram_alloc): The 2nd argument of sram_alloc syscall
+	is a bit field, not a specific value, so decode it as such.
+
+2013-03-31  Zev Weiss  <zev@bewilderbeest.net>
+
+	Print io_submit() offsets in decimal.
+	This makes output formatting more consistent with pread()/pwrite(),
+	which print their offset parameters in decimal.
+
+	* desc.c (sys_io_submit): Change offset output format from %llx to %lld.
+
+2013-03-30  Andreas Schwab  <schwab@suse.de>
+
+	Fix building outside source directory.
+	The file linux/ioctlent.h is generated in the build directory, so
+	"../ioctlent.h" won't find it.
+
+	* linux/aarch64/ioctlent1.h: Remove "../" from include file name.
+	* linux/powerpc/ioctlent1.h: Likewise.
+	* linux/tile/ioctlent1.h: Likewise.
+	* linux/x32/ioctlent1.h: Likewise.
+	* linux/x86_64/ioctlent1.h: Likewise.
+	* linux/x86_64/ioctlent2.h: Likewise.
+
+	AArch64: Fix printing of long long value.
+	* util.c (printllval): Fix printing of long long values on
+	AArch64.
+
+2013-03-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update PR_* constants.
+	* process.c (prctl_options): Add more PR_* constants from linux/prctl.h.
+
+2013-03-25  Chris Zankel  <chris@zankel.net>
+
+	Add support for the XTENSA architecture.
+	* configure.ac: Add XTENSA to the list of supported architectures.
+	* defs.h: Add XTENSA support.
+	* linux/xtensa/syscallent.h: New file.
+	* linux/xtensa/ioctlent.h.in: Likewise.
+	* process.c (struct_user_offsets): Add XTENSA support.
+	* signal.c (sys_sigreturn): Likewise.
+	* syscall.c (printcall, get_scno, get_syscall_args,
+	  get_syscall_result, get_error): Likewise.
+	* util.c (change_syscall): Likewise.
+
+2013-03-22  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Add example script which builds static (possibly cross-compiled) strace.
+
+2013-03-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Use 64-bit versions of stat, readdir and setrlimit functions when available
+	strace already has a mechanism to use fopen64 for output when the 64-bit
+	version of fopen is available on 32-bit architectures.  Apply this
+	mechanism for other three functions to make strace fully adopted for
+	64-bit types.
+
+	* strace.c (struct_stat, stat_file, struct_dirent, read_dir,
+	struct_rlimit, set_rlimit): New macros.
+	(startup_attach): Use read_dir.
+	(startup_child): Use struct_stat and stat_file.
+	(main): Use struct_rlimit and set_rlimit.
+
+2013-03-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Do not use struct dirent in readdir decoding.
+	struct dirent from libc should not be used for umove'ing into because it
+	contains fixed size d_name.
+
+	* file.c (printdir): Rename to print_old_dirent.
+	[SH64]: Decode using struct kernel_dirent.
+	[!SH64]: Decode using an open-coded struct with 32-bit d_ino and d_off.
+	(sys_readdir): Update.
+
+	Do not use off_t in sendfile decoding.
+	sendfile parser used to decode off_t* parameter as a pointer to host
+	off_t type.  With this change, it is decoded as a pointer to target long
+	type.
+
+	* io.c (print_off_t): New function.
+	(sys_sendfile): Use it.
+	* linux/aarch64/syscallent1.h: Use sys_sendfile64 for sendfile decoding.
+	* linux/tile/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Use sys_sendfile64 for sendfile64 decoding.
+	* linux/metag/syscallent.h: Correct sendfile syscall name.
+	* linux/or1k/syscallent.h: Likewise.
+
+2013-03-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix build with older versions of libaio.h.
+	* configure.ac: When libaio.h is available, check for
+	struct iocb.u.c.flags, IO_CMD_PWRITE and IO_CMD_PWRITEV.
+	* desc.c (print_common_flags): Check for HAVE_STRUCT_IOCB_U_C_FLAGS.
+	(sys_io_submit): Check for HAVE_DECL_IO_CMD_PWRITE and
+	HAVE_DECL_IO_CMD_PWRITEV.
+
+	Fix io_submit decoding.
+	* desc.c (print_common_flags, sys_io_submit): Add missing ", " to
+	SUB_COMMON output, remove extra ", " from SUB_VECTOR output.
+
+2013-03-18  Maxin B. John  <maxin.john@enea.com>
+
+	tests: relax check_prog to allow timeout command provided by busybox.
+	Busybox version of timeout doesn't have --version option.
+	Relax check_prog to handle those cases.
+
+	* tests/init.sh (check_prog): Use type builtin to check program
+	availability.
+
+2013-03-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Reorganize get_regs code, hopefully without functional changes.
+	* syscall.c [I386 || ARM || OR1K || METAG] (ARCH_REGS_FOR_GETREGSET):
+	New macro.
+	(get_regset): Implement for AARCH64, METAG, OR1K and X32.
+	(get_regs) [AARCH64 || METAG || OR1K || X32]: Use it.
+
+	arm, i386: use PTRACE_GETREGSET if available.
+	* syscall.c [ARM || I386 || X86_64] (get_regset): New function.
+	(get_regs) [ARM || I386 || X86_64]: Use it.
+
+	Include <sys/uio.h> and <elf.h> on all architectures.
+	* syscall.c: Include <sys/uio.h> and <elf.h> on all architectures.
+
+	x86-64: enhance PTRACE_GETREGSET test.
+	* syscall.c (get_regs) [X86_64]: Check whether PTRACE_GETREGSET
+	works regardless of the kernel version.
+
+	x32: use PTRACE_GETREGSET unconditionally.
+	* syscall.c (get_regs) [X32]: Assume that PTRACE_GETREGSET always works
+	regardless of the kernel version.
+
+	x86-64, x32: do not include linux/ptrace.h unnecessarily.
+	* syscall.c [X86_64 || X32]: Stop including linux/ptrace.h.
+
+	i386, tile, x32: do not redefine ptrace prototype.
+	* defs.h [I386 || TILE || X32]: Use ptrace prototype from sys/ptrace.h.
+
+	ptrace: decode note segment descriptor types.
+	* configure.ac (AC_CHECK_HEADERS): Add elf.h.
+	* process.c: Include elf.h.
+	(nt_descriptor_types): New xlat structure.
+	(sys_ptrace): Use it.
+
+2013-03-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update MADV_* constants.
+	* mem.c (madvise_cmds): Add more MADV_* constants from
+	asm-generic/mman-common.h
+
+	Reported-by: Robin Hack <hack.robin@gmail.com>
+
+2013-03-07  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Tweaks for -c: fixed setitimer/getitimer hack; optimized call_summary_pers()
+	count_syscall() was calling setitimer/getitimer once in order to find
+	smallest "tick" OS uses in time accounting, in order to use it
+	for syscalls which apparently spent less than that time in syscall.
+	The code assumed that this "tick" is not zero... but it is zero
+	on linux-3.6.11. Which means that this hack doesn't work...
+
+	At least this change prevents this measurement from being done
+	_repeatedly_, by initializing one_tick to -1, not 0.
+
+	While at it, added comments in count_syscall() explaining what we are doing.
+
+	Optimized call_summary_pers() a bit, by eliminating redundant tv -> float
+	conversions, and prevented 0.0/0.0 which was resulting in "% time"
+	being shown as "-nan" if total CPU time spent was 0.000000
+	(try "strace -c /bin/true").
+
+	The code seems to seriously underestimate CPU usage:
+	"strace -c ls -lR /usr/share >/dev/null" shows total time spent
+	in syscalls to be only ~10..20% of what "time ls -lR /usr/share >/dev/null"
+	shows.
+
+	It might be useful to have a mode where we show wall clock time
+	spent in syscalls, not CPU time. It might also be more accurate.
+
+	   text	   data	    bss	    dec	    hex	filename
+	 245019	    676	   5708	 251403	  3d60b	strace_old
+	 244923	    684	   5676	 251283	  3d593	strace
+
+2013-03-06  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Open-code isprint(c) and isspace(c)
+	We don't call setlocale, thus we always use C locale.
+	But libc supports various other locales, and therefore
+	its ctype interface is general and at times inefficient.
+	For example, in glibc these macros result in function call,
+	whereas for e.g. isprint(c) just c >= ' ' && c <= 0x7e
+	suffices.
+
+	By open-coding ctype checks (we have only 4 of them)
+	we avoid function calls, we get smaller code:
+
+	   text	   data	    bss	    dec	    hex	filename
+	 245127	    680	   5708	 251515	  3d67b	strace_old
+	 245019	    676	   5708	 251403	  3d60b	strace
+
+	and we don't link in ctype tables (beneficial for static builds).
+
+	Makefile: add commented-out tweak to generate link map.
+
+	Stop using a large static buffer in getfdpath.
+	   text	   data	    bss	    dec	    hex	filename
+	 245075	    680	   9836	 255591	  3e667	strace_old
+	 245143	    680	   5708	 251531	  3d68b	strace
+
+2013-03-05  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Fix wrongly indented closing curly brace. No code changes.
+
+	strace_vfprintf: if malloc fails, exit gracefully.
+
+2013-03-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Use sysconf(_SC_PAGESIZE) instead of hardcoded PAGE_SHIFT.
+	PAGE_SHIFT couldn't be reliably obtained at compile time,
+	thanks to Chris Metcalf for the hint.
+
+	* mem.c: Do not include <sys/user.h>.
+	[SH64] Do not include <asm/page.h>.
+	(get_pagesize): New function.
+	(sys_mmap_pgoff, sys_old_mmap_pgoff): Use it.
+
+2013-03-05  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Emit better message for ERESTARTNOHAND return.
+
+	Disable STREAMS syscalls for non-SPARC.
+	   text	   data	    bss	    dec	    hex	filename
+	   3002	      0	   1024	   4026	    fba	stream.o.old
+	   1729	      0	   1024	   2753	    ac1	stream.o
+
+	Fix printstrbufarg's address argument to be long, not int.
+
+	Remove variable tracing_paths and check in pathtrace_match.
+
+	Use dynamically-sized selected[] array for -P PATH.
+	While at it, added a small optimization of not remembering
+	the path twice if it happens to be the same.
+
+	   text	   data	    bss	    dec	    hex	filename
+	 245111	    680	  10860	 256651	  3ea8b	strace_old
+	 245075	    680	   9804	 255559	  3e647	strace
+
+	metag,or1k: whitesace style fix. no code changes.
+
+	Assorted fixes to syscallent.h.
+	or1k was missing TM on many memory-related syscalls
+	sys_lookup_dcookie is 3-arg on 64-bit arches, and isn't TF
+	sys_recvmsg is 3-arg on all arches
+	sys_nfsservctl is 3-arg on all arches
+	sys_timerfd_create is 2-arg on all arches
+	sys_[f]truncate64 is 4-arg or 3-arg, never 5-arg
+	truncate64 is TF
+	sys_[l]lseek is TD
+	fstat[64] is TD
+
+2013-03-05  James Hogan  <james.hogan@imgtec.com>
+
+	Add support for Imagination Technologies Meta.
+	Add support for Imagination Technologies Meta architecture (the
+	architecture/ABI is usually referred to as metag in code). The Meta
+	Linux kernel port is in the process of being upstreamed for v3.9 so it
+	uses generic system call numbers.
+
+	sys_lookup_dcookie writes a filename to buffer argument, so I've set
+	TF flag.
+	nfsservctl appears to be set to sys_ni_syscall in asm-generic/unistd.h
+	so I've left it blank.
+	truncate64/ftruncate64/pread64/pwrite64/readahead have unaligned 64bit
+	args which are packed tightly on metag, so less arguments on metag.
+	fchdir/llseek takes a file descriptor so s/TF/TD/
+	sync_file_range has 2 64bit args so uses 6 args, so s/4/6/
+	timerfd_create/msgget/msgctl/msgrcv/semget/segtimedop/semop/shmget/
+	shmctl/shmat/shmdt/recvmsg/migrate_pages have different number of args.
+	oldgetrlimit is just getrlimit for metag.
+	add TM flag to various memory syscalls.
+	metag doesn't directly use sys_mmap_pgoff for mmap2.
+	prlimit64/process_vm_readv/process_vm_writev take a pid so add TP flag.
+	fanotify_init doesn't appear to take a file descriptor so remove TD.
+	Add kcmp syscall.
+
+	Cc: Christian Svensson <blue@cmd.nu>
+
+2013-03-01  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	umovestr: speed up check for NUL byte in the fetched word.
+
+2013-03-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix trace=set regression introduced by commit v4.7-111-g9cbc15b.
+	* syscall.c (qual_syscall, qualify): Pass personality down to
+	qualify_one.
+	* tests/qual_syscall: New test.
+	* tests/Makefile.am (TESTS): Add qual_syscall.
+
+2013-03-01  Chris Metcalf  <cmetcalf@tilera.com>
+
+	tile: handle printllval like x86_64 or powerpc64.
+	Without this fix the tilegx build fails when it hits the new #error
+	about SIZEOF_LONG > 4.
+
+	* util.c (printllval): Fix printing of long long values on TILE.
+
+2013-02-27  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Make -b take SYSCALL param, document it in --help and in manpage.
+	To not waste an option letter for just one trick,
+	extend -b to take a parameter:
+	"on which syscalls do you want to detach?".
+	Currently supports only execve.
+
+	While at it, fixed (by removing non-Linux and stale info)
+	and extended manpage text about -f.
+
+2013-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Cleanup umoven and umovestr.
+	Cleanup sloppy error handling.
+
+	First, EFAULT kind of errors from process_vm_readv by itself is not
+	something unusual, so a warning message will not be issued unless a
+	short read is detected.
+
+	Second, clients of umoven and umovestr are not prepared to detect and
+	handle short reads that can happen in these functions.  The most safe
+	way to handle them is to return an error code.
+
+	* util.c (umoven, umovestr): Cleanup handling of errors coming from
+	process_vm_readv and PTRACE_PEEKDATA.
+
+	pathtrace: fix umovestr return code check.
+	* pathtrace.c (upathmatch): Only NUL-terminated strings can be
+	path-matched, so fix the umovestr return code check to filter out
+	unsuitable strings.
+
+	Fix compilation errors uncovered by -Werror=enum-compare.
+	This fixes regression introduced by commit v4.7-111-g9cbc15b.
+
+	* syscall.c: Merge all nsyscalls* enums into single enum.
+	Likewise merge nerrnos*, nsignals*, and nioctlents* into single enums.
+
+2013-02-26  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Mass replace error_msg("%s", "literal") -> error_msg("literal")
+	There is no need to print literal strings through "%s".
+	Only untrusted strings such as filenames need that.
+
+2013-02-26  Ben Noordhuis  <info@bnoordhuis.nl>
+
+	Make umoven report success as 0, not >=0, stop returning success on partial reads
+	umoven() uses process_vm_readv() when available but it returns the
+	return value of that syscall, which is the number of bytes copied,
+	while its callers expect it to simply return zero on success.
+
+	It was causing syscalls that take a user-space argument to print
+	the abbreviated version, e.g.:
+
+	  epoll_ctl(5, EPOLL_CTL_ADD, 10, {...})
+
+	Instead of:
+
+	  epoll_ctl(5, EPOLL_CTL_ADD, 10, {EPOLLIN, {u32=10, u64=10}})
+
+	* util.c (umoven): Make umove[n] report success as 0, not >=0,
+	stop returning "success" on partial reads.
+
+2013-02-26  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Assorted NOMMU fixes.
+	With -D, strdup'ing of pathname is necessary only on NOMMU.
+
+	Don't set skip_startup_execve to 1 if NOMMU and not in daemonized mode
+	(try "strace [-D] -b env echo HI" to see whether we detach on correct execve).
+
+	Fix test_ptrace_FOO shortcuts on NOMMU to always assume success
+	and _properly_ set all variables.
+
+	Shorten help text - no need to show deprecated option -F.
+
+2013-02-23  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Merge adjacent tprint's.
+
+	Correct i > MAX_NSYSCALLS commparison: should be i >= MAX_NSYSCALLS.
+
+2013-02-22  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Fix wrong offset display in dumpstr.
+	BTW, the new code from prev commit is 5 times faster
+	than old one :)
+
+	Fix a bug in dumpstr (no null termination). Essentially rewrote dumpstr.
+	This is a 14 year old bug (!).
+
+	It wasn't biting us merely because outstr[80] was static, thus ended up
+	in bss and whatever was after it "accidentally" provided the NUL byte.
+	When dumpstr was changed to use on-stack buffer, the bug reared its ugly head.
+
+	This is a rewrite which is smaller and should be significantly faster
+	for _long_ strings.
+
+	   text	   data	    bss	    dec	    hex	filename
+	 244627	    680	  10860	 256167	  3e8a7	strace.t9/strace
+	 244563	    680	  10860	 256103	  3e867	strace.ta/strace
+
+	* util.c (dumpstr): Rewrite to be faster and smaller.
+
+	Eliminate MAX_QUALS, make qualifier array dynamic.
+	MAX_QUALS was 2048, even though most arches used less than 500 entries
+	in it. MAX_QUALS had to be maintained by hand to be higher than syscall
+	count. It also limited the highest possible fd to track.
+
+	This change makes qual_flagsN[] arrays start sized to the required minimum
+	(number of syscalls) and grow dynamically if user requested
+	-e read=BIGNUM. As a precaution, BIGNUM should be < 2^15, but this limit
+	can be raised with no cost for normal strace invocations.
+
+	qual_flags is now a define to qual_vec[current_personality].
+
+	As a bonus, this patch aliases sysent, errnoent, signalent, ioctlent
+	names in one-personality arches to their corresponding <foo>0 arrays,
+	removing one indirection level.
+
+	  text   data    bss    dec    hex filename
+	244471    700  12928 258099  3f033 strace.t7/strace
+	244627    680  10860 256167  3e8a7 strace.t8/strace
+
+	Create and use struct_sysent and struct_ioctlent typedefs.
+	This is a preparatory mass replace patch with no code changes.
+
+	The future change will need to typedef sysent to sysent0,
+	which results in compile failures when "struct sysent" string
+	gets mangled into "struct sysent0".
+
+	Use tcp->qual_flg instead of qual_flags[] in verbose() and abbrev()
+	We have hundreds of uses of these macros.
+	Result is more efficient and 1.1 kbyte shorter code:
+
+	  text	   data	    bss	    dec	    hex	filename
+	245579	    700	  12928	 259207	  3f487	strace.t5/strace
+	244471	    700	  12928	 258099	  3f033	strace.t6/strace
+
+2013-02-21  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Remove unused QUAL_FAULT code (was used by non-Linux code only).
+
+	Use uint8_t for qual_flags[] instead of ints.
+	Resulting bss reduction is ~6kbytes:
+
+	   text	   data	    bss	    dec	    hex	filename
+	 245703	    700	  19072	 265475	  40d03	strace.t4/strace
+	 245687	    700	  12928	 259315	  3f4f3	strace.t5/strace
+
+	Eliminate many SCNO_IS_VALID checks.
+	By adding tcp->s_ent pointer tot syscall table entry,
+	we can replace sysent[tcp->scno] references by tcp->s_ent.
+	More importantly, we may ensure that tcp->s_ent is always valid,
+	regardless of tcp->scno value. This allows us to drop
+	SCNO_IS_VALID(tcp->scno) checks before we access syscall
+	table entry.
+
+	We can optimize (qual_flags[tcp->scno] & QUAL_foo) checks
+	with a similar technique.
+
+	Resulting code shrink:
+	   text    data     bss     dec     hex filename
+	 245975     700   19072  265747   40e13 strace.t3/strace
+	 245703     700   19072  265475   40d03 strace.t4/strace
+
+	* count.c (count_syscall): Use cheaper SCNO_IN_RANGE() check.
+	* defs.h: Add "int qual_flg" and "const struct sysent *s_ent"
+	to struct tcb. Remove "int u_nargs" from it.
+	Add UNDEFINED_SCNO constant which will mark undefined scnos
+	in tcp->qual_flg.
+	* pathtrace.c (pathtrace_match): Drop SCNO_IS_VALID check.
+	Use tcp->s_ent instead of sysent[tcp->scno].
+	* process.c (sys_prctl): Use tcp->s_ent->nargs instead of tcp->u_nargs.
+	(sys_waitid): Likewise.
+	* strace.c (init): Add compile-time check that DEFAULT_QUAL_FLAGS
+	constant is consistent with init code.
+	* syscall.c (decode_socket_subcall): Use tcp->s_ent->nargs
+	instead of tcp->u_nargs. Set tcp->qual_flg and tcp->s_ent.
+	(decode_ipc_subcall): Likewise.
+	(printargs): Use tcp->s_ent->nargs instead of tcp->u_nargs.
+	(printargs_lu): Likewise.
+	(printargs_ld): Likewise.
+	(get_scno): [MIPS,ALPHA] Use cheaper SCNO_IN_RANGE() check.
+	If !SCNO_IS_VALID, set tcp->s_ent and tcp->qual_flg to default values.
+	(internal_fork): Use tcp->s_ent instead of sysent[tcp->scno].
+	(syscall_fixup_for_fork_exec): Remove SCNO_IS_VALID check.
+	Use tcp->s_ent instead of sysent[tcp->scno].
+	(get_syscall_args): Likewise.
+	(get_error): Drop SCNO_IS_VALID check where it is redundant.
+	(dumpio): Drop SCNO_IS_VALID check where it is redundant.
+	Use tcp->s_ent instead of sysent[tcp->scno].
+	(trace_syscall_entering): Use (tcp->qual_flg & UNDEFINED_SCNO) instead
+	of SCNO_IS_VALID check. Use tcp->s_ent instead of sysent[tcp->scno].
+	Drop SCNO_IS_VALID check where it is redundant.
+	Print undefined syscall name with undefined_scno_name(tcp).
+	(trace_syscall_exiting): Likewise.
+	* util.c (setbpt): Use tcp->s_ent instead of sysent[tcp->scno].
+
+	ARM: make it one-personality arch.
+	ARM in fact _is_ one personality.
+
+	We had two personalities for it because it has a handful of
+	syscalls with huge scnos (0x000f00xx).
+
+	Extending syscall table to have [0x000f0005] index is of course
+	not a good idea.
+
+	Someone decided to handle that by having a separate personality
+	just for these syscalls.
+
+	But multi-personality arch does a bit more work in other parts.
+
+	This patch is another alternative: "move" 0x000f00nn syscalls
+	down to the entries just above last ordinary syscall,
+	by manipulating scno if it falls into the 0x000f00xx range.
+
+	In order to not worsen genuine undefined scnos' printing,
+	the code remaps scno back to actual value before printing
+	"syscall_NNN" string.
+
+	* defs.h: Remove multi-reprsonality defines from ARM.
+	* syscall.c (shuffle_scno): New function.
+	(undefined_scno_name): New function.
+	(get_scno): [ARM] Replace personality setting with scno shuffling.
+	(trace_syscall_entering): Print unknown syscall name using
+	undefined_scno_name().
+	(trace_syscall_exiting): Likewise.
+	* linux/arm/syscallent.h: Add ARM specific syscalls at the end.
+	* linux/arm/errnoent1.h: Deleted.
+	* linux/arm/ioctlent1.h: Deleted.
+	* linux/arm/signalent1.h: Deleted.
+	* linux/arm/syscallent1.h: Deleted.
+
+2013-02-20  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	arm: shorten syscall table for EABI - no point in storing NULL entries.
+	Also, reformatted ARM code in get_scno(), mostly improved comments,
+	without code changes.
+
+	Use the same style of includes in linux/*/* files.
+	While at it, fix some comments which say
+	"we use i386 syscalls/ioctls/errnos" but in reality
+	common ones are used.
+
+2013-02-19  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Fix compiler warnings.
+	With constant current_wordsize == 4 and 32-bit longs,
+	gcc was spooked by "1ul << (8 * current_wordsize)" = "1ul << 32".
+
+	Make such places conditional on SIZEOF_LONG > 4.
+
+	Improve comment text. No code changes.
+
+	Fix NOMMU + daemonized tracer SEGV.
+	pathname[] was getting destroyed, execve of garbage pathname
+	failing, and to top it off, the tracer's stack was also
+	smashed and trecer segfaulted.
+
+	* strace.c (exec_or_die): New function.
+	(startup_child): Don't use pathname[] contents after vfork,
+	make a malloced copy instead. Explain "NOMMU + -D bug"
+	and how we work around it.
+
+	Make it possible to to do test builds for NOMMU architectures.
+	And while using it, I discovered that -D doesn't work too well
+	on NOMMU. Added a comment about it.
+
+	Clean up mmap decoding.
+	Previous code merges too many similar, but different ways
+	of decoding mmap. For example, sys_old_mmap is "params in memory"
+	API... except SH[64], where it is "params in regs",
+	i.e. what sys_mmap ("new mmap") function does on other arches!
+
+	It's much simpler when every mmap handler has same API regardless
+	of arch. Where API means whether params are in regs or in memory,
+	and whether offset is in bytes, pages, or 4k blocks.
+
+	Then we just insert correct function pointers into
+	arch syscall tables.
+
+	It turns out there are four common mmap APIs over
+	all architectures which exist in Linux kernel,
+	and one outlier for S390.
+
+	A number of mmap decoders were plain wrong in arch tables.
+	For example, BFIN has no old_mmap. It returns ENOSYS.
+	I checked kernel sources for all arches nad fixed the tables.
+
+	There was dead code for x86_64 for old_mmap:
+	x86_64 has no old_mmap.
+
+	* mem.c: Refactor mmap functions so that we have five mmap syscall
+	handlers, each with the fixed API (not varying by arch).
+	* pathtrace.c (pathtrace_match): Adjust sys_func == mmap_func checks.
+	* linux/syscall.h: Declare new mmap syscall handler functions.
+	* linux/arm/syscallent.h: mmap2 is sys_mmap_pgoff.
+	* linux/avr32/syscallent.h: mmap is sys_mmap_pgoff.
+	* linux/bfin/syscallent.h: old_mmap is ENOSYS, mmap2 is sys_mmap_pgoff.
+	* linux/hppa/syscallent.h: mmap2 is sys_mmap_4koff.
+	* linux/i386/syscallent.h: mmap2 is sys_mmap_pgoff.
+	* linux/ia64/syscallent.h: mmap2 is sys_mmap_pgoff.
+	* linux/m68k/syscallent.h: mmap2 is sys_mmap_pgoff.
+	* linux/microblaze/syscallent.h: old_mmap is sys_mmap, mmap2 is sys_mmap_pgoff.
+	* linux/mips/syscallent.h: mmap is sys_mmap_4kgoff.
+	* linux/or1k/syscallent.h: mmap2 is sys_mmap_pgoff.
+	* linux/powerpc/syscallent.h: mmap2 is sys_mmap_4kgoff.
+	* linux/s390/syscallent.h: mmap2 is sys_old_mmap_pgoff.
+	* linux/s390x/syscallent.h: mmap is sys_old_mmap and thus has 1 arg.
+	* linux/sh/syscallent.h: old_mmap2 is sys_mmap, mmap2 is sys_mmap_4koff.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent1.h: mmap is TD|TM.
+	* linux/tile/syscallent1.h: mmap2 is sys_mmap_4koff.
+
+2013-02-18  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Remove unused function sys_mmap64.
+	No wonder that it is unused.
+	It's code looked quite questionable.
+
+	* mem.c (sys_mmap64): Remove this function.
+
+	Remove code which supports systems with long long off_t.
+	While looking at mmap mess, did experimenting in order
+	to figure out what gets used when.
+
+	Tried building armv4tl, armv5l, armv6l, mips, mipsel, i686,
+	x86_64 and none of they have long long off_t,
+	which isn't suprprising: we aren't using glibc defines
+	which enable that.
+
+	Moreover, we SHOULD NOT use off_t in syscall decode!
+	Its size depends on libc, not on arch! I.e. it is essentially
+	unpredictable and can even in theory vary on the same arch
+	with different libc.
+
+	We should use longs or long longs, in a way which matches
+	architectural ABI for the given syscall. There are usually
+	*at most* two permutations, no need to add yet another variable
+	(sizeof(off_t)) to the mix.
+
+	This change removes almost all HAVE_LONG_LONG_OFF_T conditionals,
+	which will reveal further possible simplifications.
+
+	* mem.c: Remove code conditional on HAVE_LONG_LONG_OFF_T.
+	As a result, never remap sys_mmap64 to sys_mmap.
+	(print_mmap): Compile unconditionally.
+	(sys_old_mmap): Compile unconditionally.
+	(sys_mmap): Compile unconditionally.
+	* io.c (sys_sendfile): Add a FIXME comment.
+	* file.c: Remove code conditional on HAVE_LONG_LONG_OFF_T.
+	As a result, never remap sys_*stat64 to sys_*stat etc.
+	(sys_truncate): Compile unconditionally.
+	(realprintstat): Likewise.
+	(sys_stat): Likewise.
+	(sys_fstat): Likewise.
+	(sys_lstat): Likewise.
+	* desc.c (printflock): Likewise.
+
+	Fixes in "new" mmap.
+	* mem.c (sys_mmap): Ensure unsigned expansion of tcp->u_arg[5].
+	Add page shift of offset for I386.
+	Use tcp->ext_arg[5] as offset for X32.
+	(sys_old_mmap): [X32] Remove this function, X32 doesn't use is.
+
+	Preliminary simplifications in mmap functions.
+	* mem.c: Move "define sys_mmap64 sys_mmap" from the top
+	to the only place it affects.
+	(print_mmap): Make offset argument unsigned, for safer implicit conversions.
+	(sys_old_mmap): [IA64] use unsigned narrow_arg[].
+	Cast u_arg[5] (offset param) to unsigned long, to prevent erroneous signed
+	expansion.
+
+2013-02-17  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Remove broken HAVE_LONG_LONG conditionals.
+	We use printllval without HAVE_LONG_LONG guards in many places,
+	but define it only if HAVE_LONG_LONG. This means that
+	on !HAVE_LONG_LONG systems we won't build for some time now.
+
+	* defs.h: Remove HAVE_LONG_LONG guard around LONG_LONG() macro
+	and printllval() function declaration.
+	* util.c: Remove HAVE_LONG_LONG guard around printllval()
+	function definition.
+	(printllval): Add compile-time error check for using wrong
+	if branch. Explain places where we deliberately use mismatched
+	types for printf formats.
+
+	Use explicit long type instead of off_t.
+	* file.c (sys_lseek): Use long instead of off_t.
+
+	Merge two identical tables.
+	* defs.h: Declare whence_codes[].
+	* desc.c: Delete static whence[].
+	(printflock[64]): Use whence_codes.
+	* file.c: Make whence_codes[] non-static.
+	Add SEEK_DATA and SEEK_HOLE to them.
+
+	Remove wrong x32-specific lseek.
+	Testing confirmed what I suspected: x32 lseek uses kernel-sized
+	(i.e. wide) long for offset parameter.
+
+	* file.c: Delete sys_lseek32.
+	* linux/syscall.h: Likewise.
+	* linux/x32/syscallent1.h: Likewise.
+	* test/x32_lseek.c: New file.
+
+	Fix SEGV in lseek.
+	I found hard way why the code was using "_whence" name.
+
+	* file.c: Rename whence[] to whence_codes[].
+	(sys_lseek): Fix printxval() to use whence_codes[].
+	(sys_lseek32): Likewise.
+
+	Comment inner workings of sys_[l]lseek.
+	The code doesn't look fully correct to me, but I need to experiment
+	on actual x32 machine before I start "fixing" things.
+	For now, add comments, and optimize out one tprints() call...
+
+	* file.c (sys_lseek): Rename '_whence' as 'whence'.
+	Merge printing of ", " into subsequent tprintf.
+	(sys_lseek32): Likewise.
+	(sys_llseek): Likewise.
+
+	Cosmetic fixes to syscall tables, no code changes.
+
+2013-02-16  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Make linux/mips/syscallent.h smaller.
+	* linux/mips/syscallent.h: Remove trailing empty elements.
+	Compactify huge stretches of NULL elements in the middle.
+
+	Simple optimization in get_error.
+	* defs.h: Define SCNO_IN_RANGE(scno) macro.
+	* syscall.c (get_error): Change return type to void.
+	Use SCNO_IN_RANGE instead of SCNO_IS_VALID.
+	(trace_syscall_exiting): Stop checking get_error() return value.
+
+	Mass rename of SCNO_IN_RANGE define to SCNO_IS_VALID.
+
+	Finish prefixing regs struct names with arch_
+	* defs: Rename regs -> sparc_regs.
+	* signal.c (sys_sigreturn): Use new variable name.
+	* syscall.c: Rename regs -> sparc_regs, regs -> avr32_regs.
+	(getrval2): Use new variable names.
+	(printcall): Likewise.
+
+2013-02-15  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Use the same type for i386_regs on 32-bit and 64-bit x86.
+	* defs.h: Stop including <asm/ptrace.h> for x86.
+	Change i386_regs from "struct pt_regs" to "struct user_regs_struct".
+	* syscall.c: Likewise.
+
+	Fix build error on Tile.
+	* syscall.c (get_scno): [TILE] Remove TCB_WAITEXECVE check,
+	it is never true on Tile, and stopped compiling when
+	TCB_WAITEXECVE define was removed for Tile.
+
+	x86: zero-extend 32-bit args in syscall entry instead of sign-extension.
+	Zero-extension is slightly more common that sign-extension:
+	all pointers are zero-extended, and some other params are unsigned.
+
+	Whereas signed ones (fds, pids, etc) are often treated as
+	_32-bit ints_ even by kernel, so just unconditionally casting
+	such tcp->u_arg[N] to int works.
+
+	* syscall.c (get_syscall_args): [X86] Zero-extend 32-bit args
+	instead of sign-extension.
+
+	Macroize conditional signed widening operation.
+	* defs.h: Define widen_to_long() macro.
+	* signal.c (sys_kill): Use it instead of open-coding it.
+	(sys_tgkill): Use widen_to_long() on pids.
+	* resource.c (decode_rlimit): Formatting fix.
+
+	A better handling of current_wordsize.
+	On x86_64:
+	  text	   data	    bss	    dec	    hex	filename
+	435661	  26628	  47424	 509713	  7c711	strace_old
+	435501	  26612	  47440	 509553	  7c671	strace_new_clever_wordsize
+
+	On x32 and arm it should be even better, current_wordsize becomes
+	a constant there.
+
+	* defs.h: Declare current_wordsize as a variable if needed,
+	else declare as a constant define.
+	Remove declatation of personality_wordsize[].
+	* syscall.c: Make personality_wordsize[] static.
+	Declare current_wordsize as a variable if needed.
+	(set_personality): Set current_wordsize only if non-constant.
+
+	Remove unnecessary "return 0" statements.
+	* util.c (change_syscall): Remove dummy "return 0"s.
+
+2013-02-14  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	x86: fix required kernel version for GETREGSET.
+	* syscall.c (get_regs): [X86] Use GETREGSET only if kernel >= 2.6.35
+
+	Whitespace fix, no code changes.
+
+2013-02-14  Christian Svensson  <blue@cmd.nu>
+
+	Add support for the OpenRISC 1000 platform.
+	* configure.ac: Added or1k architecture..
+	* defs.h: Added or1k to use register reading system.
+	* linux/or1k/ioctlent.h.in: Use i386 ioctls.
+	* linux/or1k/syscallent.h: New file.
+	* process.c: Added or1k register defs to struct_user_offsets[].
+	* syscall.c: Added or1k_io iovec for or1k GETREGSET,
+	  regset structure for or1k.
+	  (printcall): Added handling for or1k.
+	  (get_regs): Likewise.
+	  (get_scno): Likewise.
+	  (get_syscall_args): Likewise.
+	  (get_syscall_result): Likewise.
+	  (get_error): Likewise.
+	* util.c (change_syscall): Added dummy handling for or1k.
+	* system.c (sys_or1k_atomic): New function (or1k specific syscall).
+
+2013-02-14  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	[X86] Use ptrace(PTRACE_GETREGSET, NT_PRSTATUS) to get registers.
+	Unlike PTRACE_GETREGS, this new method detects 32-bit processes
+	reliably, without checking segment register values which
+	are undocumented and aren't part of any sort of API.
+	While at it, also fixed x32 detection to use __X32_SYSCALL_BIT,
+	as it should have been from the beginning.
+
+	* defs.h: Declare os_release and KERNEL_VERSION.
+	* strace.c: Make os_release non-static, remove KERNEL_VERSION define.
+	* syscall.c: New struct i386_user_regs_struct,
+	static union x86_regs_union and struct iovec x86_io.
+	(printcall): Use i386_regs or x86_64_regs depending on x86_io.iov_len.
+	(get_regs): On x86 and kernels 2.6.30+, use PTRACE_GETREGSET,
+	on earlier kernels fall back to old method.
+	(get_scno): [X86] Determine personality based on regset size
+	on scno & __X32_SYSCALL_BIT.
+	(syscall_fixup_on_sysenter): Use i386_regs or x86_64_regs depending
+	on x86_io.iov_len.
+	(get_syscall_args): Likewise.
+	(get_error): Likewise.
+
+2013-02-13  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Rename some register statics by prefixing their names with arch.
+	This makes it easier to grep for them.
+
+	* syscall.c: Rename variables:
+	r0 -> bfin_r0,alpha_r0,sh_r0.
+	a3 -> mips_a3.
+	r2 -> mips_r2.
+	(get_scno): Use new variable names.
+	(get_syscall_result): Likewise.
+	(get_error): Likewise.
+
+	Factor out code to check addr, fetch and print siginfo.
+	* defs.h: Declare new function printsiginfo_at(tcp, addr).
+	* process.c (sys_waitid): Use printsiginfo_at().
+	(sys_ptrace): Likewise.
+	* signal.c: (printsiginfo_at): Implement this new function.
+	(sys_rt_sigsuspend): Use printsiginfo_at().
+	(sys_rt_sigtimedwait): Likewise.
+
+	Decode struct iov in PTRACE_GET/SETREGSET.
+	* process.c (sys_ptrace): Decode struct iov in PTRACE_GET/SETREGSET.
+
+2013-02-12  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Unify representations of struct user fields for subarchitectures.
+	* process.c: Unify MIPS and LINUX_MIPSN32, and SH and SH64 parts of
+	struct_user_offsets[].
+
+	Add start_code and start_data members of struct user.
+	* process.c: Add start_code and start_data members of struct user
+	in struct_user_offsets[], where appropriate.
+
+	Remove hacks for old kernels for architectures which require new kernels
+	* util.c (change_syscall): For MICROBLAZE, replace code
+	with dummy "return 0" and a comment explaining why that is ok
+	for this architecture.
+
+	Remove stray syscall result reading code on syscall entry for s390.
+	This is a leftover from sysenter/sysexit split.
+	I can't run-test it, but from code inspection it seems to be correct.
+
+	* syscall.c (get_scno): Remove stray syscall result reading for s390[x].
+
+	Deobfuscate definitions of struct user offsets.
+	The maze of ifdefs/ifndefs was scaring new contributors.
+	Format it so that every arch has its own ifdef block.
+
+	* process.c: Deobfuscate definitions of struct user offsets.
+
+	Remove hacks for old kernels for architectures which require new kernels
+	* defs.h: Do not define TCB_WAITEXECVE for AARCH64.
+	* util.c (change_syscall): For AARCH64 and X32, replace code
+	with dummy "return 0" and a comment explaining why that is ok
+	for these architectures.
+
+	Remove old kernel hacks for architectures which require new kernels.
+	* defs.h: Do not define TCB_WAITEXECVE for AVR32, BFIN and TILE.
+	* util.c (change_syscall): For AVR32, BFIN and TILE, replace code
+	with dummy "return 0" and a comment explaining why that is ok
+	for these architectures.
+
+	Handle recv[m]msg for non-native 32-bit personality syscalls.
+	* net.c (printmsghdr): If current_wordsize is 4 and long is wider than it,
+	read 32-bit struct msghdr and expand it into a native one before using it.
+	(printmmsghdr): Likewise for struct mmsghdr.
+
+	Fix is_negated_errno() check for X32.
+	X32's return value is 64-bit. We were truncating it to 32-bit long
+	before checking for -errno.
+
+	* syscall.c (is_negated_errno_x32): New function.
+	(get_error): Use is_negated_errno_x32 for X32 architecture.
+
+	Remove unused / ambiguously used defines.
+	We sometimes use LINUXSPARC and sometimes (more often)
+	use "defined(SPARC) || defined(SPARC64)". Better to use
+	one construct consistently.
+	LINUX_MIPS64 is altogether unused.
+
+	* defs.h: Remove LINUXSPARC and LINUX_MIPS64 defines.
+	Move PTRACE_xxx compat defines up, before arch-specific
+	machinery. Use defined(SPARC) || defined(SPARC64)
+	instead of LINUXSPARC.
+	* file.c: Use defined(SPARC) || defined(SPARC64) instead of LINUXSPARC.
+	* signal.c: Likewise.
+
+2013-02-11  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Preparatory patch for "new" x86 personality detection.
+	* syscall.c: Move PT_FLAGS_COMPAT define to its only user, get_scno().
+	Rename arm_regs_union's fields to names less likely to collide with
+	system defines.
+	(get_regs): Use sizeof(arm_regs_union) instead of sizeof(aarch64_regs).
+	This should be the same, but htis way it's cleaner.
+	Remove __X32_SYSCALL_MASK and use __X32_SYSCALL_BIT instead.
+	Explain 64-bit check in X32 build better.
+
+2013-02-09  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix sigaltstack decoder.
+	strace used to hang when decoding sigaltstack called with invalid
+	stack_t pointers because of mishandling umove() return code.
+
+	* signal.c (print_stack_t): Handle unfetchable stack_t properly.
+	Change return type to void.
+	(sys_sigaltstack): Update print_stack_t() usage.
+
+	Reported-by: kawillia@ucalgary.ca
+
+2013-02-09  Mike Frysinger  <vapier@gentoo.org>
+
+	Fix decoding of sysctl() when oldval fields are NULL.
+	If you call glibc's syscall wrapper like so:
+		static int name[] = { CTL_NET, NET_IPV4, NET_IPV4_LOCAL_PORT_RANGE };
+		int buffer[2] = { 32768, 61000 };
+		size_t size = sizeof(buffer);
+		sysctl(name, 3, 0, 0, buffer, size);
+	(note that oldval/oldlenp are NULL).
+
+	The current strace code complains like so:
+	_sysctl({{CTL_NET, NET_IPV4, NET_IPV4_LOCAL_PORT_RANGE, 38}, 3, process_vm_readv: Bad address
+	(nil), 0, 0x7fffe23c3960, 8}) = -1 EACCES (Permission denied)
+
+	Since passing NULL for the old values is valid, handle that explicitly.
+	This also simplifies the code a bit by splitting up the handling of the
+	new and old args so that we only handle the new args once.
+
+	Now the output looks like:
+	_sysctl({{CTL_NET, NET_IPV4, NET_IPV4_LOCAL_PORT_RANGE, 38}, 3, NULL, 0, 0x7fff8c0c91b0, 8) = -1 EACCES (Permission denied)
+
+	* system.c (sys_sysctl): Check if info.oldval is NULL first.  Move the
+	processing of oldlen/info.newval/info.newlen out so they always get
+	executed.  Fix the format strings so we use %lu for unsigned long rather
+	than a mix of %ld and %lu.
+
+2013-02-08  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	If we are on a glibc system, assume it's at least glibc 2.1.
+	It is not likely anyone uses glibc older that that:
+	glibc 2.1.1 was released in 1999
+
+	* net.c: Remove test for glibc >= 2.1.
+	* signal.c: Remove code which is compiled only for glibc < 2.1.
+	* util.c: Likewise.
+
+	S390: stop using needlessly static long pc variable.
+	* syscall.c: Remove "static long pc" variable.
+	(get_scno): Use an automatic long variable instead of a static.
+
+	Dying suddenly with abort() is rude, avoid if possible.
+	* file.c (sys_utime): Don't call abort() if wordsize is strange.
+	Instead, warn user about it.
+	* desc.c (printflock): Use the same message string as in sys_utime.
+
+	Remove vestigial hacks around non-Linux struct sigactions.
+	* signal.c: Stop using __sighandler_t glibc'ism. Remove SA_HANDLER macro.
+	Explain why we can't use "sa_handler" as a field name.
+	(sys_sigaction): Use __sa_handler instead of SA_HANDLER macro.
+	(sys_rt_sigaction): Likewise.
+
+	Optimize AArch64 handling of 32-bit personality.
+	By putting aarch64_regs and arm_regs into a union,
+	register copying is eliminated.
+	No need to check and change personality on syscall exit.
+
+	* defs.h: Remove unused NUM_ARM_REGS define. Fix indentation.
+	* syscall.c: Put aarch64_regs and arm_regs into a union.
+	(update_personality): Shorten bitness message.
+	(printcall): Add commented-out PC printing.
+	(get_regs): Remove now-unnecessary 64-to-32 bits register copying.
+	(get_syscall_result): Drop personality changing code.
+
+2013-02-07  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Rename some register statics by prefixing their names with arch.
+	This makes it easier to grep for them.
+
+	* syscall.c: Make IA64's r8, r10 global variables static.
+	Rename variables:
+	r8,r10 -> ia64_r8,ia64_r10.
+	d0 -> m68k_d0.
+	a3 -> alpha_a3.
+	r28 -> hppa_r28.
+	r9 -> sh64_r9.
+	r10 -> cris_r10.
+	r3 -> microblaze_r3.
+	(get_scno): Use new variable names.
+	(syscall_fixup_on_sysenter): Likewise.
+	(get_syscall_result): Likewise.
+	(get_error): Likewise.
+
+2013-02-06  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Rename ARM's regs structure to arm_regs.
+	Compile-tested.
+
+	* defs.h: Rename regs structure to arm_regs.
+	* syscall.c: Likewise.
+	(printcall): Use new name instead of old one.
+	(get_regs): Likewise.
+	(get_scno): Likewise.
+	(get_syscall_args): Likewise.
+	(get_error): Likewise.
+	* signal.c (sys_sigreturn): Likewise.
+
+	Stop needlessly using static variable.
+	* syscall.c: Remove static long psr.
+	(get_scno): Use local psr variable.
+	(get_syscall_result): Likewise.
+
+	Shortcut tests for fork/exec syscalls.
+	This change should speed up strace by a tiny bit.
+
+	More importantly, it makes it much more clear that
+	fork and exec fixups are not necessary for any reasonably
+	recent kernels. IOW: syscall_fixup_for_fork_exec() and its callees
+	are all dead code.
+
+	* defs.h: Declare new need_fork_exec_workarounds flag variable.
+	* strace.c: Define need_fork_exec_workarounds flag variable.
+	(test_ptrace_setoptions_followfork): Return 0/1 as success/fail indicator.
+	(test_ptrace_setoptions_for_all): Likewise.
+	(init): Set need_fork_exec_workarounds to TRUE if needed.
+	* syscall.c: Rename internal_syscall() to syscall_fixup_for_fork_exec().
+	(trace_syscall_entering): Call syscall_fixup_for_fork_exec() only if
+	need_fork_exec_workarounds == TRUE.
+	(trace_syscall_exiting): Likewise.
+
+2013-02-05  Ben Noordhuis  <info@bnoordhuis.nl>
+
+	Improve perf_event_open argument decoding.
+	* configure.ac (AC_CHECK_HEADERS): Add linux/perf_event.h.
+	* desc.c [HAVE_LINUX_PERF_EVENT_H]: Include <linux/perf_event.h>.
+	(perf_event_open_flags): New xlat structure.
+	(sys_perf_event_open): New function.
+	* linux/dummy.h (sys_perf_event_open): Remove.
+	* linux/syscall.h (sys_perf_event_open): New prototype.
+
+2013-02-05  Chris Metcalf  <cmetcalf@tilera.com>
+
+	tile: fix merge skew with new get_regs architecture.
+	* defs.h [TILE]: Declare clear_regs(), get_regs() and get_regs_error.
+	* syscall.c (get_regs) [TILE]: Fix merge skew.
+	(printcall) [TILE]: fix a compiler warning about pt_reg_t in
+	a printf expression.
+
+2013-02-05  Bernhard Reutner-Fischer  <rep.dot.nop@gmail.com>
+
+	mount: decode MS_NOSEC.
+	* system.c (MS_NOSEC): Define.
+	(mount_flags): Add MS_NOSEC.
+
+	mmap: decode MAP_UNINITIALIZED.
+	* mem.c (mmap_flags): Add MAP_UNINITIALIZED.
+
+2013-02-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Print 64-bit instruction pointers zero padded.
+	* syscall.c (printcall): Print 64-bit instruction pointers zero padded.
+
+	x86_64: fix compilation warning introduced in previous commit.
+	* syscall.c (printcall): Cast x86_64_regs.rip to the type being printed.
+
+2013-02-05  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Simple bug fix for x86_86.
+	* syscall.c (printcall): Use x86_64_regs.rip, not x86_64_regs.ip.
+
+2013-02-05  Chris Metcalf  <cmetcalf@tilera.com>
+
+	Add tilegx support to strace.
+	tilegx support has been in the kernel since 3.0.
+	In addition, fix some issues with the tilepro support already
+	present in strace, primarily the decision to use the
+	<asm/unistd.h> numbering space for system calls.
+
+	* defs.h [TILE]: Include <asm/ptrace.h> and provide an extern
+	struct pt_regs tile_regs for efficiency.  Provide compat 32-bit
+	personality via SUPPORTED_PERSONALITIES, PERSONALITY0_WORDSIZE,
+	PERSONALITY1_WORDSIZE, and DEFAULT_PERSONALITY.
+	* linux/tile/errnoent1.h: New file, includes linux/errnoent.h.
+	* linux/tile/ioctlent1.h: New file, includes linux/ioctlent.h.
+	* linux/tile/signalent1.h: New file, includes linux/signalent.h.
+	* linux/tile/syscallent.h: Update with new asm-generic syscalls.
+	The version previously committed was the from the first tile patch
+	to LKML, which subsequently was changed to use <asm-generic/unistd.h>.
+	* linux/tile/syscallent1.h: Copy from linux/tile/syscallent.h.
+	* mem.c (addtileflags) [TILE]: use %ld properly for a "long" variable.
+	* process.c [TILE]: Choose clone arguments correctly and properly
+	suppress all "struct user" related offsets in user_struct_offsets.
+	* signal.c [TILE]: Use tile_regs not upeek.
+	* syscall.c (update_personality) [TILE]: Print mode.
+	(PT_FLAGS_COMPAT) [TILE]: Provide if not in system headers.
+	(tile_regs) [TILE]: Define 'struct pt_regs' variable to hold state.
+	(get_regs) [TILE]: use PTRACE_GETREGS to set tile_regs rather than using upeek.
+	(get_scno) [TILE]: Set personality.
+	(get_syscall_args) [TILE]: Use tile_regs.
+	(get_syscall_result) [TILE]: Update tile_regs.
+	(get_error) [TILE]: Use tile_regs.
+	(printcall) [TILE]: Print pc.
+	(arg0_offset, arg1_offset, restore_arg0, restore_arg1) [TILE]:
+	Properly handle tile call semantics and support tilegx.
+
+2013-02-05  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Small optimization for SPARC[64] get_scno.
+	* syscall.c: Remove static unsigned long trap veriable.
+	(get_scno): Use local trap variable.
+
+	Do not compile getrval2() if not needed.
+	* syscall.c (getrval2): Do not compile it for architetures where
+	it isn't ever used.
+
+	Optimize out PTRACE_PEEKUSER with -i.
+	strace -i was fetching PC with a separate PEEKUSER
+	despite having GETREGS data:
+
+	ptrace(PTRACE_GETREGS, 22331, 0, 0x8087f00) = 0
+	ptrace(PTRACE_PEEKUSER, 22331, 4*EIP, [0x80dd7b7]) = 0
+	write(3, "[080dd7b7] ioctl(0, SNDCTL_TMR_T"..., 82) = 82
+	ptrace(PTRACE_SYSCALL, 22331, 0, SIG_0) = 0
+
+	Now it does this:
+
+	ptrace(PTRACE_GETREGS, 22549, 0, 0x8087ea0) = 0
+	write(3, "[080dd7b7] ioctl(0, SNDCTL_TMR_T"..., 82) = 82
+	ptrace(PTRACE_SYSCALL, 22549, 0, SIG_0) = 0
+
+	Analogous improvement in sys_sigreturn() is also implemented.
+
+	* defs.h: Declare extern struct pt_regs regs for SPARC[64] and ARM.
+	Declare clear_regs(), get_regs() and get_regs_error flag variable.
+	* strace.c (trace): Call get_regs(pid) as soon as we know the tcb
+	and that it is stopped.
+	* syscall.c (get_regs): New function. Used to fetch registers early,
+	just after tracee has stopped.
+	(printcall): Move it here from util.c. Use global regs.REG data,
+	if available on the arch, instead of re-fetching it.
+	(get_scno): Use global regs.REG data.
+	(get_syscall_result): Likewise.
+	* signal.c (sys_sigreturn): Likewise.
+	* util.c (printcall): Moved to syscall.c.
+
+2012-12-15  Stanislav Brabec  <sbrabec@suse.cz>
+
+	Fix sys_semtimedop decoding on s390x.
+	The s390 and s390x pass semtimedop arguments differently from other
+	architectures.  sys_semtimedop parser was fixed for s390 by commit
+	v4.6-177-ge0f5fd8, and s390x requires the same fix.
+
+	* linux/ipc.c (sys_semtimedop): Fix timespec decoding on s390x.
+
+2012-12-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix *xattr decoding.
+	* file.c (print_xattr_val): Do not attempt to decode a zero sized array.
+	Fixes RH#885233.
+
+2012-12-08  Stanislav Brabec  <sbrabec@suse.cz>
+
+	sys_semtimedop: fix timeval argument index in wrapped call.
+	Looking at the implementation of wrapped semtimedop() call inside glibc
+	and kernel, I started to believe that timeval should be located in
+	tcp->u_arg[4] and not tcp->u_arg[5].  Fortunately, tcp->u_arg[5] now
+	works correctly as well, due to side effects of decode_ipc_subcall().
+
+	declaration in header:
+	int semtimedop(semid, *sops, nsops, *timeout);
+	                 0      1      2        3
+
+	sys_ipc arguments in glibc on all patforms except s390*:
+	semid, (int) nsops, 0, CHECK_N (sops, nsops), timeout
+	  0            1    2            3                4
+	We have to use indexes: 0 3 1 4
+
+	sys_ipc arguments on s390*:
+	semid, (int) nsops, timeout, sops
+	  0            1       2       3
+	We have to use indexes: 0 3 1 2
+
+	* ipc.c (sys_semtimedop) [!S390]: Fix timeval argument index in
+	indirect_ipccall case.
+
+2012-12-06  John Spencer  <maillist-strace@barfooze.de>
+
+	Fix glibc version checks.
+	* util.c: Check if __GLIBC__ is defined before using it.
+	* signal.c: Likewise.  Fix __GLIBC_MINOR__ checks.
+
+2012-11-29  James Hogan  <james.hogan@imgtec.com>
+
+	Add state argument to change_syscall and fix SPARC.
+	Add a state argument to change_syscall() so that SPARC can modify that
+	instead of read-modify-writing the whole register set.  This function is
+	always called within an arg_setup/arg_finish_change sequence which on
+	certain architectures like SPARC will also be doing a read-modify-write.
+	This prevents the second write (from arg_finish_change) from undoing the
+	effects of the change_syscall call.
+
+	* util.c (change_syscall): Move below definition of arg_setup_state.
+	Add state argument.
+	[SPARC || SPARC64] Change to set state->u_regs[U_REG_G1] rather than
+	read-modify-writing it with PTRACE_GETREGS and PTRACE_SETREGS.
+	(setbpt, clearbpt): Pass state argument to change_syscall.
+
+2012-11-12  Steve McIntyre  <steve.mcintyre@linaro.org>
+
+	Add support for tracing 32-bit ARM EABI binaries on AArch64.
+	* defs.h [AARCH64]: Copy in the definition of arm_pt_regs and the
+	accessor macros, so it's possible to build on AArch64 without
+	ARM system headers.  Set SUPPORTED_PERSONALITIES to 2.
+	Define PERSONALITY0_WORDSIZE and PERSONALITY1_WORDSIZE.
+	Set DEFAULT_PERSONALITY to 1.
+	* linux/aarch64/errnoent1.h: New file, includes generic errnoent.h.
+	* linux/aarch64/ioctlent1.h: New file, includes generic ioctlent.h.
+	* linux/aarch64/signalent1.h: New file, includes generic signalent.h.
+	* linux/aarch64/syscallent1.h: Rename from linux/aarch64/syscallent.h.
+	* linux/aarch64/syscallent.h: New file, includes arm/syscallent.h.
+	* syscall.c [AARCH64]: Define aarch64_regs.
+	(update_personality) [AARCH64]: Add debug output.
+	(get_scno) [AARCH64]: Determine if we're in ARM or AArch64 mode by
+	checking the size of the returned uio structure from PTRACE_GETREGSET
+	and interpret the structure accordingly.
+	(get_syscall_result): Likewise.
+	(get_syscall_args): Merge the AArch64 and ARM sections so that on
+	AArch64 we can fall back to supporting the ARM personality.
+	(get_error): Likewise.
+
+2012-11-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move asm-generic ioctl definitions to linux/ioctlent.h.in.
+	* linux/ioctlent.h.in: Add asm-generic ioctl entries from all
+	linux/*/ioctlent.h.in files.
+	* linux/bfin/ioctlent.h.in: Remove asm-generic ioctl entries.
+	* linux/i386/ioctlent.h.in: Likewise.
+	* linux/powerpc/ioctlent.h.in: Likewise.
+	* linux/s390/ioctlent.h.in: Likewise.
+	* linux/sparc/ioctlent.h.in: Likewise.
+
+2012-10-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Filter out redundant "*32" ioctl entries.
+	* linux/ioctlent-filter.awk: New file.
+	* Makefile.am: Use it.
+	* linux/ioctlent.h.in: Removed redundant "*32" entries.
+
+2012-10-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Enhance quotactl decoding.
+	* quota.c (sys_quotactl): Decode 2nd syscall argument using printpath.
+	* pathtrace.c (pathtrace_match): Add quotactl support.
+	* linux/*/syscallent.h: Add TF flag to quotactl entry.
+
+2012-10-26  Steve McIntyre  <steve.mcintyre@linaro.org>
+
+	Add AArch64 support to strace.
+	AArch64 has been included in linux from 3.7 onwards.
+	Add support for AArch64 in strace, tested on linux in a simulator.
+
+	* configure.ac: Support AArch64.
+	* defs.h [AARCH64]: Include <sys/ptrace.h>, define TCB_WAITEXECVE.
+	* ipc.c (indirect_ipccall): Support AArch64.
+	* process.c (struct_user_offsets): Likewise.
+	* syscall.c [AARCH64]: Include <asm/ptrace.h>,  <sys/uio.h>, and
+	<elf.h>.  Define struct user_pt_regs regs.
+	(get_scno, get_syscall_result): Support AArch64 using PTRACE_GETREGSET.
+	(get_syscall_args, get_error): Support AArch64.
+	* linux/aarch64/ioctlent.h.in: New file.
+	* linux/aarch64/syscallent.h: New file, based on linux 3.7 version of
+	asm-generic/unistd.h.
+
+	linux: add new errno values for EPROBE_DEFER and EOPENSTALE.
+	New definitions match updates in Linux 3.4 and Linux 3.5 respectively.
+
+	* linux/errnoent.h (ERRNO_517): Change to EPROBE_DEFER.
+	(ERRNO_518): Change to EOPENSTALE.
+
+2012-10-26  Namhyung Kim  <namhyung.kim@lge.com>
+
+	Add -e trace=memory option.
+	Add a new 'memory' category for tracing memory mapping related syscalls.
+
+	Affected syscalls are: break, brk, get_mempolicy, madvise, mbind,
+	migrate_pages, mincore, mlock, mlockall, mmap, move_pages, mprotect,
+	mremap, msync, munlock, munlockall, munmap, remap_file_pages, and
+	set_mempolicy.
+
+	* defs.h (TRACE_MEMORY): New macro.
+	* syscall.c (lookup_class): Handle trace=memory option.
+	* strace.1: Document it.
+	* linux/alpha/syscallent.h: Add TM flag to memory mapping related syscalls.
+	* linux/arm/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/tile/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+
+2012-09-28  Mike Frysinger  <vapier@gentoo.org>
+
+	x32: add 64bit annotation too.
+	Since someone can invoke these entry points directly with syscall(),
+	at least decode their name and show that they're 64bit versions rather
+	than just showing syscall_###.
+
+	* linux/x32/syscallent.h: Sync all missing entries below 312 with x86_64.
+
+2012-09-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Ignore fflush(3) return value.
+	strace used to honor fflush(3) return value in trace_syscall_entering
+	which resulted to tracees not being PTRACE_SYSCALL'ed which in turn
+	caused nasty hangups like this one:
+
+	$ strace -o'|:' pwd
+	|:: Broken pipe
+
+	There is little strace can do in case of fflush(3) returning EOF, and
+	hangup is certainly not the best solution for the issue.
+
+	* syscall.c (trace_syscall_entering): Ignore fflush(3) return value.
+
+	Use perror_msg instead of perror.
+	* signal.c (sys_sigreturn): Use perror_msg instead of perror.
+	* strace.c (tprintf, tprints, detach, startup_attach): Likewise.
+	* syscall.c (get_scno): Likewise.
+	* util.c (umoven, umovestr): Likewise.
+
+2012-09-27  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	process_vm_readv may return ESRCH if tracee was killed, don't complain.
+	Discovered by running test/sigkill_rain under strace.
+
+	* util.c (umoven): Do not emit error message if process_vm_readv
+	fails with ESRCH.
+	(umovestr): LikeWise.
+
+2012-09-13  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Trivial fixes, no code changes.
+	* strace.c: Fix compiler warning message about tgkill - we don't use it.
+	Fix indentation of preprocessor directives.
+	(trace): Remove outdated comment.
+
+2012-08-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Always check setreuid return code.
+	* strace.c (startup_child): Check setreuid return code.
+
+2012-08-24  Mike Frysinger  <vapier@gentoo.org>
+
+	x32: update {g,s}etsockopt syscall numbers.
+	Starting with linux 3.6 (and backported to earlier kernels), these two
+	syscalls have changed numbers (moving from native to compat entry points).
+	Update the strace syscall list accordingly.
+
+	* linux/x32/syscallent.h: Move setsockopt from 54 to 541, and move
+	getsockopt from 55 to 542.
+
+2012-08-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Decode file type returned by getdents system call.
+	* file.c (sys_getdents): Decode d_type in unabbreviated mode.
+
+2012-07-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Close pipe and wait for the pipe process termination.
+	In case of normal strace termination, when the trace output is
+	redirected to a file or a pipe, close it and wait for the pipe
+	process termination.
+
+	* strace.c (main): Before normal exit, close shared_log when it
+	differs from stderr, and wait for popen_pid termination.
+
+2012-07-10  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Enable usage of PTRACE_SEIZE.
+	* defs.h: Define USE_SEIZE to 1. Remove PTRACE_SEIZE_DEVEL
+	and PTRACE_EVENT_STOP1.
+	* strace.c (ptrace_attach_or_seize): Replace PTRACE_SEIZE_DEVEL
+	with 0.
+	(trace): Do not check for PTRACE_EVENT_STOP1.
+
+2012-06-05  Mike Frysinger  <vapier@gentoo.org>
+
+	x32: update syscall table.
+	This syncs with the syscall table as it is in linux 3.4.
+
+	* linux/x32/syscallent.h (59): Fix comment typo.
+	(78): Add missing getdents entry.
+	(174): Delete create_module entry (not in the kernel).
+	(181, 182, 183, 184, 185): Add missing entries.
+	(524, 536, 539, 540): Fix spacing.
+
+2012-05-18  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Merge adjacent printing operations in a few places.
+	* file.c (sys_readahead): Merge tprints() with following printllval().
+	(sys_ftruncate64): Likewise.
+	(sys_fadvise64): Likewise.
+	(sys_fadvise64_64): Likewise.
+	(sys_fallocate): Merge tprints() with following tprintf().
+
+2012-05-16  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Use %d printf format instead of %i everywhere.
+	* loop.c (loop_ioctl): Use %d instead of %i.
+	* mtd.c (mtd_ioctl): Likewise.
+
+	Fix a few goofs in sys_sysctl()
+	* system.c (sys_sysctl): Cast pointer to long, not size_t,
+	when we intend to use it as an address. Set oldlen to 0 prior
+	to reading into it - we want to have deterministic result
+	if read fails.
+
+	Stop using non-standard %Zu and %Zd formats for size_t printing.
+	The documented formats are %zu and %zd, but since our (normally disabled)
+	"fast" printf code doesn't support those too, I convert them to %lu and %ld.
+
+	* bjm.c (sys_query_module): Convert %Zd usages to %lu.
+	* system.c (sys_sysctl): Likewise.
+
+2012-05-15  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	Remove outdated comment about suspending new tracees.
+	We no longer track parent/child relationship between tracees.
+	Therefore, we no longer suspend new tracee until parent is seen
+	exiting form [v]fork/clone. The comment is obsolete.
+
+	* strace.c (trace): Remove outdated comment.
+
+	Make sure current_wordsize and PERSONALITY0_WORDSIZE are ints in all arches
+	On 64bit systems with a single personality, they used to be sizeof(long),
+	which has type "long", not "int", which complicates printf formats.
+
+	* defs.h: Ensure that PERSONALITY0_WORDSIZE;s tyoe is int.
+	This in turn makes sure current_wordsize is also an int.
+	* count.c (call_summary): Revert the change which added cast to int.
+
+2012-05-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Add configure --enable-gcc-Werror option.
+	* configure.ac: New option --enable-gcc-Werror.
+
+	Make x86-64 build free of artificial warnings.
+	* signal.c (sys_sigreturn): Do not issue "no sys_sigreturn" warning
+	on X86_64.
+
+2012-05-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix kernel release string parsing.
+	* strace.c (get_os_release): Handle "X.Y-something" utsname.release
+	strings properly.
+
+	Reported-by: Bryce Gibson <bryce@gibson-consulting.com.au>
+
+2012-05-14  Denys Vlasenko  <vda.linux@googlemail.com>
+
+	On clearing "breakpopint", restore syscall number too.
+	This fixes Fedora bug 659382.
+	Low risk: this code is not supposed to be used on any non-acient kernel.
+
+	* util.c (clearbpt): Restore syscall number too.
+
+2012-05-05  Mike Frysinger  <vapier@gentoo.org>
+
+	util: fix building when glibc has a stub process_vm_readv.
+	If you have a newer glibc which provides process_vm_readv, but it is built
+	against older kernel headers which lack __NR_process_vm_readv, the library
+	will contain a stub implementation that just returns ENOSYS.  Autoconf
+	checks for this case explicitly and will declare it as unavailable.  So we
+	end up in a case where the headers provide the prototype, but autoconf has
+	not defined HAVE_PROCESS_VM_READV, so we hit the same build failure again:
+
+	util.c:738:16: error: static declaration of 'process_vm_readv' follows non-static declaration
+	/usr/include/bits/uio.h:58:16: note: previous declaration of 'process_vm_readv' was here
+
+	So rename our local function to something unique, and add a define so the
+	callers all hit the right place.
+
+	* util.c (strace_process_vm_readv): Rename from process_vm_readv.
+	(process_vm_readv): Define to strace_process_vm_readv.
+
+2012-05-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	doc: describe documentation policy.
+	* README-hacking: Describe documentation policy.
+
 2012-05-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	maint: post-release administrivia.
+	* NEWS: Add header line for next release.
 
 	Prepare for 4.7 release.
 	* configure.ac: Version 4.7.

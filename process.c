@@ -41,6 +41,9 @@
 #include <sys/resource.h>
 #include <sys/utsname.h>
 #include <sys/user.h>
+#ifdef HAVE_ELF_H
+# include <elf.h>
+#endif
 
 #ifdef HAVE_SYS_REG_H
 # include <sys/reg.h>
@@ -156,6 +159,7 @@ static const struct xlat prctl_options[] = {
 #ifdef PR_PTHREADEXIT
 	{ PR_PTHREADEXIT,	"PR_PTHREADEXIT"	},
 #endif
+
 #ifdef PR_SET_PDEATHSIG
 	{ PR_SET_PDEATHSIG,	"PR_SET_PDEATHSIG"	},
 #endif
@@ -216,6 +220,12 @@ static const struct xlat prctl_options[] = {
 #ifdef PR_SET_SECCOMP
 	{ PR_SET_SECCOMP,	"PR_SET_SECCOMP"	},
 #endif
+#ifdef PR_CAPBSET_READ
+	{ PR_CAPBSET_READ,	"PR_CAPBSET_READ"	},
+#endif
+#ifdef PR_CAPBSET_DROP
+	{ PR_CAPBSET_DROP,	"PR_CAPBSET_DROP"	},
+#endif
 #ifdef PR_GET_TSC
 	{ PR_GET_TSC,		"PR_GET_TSC"		},
 #endif
@@ -227,6 +237,45 @@ static const struct xlat prctl_options[] = {
 #endif
 #ifdef PR_SET_SECUREBITS
 	{ PR_SET_SECUREBITS,	"PR_SET_SECUREBITS"	},
+#endif
+#ifdef PR_SET_TIMERSLACK
+	{ PR_SET_TIMERSLACK,	"PR_SET_TIMERSLACK"	},
+#endif
+#ifdef PR_GET_TIMERSLACK
+	{ PR_GET_TIMERSLACK,	"PR_GET_TIMERSLACK"	},
+#endif
+#ifdef PR_TASK_PERF_EVENTS_DISABLE
+	{ PR_TASK_PERF_EVENTS_DISABLE,	"PR_TASK_PERF_EVENTS_DISABLE"	},
+#endif
+#ifdef PR_TASK_PERF_EVENTS_ENABLE
+	{ PR_TASK_PERF_EVENTS_ENABLE,	"PR_TASK_PERF_EVENTS_ENABLE"	},
+#endif
+#ifdef PR_MCE_KILL
+	{ PR_MCE_KILL,		"PR_MCE_KILL"		},
+#endif
+#ifdef PR_MCE_KILL_GET
+	{ PR_MCE_KILL_GET,	"PR_MCE_KILL_GET"	},
+#endif
+#ifdef PR_SET_MM
+	{ PR_SET_MM,		"PR_SET_MM"		},
+#endif
+#ifdef PR_SET_PTRACER
+	{ PR_SET_PTRACER,	"PR_SET_PTRACER"	},
+#endif
+#ifdef PR_SET_CHILD_SUBREAPER
+	{ PR_SET_CHILD_SUBREAPER,	"PR_SET_CHILD_SUBREAPER"	},
+#endif
+#ifdef PR_GET_CHILD_SUBREAPER
+	{ PR_GET_CHILD_SUBREAPER,	"PR_GET_CHILD_SUBREAPER"	},
+#endif
+#ifdef PR_SET_NO_NEW_PRIVS
+	{ PR_SET_NO_NEW_PRIVS,	"PR_SET_NO_NEW_PRIVS"	},
+#endif
+#ifdef PR_GET_NO_NEW_PRIVS
+	{ PR_GET_NO_NEW_PRIVS,	"PR_GET_NO_NEW_PRIVS"	},
+#endif
+#ifdef PR_GET_TID_ADDRESS
+	{ PR_GET_TID_ADDRESS,	"PR_GET_TID_ADDRESS"	},
 #endif
 	{ 0,			NULL			},
 };
@@ -302,7 +351,7 @@ sys_prctl(struct tcb *tcp)
 			break;
 #endif
 		default:
-			for (i = 1; i < tcp->u_nargs; i++)
+			for (i = 1; i < tcp->s_ent->nargs; i++)
 				tprintf(", %#lx", tcp->u_arg[i]);
 			break;
 		}
@@ -465,7 +514,8 @@ extern void print_ldt_entry();
 # define ARG_PTID	2
 # define ARG_CTID	3
 # define ARG_TLS	4
-#elif defined X86_64 || defined X32 || defined ALPHA
+#elif defined X86_64 || defined X32 || defined ALPHA || defined TILE \
+   || defined OR1K
 # define ARG_FLAGS	0
 # define ARG_STACK	1
 # define ARG_PTID	2
@@ -1126,26 +1176,17 @@ static const struct xlat waitid_types[] = {
 int
 sys_waitid(struct tcb *tcp)
 {
-	siginfo_t si;
-
 	if (entering(tcp)) {
 		printxval(waitid_types, tcp->u_arg[0], "P_???");
 		tprintf(", %ld, ", tcp->u_arg[1]);
 	}
 	else {
 		/* siginfo */
-		if (!tcp->u_arg[2])
-			tprints("NULL");
-		else if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[2]);
-		else if (umove(tcp, tcp->u_arg[2], &si) < 0)
-			tprints("{???}");
-		else
-			printsiginfo(&si, verbose(tcp));
+		printsiginfo_at(tcp, tcp->u_arg[2]);
 		/* options */
 		tprints(", ");
 		printflags(wait4_options, tcp->u_arg[3], "W???");
-		if (tcp->u_nargs > 4) {
+		if (tcp->s_ent->nargs > 4) {
 			/* usage */
 			tprints(", ");
 			if (!tcp->u_arg[4])
@@ -1282,9 +1323,88 @@ static const struct xlat ptrace_setoptions_flags[] = {
 # ifdef PTRACE_O_TRACEEXIT
 	{ PTRACE_O_TRACEEXIT,	"PTRACE_O_TRACEEXIT"	},
 # endif
+# ifdef PTRACE_O_TRACESECCOMP
+	{ PTRACE_O_TRACESECCOMP,"PTRACE_O_TRACESECCOMP"	},
+# endif
+# ifdef PTRACE_O_EXITKILL
+	{ PTRACE_O_EXITKILL,	"PTRACE_O_EXITKILL"	},
+# endif
 	{ 0,			NULL			},
 };
 #endif /* PTRACE_SETOPTIONS */
+
+static const struct xlat nt_descriptor_types[] = {
+#ifdef NT_PRSTATUS
+	{ NT_PRSTATUS,		"NT_PRSTATUS" },
+#endif
+#ifdef NT_FPREGSET
+	{ NT_FPREGSET,		"NT_FPREGSET" },
+#endif
+#ifdef NT_PRPSINFO
+	{ NT_PRPSINFO,		"NT_PRPSINFO" },
+#endif
+#ifdef NT_PRXREG
+	{ NT_PRXREG,		"NT_PRXREG" },
+#endif
+#ifdef NT_TASKSTRUCT
+	{ NT_TASKSTRUCT,	"NT_TASKSTRUCT" },
+#endif
+#ifdef NT_PLATFORM
+	{ NT_PLATFORM,		"NT_PLATFORM" },
+#endif
+#ifdef NT_AUXV
+	{ NT_AUXV,		"NT_AUXV" },
+#endif
+#ifdef NT_GWINDOWS
+	{ NT_GWINDOWS,		"NT_GWINDOWS" },
+#endif
+#ifdef NT_ASRS
+	{ NT_ASRS,		"NT_ASRS" },
+#endif
+#ifdef NT_PSTATUS
+	{ NT_PSTATUS,		"NT_PSTATUS" },
+#endif
+#ifdef NT_PSINFO
+	{ NT_PSINFO,		"NT_PSINFO" },
+#endif
+#ifdef NT_PRCRED
+	{ NT_PRCRED,		"NT_PRCRED" },
+#endif
+#ifdef NT_UTSNAME
+	{ NT_UTSNAME,		"NT_UTSNAME" },
+#endif
+#ifdef NT_LWPSTATUS
+	{ NT_LWPSTATUS,		"NT_LWPSTATUS" },
+#endif
+#ifdef NT_LWPSINFO
+	{ NT_LWPSINFO,		"NT_LWPSINFO" },
+#endif
+#ifdef NT_PRFPXREG
+	{ NT_PRFPXREG,		"NT_PRFPXREG" },
+#endif
+#ifdef NT_PRXFPREG
+	{ NT_PRXFPREG,		"NT_PRXFPREG" },
+#endif
+#ifdef NT_PPC_VMX
+	{ NT_PPC_VMX,		"NT_PPC_VMX" },
+#endif
+#ifdef NT_PPC_SPE
+	{ NT_PPC_SPE,		"NT_PPC_SPE" },
+#endif
+#ifdef NT_PPC_VSX
+	{ NT_PPC_VSX,		"NT_PPC_VSX" },
+#endif
+#ifdef NT_386_TLS
+	{ NT_386_TLS,		"NT_386_TLS" },
+#endif
+#ifdef NT_386_IOPERM
+	{ NT_386_IOPERM,	"NT_386_IOPERM" },
+#endif
+#ifdef NT_X86_XSTATE
+	{ NT_X86_XSTATE,	"NT_X86_XSTATE" },
+#endif
+	{ 0,			NULL },
+};
 
 #define uoff(member)	offsetof(struct user, member)
 
@@ -2116,50 +2236,271 @@ const struct xlat struct_user_offsets[] = {
 	{ PT_FSR,		"rfsr",					},
 	{ PT_KERNEL_MODE,	"kernel_mode",				},
 #endif
+#ifdef OR1K
+	{ 4*0,  "r0" },
+	{ 4*1,  "r1" },
+	{ 4*2,  "r2" },
+	{ 4*3,  "r3" },
+	{ 4*4,  "r4" },
+	{ 4*5,  "r5" },
+	{ 4*6,  "r6" },
+	{ 4*7,  "r7" },
+	{ 4*8,  "r8" },
+	{ 4*9,  "r9" },
+	{ 4*10, "r10" },
+	{ 4*11, "r11" },
+	{ 4*12, "r12" },
+	{ 4*13, "r13" },
+	{ 4*14, "r14" },
+	{ 4*15, "r15" },
+	{ 4*16, "r16" },
+	{ 4*17, "r17" },
+	{ 4*18, "r18" },
+	{ 4*19, "r19" },
+	{ 4*20, "r20" },
+	{ 4*21, "r21" },
+	{ 4*22, "r22" },
+	{ 4*23, "r23" },
+	{ 4*24, "r24" },
+	{ 4*25, "r25" },
+	{ 4*26, "r26" },
+	{ 4*27, "r27" },
+	{ 4*28, "r28" },
+	{ 4*29, "r29" },
+	{ 4*30, "r30" },
+	{ 4*31, "r31" },
+	{ 4*32, "pc" },
+	{ 4*33, "sr" },
+#endif
+#ifdef XTENSA
+	{ SYSCALL_NR,           "syscall_nr"    },
+	{ REG_AR_BASE,          "ar0"           },
+	{ REG_AR_BASE+1,        "ar1"           },
+	{ REG_AR_BASE+2,        "ar2"           },
+	{ REG_AR_BASE+3,        "ar3"           },
+	{ REG_AR_BASE+4,        "ar4"           },
+	{ REG_AR_BASE+5,        "ar5"           },
+	{ REG_AR_BASE+6,        "ar6"           },
+	{ REG_AR_BASE+7,        "ar7"           },
+	{ REG_AR_BASE+8,        "ar8"           },
+	{ REG_AR_BASE+9,        "ar9"           },
+	{ REG_AR_BASE+10,       "ar10"          },
+	{ REG_AR_BASE+11,       "ar11"          },
+	{ REG_AR_BASE+12,       "ar12"          },
+	{ REG_AR_BASE+13,       "ar13"          },
+	{ REG_AR_BASE+14,       "ar14"          },
+	{ REG_AR_BASE+15,       "ar15"          },
+	{ REG_AR_BASE+16,       "ar16"          },
+	{ REG_AR_BASE+17,       "ar17"          },
+	{ REG_AR_BASE+18,       "ar18"          },
+	{ REG_AR_BASE+19,       "ar19"          },
+	{ REG_AR_BASE+20,       "ar20"          },
+	{ REG_AR_BASE+21,       "ar21"          },
+	{ REG_AR_BASE+22,       "ar22"          },
+	{ REG_AR_BASE+23,       "ar23"          },
+	{ REG_AR_BASE+24,       "ar24"          },
+	{ REG_AR_BASE+25,       "ar25"          },
+	{ REG_AR_BASE+26,       "ar26"          },
+	{ REG_AR_BASE+27,       "ar27"          },
+	{ REG_AR_BASE+28,       "ar28"          },
+	{ REG_AR_BASE+29,       "ar29"          },
+	{ REG_AR_BASE+30,       "ar30"          },
+	{ REG_AR_BASE+31,       "ar31"          },
+	{ REG_AR_BASE+32,       "ar32"          },
+	{ REG_AR_BASE+33,       "ar33"          },
+	{ REG_AR_BASE+34,       "ar34"          },
+	{ REG_AR_BASE+35,       "ar35"          },
+	{ REG_AR_BASE+36,       "ar36"          },
+	{ REG_AR_BASE+37,       "ar37"          },
+	{ REG_AR_BASE+38,       "ar38"          },
+	{ REG_AR_BASE+39,       "ar39"          },
+	{ REG_AR_BASE+40,       "ar40"          },
+	{ REG_AR_BASE+41,       "ar41"          },
+	{ REG_AR_BASE+42,       "ar42"          },
+	{ REG_AR_BASE+43,       "ar43"          },
+	{ REG_AR_BASE+44,       "ar44"          },
+	{ REG_AR_BASE+45,       "ar45"          },
+	{ REG_AR_BASE+46,       "ar46"          },
+	{ REG_AR_BASE+47,       "ar47"          },
+	{ REG_AR_BASE+48,       "ar48"          },
+	{ REG_AR_BASE+49,       "ar49"          },
+	{ REG_AR_BASE+50,       "ar50"          },
+	{ REG_AR_BASE+51,       "ar51"          },
+	{ REG_AR_BASE+52,       "ar52"          },
+	{ REG_AR_BASE+53,       "ar53"          },
+	{ REG_AR_BASE+54,       "ar54"          },
+	{ REG_AR_BASE+55,       "ar55"          },
+	{ REG_AR_BASE+56,       "ar56"          },
+	{ REG_AR_BASE+57,       "ar57"          },
+	{ REG_AR_BASE+58,       "ar58"          },
+	{ REG_AR_BASE+59,       "ar59"          },
+	{ REG_AR_BASE+60,       "ar60"          },
+	{ REG_AR_BASE+61,       "ar61"          },
+	{ REG_AR_BASE+62,       "ar62"          },
+	{ REG_AR_BASE+63,       "ar63"          },
+	{ REG_LBEG,             "lbeg"          },
+	{ REG_LEND,             "lend"          },
+	{ REG_LCOUNT,           "lcount"        },
+	{ REG_SAR,              "sar"           },
+	{ REG_WB,               "wb"            },
+	{ REG_WS,               "ws"            },
+	{ REG_PS,               "ps"            },
+	{ REG_PC,               "pc"            },
+	{ REG_A_BASE,           "a0"            },
+	{ REG_A_BASE+1,         "a1"            },
+	{ REG_A_BASE+2,         "a2"            },
+	{ REG_A_BASE+3,         "a3"            },
+	{ REG_A_BASE+4,         "a4"            },
+	{ REG_A_BASE+5,         "a5"            },
+	{ REG_A_BASE+6,         "a6"            },
+	{ REG_A_BASE+7,         "a7"            },
+	{ REG_A_BASE+8,         "a8"            },
+	{ REG_A_BASE+9,         "a9"            },
+	{ REG_A_BASE+10,        "a10"           },
+	{ REG_A_BASE+11,        "a11"           },
+	{ REG_A_BASE+12,        "a12"           },
+	{ REG_A_BASE+13,        "a13"           },
+	{ REG_A_BASE+14,        "a14"           },
+	{ REG_A_BASE+15,        "a15"           },
+#endif
 
-#if !defined(SPARC) && !defined(HPPA) && !defined(POWERPC) \
-		&& !defined(ALPHA) && !defined(IA64) \
-		&& !defined(CRISV10) && !defined(CRISV32) && !defined(MICROBLAZE)
-# if !defined(S390) && !defined(S390X) && !defined(MIPS) && !defined(SPARC64) && !defined(AVR32) && !defined(BFIN) && !defined(TILE)
-	{ uoff(u_fpvalid),	"offsetof(struct user, u_fpvalid)"	},
-# endif
-# if defined(I386) || defined(X86_64) || defined(X32)
-	{ uoff(i387),		"offsetof(struct user, i387)"		},
-# endif
-# if defined(M68K)
-	{ uoff(m68kfp),		"offsetof(struct user, m68kfp)"		},
-# endif
+	/* Other fields in "struct user" */
+#if defined(S390) || defined(S390X)
 	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
 	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
 	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
-# if !defined(SPARC64)
 	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
-# endif
-# if defined(AVR32) || defined(SH64)
-	{ uoff(start_data),	"offsetof(struct user, start_data)"	},
-# endif
-# if !defined(SPARC64)
+	/* S390[X] has no start_data */
 	{ uoff(start_stack),	"offsetof(struct user, start_stack)"	},
-# endif
 	{ uoff(signal),		"offsetof(struct user, signal)"		},
-# if !defined(AVR32) && !defined(S390) && !defined(S390X) && !defined(MIPS) && !defined(SH) && !defined(SH64) && !defined(SPARC64) && !defined(TILE)
-	{ uoff(reserved),	"offsetof(struct user, reserved)"	},
-# endif
-# if !defined(SPARC64)
 	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
-# endif
-# if !defined(ARM) && !defined(AVR32) && !defined(MIPS) && !defined(S390) && !defined(S390X) && !defined(SPARC64) && !defined(BFIN) && !defined(TILE)
-	{ uoff(u_fpstate),	"offsetof(struct user, u_fpstate)"	},
-# endif
 	{ uoff(magic),		"offsetof(struct user, magic)"		},
 	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
-# if defined(I386) || defined(X86_64) || defined(X32)
-	{ uoff(u_debugreg),	"offsetof(struct user, u_debugreg)"	},
-# endif
-#endif /* !defined(many arches) */
-
-#ifndef HPPA
 	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(POWERPC)
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(I386) || defined(X86_64) || defined(X32)
+	{ uoff(u_fpvalid),	"offsetof(struct user, u_fpvalid)"	},
+	{ uoff(i387),		"offsetof(struct user, i387)"		},
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
+	{ uoff(start_stack),	"offsetof(struct user, start_stack)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(reserved),	"offsetof(struct user, reserved)"	},
+	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
+	{ uoff(u_fpstate),	"offsetof(struct user, u_fpstate)"	},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ uoff(u_debugreg),	"offsetof(struct user, u_debugreg)"	},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(IA64)
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(ARM)
+	{ uoff(u_fpvalid),	"offsetof(struct user, u_fpvalid)"	},
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
+	{ uoff(start_stack),	"offsetof(struct user, start_stack)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(reserved),	"offsetof(struct user, reserved)"	},
+	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(AARCH64)
+	/* nothing */
+#elif defined(M68K)
+	{ uoff(u_fpvalid),	"offsetof(struct user, u_fpvalid)"	},
+	{ uoff(m68kfp),		"offsetof(struct user, m68kfp)"		},
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
+	{ uoff(start_stack),	"offsetof(struct user, start_stack)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(reserved),	"offsetof(struct user, reserved)"	},
+	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
+	{ uoff(u_fpstate),	"offsetof(struct user, u_fpstate)"	},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(MIPS) || defined(LINUX_MIPSN32)
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
+	{ uoff(start_data),	"offsetof(struct user, start_data)"	},
+	{ uoff(start_stack),	"offsetof(struct user, start_stack)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(ALPHA)
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(SPARC)
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(SPARC64)
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(HPPA)
+	/* nothing */
+#elif defined(SH) || defined(SH64)
+	{ uoff(u_fpvalid),	"offsetof(struct user, u_fpvalid)"	},
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
+	{ uoff(start_data),	"offsetof(struct user, start_data)"	},
+	{ uoff(start_stack),	"offsetof(struct user, start_stack)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
+	{ uoff(u_fpstate),	"offsetof(struct user, u_fpstate)"	},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(CRISV10) || defined(CRISV32)
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(TILE)
+	/* nothing */
+#elif defined(MICROBLAZE)
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(AVR32)
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
+	{ uoff(start_data),	"offsetof(struct user, start_data)"	},
+	{ uoff(start_stack),	"offsetof(struct user, start_stack)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(BFIN)
+	{ uoff(u_tsize),	"offsetof(struct user, u_tsize)"	},
+	{ uoff(u_dsize),	"offsetof(struct user, u_dsize)"	},
+	{ uoff(u_ssize),	"offsetof(struct user, u_ssize)"	},
+	{ uoff(start_code),	"offsetof(struct user, start_code)"	},
+	{ uoff(signal),		"offsetof(struct user, signal)"		},
+	{ uoff(u_ar0),		"offsetof(struct user, u_ar0)"		},
+	{ uoff(magic),		"offsetof(struct user, magic)"		},
+	{ uoff(u_comm),		"offsetof(struct user, u_comm)"		},
+	{ sizeof(struct user),	"sizeof(struct user)"			},
+#elif defined(OR1K)
+	/* nothing */
+#elif defined(METAG)
+	/* nothing */
+#elif defined(XTENSA)
+	/* nothing */
 #endif
 	{ 0,			NULL					},
 };
@@ -2173,9 +2514,11 @@ sys_ptrace(struct tcb *tcp)
 	if (entering(tcp)) {
 		printxval(ptrace_cmds, tcp->u_arg[0], "PTRACE_???");
 		tprintf(", %lu, ", tcp->u_arg[1]);
+
 		addr = tcp->u_arg[2];
 		if (tcp->u_arg[0] == PTRACE_PEEKUSER
-			|| tcp->u_arg[0] == PTRACE_POKEUSER) {
+		 || tcp->u_arg[0] == PTRACE_POKEUSER
+		) {
 			for (x = struct_user_offsets; x->str; x++) {
 				if (x->val >= addr)
 					break;
@@ -2188,9 +2531,18 @@ sys_ptrace(struct tcb *tcp)
 			}
 			else
 				tprintf("%s, ", x->str);
-		}
-		else
-			tprintf("%#lx, ", tcp->u_arg[2]);
+		} else
+#ifdef PTRACE_GETREGSET
+		if (tcp->u_arg[0] == PTRACE_GETREGSET
+		 || tcp->u_arg[0] == PTRACE_SETREGSET
+		) {
+			printxval(nt_descriptor_types, tcp->u_arg[2], "NT_???");
+			tprints(", ");
+		} else
+#endif
+			tprintf("%#lx, ", addr);
+
+
 		switch (tcp->u_arg[0]) {
 #ifndef IA64
 		case PTRACE_PEEKDATA:
@@ -2211,21 +2563,20 @@ sys_ptrace(struct tcb *tcp)
 #endif
 #ifdef PTRACE_SETSIGINFO
 		case PTRACE_SETSIGINFO: {
-			siginfo_t si;
-			if (!tcp->u_arg[3])
-				tprints("NULL");
-			else if (syserror(tcp))
-				tprintf("%#lx", tcp->u_arg[3]);
-			else if (umove(tcp, tcp->u_arg[3], &si) < 0)
-				tprints("{???}");
-			else
-				printsiginfo(&si, verbose(tcp));
+			printsiginfo_at(tcp, tcp->u_arg[3]);
 			break;
 		}
 #endif
 #ifdef PTRACE_GETSIGINFO
 		case PTRACE_GETSIGINFO:
 			/* Don't print anything, do it at syscall return. */
+			break;
+#endif
+#ifdef PTRACE_GETREGSET
+		case PTRACE_GETREGSET:
+			break;
+		case PTRACE_SETREGSET:
+			tprint_iov(tcp, /*len:*/ 1, tcp->u_arg[3], /*as string:*/ 0);
 			break;
 #endif
 		default:
@@ -2245,17 +2596,14 @@ sys_ptrace(struct tcb *tcp)
 #endif
 #ifdef PTRACE_GETSIGINFO
 		case PTRACE_GETSIGINFO: {
-			siginfo_t si;
-			if (!tcp->u_arg[3])
-				tprints("NULL");
-			else if (syserror(tcp))
-				tprintf("%#lx", tcp->u_arg[3]);
-			else if (umove(tcp, tcp->u_arg[3], &si) < 0)
-				tprints("{???}");
-			else
-				printsiginfo(&si, verbose(tcp));
+			printsiginfo_at(tcp, tcp->u_arg[3]);
 			break;
 		}
+#endif
+#ifdef PTRACE_GETREGSET
+		case PTRACE_GETREGSET:
+			tprint_iov(tcp, /*len:*/ 1, tcp->u_arg[3], /*as string:*/ 0);
+			break;
 #endif
 		}
 	}

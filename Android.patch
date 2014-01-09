@@ -1,18 +1,8 @@
-diff -r -u -d /home/enh/Downloads/strace-4.7/defs.h ./defs.h
---- /home/enh/Downloads/strace-4.7/defs.h	2012-04-28 05:58:35.000000000 -0700
-+++ ./defs.h	2014-01-08 17:19:46.318388528 -0800
-@@ -36,9 +36,6 @@
- #  define _LFS64_LARGEFILE 1
- # endif
- #endif
--#ifdef MIPS
--# include <sgidefs.h>
--#endif
- #include <features.h>
- #ifdef HAVE_STDBOOL_H
- # include <stdbool.h>
-@@ -149,7 +146,7 @@
- extern long ptrace(int, int, char *, long);
+diff -r -u -d /home/enh/Downloads/strace-4.8/defs.h ./defs.h
+--- /home/enh/Downloads/strace-4.8/defs.h	2013-05-14 07:10:42.000000000 -0700
++++ ./defs.h	2014-01-09 13:41:19.118883996 -0800
+@@ -222,7 +222,7 @@
+ # define PTRACE_EVENT_EXIT	6
  #endif
  
 -#if !defined(__GLIBC__)
@@ -20,9 +10,9 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/defs.h ./defs.h
  # define PTRACE_PEEKUSER PTRACE_PEEKUSR
  # define PTRACE_POKEUSER PTRACE_POKEUSR
  #endif
-diff -r -u -d /home/enh/Downloads/strace-4.7/ioctl.c ./ioctl.c
---- /home/enh/Downloads/strace-4.7/ioctl.c	2012-04-18 08:27:25.000000000 -0700
-+++ ./ioctl.c	2014-01-07 20:25:53.752273114 -0800
+diff -r -u -d /home/enh/Downloads/strace-4.8/ioctl.c ./ioctl.c
+--- /home/enh/Downloads/strace-4.8/ioctl.c	2013-05-02 15:50:55.000000000 -0700
++++ ./ioctl.c	2014-01-09 13:36:50.612156623 -0800
 @@ -86,8 +86,10 @@
  	case 0x03:
  	case 0x12:
@@ -34,9 +24,9 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/ioctl.c ./ioctl.c
  	case 'L':
  		return loop_ioctl(tcp, code, arg);
  	case 'M':
-diff -r -u -d /home/enh/Downloads/strace-4.7/ipc.c ./ipc.c
---- /home/enh/Downloads/strace-4.7/ipc.c	2012-04-16 04:00:01.000000000 -0700
-+++ ./ipc.c	2014-01-07 20:25:53.752273114 -0800
+diff -r -u -d /home/enh/Downloads/strace-4.8/ipc.c ./ipc.c
+--- /home/enh/Downloads/strace-4.8/ipc.c	2013-02-23 11:07:44.000000000 -0800
++++ ./ipc.c	2014-01-09 13:36:50.612156623 -0800
 @@ -34,9 +34,15 @@
  #endif
  #include <fcntl.h>
@@ -53,21 +43,9 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/ipc.c ./ipc.c
  
  #ifndef MSG_STAT
  #define MSG_STAT 11
-diff -r -u -d /home/enh/Downloads/strace-4.7/signal.c ./signal.c
---- /home/enh/Downloads/strace-4.7/signal.c	2012-04-16 19:38:17.000000000 -0700
-+++ ./signal.c	2014-01-07 20:25:53.762272989 -0800
-@@ -419,7 +419,7 @@
- # define SI_FROMUSER(sip)	((sip)->si_code <= 0)
- #endif
- 
--#if __GLIBC_MINOR__ < 1
-+#if __GLIBC_MINOR__ < 1 && !defined(HAVE_ANDROID_OS)
- /* Type for data associated with a signal.  */
- typedef union sigval
- {
-diff -r -u -d /home/enh/Downloads/strace-4.7/time.c ./time.c
---- /home/enh/Downloads/strace-4.7/time.c	2012-05-01 14:17:51.000000000 -0700
-+++ ./time.c	2014-01-07 20:25:53.762272989 -0800
+diff -r -u -d /home/enh/Downloads/strace-4.8/time.c ./time.c
+--- /home/enh/Downloads/strace-4.8/time.c	2012-05-01 14:17:51.000000000 -0700
++++ ./time.c	2014-01-09 12:41:29.912928183 -0800
 @@ -29,7 +29,11 @@
  
  #include "defs.h"
@@ -80,10 +58,10 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/time.c ./time.c
  #include <linux/ioctl.h>
  #include <linux/rtc.h>
  
-diff -r -u -d /home/enh/Downloads/strace-4.7/util.c ./util.c
---- /home/enh/Downloads/strace-4.7/util.c	2012-04-28 05:58:35.000000000 -0700
-+++ ./util.c	2014-01-08 17:20:55.057579140 -0800
-@@ -50,7 +50,9 @@
+diff -r -u -d /home/enh/Downloads/strace-4.8/util.c ./util.c
+--- /home/enh/Downloads/strace-4.8/util.c	2013-05-06 11:23:01.000000000 -0700
++++ ./util.c	2014-01-09 13:36:50.622156503 -0800
+@@ -46,7 +46,9 @@
  
  #ifdef HAVE_SYS_REG_H
  # include <sys/reg.h>
