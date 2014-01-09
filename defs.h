@@ -146,7 +146,7 @@ extern char *stpcpy(char *dst, const char *src);
 extern long ptrace(int, int, char *, long);
 #endif
 
-#if !defined(__GLIBC__)
+#if !defined(__GLIBC__) && !defined(__BIONIC__)
 # define PTRACE_PEEKUSER PTRACE_PEEKUSR
 # define PTRACE_POKEUSER PTRACE_POKEUSR
 #endif

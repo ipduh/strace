@@ -32,16 +32,6 @@
 #include <dirent.h>
 #include <sys/swap.h>
 
-#ifdef HAVE_ANDROID_OS
-struct dirent64 {
- __u64 d_ino;
- __s64 d_off;
- unsigned short d_reclen;
- unsigned char d_type;
- char d_name[256];
-};
-#endif /* HAVE_ANDROID_OS */
-
 #ifdef LINUXSPARC
 struct stat {
 	unsigned short	st_dev;

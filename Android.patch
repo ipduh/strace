@@ -1,6 +1,6 @@
 diff -r -u -d /home/enh/Downloads/strace-4.7/defs.h ./defs.h
 --- /home/enh/Downloads/strace-4.7/defs.h	2012-04-28 05:58:35.000000000 -0700
-+++ ./defs.h	2014-01-07 18:55:56.199027145 -0800
++++ ./defs.h	2014-01-08 17:19:46.318388528 -0800
 @@ -36,9 +36,6 @@
  #  define _LFS64_LARGEFILE 1
  # endif
@@ -11,29 +11,18 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/defs.h ./defs.h
  #include <features.h>
  #ifdef HAVE_STDBOOL_H
  # include <stdbool.h>
-diff -r -u -d /home/enh/Downloads/strace-4.7/file.c ./file.c
---- /home/enh/Downloads/strace-4.7/file.c	2012-04-18 08:02:40.000000000 -0700
-+++ ./file.c	2014-01-07 18:55:26.409389991 -0800
-@@ -32,6 +32,16 @@
- #include <dirent.h>
- #include <sys/swap.h>
+@@ -149,7 +146,7 @@
+ extern long ptrace(int, int, char *, long);
+ #endif
  
-+#ifdef HAVE_ANDROID_OS
-+struct dirent64 {
-+ __u64 d_ino;
-+ __s64 d_off;
-+ unsigned short d_reclen;
-+ unsigned char d_type;
-+ char d_name[256];
-+};
-+#endif /* HAVE_ANDROID_OS */
-+
- #ifdef LINUXSPARC
- struct stat {
- 	unsigned short	st_dev;
+-#if !defined(__GLIBC__)
++#if !defined(__GLIBC__) && !defined(__BIONIC__)
+ # define PTRACE_PEEKUSER PTRACE_PEEKUSR
+ # define PTRACE_POKEUSER PTRACE_POKEUSR
+ #endif
 diff -r -u -d /home/enh/Downloads/strace-4.7/ioctl.c ./ioctl.c
 --- /home/enh/Downloads/strace-4.7/ioctl.c	2012-04-18 08:27:25.000000000 -0700
-+++ ./ioctl.c	2014-01-07 18:55:26.409389991 -0800
++++ ./ioctl.c	2014-01-07 20:25:53.752273114 -0800
 @@ -86,8 +86,10 @@
  	case 0x03:
  	case 0x12:
@@ -47,7 +36,7 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/ioctl.c ./ioctl.c
  	case 'M':
 diff -r -u -d /home/enh/Downloads/strace-4.7/ipc.c ./ipc.c
 --- /home/enh/Downloads/strace-4.7/ipc.c	2012-04-16 04:00:01.000000000 -0700
-+++ ./ipc.c	2014-01-07 18:55:26.409389991 -0800
++++ ./ipc.c	2014-01-07 20:25:53.752273114 -0800
 @@ -34,9 +34,15 @@
  #endif
  #include <fcntl.h>
@@ -66,7 +55,7 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/ipc.c ./ipc.c
  #define MSG_STAT 11
 diff -r -u -d /home/enh/Downloads/strace-4.7/signal.c ./signal.c
 --- /home/enh/Downloads/strace-4.7/signal.c	2012-04-16 19:38:17.000000000 -0700
-+++ ./signal.c	2014-01-07 18:55:26.439389625 -0800
++++ ./signal.c	2014-01-07 20:25:53.762272989 -0800
 @@ -419,7 +419,7 @@
  # define SI_FROMUSER(sip)	((sip)->si_code <= 0)
  #endif
@@ -78,7 +67,7 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/signal.c ./signal.c
  {
 diff -r -u -d /home/enh/Downloads/strace-4.7/time.c ./time.c
 --- /home/enh/Downloads/strace-4.7/time.c	2012-05-01 14:17:51.000000000 -0700
-+++ ./time.c	2014-01-07 18:55:26.439389625 -0800
++++ ./time.c	2014-01-07 20:25:53.762272989 -0800
 @@ -29,7 +29,11 @@
  
  #include "defs.h"
@@ -91,3 +80,17 @@ diff -r -u -d /home/enh/Downloads/strace-4.7/time.c ./time.c
  #include <linux/ioctl.h>
  #include <linux/rtc.h>
  
+diff -r -u -d /home/enh/Downloads/strace-4.7/util.c ./util.c
+--- /home/enh/Downloads/strace-4.7/util.c	2012-04-28 05:58:35.000000000 -0700
++++ ./util.c	2014-01-08 17:20:55.057579140 -0800
+@@ -50,7 +50,9 @@
+ 
+ #ifdef HAVE_SYS_REG_H
+ # include <sys/reg.h>
+-# define PTRACE_PEEKUSR PTRACE_PEEKUSER
++# ifndef PTRACE_PEEKUSR
++#  define PTRACE_PEEKUSR PTRACE_PEEKUSER
++# endif
+ #elif defined(HAVE_LINUX_PTRACE_H)
+ # undef PTRACE_SYSCALL
+ # ifdef HAVE_STRUCT_IA64_FPREG
