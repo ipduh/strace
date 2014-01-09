@@ -42,7 +42,6 @@ UNNEEDED_SOURCES="\
   linux/sparc \
   linux/sparc64 \
   linux/tile \
-  linux/x32 \
   m4 \
   missing \
   mkinstalldirs \
