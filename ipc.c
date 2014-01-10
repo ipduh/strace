@@ -34,15 +34,9 @@
 #endif
 #include <fcntl.h>
 #include <sys/ipc.h>
-#ifdef HAVE_ANDROID_OS
-#include <linux/sem.h>
-#include <linux/msg.h>
-#include <linux/shm.h>
-#else
 #include <sys/sem.h>
 #include <sys/msg.h>
 #include <sys/shm.h>
-#endif
 
 #ifndef MSG_STAT
 #define MSG_STAT 11
