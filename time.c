@@ -29,11 +29,7 @@
 
 #include "defs.h"
 #include <linux/version.h>
-#if HAVE_ANDROID_OS
-#include <linux/timex.h>
-#else
 #include <sys/timex.h>
-#endif
 #include <linux/ioctl.h>
 #include <linux/rtc.h>
 

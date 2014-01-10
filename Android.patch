@@ -1,6 +1,6 @@
 diff -r -u -d /home/enh/Downloads/strace-4.8/defs.h ./defs.h
 --- /home/enh/Downloads/strace-4.8/defs.h	2013-05-14 07:10:42.000000000 -0700
-+++ ./defs.h	2014-01-09 13:41:19.118883996 -0800
++++ ./defs.h	2014-01-09 14:34:13.520344153 -0800
 @@ -222,7 +222,7 @@
  # define PTRACE_EVENT_EXIT	6
  #endif
@@ -12,7 +12,7 @@ diff -r -u -d /home/enh/Downloads/strace-4.8/defs.h ./defs.h
  #endif
 diff -r -u -d /home/enh/Downloads/strace-4.8/ioctl.c ./ioctl.c
 --- /home/enh/Downloads/strace-4.8/ioctl.c	2013-05-02 15:50:55.000000000 -0700
-+++ ./ioctl.c	2014-01-09 13:36:50.612156623 -0800
++++ ./ioctl.c	2014-01-08 17:40:04.763917183 -0800
 @@ -86,8 +86,10 @@
  	case 0x03:
  	case 0x12:
@@ -24,43 +24,9 @@ diff -r -u -d /home/enh/Downloads/strace-4.8/ioctl.c ./ioctl.c
  	case 'L':
  		return loop_ioctl(tcp, code, arg);
  	case 'M':
-diff -r -u -d /home/enh/Downloads/strace-4.8/ipc.c ./ipc.c
---- /home/enh/Downloads/strace-4.8/ipc.c	2013-02-23 11:07:44.000000000 -0800
-+++ ./ipc.c	2014-01-09 13:36:50.612156623 -0800
-@@ -34,9 +34,15 @@
- #endif
- #include <fcntl.h>
- #include <sys/ipc.h>
-+#ifdef HAVE_ANDROID_OS
-+#include <linux/sem.h>
-+#include <linux/msg.h>
-+#include <linux/shm.h>
-+#else
- #include <sys/sem.h>
- #include <sys/msg.h>
- #include <sys/shm.h>
-+#endif
- 
- #ifndef MSG_STAT
- #define MSG_STAT 11
-diff -r -u -d /home/enh/Downloads/strace-4.8/time.c ./time.c
---- /home/enh/Downloads/strace-4.8/time.c	2012-05-01 14:17:51.000000000 -0700
-+++ ./time.c	2014-01-09 12:41:29.912928183 -0800
-@@ -29,7 +29,11 @@
- 
- #include "defs.h"
- #include <linux/version.h>
-+#if HAVE_ANDROID_OS
-+#include <linux/timex.h>
-+#else
- #include <sys/timex.h>
-+#endif
- #include <linux/ioctl.h>
- #include <linux/rtc.h>
- 
 diff -r -u -d /home/enh/Downloads/strace-4.8/util.c ./util.c
 --- /home/enh/Downloads/strace-4.8/util.c	2013-05-06 11:23:01.000000000 -0700
-+++ ./util.c	2014-01-09 13:36:50.622156503 -0800
++++ ./util.c	2014-01-08 17:40:04.803916706 -0800
 @@ -46,7 +46,9 @@
  
  #ifdef HAVE_SYS_REG_H
