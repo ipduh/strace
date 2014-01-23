@@ -143,7 +143,6 @@ LOCAL_CFLAGS += \
     -Wno-sign-compare \
 
 LOCAL_C_INCLUDES := \
-    $(KERNEL_HEADERS) \
     $(LOCAL_PATH)/linux/$(arch) \
     $(LOCAL_PATH)/linux
 
