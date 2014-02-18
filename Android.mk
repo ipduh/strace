@@ -103,6 +103,8 @@ LOCAL_CFLAGS += -D_GNU_SOURCE=1 -D_POSIX_SOURCE=1
 
 # bionic doesn't have fputs_unlocked.
 LOCAL_CFLAGS += -Dfputs_unlocked=fputs
+# bionic doesn't have fopen64.
+LOCAL_CFLAGS += -Dfopen64=fopen
 # uapi's asm/sigcontext.h doesn't have sigcontext_struct.
 LOCAL_CFLAGS += -Dsigcontext_struct=sigcontext
 
