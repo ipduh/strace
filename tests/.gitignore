@@ -1,0 +1,7 @@
+net-accept-connect
+set_ptracer_any
+sigaction
+*.log
+*.log.*
+*.o
+*.trs

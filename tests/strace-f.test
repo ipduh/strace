@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Ensure that strace -f works.
+
+. "${srcdir=.}/init.sh"
+
+time=/usr/bin/time
+check_prog $time
+
+$STRACE -f $time /bin/ls > $LOG 2>&1 ||
+	{ cat $LOG; fail_ 'strace -f does not work'; }

@@ -6,23 +6,31 @@ include $(CLEAR_VARS)
 strace_version := $(shell grep Version $(LOCAL_PATH)/strace.spec | cut -d " " -f 2)
 
 LOCAL_SRC_FILES := \
+    aio.c \
     bjm.c \
     block.c \
     count.c \
     desc.c \
+    fanotify.c \
     file.c \
+    inotify.c \
     io.c \
     ioctl.c \
+    ioprio.c \
     ipc.c \
+    kexec.c \
+    keyctl.c \
     loop.c \
     mem.c \
     mtd.c \
     net.c \
     pathtrace.c \
-    proc.c \
     process.c \
+    ptp.c \
     quota.c \
+    reboot.c \
     resource.c \
+    scsi.c \
     signal.c \
     sock.c \
     strace.c \
@@ -32,6 +40,7 @@ LOCAL_SRC_FILES := \
     term.c \
     time.c \
     util.c \
+    vsprintf.c \
 
 LOCAL_SHARED_LIBRARIES :=
 
@@ -80,6 +89,7 @@ LOCAL_CFLAGS := \
     -DHAVE_STATFS64=1 \
     -DHAVE_STDBOOL_H=1 \
     -DHAVE_STRERROR=1 \
+    -DHAVE_STRUCT_FLOCK64=1 \
     -DHAVE_STRUCT_MSGHDR_MSG_CONTROL=1 \
     -DHAVE_STRUCT_SIGCONTEXT \
     -DHAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID=1 \
@@ -97,16 +107,10 @@ LOCAL_CFLAGS := \
     -DVERSION='"$(strace_version)"' \
     -DSIZEOF_LONG_LONG=8 \
     -DSTDC_HEADERS=1 \
+    -DSTRACE_KNOWS_ONLY_EABI=1 \
     -D_LFS64_LARGEFILE=1 \
 
 LOCAL_CFLAGS += -D_GNU_SOURCE=1 -D_POSIX_SOURCE=1
-
-# bionic doesn't have fputs_unlocked.
-LOCAL_CFLAGS += -Dfputs_unlocked=fputs
-# bionic doesn't have fopen64.
-LOCAL_CFLAGS += -Dfopen64=fopen
-# uapi's asm/sigcontext.h doesn't have sigcontext_struct.
-LOCAL_CFLAGS += -Dsigcontext_struct=sigcontext
 
 LOCAL_CFLAGS_64 += -DSIZEOF_LONG=8 -DSIZEOF_RLIM_T=8
 LOCAL_CFLAGS_32 += -DSIZEOF_LONG=4 -DSIZEOF_RLIM_T=4 -DHAVE_STAT64=1

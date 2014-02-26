@@ -86,7 +86,7 @@ ioctl_decode(struct tcb *tcp, long code, long arg)
 	case 0x03:
 	case 0x12:
 		return block_ioctl(tcp, code, arg);
-#ifndef HAVE_ANDROID_OS
+#ifdef HAVE_SCSI_SG_H
 	case 0x22:
 		return scsi_ioctl(tcp, code, arg);
 #endif
@@ -97,6 +97,8 @@ ioctl_decode(struct tcb *tcp, long code, long arg)
 	case 'o':
 	case 'O':
 		return ubi_ioctl(tcp, code, arg);
+	case '=':
+		return ptp_ioctl(tcp, code, arg);
 	default:
 		break;
 	}

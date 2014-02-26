@@ -27,10 +27,9 @@
  */
 
 #include "defs.h"
-#ifdef HAVE_POLL_H
+#if defined HAVE_POLL_H
 # include <poll.h>
-#endif
-#ifdef HAVE_SYS_POLL_H
+#elif defined HAVE_SYS_POLL_H
 # include <sys/poll.h>
 #endif
 #ifdef HAVE_SYS_CONF_H
@@ -57,8 +56,8 @@ struct strbuf {
 # endif
 
 static const struct xlat msgflags[] = {
-	{ RS_HIPRI,	"RS_HIPRI"	},
-	{ 0,		NULL		},
+	XLAT(RS_HIPRI),
+	XLAT_END
 };
 
 static void
@@ -156,15 +155,15 @@ sys_getmsg(struct tcb *tcp)
 # if defined SYS_putpmsg || defined SYS_getpmsg
 static const struct xlat pmsgflags[] = {
 #  ifdef MSG_HIPRI
-	{ MSG_HIPRI,	"MSG_HIPRI"	},
+	XLAT(MSG_HIPRI),
 #  endif
 #  ifdef MSG_AND
-	{ MSG_ANY,	"MSG_ANY"	},
+	XLAT(MSG_ANY),
 #  endif
 #  ifdef MSG_BAND
-	{ MSG_BAND,	"MSG_BAND"	},
+	XLAT(MSG_BAND),
 #  endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 #  ifdef SYS_putpmsg
 int
@@ -245,26 +244,26 @@ sys_getpmsg(struct tcb *tcp)
 
 static const struct xlat pollflags[] = {
 # ifdef POLLIN
-	{ POLLIN,	"POLLIN"	},
-	{ POLLPRI,	"POLLPRI"	},
-	{ POLLOUT,	"POLLOUT"	},
+	XLAT(POLLIN),
+	XLAT(POLLPRI),
+	XLAT(POLLOUT),
 #  ifdef POLLRDNORM
-	{ POLLRDNORM,	"POLLRDNORM"	},
+	XLAT(POLLRDNORM),
 #  endif
 #  ifdef POLLWRNORM
-	{ POLLWRNORM,	"POLLWRNORM"	},
+	XLAT(POLLWRNORM),
 #  endif
 #  ifdef POLLRDBAND
-	{ POLLRDBAND,	"POLLRDBAND"	},
+	XLAT(POLLRDBAND),
 #  endif
 #  ifdef POLLWRBAND
-	{ POLLWRBAND,	"POLLWRBAND"	},
+	XLAT(POLLWRBAND),
 #  endif
-	{ POLLERR,	"POLLERR"	},
-	{ POLLHUP,	"POLLHUP"	},
-	{ POLLNVAL,	"POLLNVAL"	},
+	XLAT(POLLERR),
+	XLAT(POLLHUP),
+	XLAT(POLLNVAL),
 # endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 static int
@@ -422,7 +421,8 @@ sys_ppoll(struct tcb *tcp)
 	if (entering(tcp)) {
 		print_timespec(tcp, tcp->u_arg[2]);
 		tprints(", ");
-		print_sigset(tcp, tcp->u_arg[3], 0);
+		/* NB: kernel requires arg[4] == NSIG / 8 */
+		print_sigset_addr_len(tcp, tcp->u_arg[3], tcp->u_arg[4]);
 		tprintf(", %lu", tcp->u_arg[4]);
 	}
 	return rc;

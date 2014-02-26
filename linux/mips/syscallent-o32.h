@@ -305,7 +305,7 @@
 	{ 5,	TD,	sys_ppoll,		"ppoll"		}, /* 4302 */
 	{ 1,	TP,	sys_unshare,		"unshare"	}, /* 4303 */
 	{ 6,	TD,	sys_splice,		"splice"	}, /* 4304 */
-	{ 6,	TD,	sys_sync_file_range,	"sync_file_range" }, /* 4305 */
+	{ 7,	TD,	sys_sync_file_range,	"sync_file_range" }, /* 4305 */
 	{ 4,	TD,	sys_tee,		"tee"		}, /* 4306 */
 	{ 4,	TD,	sys_vmsplice,		"vmsplice"	}, /* 4307 */
 	{ 6,	TM,	sys_move_pages,		"move_pages"	}, /* 4308 */
@@ -337,7 +337,7 @@
 	{ 4,	TN,	sys_accept4,		"accept4"	}, /* 4334 */
 	{ 5,	TN,	sys_recvmmsg,		"recvmmsg"	}, /* 4335 */
 	{ 2,	TD,	sys_fanotify_init,	"fanotify_init"	}, /* 4336 */
-	{ 5,	TD|TF,	sys_fanotify_mark,	"fanotify_mark"	}, /* 4337 */
+	{ 6,	TD|TF,	sys_fanotify_mark,	"fanotify_mark"	}, /* 4337 */
 	{ 4,	0,	sys_prlimit64,		"prlimit64"	}, /* 4338 */
 	{ 5,	TD|TF,	sys_name_to_handle_at,	"name_to_handle_at"}, /* 4339 */
 	{ 3,	TD,	sys_open_by_handle_at,	"open_by_handle_at"}, /* 4340 */
@@ -687,7 +687,7 @@
 	{ 4,	TN,	printargs,		"o32_accept4"	}, /* 4334 */
 	{ 5,	TN,	printargs,		"o32_recvmmsg"	}, /* 4335 */
 	{ 2,	TD,	printargs,		"o32_fanotify_init" }, /* 4336 */
-	{ 5,	TD|TF,	printargs,		"o32_fanotify_mark" }, /* 4337 */
+	{ 6,	TD|TF,	printargs,		"o32_fanotify_mark" }, /* 4337 */
 	{ 4,	0,	printargs,		"o32_prlimit64"	}, /* 4338 */
 	{ 5,	TD|TF,	printargs,		"o32_name_to_handle_at"}, /* 4339 */
 	{ 3,	TD,	printargs,		"o32_open_by_handle_at"}, /* 4340 */

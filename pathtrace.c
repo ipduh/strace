@@ -28,10 +28,9 @@
 
 #include "defs.h"
 #include <sys/param.h>
-#ifdef HAVE_POLL_H
+#if defined HAVE_POLL_H
 # include <poll.h>
-#endif
-#ifdef HAVE_SYS_POLL_H
+#elif defined HAVE_SYS_POLL_H
 # include <sys/poll.h>
 #endif
 
@@ -81,7 +80,7 @@ fdmatch(struct tcb *tcp, int fd)
 
 /*
  * Add a path to the set we're tracing.
- * Secifying NULL will delete all paths.
+ * Specifying NULL will delete all paths.
  */
 static void
 storepath(const char *path)
@@ -159,7 +158,7 @@ pathtrace_match(struct tcb *tcp)
 
 	s = tcp->s_ent;
 
-	if (!(s->sys_flags & (TRACE_FILE | TRACE_DESC)))
+	if (!(s->sys_flags & (TRACE_FILE | TRACE_DESC | TRACE_NETWORK)))
 		return 0;
 
 	/*
@@ -252,16 +251,23 @@ pathtrace_match(struct tcb *tcp)
 		return fdmatch(tcp, tcp->u_arg[2]);
 	}
 
+	if (s->sys_func == sys_fanotify_mark) {
+		/* x, x, x, fd, path */
+		return fdmatch(tcp, tcp->u_arg[3]) ||
+			upathmatch(tcp, tcp->u_arg[4]);
+	}
+
 	if (s->sys_func == sys_select ||
 	    s->sys_func == sys_oldselect ||
 	    s->sys_func == sys_pselect6)
 	{
 		int     i, j;
-		unsigned nfds;
+		int     nfds;
 		long   *args, oldargs[5];
 		unsigned fdsize;
 		fd_set *fds;
 
+		args = tcp->u_arg;
 		if (s->sys_func == sys_oldselect) {
 			if (umoven(tcp, tcp->u_arg[0], sizeof oldargs,
 				   (char*) oldargs) < 0)
@@ -270,17 +276,17 @@ pathtrace_match(struct tcb *tcp)
 				return 0;
 			}
 			args = oldargs;
-		} else
-			args = tcp->u_arg;
+		}
 
-		nfds = args[0];
+		/* Kernel truncates arg[0] to int, we do the same. */
+		nfds = (int) args[0];
+		/* Kernel rejects negative nfds, so we don't parse it either. */
+		if (nfds <= 0)
+			return 0;
 		/* Beware of select(2^31-1, NULL, NULL, NULL) and similar... */
-		if (args[0] > 1024*1024)
+		if (nfds > 1024*1024)
 			nfds = 1024*1024;
-		if (args[0] < 0)
-			nfds = 0;
-		fdsize = ((((nfds + 7) / 8) + sizeof(long) - 1)
-			  & -sizeof(long));
+		fdsize = (((nfds + 7) / 8) + current_wordsize-1) & -current_wordsize;
 		fds = malloc(fdsize);
 		if (!fds)
 			die_out_of_memory();
@@ -288,17 +294,19 @@ pathtrace_match(struct tcb *tcp)
 		for (i = 1; i <= 3; ++i) {
 			if (args[i] == 0)
 				continue;
-
 			if (umoven(tcp, args[i], fdsize, (char *) fds) < 0) {
 				fprintf(stderr, "umoven() failed\n");
 				continue;
 			}
-
-			for (j = 0; j < nfds; ++j)
-				if (FD_ISSET(j, fds) && fdmatch(tcp, j)) {
+			for (j = 0;; j++) {
+				j = next_set_bit(fds, j, nfds);
+				if (j < 0)
+					break;
+				if (fdmatch(tcp, j)) {
 					free(fds);
 					return 1;
 				}
+			}
 		}
 		free(fds);
 		return 0;
@@ -337,11 +345,13 @@ pathtrace_match(struct tcb *tcp)
 	    s->sys_func == sys_timerfd_settime ||
 	    s->sys_func == sys_timerfd_gettime ||
 	    s->sys_func == sys_epoll_create ||
-	    strcmp(s->sys_name, "fanotify_init") == 0)
+	    s->sys_func == sys_socket ||
+	    s->sys_func == sys_socketpair ||
+	    s->sys_func == sys_fanotify_init)
 	{
 		/*
-		 * These have TRACE_FILE or TRACE_DESCRIPTOR set, but they
-		 * don't have any file descriptor or path args to test.
+		 * These have TRACE_FILE or TRACE_DESCRIPTOR or TRACE_NETWORK set,
+		 * but they don't have any file descriptor or path args to test.
 		 */
 		return 0;
 	}
@@ -354,7 +364,7 @@ pathtrace_match(struct tcb *tcp)
 	if (s->sys_flags & TRACE_FILE)
 		return upathmatch(tcp, tcp->u_arg[0]);
 
-	if (s->sys_flags & TRACE_DESC)
+	if (s->sys_flags & (TRACE_DESC | TRACE_NETWORK))
 		return fdmatch(tcp, tcp->u_arg[0]);
 
 	return 0;
