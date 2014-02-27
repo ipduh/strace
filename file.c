@@ -212,42 +212,42 @@ struct kernel_dirent {
 };
 
 const struct xlat open_access_modes[] = {
-	{ O_RDONLY,	"O_RDONLY"	},
-	{ O_WRONLY,	"O_WRONLY"	},
-	{ O_RDWR,	"O_RDWR"	},
+	XLAT(O_RDONLY),
+	XLAT(O_WRONLY),
+	XLAT(O_RDWR),
 #ifdef O_ACCMODE
-	{ O_ACCMODE,	"O_ACCMODE"	},
+	XLAT(O_ACCMODE),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 const struct xlat open_mode_flags[] = {
-	{ O_CREAT,	"O_CREAT"	},
-	{ O_EXCL,	"O_EXCL"	},
-	{ O_NOCTTY,	"O_NOCTTY"	},
-	{ O_TRUNC,	"O_TRUNC"	},
-	{ O_APPEND,	"O_APPEND"	},
-	{ O_NONBLOCK,	"O_NONBLOCK"	},
+	XLAT(O_CREAT),
+	XLAT(O_EXCL),
+	XLAT(O_NOCTTY),
+	XLAT(O_TRUNC),
+	XLAT(O_APPEND),
+	XLAT(O_NONBLOCK),
 #ifdef O_SYNC
-	{ O_SYNC,	"O_SYNC"	},
+	XLAT(O_SYNC),
 #endif
 #ifdef O_ASYNC
-	{ O_ASYNC,	"O_ASYNC"	},
+	XLAT(O_ASYNC),
 #endif
 #ifdef O_DSYNC
-	{ O_DSYNC,	"O_DSYNC"	},
+	XLAT(O_DSYNC),
 #endif
 #ifdef O_RSYNC
-	{ O_RSYNC,	"O_RSYNC"	},
+	XLAT(O_RSYNC),
 #endif
 #if defined(O_NDELAY) && (O_NDELAY != O_NONBLOCK)
-	{ O_NDELAY,	"O_NDELAY"	},
+	XLAT(O_NDELAY),
 #endif
 #ifdef O_PRIV
-	{ O_PRIV,	"O_PRIV"	},
+	XLAT(O_PRIV),
 #endif
 #ifdef O_DIRECT
-	{ O_DIRECT,	"O_DIRECT"	},
+	XLAT(O_DIRECT),
 #endif
 #ifdef O_LARGEFILE
 # if O_LARGEFILE == 0		/* biarch platforms in 64-bit mode */
@@ -259,67 +259,70 @@ const struct xlat open_mode_flags[] = {
 #  endif
 # endif
 # ifdef O_LARGEFILE
-	{ O_LARGEFILE,	"O_LARGEFILE"	},
+	XLAT(O_LARGEFILE),
 # endif
 #endif
 #ifdef O_DIRECTORY
-	{ O_DIRECTORY,	"O_DIRECTORY"	},
+	XLAT(O_DIRECTORY),
 #endif
 #ifdef O_NOFOLLOW
-	{ O_NOFOLLOW,	"O_NOFOLLOW"	},
+	XLAT(O_NOFOLLOW),
 #endif
 #ifdef O_NOATIME
-	{ O_NOATIME,	"O_NOATIME"	},
+	XLAT(O_NOATIME),
 #endif
 #ifdef O_CLOEXEC
-	{ O_CLOEXEC,	"O_CLOEXEC"	},
+	XLAT(O_CLOEXEC),
+#endif
+#ifdef O_PATH
+	XLAT(O_PATH),
 #endif
 #ifdef FNDELAY
-	{ FNDELAY,	"FNDELAY"	},
+	XLAT(FNDELAY),
 #endif
 #ifdef FAPPEND
-	{ FAPPEND,	"FAPPEND"	},
+	XLAT(FAPPEND),
 #endif
 #ifdef FMARK
-	{ FMARK,	"FMARK"		},
+	XLAT(FMARK),
 #endif
 #ifdef FDEFER
-	{ FDEFER,	"FDEFER"	},
+	XLAT(FDEFER),
 #endif
 #ifdef FASYNC
-	{ FASYNC,	"FASYNC"	},
+	XLAT(FASYNC),
 #endif
 #ifdef FSHLOCK
-	{ FSHLOCK,	"FSHLOCK"	},
+	XLAT(FSHLOCK),
 #endif
 #ifdef FEXLOCK
-	{ FEXLOCK,	"FEXLOCK"	},
+	XLAT(FEXLOCK),
 #endif
 #ifdef FCREAT
-	{ FCREAT,	"FCREAT"	},
+	XLAT(FCREAT),
 #endif
 #ifdef FTRUNC
-	{ FTRUNC,	"FTRUNC"	},
+	XLAT(FTRUNC),
 #endif
 #ifdef FEXCL
-	{ FEXCL,	"FEXCL"		},
+	XLAT(FEXCL),
 #endif
 #ifdef FNBIO
-	{ FNBIO,	"FNBIO"		},
+	XLAT(FNBIO),
 #endif
 #ifdef FSYNC
-	{ FSYNC,	"FSYNC"		},
+	XLAT(FSYNC),
 #endif
 #ifdef FNOCTTY
-	{ FNOCTTY,	"FNOCTTY"	},
+	XLAT(FNOCTTY),
 #endif
 #ifdef O_SHLOCK
-	{ O_SHLOCK,	"O_SHLOCK"	},
+	XLAT(O_SHLOCK),
 #endif
 #ifdef O_EXLOCK
-	{ O_EXLOCK,	"O_EXLOCK"	},
+	XLAT(O_EXLOCK),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 #ifndef AT_FDCWD
@@ -329,7 +332,7 @@ const struct xlat open_mode_flags[] = {
 /* The fd is an "int", so when decoding x86 on x86_64, we need to force sign
  * extension to get the right value.  We do this by declaring fd as int here.
  */
-static void
+void
 print_dirfd(struct tcb *tcp, int fd)
 {
 	if (fd == AT_FDCWD)
@@ -433,7 +436,7 @@ static const struct xlat openmodessol[] = {
 	{ 0x8000,	"O_RSYNC"	},
 	{ 4,		"O_NDELAY"	},
 	{ 0x1000,	"O_PRIV"	},
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 int
@@ -465,17 +468,17 @@ sys_creat(struct tcb *tcp)
 }
 
 static const struct xlat access_flags[] = {
-	{ F_OK,		"F_OK",		},
-	{ R_OK,		"R_OK"		},
-	{ W_OK,		"W_OK"		},
-	{ X_OK,		"X_OK"		},
+	XLAT(F_OK),
+	XLAT(R_OK),
+	XLAT(W_OK),
+	XLAT(X_OK),
 #ifdef EFF_ONLY_OK
-	{ EFF_ONLY_OK,	"EFF_ONLY_OK"	},
+	XLAT(EFF_ONLY_OK),
 #endif
 #ifdef EX_OK
-	{ EX_OK,	"EX_OK"		},
+	XLAT(EX_OK),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 static int
@@ -513,16 +516,16 @@ sys_umask(struct tcb *tcp)
 }
 
 const struct xlat whence_codes[] = {
-	{ SEEK_SET,	"SEEK_SET"	},
-	{ SEEK_CUR,	"SEEK_CUR"	},
-	{ SEEK_END,	"SEEK_END"	},
+	XLAT(SEEK_SET),
+	XLAT(SEEK_CUR),
+	XLAT(SEEK_END),
 #ifdef SEEK_DATA
-	{ SEEK_DATA,	"SEEK_DATA"	},
+	XLAT(SEEK_DATA),
 #endif
 #ifdef SEEK_HOLE
-	{ SEEK_HOLE,	"SEEK_HOLE"	},
+	XLAT(SEEK_HOLE),
 #endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 /* Linux kernel has exactly one version of lseek:
@@ -632,7 +635,6 @@ sys_truncate(struct tcb *tcp)
 	return 0;
 }
 
-#if _LFS64_LARGEFILE
 int
 sys_truncate64(struct tcb *tcp)
 {
@@ -642,7 +644,6 @@ sys_truncate64(struct tcb *tcp)
 	}
 	return 0;
 }
-#endif
 
 int
 sys_ftruncate(struct tcb *tcp)
@@ -654,7 +655,6 @@ sys_ftruncate(struct tcb *tcp)
 	return 0;
 }
 
-#if _LFS64_LARGEFILE
 int
 sys_ftruncate64(struct tcb *tcp)
 {
@@ -664,19 +664,18 @@ sys_ftruncate64(struct tcb *tcp)
 	}
 	return 0;
 }
-#endif
 
 /* several stats */
 
 static const struct xlat modetypes[] = {
-	{ S_IFREG,	"S_IFREG"	},
-	{ S_IFSOCK,	"S_IFSOCK"	},
-	{ S_IFIFO,	"S_IFIFO"	},
-	{ S_IFLNK,	"S_IFLNK"	},
-	{ S_IFDIR,	"S_IFDIR"	},
-	{ S_IFBLK,	"S_IFBLK"	},
-	{ S_IFCHR,	"S_IFCHR"	},
-	{ 0,		NULL		},
+	XLAT(S_IFREG),
+	XLAT(S_IFSOCK),
+	XLAT(S_IFIFO),
+	XLAT(S_IFLNK),
+	XLAT(S_IFDIR),
+	XLAT(S_IFBLK),
+	XLAT(S_IFCHR),
+	XLAT_END
 };
 
 static const char *
@@ -909,7 +908,7 @@ printstat_powerpc32(struct tcb *tcp, long addr)
 #endif /* POWERPC64 */
 
 static const struct xlat fileflags[] = {
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 static void
@@ -1104,18 +1103,10 @@ printstat64(struct tcb *tcp, long addr)
 	}
 
 	if (!abbrev(tcp)) {
-#ifdef HAVE_LONG_LONG
 		tprintf("{st_dev=makedev(%lu, %lu), st_ino=%llu, st_mode=%s, ",
-#else
-		tprintf("{st_dev=makedev(%lu, %lu), st_ino=%lu, st_mode=%s, ",
-#endif
 			(unsigned long) major(statbuf.st_dev),
 			(unsigned long) minor(statbuf.st_dev),
-#ifdef HAVE_LONG_LONG
 			(unsigned long long) statbuf.st_ino,
-#else
-			(unsigned long) statbuf.st_ino,
-#endif
 			sprintmode(statbuf.st_mode));
 		tprintf("st_nlink=%lu, st_uid=%lu, st_gid=%lu, ",
 			(unsigned long) statbuf.st_nlink,
@@ -1144,11 +1135,7 @@ printstat64(struct tcb *tcp, long addr)
 #endif /* !HAVE_STRUCT_STAT_ST_RDEV */
 		break;
 	default:
-#ifdef HAVE_LONG_LONG
 		tprintf("st_size=%llu, ", (unsigned long long) statbuf.st_size);
-#else
-		tprintf("st_size=%lu, ", (unsigned long) statbuf.st_size);
-#endif
 		break;
 	}
 	if (!abbrev(tcp)) {
@@ -1336,12 +1323,12 @@ sys_stat64(struct tcb *tcp)
 #endif
 
 static const struct xlat at_flags[] = {
-	{ AT_SYMLINK_NOFOLLOW,	"AT_SYMLINK_NOFOLLOW"	},
-	{ AT_REMOVEDIR,		"AT_REMOVEDIR"		},
-	{ AT_SYMLINK_FOLLOW,	"AT_SYMLINK_FOLLOW"	},
-	{ AT_NO_AUTOMOUNT,	"AT_NO_AUTOMOUNT"	},
-	{ AT_EMPTY_PATH,	"AT_EMPTY_PATH"		},
-	{ 0,			NULL			}
+	XLAT(AT_SYMLINK_NOFOLLOW),
+	XLAT(AT_REMOVEDIR),
+	XLAT(AT_SYMLINK_FOLLOW),
+	XLAT(AT_NO_AUTOMOUNT),
+	XLAT(AT_EMPTY_PATH),
+	XLAT_END
 };
 
 int
@@ -1510,24 +1497,24 @@ sys_xmknod(struct tcb *tcp)
 
 static const struct xlat aclcmds[] = {
 #  ifdef SETACL
-	{ SETACL,	"SETACL"	},
+	XLAT(SETACL),
 #  endif
 #  ifdef GETACL
-	{ GETACL,	"GETACL"	},
+	XLAT(GETACL),
 #  endif
 #  ifdef GETACLCNT
-	{ GETACLCNT,	"GETACLCNT"	},
+	XLAT(GETACLCNT),
 #  endif
 #  ifdef ACL_GET
-	{ ACL_GET,	"ACL_GET"	},
+	XLAT(ACL_GET),
 #  endif
 #  ifdef ACL_SET
-	{ ACL_SET,	"ACL_SET"	},
+	XLAT(ACL_SET),
 #  endif
 #  ifdef ACL_CNT
-	{ ACL_CNT,	"ACL_CNT"	},
+	XLAT(ACL_CNT),
 #  endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 int
@@ -1571,15 +1558,15 @@ sys_facl(struct tcb *tcp)
 
 static const struct xlat aclipc[] = {
 #  ifdef IPC_SHM
-	{ IPC_SHM,	"IPC_SHM"	},
+	XLAT(IPC_SHM),
 #  endif
 #  ifdef IPC_SEM
-	{ IPC_SEM,	"IPC_SEM"	},
+	XLAT(IPC_SEM),
 #  endif
 #  ifdef IPC_MSG
-	{ IPC_MSG,	"IPC_MSG"	},
+	XLAT(IPC_MSG),
 #  endif
-	{ 0,		NULL		},
+	XLAT_END
 };
 
 int
@@ -1636,7 +1623,7 @@ static const struct xlat fsmagic[] = {
 	{ 0x012ff7b4,	"XENIX_SUPER_MAGIC"	},
 	{ 0x012fd16d,	"XIAFS_SUPER_MAGIC"	},
 	{ 0x62656572,	"SYSFS_MAGIC"		},
-	{ 0,		NULL			},
+	XLAT_END
 };
 
 static const char *
@@ -2253,16 +2240,16 @@ sys_readdir(struct tcb *tcp)
 }
 
 static const struct xlat direnttypes[] = {
-	{ DT_UNKNOWN,	"DT_UNKNOWN"	},
-	{ DT_FIFO,	"DT_FIFO"	},
-	{ DT_CHR,	"DT_CHR"	},
-	{ DT_DIR,	"DT_DIR"	},
-	{ DT_BLK,	"DT_BLK"	},
-	{ DT_REG,	"DT_REG"	},
-	{ DT_LNK,	"DT_LNK"	},
-	{ DT_SOCK,	"DT_SOCK"	},
-	{ DT_WHT,	"DT_WHT"	},
-	{ 0,		NULL		},
+	XLAT(DT_UNKNOWN),
+	XLAT(DT_FIFO),
+	XLAT(DT_CHR),
+	XLAT(DT_DIR),
+	XLAT(DT_BLK),
+	XLAT(DT_REG),
+	XLAT(DT_LNK),
+	XLAT(DT_SOCK),
+	XLAT(DT_WHT),
+	XLAT_END
 };
 
 int
@@ -2322,7 +2309,6 @@ sys_getdents(struct tcb *tcp)
 	return 0;
 }
 
-#if _LFS64_LARGEFILE
 int
 sys_getdents64(struct tcb *tcp)
 {
@@ -2384,7 +2370,6 @@ sys_getdents64(struct tcb *tcp)
 	free(buf);
 	return 0;
 }
-#endif
 
 int
 sys_getcwd(struct tcb *tcp)
@@ -2479,10 +2464,10 @@ sys_aiocancel(struct tcb *tcp)
 
 static const struct xlat xattrflags[] = {
 #ifdef XATTR_CREATE
-	{ XATTR_CREATE,	 "XATTR_CREATE" },
-	{ XATTR_REPLACE, "XATTR_REPLACE" },
+	XLAT(XATTR_CREATE),
+	XLAT(XATTR_REPLACE),
 #endif
-	{ 0,		 NULL }
+	XLAT_END
 };
 
 static void
@@ -2647,13 +2632,13 @@ sys_fremovexattr(struct tcb *tcp)
 }
 
 static const struct xlat advise[] = {
-	{ POSIX_FADV_NORMAL,		"POSIX_FADV_NORMAL"	},
-	{ POSIX_FADV_RANDOM,		"POSIX_FADV_RANDOM"	},
-	{ POSIX_FADV_SEQUENTIAL,	"POSIX_FADV_SEQUENTIAL"	},
-	{ POSIX_FADV_WILLNEED,		"POSIX_FADV_WILLNEED"	},
-	{ POSIX_FADV_DONTNEED,		"POSIX_FADV_DONTNEED"	},
-	{ POSIX_FADV_NOREUSE,		"POSIX_FADV_NOREUSE"	},
-	{ 0,				NULL			}
+	XLAT(POSIX_FADV_NORMAL),
+	XLAT(POSIX_FADV_RANDOM),
+	XLAT(POSIX_FADV_SEQUENTIAL),
+	XLAT(POSIX_FADV_WILLNEED),
+	XLAT(POSIX_FADV_DONTNEED),
+	XLAT(POSIX_FADV_NOREUSE),
+	XLAT_END
 };
 
 int
@@ -2686,64 +2671,38 @@ sys_fadvise64_64(struct tcb *tcp)
 	return 0;
 }
 
-static const struct xlat inotify_modes[] = {
-	{ 0x00000001,	"IN_ACCESS"	},
-	{ 0x00000002,	"IN_MODIFY"	},
-	{ 0x00000004,	"IN_ATTRIB"	},
-	{ 0x00000008,	"IN_CLOSE_WRITE"},
-	{ 0x00000010,	"IN_CLOSE_NOWRITE"},
-	{ 0x00000020,	"IN_OPEN"	},
-	{ 0x00000040,	"IN_MOVED_FROM"	},
-	{ 0x00000080,	"IN_MOVED_TO"	},
-	{ 0x00000100,	"IN_CREATE"	},
-	{ 0x00000200,	"IN_DELETE"	},
-	{ 0x00000400,	"IN_DELETE_SELF"},
-	{ 0x00000800,	"IN_MOVE_SELF"	},
-	{ 0x00002000,	"IN_UNMOUNT"	},
-	{ 0x00004000,	"IN_Q_OVERFLOW"	},
-	{ 0x00008000,	"IN_IGNORED"	},
-	{ 0x01000000,	"IN_ONLYDIR"	},
-	{ 0x02000000,	"IN_DONT_FOLLOW"},
-	{ 0x20000000,	"IN_MASK_ADD"	},
-	{ 0x40000000,	"IN_ISDIR"	},
-	{ 0x80000000,	"IN_ONESHOT"	},
-	{ 0,		NULL		}
-};
-
-static const struct xlat inotify_init_flags[] = {
-	{ 0x00000800,	"IN_NONBLOCK"	},
-	{ 0x00080000,	"IN_CLOEXEC"	},
-	{ 0,		NULL		}
+static const struct xlat sync_file_range_flags[] = {
+	XLAT(SYNC_FILE_RANGE_WAIT_BEFORE),
+	XLAT(SYNC_FILE_RANGE_WRITE),
+	XLAT(SYNC_FILE_RANGE_WAIT_AFTER),
+	XLAT_END
 };
 
 int
-sys_inotify_add_watch(struct tcb *tcp)
+sys_sync_file_range(struct tcb *tcp)
 {
 	if (entering(tcp)) {
+		int argn;
 		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printpath(tcp, tcp->u_arg[1]);
-		tprints(", ");
-		printflags(inotify_modes, tcp->u_arg[2], "IN_???");
+		argn = printllval(tcp, ", %lld, ", 1);
+		argn = printllval(tcp, "%lld, ", argn);
+		printflags(sync_file_range_flags, tcp->u_arg[argn],
+		           "SYNC_FILE_RANGE_???");
 	}
 	return 0;
 }
 
 int
-sys_inotify_rm_watch(struct tcb *tcp)
+sys_sync_file_range2(struct tcb *tcp)
 {
 	if (entering(tcp)) {
+		int argn;
 		printfd(tcp, tcp->u_arg[0]);
-		tprintf(", %d", (int) tcp->u_arg[1]);
+		printflags(sync_file_range_flags, 1,
+		           "SYNC_FILE_RANGE_???");
+		argn = printllval(tcp, ", %lld, ", 2);
+		argn = printllval(tcp, "%lld, ", argn);
 	}
-	return 0;
-}
-
-int
-sys_inotify_init1(struct tcb *tcp)
-{
-	if (entering(tcp))
-		printflags(inotify_init_flags, tcp->u_arg[0], "IN_???");
 	return 0;
 }
 
@@ -2767,9 +2726,9 @@ sys_fallocate(struct tcb *tcp)
 # define SWAP_FLAG_DISCARD 0x10000
 #endif
 static const struct xlat swap_flags[] = {
-	{ SWAP_FLAG_PREFER,	"SWAP_FLAG_PREFER"	},
-	{ SWAP_FLAG_DISCARD,	"SWAP_FLAG_DISCARD"	},
-	{ 0,			NULL			}
+	XLAT(SWAP_FLAG_PREFER),
+	XLAT(SWAP_FLAG_DISCARD),
+	XLAT_END
 };
 
 int

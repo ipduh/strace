@@ -30,12 +30,6 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
-#ifdef _LARGEFILE64_SOURCE
-/* This is the macro everything checks before using foo64 names.  */
-# ifndef _LFS64_LARGEFILE
-#  define _LFS64_LARGEFILE 1
-# endif
-#endif
 
 #ifdef MIPS
 # include <sgidefs.h>
@@ -146,32 +140,44 @@ extern char *stpcpy(char *dst, const char *src);
 #define USE_SEIZE 1
 /* To force NOMMU build, set to 1 */
 #define NOMMU_SYSTEM 0
+/*
+ * Set to 1 to use speed-optimized vfprintf implementation.
+ * It results in strace using about 5% less CPU in user space
+ * (compared to glibc version).
+ * But strace spends a lot of time in kernel space,
+ * so overall it does not appear to be a significant win.
+ * Thus disabled by default.
+ */
+#define USE_CUSTOM_PRINTF 0
 
-#if (defined(SPARC) || defined(SPARC64) \
-    || defined(I386) || defined(X32) || defined(X86_64) \
-    || defined(ARM) || defined(AARCH64) \
-    || defined(AVR32) \
-    || defined(OR1K) \
-    || defined(METAG) \
-    || defined(TILE) \
-    || defined(XTENSA) \
-    ) && defined(__GLIBC__)
-# include <sys/ptrace.h>
-#else
-/* Work around awkward prototype in ptrace.h. */
+#ifdef NEED_PTRACE_PROTOTYPE_WORKAROUND
 # define ptrace xptrace
 # include <sys/ptrace.h>
 # undef ptrace
-# ifdef POWERPC
-#  define __KERNEL__
-#  include <asm/ptrace.h>
-#  undef __KERNEL__
-# endif
 extern long ptrace(int, int, char *, long);
+#else
+# include <sys/ptrace.h>
+#endif
+
+#if defined(POWERPC)
+# include <asm/ptrace.h>
 #endif
 
 #if defined(TILE)
 # include <asm/ptrace.h>  /* struct pt_regs */
+#endif
+
+#ifndef ERESTARTSYS
+# define ERESTARTSYS    512
+#endif
+#ifndef ERESTARTNOINTR
+# define ERESTARTNOINTR 513
+#endif
+#ifndef ERESTARTNOHAND
+# define ERESTARTNOHAND 514
+#endif
+#ifndef ERESTART_RESTARTBLOCK
+# define ERESTART_RESTARTBLOCK 516
 #endif
 
 #if !HAVE_DECL_PTRACE_SETOPTIONS
@@ -222,21 +228,21 @@ extern long ptrace(int, int, char *, long);
 # define PTRACE_EVENT_EXIT	6
 #endif
 
-#if !defined(__GLIBC__) && !defined(__BIONIC__)
+#if !HAVE_DECL_PTRACE_PEEKUSER
 # define PTRACE_PEEKUSER PTRACE_PEEKUSR
+#endif
+#if !HAVE_DECL_PTRACE_POKEUSER
 # define PTRACE_POKEUSER PTRACE_POKEUSR
 #endif
 
-#if USE_SEIZE
-# undef PTRACE_SEIZE
-# define PTRACE_SEIZE		0x4206
-# undef PTRACE_INTERRUPT
-# define PTRACE_INTERRUPT	0x4207
-# undef PTRACE_LISTEN
-# define PTRACE_LISTEN		0x4208
-# undef PTRACE_EVENT_STOP
-# define PTRACE_EVENT_STOP	128
-#endif
+#undef PTRACE_SEIZE
+#define PTRACE_SEIZE		0x4206
+#undef PTRACE_INTERRUPT
+#define PTRACE_INTERRUPT	0x4207
+#undef PTRACE_LISTEN
+#define PTRACE_LISTEN		0x4208
+#undef PTRACE_EVENT_STOP
+#define PTRACE_EVENT_STOP	128
 
 #ifdef ALPHA
 # define REG_R0 0
@@ -367,16 +373,18 @@ struct arm_pt_regs {
 # define PERSONALITY0_WORDSIZE (int)(sizeof(long))
 #endif
 
-#if defined(I386)
-extern struct user_regs_struct i386_regs;
+#if defined(I386) || defined(X86_64)
+extern uint32_t *const i386_esp_ptr;
 #elif defined(IA64)
-extern long ia32;
+extern bool ia64_ia32mode;
 #elif defined(SPARC) || defined(SPARC64)
 extern struct pt_regs sparc_regs;
 #elif defined(ARM)
 extern struct pt_regs arm_regs;
 #elif defined(TILE)
 extern struct pt_regs tile_regs;
+#elif defined(POWERPC)
+extern struct pt_regs ppc_regs;
 #endif
 
 typedef struct sysent {
@@ -395,7 +403,7 @@ typedef struct ioctlent {
 /* Trace Control Block */
 struct tcb {
 	int flags;		/* See below for TCB_ values */
-	int pid;		/* Process Id of this entry */
+	int pid;		/* If 0, this tcb is free */
 	int qual_flg;		/* qual_flags[scno] or DEFAULT_QUAL_FLAGS + RAW */
 	int u_error;		/* Error code */
 	long scno;		/* System call number */
@@ -420,10 +428,9 @@ struct tcb {
 };
 
 /* TCB flags */
-#define TCB_INUSE		00001	/* This table entry is in use */
 /* We have attached to this process, but did not see it stopping yet */
-#define TCB_STARTUP		00002
-#define TCB_IGNORE_ONE_SIGSTOP	00004	/* Next SIGSTOP is to be ignored */
+#define TCB_STARTUP		0x01
+#define TCB_IGNORE_ONE_SIGSTOP	0x02	/* Next SIGSTOP is to be ignored */
 /*
  * Are we in system call entry or in syscall exit?
  *
@@ -442,14 +449,13 @@ struct tcb {
  *
  * Use entering(tcp) / exiting(tcp) to check this bit to make code more readable.
  */
-#define TCB_INSYSCALL	00010
-#define TCB_ATTACHED	00020   /* It is attached already */
-/* Are we PROG from "strace PROG [ARGS]" invocation? */
-#define TCB_STRACE_CHILD 0040
-#define TCB_BPTSET	00100	/* "Breakpoint" set after fork(2) */
-#define TCB_REPRINT	00200	/* We should reprint this syscall on exit */
-#define TCB_FILTERED	00400	/* This system call has been filtered out */
-/* x86 does not need TCB_WAITEXECVE.
+#define TCB_INSYSCALL	0x04
+#define TCB_ATTACHED	0x08	/* We attached to it already */
+#define TCB_BPTSET	0x10	/* "Breakpoint" set after fork(2) */
+#define TCB_REPRINT	0x20	/* We should reprint this syscall on exit */
+#define TCB_FILTERED	0x40	/* This system call has been filtered out */
+/*
+ * x86 does not need TCB_WAITEXECVE.
  * It can detect post-execve SIGTRAP by looking at eax/rax.
  * See "not a syscall entry (eax = %ld)\n" message.
  *
@@ -470,7 +476,7 @@ struct tcb {
 /* This tracee has entered into execve syscall. Expect post-execve SIGTRAP
  * to happen. (When it is detected, tracee is continued and this bit is cleared.)
  */
-# define TCB_WAITEXECVE	01000
+# define TCB_WAITEXECVE	0x80
 #endif
 
 /* qualifier flags */
@@ -497,6 +503,8 @@ struct xlat {
 	int val;
 	const char *str;
 };
+#define XLAT(x) { x, #x }
+#define XLAT_END { 0, NULL }
 
 extern const struct xlat open_mode_flags[];
 extern const struct xlat addrfams[];
@@ -539,6 +547,7 @@ typedef enum {
 extern cflag_t cflag;
 extern bool debug_flag;
 extern bool Tflag;
+extern bool iflag;
 extern unsigned int qflag;
 extern bool not_failing_only;
 extern bool show_fd_path;
@@ -563,17 +572,10 @@ void error_msg_and_die(const char *fmt, ...) __attribute__ ((noreturn, format(pr
 void perror_msg_and_die(const char *fmt, ...) __attribute__ ((noreturn, format(printf, 1, 2)));
 void die_out_of_memory(void) __attribute__ ((noreturn));
 
-#ifdef USE_CUSTOM_PRINTF
+#if USE_CUSTOM_PRINTF
 /*
- * Speed-optimized vfprintf implementation.
  * See comment in vsprintf.c for allowed formats.
  * Short version: %h[h]u, %zu, %tu are not allowed, use %[l[l]]u.
- *
- * It results in strace using about 5% less CPU in user space
- * (compared to glibc version).
- * But strace spends a lot of time in kernel space,
- * so overall it does not appear to be a significant win.
- * Thus disabled by default.
  */
 int strace_vfprintf(FILE *fp, const char *fmt, va_list args);
 #else
@@ -583,6 +585,7 @@ int strace_vfprintf(FILE *fp, const char *fmt, va_list args);
 extern void set_sortby(const char *);
 extern void set_overhead(int);
 extern void qualify(const char *);
+extern void print_pc(struct tcb *);
 extern int trace_syscall(struct tcb *);
 extern void count_syscall(struct tcb *, struct timeval *);
 extern void call_summary(FILE *);
@@ -595,7 +598,9 @@ extern void call_summary(FILE *);
  || defined(SPARC) || defined(SPARC64) \
  || defined(TILE) \
  || defined(OR1K) \
- || defined(METAG)
+ || defined(METAG) \
+ || defined(ARC) \
+ || defined(POWERPC)
 extern long get_regs_error;
 # define clear_regs()  (get_regs_error = -1)
 extern void get_regs(pid_t pid);
@@ -608,7 +613,7 @@ extern int umoven(struct tcb *, long, int, char *);
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof(*(objp)), (char *) (objp))
 extern int umovestr(struct tcb *, long, int, char *);
-extern int upeek(struct tcb *, long, long *);
+extern int upeek(int pid, long, long *);
 #if defined(SPARC) || defined(SPARC64) || defined(IA64) || defined(SH)
 extern long getrval2(struct tcb *);
 #endif
@@ -622,7 +627,6 @@ extern int setbpt(struct tcb *);
 extern int clearbpt(struct tcb *);
 
 extern const char *signame(int);
-extern int is_restart_error(struct tcb *);
 extern void pathtrace_select(const char *);
 extern int pathtrace_match(struct tcb *);
 extern int getfdpath(struct tcb *, int, char *, unsigned);
@@ -631,6 +635,7 @@ extern const char *xlookup(const struct xlat *, int);
 
 extern int string_to_uint(const char *str);
 extern int string_quote(const char *, char *, long, int);
+extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits);
 
 /* a refers to the lower numbered u_arg,
  * b refers to the higher numbered u_arg
@@ -673,6 +678,7 @@ extern void printsiginfo(siginfo_t *, int);
 extern void printsiginfo_at(struct tcb *tcp, long addr);
 #endif
 extern void printfd(struct tcb *, int);
+extern void print_dirfd(struct tcb *, int);
 extern void printsock(struct tcb *, long, int);
 extern void print_sock_optmgmt(struct tcb *, long, int);
 extern void printrusage(struct tcb *, long);
@@ -680,8 +686,7 @@ extern void printrusage(struct tcb *, long);
 extern void printrusage32(struct tcb *, long);
 #endif
 extern void printuid(const char *, unsigned long);
-extern void printcall(struct tcb *);
-extern void print_sigset(struct tcb *, long, int);
+extern void print_sigset_addr_len(struct tcb *, long, long);
 extern void printsignal(int);
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
 extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
@@ -701,6 +706,7 @@ extern int block_ioctl(struct tcb *, long, long);
 extern int mtd_ioctl(struct tcb *, long, long);
 extern int ubi_ioctl(struct tcb *, long, long);
 extern int loop_ioctl(struct tcb *, long, long);
+extern int ptp_ioctl(struct tcb *, long, long);
 
 extern int tv_nz(struct timeval *);
 extern int tv_cmp(struct timeval *, struct timeval *);

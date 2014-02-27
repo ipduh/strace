@@ -256,24 +256,34 @@ sys_nanosleep(struct tcb *tcp)
 		tprints(", ");
 	} else {
 		/* Second (returned) timespec is only significant
-		 * if syscall was interrupted. We print only its address
-		 * on _success_, since kernel doesn't modify its value.
+		 * if syscall was interrupted. On success, we print
+		 * only its address, since kernel doesn't modify it,
+		 * and printing the value may show uninitialized data.
 		 */
-		if (is_restart_error(tcp) || !tcp->u_arg[1])
-			/* Interrupted (or NULL) */
+		switch (tcp->u_error) {
+		default:
+			/* Not interrupted (slept entire interval) */
+			if (tcp->u_arg[1]) {
+				tprintf("%#lx", tcp->u_arg[1]);
+				break;
+			}
+			/* Fall through: print_timespec(NULL) prints "NULL" */
+		case ERESTARTSYS:
+		case ERESTARTNOINTR:
+		case ERESTARTNOHAND:
+		case ERESTART_RESTARTBLOCK:
+			/* Interrupted */
 			print_timespec(tcp, tcp->u_arg[1]);
-		else
-			/* Success */
-			tprintf("%#lx", tcp->u_arg[1]);
+		}
 	}
 	return 0;
 }
 
 static const struct xlat which[] = {
-	{ ITIMER_REAL,	"ITIMER_REAL"	},
-	{ ITIMER_VIRTUAL,"ITIMER_VIRTUAL"},
-	{ ITIMER_PROF,	"ITIMER_PROF"	},
-	{ 0,		NULL		},
+	XLAT(ITIMER_REAL),
+	XLAT(ITIMER_VIRTUAL),
+	XLAT(ITIMER_PROF),
+	XLAT_END
 };
 
 static void
@@ -393,106 +403,121 @@ sys_osf_setitimer(struct tcb *tcp)
 #endif
 
 static const struct xlat adjtimex_modes[] = {
-	{ 0,		"0"			},
+	XLAT(0),
 #ifdef ADJ_OFFSET
-	{ ADJ_OFFSET,	"ADJ_OFFSET"		},
+	XLAT(ADJ_OFFSET),
 #endif
 #ifdef ADJ_FREQUENCY
-	{ ADJ_FREQUENCY, "ADJ_FREQUENCY"	},
+	XLAT(ADJ_FREQUENCY),
 #endif
 #ifdef ADJ_MAXERROR
-	{ ADJ_MAXERROR,	"ADJ_MAXERROR"		},
+	XLAT(ADJ_MAXERROR),
 #endif
 #ifdef ADJ_ESTERROR
-	{ ADJ_ESTERROR,	"ADJ_ESTERROR"		},
+	XLAT(ADJ_ESTERROR),
 #endif
 #ifdef ADJ_STATUS
-	{ ADJ_STATUS,	"ADJ_STATUS"		},
+	XLAT(ADJ_STATUS),
 #endif
 #ifdef ADJ_TIMECONST
-	{ ADJ_TIMECONST, "ADJ_TIMECONST"	},
+	XLAT(ADJ_TIMECONST),
+#endif
+#ifdef ADJ_TAI
+	XLAT(ADJ_TAI),
+#endif
+#ifdef ADJ_SETOFFSET
+	XLAT(ADJ_SETOFFSET),
+#endif
+#ifdef ADJ_MICRO
+	XLAT(ADJ_MICRO),
+#endif
+#ifdef ADJ_NANO
+	XLAT(ADJ_NANO),
 #endif
 #ifdef ADJ_TICK
-	{ ADJ_TICK,	"ADJ_TICK"		},
+	XLAT(ADJ_TICK),
 #endif
 #ifdef ADJ_OFFSET_SINGLESHOT
-	{ ADJ_OFFSET_SINGLESHOT, "ADJ_OFFSET_SINGLESHOT" },
+	XLAT(ADJ_OFFSET_SINGLESHOT),
 #endif
-	{ 0,		NULL			}
+#ifdef ADJ_OFFSET_SS_READ
+	XLAT(ADJ_OFFSET_SS_READ),
+#endif
+	XLAT_END
 };
 
 static const struct xlat adjtimex_status[] = {
 #ifdef STA_PLL
-	{ STA_PLL,	"STA_PLL"	},
+	XLAT(STA_PLL),
 #endif
 #ifdef STA_PPSFREQ
-	{ STA_PPSFREQ,	"STA_PPSFREQ"	},
+	XLAT(STA_PPSFREQ),
 #endif
 #ifdef STA_PPSTIME
-	{ STA_PPSTIME,	"STA_PPSTIME"	},
+	XLAT(STA_PPSTIME),
 #endif
 #ifdef STA_FLL
-	{ STA_FLL,	"STA_FLL"	},
+	XLAT(STA_FLL),
 #endif
 #ifdef STA_INS
-	{ STA_INS,	"STA_INS"	},
+	XLAT(STA_INS),
 #endif
 #ifdef STA_DEL
-	{ STA_DEL,	"STA_DEL"	},
+	XLAT(STA_DEL),
 #endif
 #ifdef STA_UNSYNC
-	{ STA_UNSYNC,	"STA_UNSYNC"	},
+	XLAT(STA_UNSYNC),
 #endif
 #ifdef STA_FREQHOLD
-	{ STA_FREQHOLD,	"STA_FREQHOLD"	},
+	XLAT(STA_FREQHOLD),
 #endif
 #ifdef STA_PPSSIGNAL
-	{ STA_PPSSIGNAL, "STA_PPSSIGNAL" },
+	XLAT(STA_PPSSIGNAL),
 #endif
 #ifdef STA_PPSJITTER
-	{ STA_PPSJITTER, "STA_PPSJITTER" },
+	XLAT(STA_PPSJITTER),
 #endif
 #ifdef STA_PPSWANDER
-	{ STA_PPSWANDER, "STA_PPSWANDER" },
+	XLAT(STA_PPSWANDER),
 #endif
 #ifdef STA_PPSERROR
-	{ STA_PPSERROR,	"STA_PPSERROR"	},
+	XLAT(STA_PPSERROR),
 #endif
 #ifdef STA_CLOCKERR
-	{ STA_CLOCKERR,	"STA_CLOCKERR"	},
+	XLAT(STA_CLOCKERR),
 #endif
 #ifdef STA_NANO
-	{ STA_NANO,	"STA_NANO"	},
+	XLAT(STA_NANO),
 #endif
 #ifdef STA_MODE
-	{ STA_MODE,	"STA_MODE"	},
+	XLAT(STA_MODE),
 #endif
 #ifdef STA_CLK
-	{ STA_CLK,	"STA_CLK"	},
+	XLAT(STA_CLK),
 #endif
-	{ 0,		NULL		}
+	XLAT_END
 };
 
 static const struct xlat adjtimex_state[] = {
 #ifdef TIME_OK
-	{ TIME_OK,	"TIME_OK"	},
+	XLAT(TIME_OK),
 #endif
 #ifdef TIME_INS
-	{ TIME_INS,	"TIME_INS"	},
+	XLAT(TIME_INS),
 #endif
 #ifdef TIME_DEL
-	{ TIME_DEL,	"TIME_DEL"	},
+	XLAT(TIME_DEL),
 #endif
 #ifdef TIME_OOP
-	{ TIME_OOP,	"TIME_OOP"	},
+	XLAT(TIME_OOP),
 #endif
 #ifdef TIME_WAIT
-	{ TIME_WAIT,	"TIME_WAIT"	},
+	XLAT(TIME_WAIT),
 #endif
 #ifdef TIME_ERROR
-	{ TIME_ERROR,	"TIME_ERROR"	},
+	XLAT(TIME_ERROR),
 #endif
-	{ 0,		NULL		}
+	XLAT_END
 };
 
 #if SUPPORTED_PERSONALITIES > 1
@@ -614,40 +639,70 @@ sys_adjtimex(struct tcb *tcp)
 }
 
 static const struct xlat clockflags[] = {
-	{ TIMER_ABSTIME,	"TIMER_ABSTIME"	},
-	{ 0,			NULL		}
+	XLAT(TIMER_ABSTIME),
+	XLAT_END
 };
 
 static const struct xlat clocknames[] = {
 #ifdef CLOCK_REALTIME
-	{ CLOCK_REALTIME,		"CLOCK_REALTIME" },
+	XLAT(CLOCK_REALTIME),
 #endif
 #ifdef CLOCK_MONOTONIC
-	{ CLOCK_MONOTONIC,		"CLOCK_MONOTONIC" },
+	XLAT(CLOCK_MONOTONIC),
 #endif
 #ifdef CLOCK_PROCESS_CPUTIME_ID
-	{ CLOCK_PROCESS_CPUTIME_ID,	"CLOCK_PROCESS_CPUTIME_ID" },
+	XLAT(CLOCK_PROCESS_CPUTIME_ID),
 #endif
 #ifdef CLOCK_THREAD_CPUTIME_ID
-	{ CLOCK_THREAD_CPUTIME_ID,	"CLOCK_THREAD_CPUTIME_ID" },
+	XLAT(CLOCK_THREAD_CPUTIME_ID),
 #endif
 #ifdef CLOCK_MONOTONIC_RAW
-	{ CLOCK_MONOTONIC_RAW,		"CLOCK_MONOTONIC_RAW" },
+	XLAT(CLOCK_MONOTONIC_RAW),
 #endif
 #ifdef CLOCK_REALTIME_COARSE
-	{ CLOCK_REALTIME_COARSE,	"CLOCK_REALTIME_COARSE" },
+	XLAT(CLOCK_REALTIME_COARSE),
 #endif
 #ifdef CLOCK_MONOTONIC_COARSE
-	{ CLOCK_MONOTONIC_COARSE,	"CLOCK_MONOTONIC_COARSE" },
+	XLAT(CLOCK_MONOTONIC_COARSE),
 #endif
-	{ 0,				NULL }
+	XLAT_END
 };
+
+#ifdef CLOCKID_TO_FD
+static const struct xlat cpuclocknames[] = {
+	XLAT(CPUCLOCK_PROF),
+	XLAT(CPUCLOCK_VIRT),
+	XLAT(CPUCLOCK_SCHED),
+	XLAT_END
+};
+#endif
+
+static void
+printclockname(int clockid)
+{
+#ifdef CLOCKID_TO_FD
+	if (clockid < 0) {
+		if ((clockid & CLOCKFD_MASK) == CLOCKFD)
+			tprintf("FD_TO_CLOCKID(%d)", CLOCKID_TO_FD(clockid));
+		else {
+			if(CPUCLOCK_PERTHREAD(clockid))
+				tprintf("MAKE_THREAD_CPUCLOCK(%d,", CPUCLOCK_PID(clockid));
+			else
+				tprintf("MAKE_PROCESS_CPUCLOCK(%d,", CPUCLOCK_PID(clockid));
+			printxval(cpuclocknames, clockid & CLOCKFD_MASK, "CPUCLOCK_???");
+			tprints(")");
+		}
+	}
+	else
+#endif
+		printxval(clocknames, clockid, "CLOCK_???");
+}
 
 int
 sys_clock_settime(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		printxval(clocknames, tcp->u_arg[0], "CLOCK_???");
+		printclockname(tcp->u_arg[0]);
 		tprints(", ");
 		printtv(tcp, tcp->u_arg[1]);
 	}
@@ -658,7 +713,7 @@ int
 sys_clock_gettime(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		printxval(clocknames, tcp->u_arg[0], "CLOCK_???");
+		printclockname(tcp->u_arg[0]);
 		tprints(", ");
 	} else {
 		if (syserror(tcp))
@@ -673,7 +728,7 @@ int
 sys_clock_nanosleep(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		printxval(clocknames, tcp->u_arg[0], "CLOCK_???");
+		printclockname(tcp->u_arg[0]);
 		tprints(", ");
 		printflags(clockflags, tcp->u_arg[1], "TIMER_???");
 		tprints(", ");
@@ -693,7 +748,7 @@ sys_clock_adjtime(struct tcb *tcp)
 {
 	if (exiting(tcp))
 		return do_adjtimex(tcp, tcp->u_arg[1]);
-	printxval(clocknames, tcp->u_arg[0], "CLOCK_???");
+	printclockname(tcp->u_arg[0]);
 	tprints(", ");
 	return 0;
 }
@@ -702,11 +757,11 @@ sys_clock_adjtime(struct tcb *tcp)
 # define SIGEV_THREAD_ID 4
 #endif
 static const struct xlat sigev_value[] = {
-	{ SIGEV_SIGNAL+1, "SIGEV_SIGNAL" },
-	{ SIGEV_NONE+1, "SIGEV_NONE" },
-	{ SIGEV_THREAD+1, "SIGEV_THREAD" },
-	{ SIGEV_THREAD_ID+1, "SIGEV_THREAD_ID" },
-	{ 0, NULL }
+	XLAT(SIGEV_SIGNAL),
+	XLAT(SIGEV_NONE),
+	XLAT(SIGEV_THREAD),
+	XLAT(SIGEV_THREAD_ID),
+	XLAT_END
 };
 
 #if SUPPORTED_PERSONALITIES > 1
@@ -734,7 +789,7 @@ printsigevent32(struct tcb *tcp, long arg)
 			tprintf("%s, ", signame(sev.sigev_signo));
 		else
 			tprintf("%u, ", sev.sigev_signo);
-		printxval(sigev_value, sev.sigev_notify + 1, "SIGEV_???");
+		printxval(sigev_value, sev.sigev_notify, "SIGEV_???");
 		tprints(", ");
 		if (sev.sigev_notify == SIGEV_THREAD_ID)
 			tprintf("{%d}", sev.un.tid);
@@ -768,13 +823,20 @@ printsigevent(struct tcb *tcp, long arg)
 			tprintf("%s, ", signame(sev.sigev_signo));
 		else
 			tprintf("%u, ", sev.sigev_signo);
-		printxval(sigev_value, sev.sigev_notify+1, "SIGEV_???");
+		printxval(sigev_value, sev.sigev_notify, "SIGEV_???");
 		tprints(", ");
 		if (sev.sigev_notify == SIGEV_THREAD_ID)
+#if defined(HAVE_STRUCT_SIGEVENT__SIGEV_UN__PAD)
 			/* _pad[0] is the _tid field which might not be
 			   present in the userlevel definition of the
 			   struct.  */
 			tprintf("{%d}", sev._sigev_un._pad[0]);
+#elif defined(HAVE_STRUCT_SIGEVENT___PAD)
+			tprintf("{%d}", sev.__pad[0]);
+#else
+# warning unfamiliar struct sigevent => incomplete SIGEV_THREAD_ID decoding
+			tprints("{...}");
+#endif
 		else if (sev.sigev_notify == SIGEV_THREAD)
 			tprintf("{%p, %p}", sev.sigev_notify_function,
 				sev.sigev_notify_attributes);
@@ -788,7 +850,7 @@ int
 sys_timer_create(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		printxval(clocknames, tcp->u_arg[0], "CLOCK_???");
+		printclockname(tcp->u_arg[0]);
 		tprints(", ");
 		printsigevent(tcp, tcp->u_arg[1]);
 		tprints(", ");
@@ -926,8 +988,8 @@ rtc_ioctl(struct tcb *tcp, long code, long arg)
 #endif
 
 static const struct xlat timerfdflags[] = {
-	{ TFD_TIMER_ABSTIME,	"TFD_TIMER_ABSTIME"	},
-	{ 0,			NULL			}
+	XLAT(TFD_TIMER_ABSTIME),
+	XLAT_END
 };
 
 int
@@ -936,7 +998,7 @@ sys_timerfd(struct tcb *tcp)
 	if (entering(tcp)) {
 		/* It does not matter that the kernel uses itimerspec.  */
 		tprintf("%ld, ", tcp->u_arg[0]);
-		printxval(clocknames, tcp->u_arg[1], "CLOCK_???");
+		printclockname(tcp->u_arg[0]);
 		tprints(", ");
 		printflags(timerfdflags, tcp->u_arg[2], "TFD_???");
 		tprints(", ");
@@ -949,7 +1011,7 @@ int
 sys_timerfd_create(struct tcb *tcp)
 {
 	if (entering(tcp)) {
-		printxval(clocknames, tcp->u_arg[0], "CLOCK_???");
+		printclockname(tcp->u_arg[0]);
 		tprints(", ");
 		printflags(timerfdflags, tcp->u_arg[1], "TFD_???");
 	}

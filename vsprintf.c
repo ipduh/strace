@@ -11,10 +11,14 @@
 
 #include "defs.h"
 
-#ifdef USE_CUSTOM_PRINTF
+#if USE_CUSTOM_PRINTF
 
 #include <stdarg.h>
 #include <limits.h>
+
+#ifndef HAVE_FPUTS_UNLOCKED
+# define fputs_unlocked fputs
+#endif
 
 #define noinline_for_stack /*nothing*/
 #define likely(expr)       (expr)
