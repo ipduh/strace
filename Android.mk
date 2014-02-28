@@ -1,6 +1,9 @@
 # Copyright 2006 The Android Open Source Project
 
 LOCAL_PATH := $(my-dir)
+
+# -------------------------------------------------------------------------
+
 include $(CLEAR_VARS)
 
 strace_version := $(shell grep Version $(LOCAL_PATH)/strace.spec | cut -d " " -f 2)
@@ -152,3 +155,37 @@ LOCAL_MODULE_TAGS := debug
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 
 include $(BUILD_EXECUTABLE)
+
+# -------------------------------------------------------------------------
+
+.PHONY: update-ioctls
+update-ioctls:
+	# Build the generated .h files needed by ioctlsort from the current bionic uapi headers.
+	cd external/strace; ./linux/ioctlent.sh ../../bionic/libc/kernel/uapi/
+	# Build the ioctlsort tool.
+	ONE_SHOT_MAKEFILE=external/strace/Android.mk make -f build/core/main.mk $(TARGET_OUT_EXECUTABLES)/ioctlsort
+	# Remove the generated .h files now we've built ioctlsort.
+	rm external/strace/ioctls.h external/strace/ioctldefs.h
+	# Run the ioctlsort tool on the target to generate the one file we do want to check in.
+	adb sync
+	adb shell ioctlsort | tr -d '\r' > external/strace/linux/ioctlent.h
+	# Rebuild strace with the new "ioctlent.h".
+	ONE_SHOT_MAKEFILE=external/strace/Android.mk make -f build/core/main.mk
+
+# We don't build ioctlsort unless really necessary, because we don't check
+# in the temporary files needed to build it. This tool is only necessary
+# when updating strace's list of ioctls.
+ifneq (,$(filter ioctlsort,$(MAKECMDGOALS)))
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := linux/ioctlsort.c
+LOCAL_CFLAGS += -include asm/types.h -include linux/ashmem.h
+LOCAL_CFLAGS += -Wno-unused-parameter
+LOCAL_MODULE := ioctlsort
+LOCAL_MODULE_TAGS := optional
+LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
+include $(BUILD_EXECUTABLE)
+endif
+
+# -------------------------------------------------------------------------
+
+include $(call all-subdir-makefiles)
