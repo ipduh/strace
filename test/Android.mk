@@ -19,6 +19,7 @@ LOCAL_PATH := $(call my-dir)
 define declare-strace-test-target
   include $(CLEAR_VARS)
   LOCAL_SRC_FILES := $(1)
+  LOCAL_CFLAGS := -Wno-unused-parameter -Wno-error=return-type
   LOCAL_MODULE := strace-$(basename $(1))-test
   LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
   LOCAL_MODULE_TAGS := tests
@@ -26,5 +27,22 @@ define declare-strace-test-target
   include $(BUILD_EXECUTABLE)
 endef
 
-$(foreach file, $(wildcard $(LOCAL_PATH)/*.c), \
-    $(eval $(call declare-strace-test-target,$(notdir $(file)))))
+src_files := \
+    childthread.c \
+    clone.c \
+    fork.c \
+    leaderkill.c \
+    mmap_offset_decode.c \
+    mtd.c \
+    select.c \
+    sfd.c \
+    sig.c \
+    sigkill_rain.c \
+    sigreturn.c \
+    skodic.c \
+    threaded_execve.c \
+    ubi.c \
+    vfork.c \
+    wait_must_be_interruptible.c \
+
+$(foreach file, $(src_files), $(eval $(call declare-strace-test-target,$(file))))
