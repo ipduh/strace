@@ -123,6 +123,7 @@ LOCAL_CFLAGS := \
     -DMAJOR_IN_SYSMACROS \
     -DPACKAGE_NAME='"strace"' \
     -DVERSION='"$(strace_version)"' \
+    -DSIZEOF_OFF_T=SIZEOF_LONG \
     -DSIZEOF_LONG_LONG=8 \
     -DSTDC_HEADERS=1 \
     -DSTRACE_KNOWS_ONLY_EABI=1 \
