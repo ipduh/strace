@@ -46,3 +46,57 @@ src_files := \
     wait_must_be_interruptible.c \
 
 $(foreach file, $(src_files), $(eval $(call declare-strace-test-target,$(file))))
+
+# Simple sanity tests meant to be run manually on device. Tests expect that
+# strace will report "exit with 0" at the end of the programs. Some tests
+# document what string should be expected in the output and for them additional
+# checks is made (*-expected output vars)).
+#
+# Failure should be inspected manually. Usually they require a special test
+# setup that can't be easily automated.
+#
+# adb sync is requreired before running "mm run-strace-tests".
+# logs are pulled automatically from the device to the root of the tree
+# (strace-log-*)
+
+childthread-expected-output := 'write(1, "OK\\n",'
+clone-expected-output := 'write(1, "original\\n",'
+fork-expected-output := 'write(1, "parent\\n",'
+leaderkill-expected-output := 'write(1, "OK\\n",'
+mmap_offset_decode-expected-output := ''
+mtd-expected-output := ''
+select-expected-output := ''
+sfd-expected-output := ''
+sig-expected-output := 'write(2, "qwerty\\n",'
+sigkill_rain-expected-output := ''
+sigreturn-expected-output := 'RT_1 RT_3 RT_31 RT_32'
+skodic-expected-output := ''
+threaded_execve-expected-output := ''
+ubi-expected-output := ''
+vfork-expected-output := 'write(1, "parent\\n",'
+wait_must_be_interruptible-expected-output := 'write(1, "Good: wait seems to be correctly"'
+
+run-strace-%-test: TEST_TMP_DIR := /data/local/tmp
+run-strace-%-test:
+	@printf >&2 "\n$*: RUNNING...\n" ; \
+	adb shell rm -f $(TEST_TMP_DIR)/strace-log-$* ; \
+	timeout -s 9 10 adb shell strace -f -o$(TEST_TMP_DIR)/strace-log-$* strace-$*-test > /dev/null ; \
+	adb pull $(TEST_TMP_DIR)/strace-log-$* 2> /dev/null ; \
+	if adb shell cat $(TEST_TMP_DIR)/strace-log-$* | grep "exited with 0" > /dev/null ; \
+	then \
+		if [ -n $($*-expected-output) ] ; then \
+			if adb shell cat $(TEST_TMP_DIR)/strace-log-$* | grep $($*-expected-output) > /dev/null ; \
+				then printf >&2 "$*: PASSED\n" ; \
+				else printf >&2 "$*: FAILED\n" ; \
+			fi ; \
+		else \
+			printf >&2 "$*: PASSED\n" ; \
+		fi ; \
+	else \
+		printf >&2 "$*: FAILED\n" ; \
+	fi
+
+adb-sync:
+	adb sync
+
+run-strace-tests: adb-sync $(foreach file, $(src_files), run-strace-$(basename $(file))-test)
