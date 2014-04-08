@@ -19,8 +19,11 @@ LOCAL_PATH := $(call my-dir)
 define declare-strace-test-target
   include $(CLEAR_VARS)
   LOCAL_SRC_FILES := $(1)
+  LOCAL_MULTILIB := both
   LOCAL_CFLAGS := -Wno-unused-parameter -Wno-error=return-type
   LOCAL_MODULE := strace-$(basename $(1))-test
+  LOCAL_MODULE_STEM_32 := strace-$(basename $(1))32-test
+  LOCAL_MODULE_STEM_64 := strace-$(basename $(1))64-test
   LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
   LOCAL_MODULE_TAGS := tests
   LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
@@ -80,12 +83,13 @@ run-strace-%-test: TEST_TMP_DIR := /data/local/tmp
 run-strace-%-test:
 	@printf >&2 "\n$*: RUNNING...\n" ; \
 	adb shell rm -f $(TEST_TMP_DIR)/strace-log-$* ; \
-	timeout -s 9 10 adb shell strace -f -o$(TEST_TMP_DIR)/strace-log-$* strace-$*-test > /dev/null ; \
+	timeout -s 9 10 adb shell strace -v -f -o$(TEST_TMP_DIR)/strace-log-$* strace-$*-test > strace-log-$*-output ; \
 	adb pull $(TEST_TMP_DIR)/strace-log-$* 2> /dev/null ; \
+	adb pull $(TEST_TMP_DIR)/strace-log-$*-output 2> /dev/null ; \
 	if adb shell cat $(TEST_TMP_DIR)/strace-log-$* | grep "exited with 0" > /dev/null ; \
 	then \
-		if [ -n $($*-expected-output) ] ; then \
-			if adb shell cat $(TEST_TMP_DIR)/strace-log-$* | grep $($*-expected-output) > /dev/null ; \
+		if [ -n $($(shell echo $* | sed 's/[0-9]//g')-expected-output) ] ; then \
+			if adb shell cat $(TEST_TMP_DIR)/strace-log-$* | grep $($(shell echo $* | sed 's/[0-9]//g')-expected-output) > /dev/null ; \
 				then printf >&2 "$*: PASSED\n" ; \
 				else printf >&2 "$*: FAILED\n" ; \
 			fi ; \
@@ -99,4 +103,7 @@ run-strace-%-test:
 adb-sync:
 	adb sync
 
-run-strace-tests: adb-sync $(foreach file, $(src_files), run-strace-$(basename $(file))-test)
+run-strace32-test: $(foreach file, $(src_files), run-strace-$(basename $(file))32-test)
+run-strace64-test: $(foreach file, $(src_files), run-strace-$(basename $(file))64-test)
+
+run-strace-tests: adb-sync run-strace32-test run-strace64-test
