@@ -571,7 +571,9 @@ sys_clone(struct tcb *tcp)
 						print_ldt_entry(&copy);
 				}
 			}
+# ifndef I386
 			else
+# endif
 #endif /* I386 || X86_64 || X32 */
 				tprintf(", tls=%#lx", tcp->u_arg[ARG_TLS]);
 		}
