@@ -16,6 +16,21 @@
 
 LOCAL_PATH := $(call my-dir)
 
+#
+# To update:
+#
+
+#  git fetch strace
+#  git merge strace/master
+#  mm -j32
+#  # (Make any necessary Android.mk changes and test the new strace.)
+#  git push
+#
+#  # Now commit any necessary Android.mk changes like normal:
+#  repo start post-sync .
+#  git commit -a
+#
+
 # -------------------------------------------------------------------------
 
 include $(CLEAR_VARS)
@@ -109,7 +124,8 @@ LOCAL_CFLAGS := \
     -DHAVE_STRERROR=1 \
     -DHAVE_STRUCT_FLOCK64=1 \
     -DHAVE_STRUCT_MSGHDR_MSG_CONTROL=1 \
-    -DHAVE_STRUCT_SIGCONTEXT \
+    -DHAVE_STRUCT_SIGCONTEXT=1 \
+    -DHAVE_STRUCT_SIGEVENT__SIGEV_UN__PAD=1 \
     -DHAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID=1 \
     -DHAVE_STRUCT_STAT_ST_BLKSIZE=1 \
     -DHAVE_STRUCT_STAT_ST_BLOCKS=1 \
