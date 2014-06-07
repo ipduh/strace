@@ -50,6 +50,10 @@ extern char **environ;
 extern int optind;
 extern char *optarg;
 
+#ifdef USE_LIBUNWIND
+/* if this is true do the stack trace for every system call */
+bool stack_trace_enabled = false;
+#endif
 
 #if defined __NR_tkill
 # define my_tkill(tid, sig) syscall(__NR_tkill, (tid), (sig))
@@ -78,6 +82,7 @@ bool need_fork_exec_workarounds = 0;
 bool debug_flag = 0;
 bool Tflag = 0;
 bool iflag = 0;
+bool count_wallclock = 0;
 unsigned int qflag = 0;
 /* Which WSTOPSIG(status) value marks syscall traps? */
 static unsigned int syscall_trap_sig = SIGTRAP;
@@ -200,6 +205,7 @@ usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
               -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
 -c -- count time, calls, and errors for each syscall and report summary\n\
 -C -- like -c but also print regular output\n\
+-w -- summarise syscall latency (default is system time)\n\
 -d -- enable debug output to stderr\n\
 -D -- run tracer process as a detached grandchild, not as parent\n\
 -f -- follow forks, -ff -- with output into separate files\n\
@@ -231,6 +237,10 @@ usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
 -E var -- remove var from the environment for command\n\
 -P path -- trace accesses to path\n\
 "
+#ifdef USE_LIBUNWIND
+"-k obtain stack trace between each syscall\n\
+"
+#endif
 /* ancient, no one should use it
 -F -- attempt to follow vforks (deprecated, use -f)\n\
  */
@@ -693,6 +703,12 @@ alloctcb(int pid)
 #if SUPPORTED_PERSONALITIES > 1
 			tcp->currpers = current_personality;
 #endif
+
+#ifdef USE_LIBUNWIND
+			if (stack_trace_enabled)
+				unwind_tcb_init(tcp);
+#endif
+
 			nprocs++;
 			if (debug_flag)
 				fprintf(stderr, "new tcb for pid %d, active tcbs:%d\n", tcp->pid, nprocs);
@@ -707,6 +723,12 @@ droptcb(struct tcb *tcp)
 {
 	if (tcp->pid == 0)
 		return;
+
+#ifdef USE_LIBUNWIND
+	if (stack_trace_enabled) {
+		unwind_tcb_fin(tcp);
+	}
+#endif
 
 	nprocs--;
 	if (debug_flag)
@@ -1650,7 +1672,10 @@ init(int argc, char *argv[])
 #endif
 	qualify("signal=all");
 	while ((c = getopt(argc, argv,
-		"+b:cCdfFhiqrtTvVxyz"
+		"+b:cCdfFhiqrtTvVwxyz"
+#ifdef USE_LIBUNWIND
+		"k"
+#endif
 		"D"
 		"a:e:o:O:p:s:S:u:E:P:I:")) != EOF) {
 		switch (c) {
@@ -1701,6 +1726,9 @@ init(int argc, char *argv[])
 			break;
 		case 'T':
 			Tflag = 1;
+			break;
+		case 'w':
+			count_wallclock = 1;
 			break;
 		case 'x':
 			xflag++;
@@ -1753,6 +1781,11 @@ init(int argc, char *argv[])
 		case 'u':
 			username = strdup(optarg);
 			break;
+#ifdef USE_LIBUNWIND
+		case 'k':
+			stack_trace_enabled = true;
+			break;
+#endif
 		case 'E':
 			if (putenv(optarg) < 0)
 				die_out_of_memory();
@@ -1790,6 +1823,32 @@ init(int argc, char *argv[])
 	if (followfork >= 2 && cflag) {
 		error_msg_and_die("(-c or -C) and -ff are mutually exclusive");
 	}
+
+	if (count_wallclock && !cflag) {
+		error_msg_and_die("-w must be given with (-c or -C)");
+	}
+
+	if (cflag == CFLAG_ONLY_STATS) {
+		if (iflag)
+			error_msg("-%c has no effect with -c", 'i');
+#ifdef USE_LIBUNWIND
+		if (stack_trace_enabled)
+			error_msg("-%c has no effect with -c", 'k');
+#endif
+		if (rflag)
+			error_msg("-%c has no effect with -c", 'r');
+		if (tflag)
+			error_msg("-%c has no effect with -c", 't');
+		if (Tflag)
+			error_msg("-%c has no effect with -c", 'T');
+		if (show_fd_path)
+			error_msg("-%c has no effect with -c", 'y');
+	}
+
+#ifdef USE_LIBUNWIND
+	if (stack_trace_enabled)
+		unwind_init();
+#endif
 
 	/* See if they want to run as another user. */
 	if (username != NULL) {

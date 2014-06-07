@@ -1,6 +1,9 @@
 net-accept-connect
+scm_rights
 set_ptracer_any
 sigaction
+stack-fcall
+uio
 *.log
 *.log.*
 *.o

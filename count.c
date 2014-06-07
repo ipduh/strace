@@ -37,7 +37,7 @@
 
 /* Per-syscall stats structure */
 struct call_counts {
-	/* system time spent in syscall (not wall clock time) */
+	/* time may be total latency or system time */
 	struct timeval time;
 	int calls, errors;
 };
@@ -47,10 +47,11 @@ static struct call_counts *countv[SUPPORTED_PERSONALITIES];
 
 static struct timeval shortest = { 1000000, 0 };
 
-/* On entry, tv is syscall exit timestamp */
 void
-count_syscall(struct tcb *tcp, struct timeval *tv)
+count_syscall(struct tcb *tcp, const struct timeval *syscall_exiting_tv)
 {
+	struct timeval wtv;
+	struct timeval *tv = &wtv;
 	struct call_counts *cc;
 	unsigned long scno = tcp->scno;
 
@@ -69,7 +70,7 @@ count_syscall(struct tcb *tcp, struct timeval *tv)
 		cc->errors++;
 
 	/* tv = wall clock time spent while in syscall */
-	tv_sub(tv, tv, &tcp->etime);
+	tv_sub(tv, syscall_exiting_tv, &tcp->etime);
 
 	/* Spent more wall clock time than spent system time? (usually yes) */
 	if (tv_cmp(tv, &tcp->dtime) > 0) {
@@ -90,18 +91,18 @@ count_syscall(struct tcb *tcp, struct timeval *tv)
 
 		if (tv_nz(&tcp->dtime))
 			/* tv = system time spent, if it isn't 0 */
-			*tv = tcp->dtime;
+			tv = &tcp->dtime;
 		else if (tv_cmp(tv, &one_tick) > 0) {
 			/* tv = smallest "sane" time interval */
 			if (tv_cmp(&shortest, &one_tick) < 0)
-				*tv = shortest;
+				tv = &shortest;
 			else
-				*tv = one_tick;
+				tv = &one_tick;
 		}
 	}
 	if (tv_cmp(tv, &shortest) < 0)
 		shortest = *tv;
-	tv_add(&cc->time, &cc->time, tv);
+	tv_add(&cc->time, &cc->time, count_wallclock ? &wtv : tv);
 }
 
 static int

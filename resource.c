@@ -33,64 +33,7 @@
 #include <sys/times.h>
 #include <linux/kernel.h>
 
-static const struct xlat resources[] = {
-#ifdef RLIMIT_AS
-	XLAT(RLIMIT_AS),
-#endif
-#ifdef RLIMIT_CORE
-	XLAT(RLIMIT_CORE),
-#endif
-#ifdef RLIMIT_CPU
-	XLAT(RLIMIT_CPU),
-#endif
-#ifdef RLIMIT_DATA
-	XLAT(RLIMIT_DATA),
-#endif
-#ifdef RLIMIT_FSIZE
-	XLAT(RLIMIT_FSIZE),
-#endif
-#ifdef RLIMIT_LOCKS
-	XLAT(RLIMIT_LOCKS),
-#endif
-#ifdef RLIMIT_MEMLOCK
-	XLAT(RLIMIT_MEMLOCK),
-#endif
-#ifdef RLIMIT_MSGQUEUE
-	XLAT(RLIMIT_MSGQUEUE),
-#endif
-#ifdef RLIMIT_NICE
-	XLAT(RLIMIT_NICE),
-#endif
-#ifdef RLIMIT_NOFILE
-	XLAT(RLIMIT_NOFILE),
-#endif
-#ifdef RLIMIT_NPROC
-	XLAT(RLIMIT_NPROC),
-#endif
-#ifdef RLIMIT_RSS
-	XLAT(RLIMIT_RSS),
-#endif
-#ifdef RLIMIT_RTPRIO
-	XLAT(RLIMIT_RTPRIO),
-#endif
-#ifdef RLIMIT_RTTIME
-	XLAT(RLIMIT_RTTIME),
-#endif
-#ifdef RLIMIT_SIGPENDING
-	XLAT(RLIMIT_SIGPENDING),
-#endif
-#ifdef RLIMIT_STACK
-	XLAT(RLIMIT_STACK),
-#endif
-#ifdef RLIMIT_VMEM
-	XLAT(RLIMIT_VMEM),
-#endif
-	XLAT_END
-};
-
-#if !(SIZEOF_RLIM_T == 4 || SIZEOF_RLIM_T == 8)
-# error "Unsupported SIZEOF_RLIM_T value"
-#endif
+#include "xlat/resources.h"
 
 static const char *
 sprint_rlim64(uint64_t lim)
@@ -135,7 +78,7 @@ decode_rlimit64(struct tcb *tcp, unsigned long addr)
 		print_rlimit64(tcp, addr);
 }
 
-#if SIZEOF_RLIM_T == 4 || SUPPORTED_PERSONALITIES > 1
+#if !defined(current_wordsize) || current_wordsize == 4
 
 static const char *
 sprint_rlim32(uint32_t lim)
@@ -176,22 +119,28 @@ decode_rlimit(struct tcb *tcp, unsigned long addr)
 	else if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)))
 		tprintf("%#lx", addr);
 	else {
-# if SIZEOF_RLIM_T == 4
-		print_rlimit32(tcp, addr);
+# if defined(X86_64) || defined(X32)
+		/*
+		 * i386 is the only personality on X86_64 and X32
+		 * with 32-bit rlim_t.
+		 * When current_personality is X32, current_wordsize
+		 * equals to 4 but rlim_t is 64-bit.
+		 */
+		if (current_personality == 1)
 # else
 		if (current_wordsize == 4)
+# endif
 			print_rlimit32(tcp, addr);
 		else
 			print_rlimit64(tcp, addr);
-# endif
 	}
 }
 
-#else /* SIZEOF_RLIM_T == 8 && SUPPORTED_PERSONALITIES == 1 */
+#else /* defined(current_wordsize) && current_wordsize != 4 */
 
 # define decode_rlimit decode_rlimit64
 
-#endif /* SIZEOF_RLIM_T == 4 || SUPPORTED_PERSONALITIES > 1 */
+#endif
 
 int
 sys_getrlimit(struct tcb *tcp)
@@ -232,14 +181,7 @@ sys_prlimit64(struct tcb *tcp)
 	return 0;
 }
 
-static const struct xlat usagewho[] = {
-	XLAT(RUSAGE_SELF),
-	XLAT(RUSAGE_CHILDREN),
-#ifdef RUSAGE_BOTH
-	XLAT(RUSAGE_BOTH),
-#endif
-	XLAT_END
-};
+#include "xlat/usagewho.h"
 
 #ifdef ALPHA
 void
@@ -386,12 +328,7 @@ sys_sysinfo(struct tcb *tcp)
 	return 0;
 }
 
-static const struct xlat priorities[] = {
-	XLAT(PRIO_PROCESS),
-	XLAT(PRIO_PGRP),
-	XLAT(PRIO_USER),
-	XLAT_END
-};
+#include "xlat/priorities.h"
 
 int
 sys_getpriority(struct tcb *tcp)

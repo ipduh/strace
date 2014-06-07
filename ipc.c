@@ -63,84 +63,14 @@
 
 extern void printsigevent(struct tcb *tcp, long arg);
 
-static const struct xlat msgctl_flags[] = {
-	XLAT(IPC_RMID),
-	XLAT(IPC_SET),
-	XLAT(IPC_STAT),
-	XLAT(IPC_INFO),
-	XLAT(MSG_STAT),
-	XLAT(MSG_INFO),
-	XLAT_END
-};
-
-static const struct xlat semctl_flags[] = {
-	XLAT(IPC_RMID),
-	XLAT(IPC_SET),
-	XLAT(IPC_STAT),
-	XLAT(IPC_INFO),
-	XLAT(SEM_STAT),
-	XLAT(SEM_INFO),
-	XLAT(GETPID),
-	XLAT(GETVAL),
-	XLAT(GETALL),
-	XLAT(GETNCNT),
-	XLAT(GETZCNT),
-	XLAT(SETVAL),
-	XLAT(SETALL),
-	XLAT_END
-};
-
-static const struct xlat shmctl_flags[] = {
-	XLAT(IPC_RMID),
-	XLAT(IPC_SET),
-	XLAT(IPC_STAT),
-	XLAT(IPC_INFO),
-	XLAT(SHM_STAT),
-	XLAT(SHM_INFO),
-#ifdef SHM_LOCK
-	XLAT(SHM_LOCK),
-#endif
-#ifdef SHM_UNLOCK
-	XLAT(SHM_UNLOCK),
-#endif
-	XLAT_END
-};
-
-static const struct xlat resource_flags[] = {
-	XLAT(IPC_CREAT),
-	XLAT(IPC_EXCL),
-	XLAT(IPC_NOWAIT),
-	XLAT_END
-};
-
-static const struct xlat shm_resource_flags[] = {
-	XLAT(IPC_CREAT),
-	XLAT(IPC_EXCL),
-#ifdef SHM_HUGETLB
-	XLAT(SHM_HUGETLB),
-#endif
-	XLAT_END
-};
-
-static const struct xlat shm_flags[] = {
-	XLAT(SHM_REMAP),
-	XLAT(SHM_RDONLY),
-	XLAT(SHM_RND),
-	XLAT_END
-};
-
-static const struct xlat msg_flags[] = {
-	XLAT(MSG_NOERROR),
-	XLAT(MSG_EXCEPT),
-	XLAT(IPC_NOWAIT),
-	XLAT_END
-};
-
-static const struct xlat semop_flags[] = {
-	XLAT(SEM_UNDO),
-	XLAT(IPC_NOWAIT),
-	XLAT_END
-};
+#include "xlat/msgctl_flags.h"
+#include "xlat/semctl_flags.h"
+#include "xlat/shmctl_flags.h"
+#include "xlat/resource_flags.h"
+#include "xlat/shm_resource_flags.h"
+#include "xlat/shm_flags.h"
+#include "xlat/ipc_msg_flags.h"
+#include "xlat/semop_flags.h"
 
 int sys_msgget(struct tcb *tcp)
 {
@@ -203,7 +133,7 @@ tprint_msgsnd(struct tcb *tcp, long addr, unsigned long count,
 		tprints("}");
 	}
 	tprintf(", %lu, ", count);
-	printflags(msg_flags, flags, "MSG_???");
+	printflags(ipc_msg_flags, flags, "MSG_???");
 }
 
 int sys_msgsnd(struct tcb *tcp)
@@ -254,11 +184,11 @@ int sys_msgrcv(struct tcb *tcp)
 				tprint_msgrcv(tcp, (long) tmp.msgp,
 					tcp->u_arg[1], tmp.msgtyp);
 			}
-			printflags(msg_flags, tcp->u_arg[2], "MSG_???");
+			printflags(ipc_msg_flags, tcp->u_arg[2], "MSG_???");
 		} else {
 			tprint_msgrcv(tcp, tcp->u_arg[1],
 				tcp->u_arg[2], tcp->u_arg[3]);
-			printflags(msg_flags, tcp->u_arg[4], "MSG_???");
+			printflags(ipc_msg_flags, tcp->u_arg[4], "MSG_???");
 		}
 	}
 	return 0;

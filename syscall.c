@@ -98,6 +98,8 @@
 #define TM TRACE_MEMORY
 #define NF SYSCALL_NEVER_FAILS
 #define MA MAX_ARGS
+#define SI STACKTRACE_INVALIDATE_CACHE
+#define SE STACKTRACE_CAPTURE_ON_ENTER
 
 const struct_sysent sysent0[] = {
 #include "syscallent.h"
@@ -125,6 +127,8 @@ static const struct_sysent sysent2[] = {
 #undef TM
 #undef NF
 #undef MA
+#undef SI
+#undef SE
 
 /*
  * `ioctlent.h' may be generated from `ioctlent.raw' by the auxiliary
@@ -1708,7 +1712,6 @@ syscall_fixup_for_fork_exec(struct tcb *tcp)
 	func = tcp->s_ent->sys_func;
 
 	if (   sys_fork == func
-	    || sys_vfork == func
 	    || sys_clone == func
 	   ) {
 		internal_fork(tcp);
@@ -2036,6 +2039,13 @@ trace_syscall_entering(struct tcb *tcp)
 		res = 0;
 		goto ret;
 	}
+
+#ifdef USE_LIBUNWIND
+	if (stack_trace_enabled) {
+		if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
+			unwind_capture_stacktrace(tcp);
+	}
+#endif
 
 	printleader(tcp);
 	if (tcp->qual_flg & UNDEFINED_SCNO)
@@ -2510,6 +2520,13 @@ trace_syscall_exiting(struct tcb *tcp)
 	if (Tflag || cflag)
 		gettimeofday(&tv, NULL);
 
+#ifdef USE_LIBUNWIND
+	if (stack_trace_enabled) {
+		if (tcp->s_ent->sys_flags & STACKTRACE_INVALIDATE_CACHE)
+			unwind_cache_invalidate(tcp);
+	}
+#endif
+
 #if SUPPORTED_PERSONALITIES > 1
 	update_personality(tcp, tcp->currpers);
 #endif
@@ -2524,8 +2541,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	}
 
 	if (cflag) {
-		struct timeval t = tv;
-		count_syscall(tcp, &t);
+		count_syscall(tcp, &tv);
 		if (cflag == CFLAG_ONLY_STATS) {
 			goto ret;
 		}
@@ -2672,6 +2688,14 @@ trace_syscall_exiting(struct tcb *tcp)
 			case RVAL_DECIMAL:
 				tprintf("= %ld", tcp->u_rval);
 				break;
+			case RVAL_FD:
+				if (show_fd_path) {
+					tprints("= ");
+					printfd(tcp, tcp->u_rval);
+				}
+				else
+					tprintf("= %ld", tcp->u_rval);
+				break;
 #if defined(LINUX_MIPSN32) || defined(X32)
 			/*
 			case RVAL_LHEX:
@@ -2707,6 +2731,11 @@ trace_syscall_exiting(struct tcb *tcp)
 	tprints("\n");
 	dumpio(tcp);
 	line_ended();
+
+#ifdef USE_LIBUNWIND
+	if (stack_trace_enabled)
+		unwind_print_stacktrace(tcp);
+#endif
 
  ret:
 	tcp->flags &= ~TCB_INSYSCALL;

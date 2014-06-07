@@ -370,7 +370,7 @@ struct arm_pt_regs {
 # define DEFAULT_PERSONALITY 0
 #endif
 #ifndef PERSONALITY0_WORDSIZE
-# define PERSONALITY0_WORDSIZE (int)(sizeof(long))
+# define PERSONALITY0_WORDSIZE SIZEOF_LONG
 #endif
 
 #if defined(I386) || defined(X86_64)
@@ -425,6 +425,14 @@ struct tcb {
 	struct timeval etime;	/* Syscall entry time */
 				/* Support for tracing forked processes: */
 	long inst[2];		/* Saved clone args (badly named) */
+
+#ifdef USE_LIBUNWIND
+	struct UPT_info* libunwind_ui;
+	struct mmap_cache_t* mmap_cache;
+	unsigned int mmap_cache_size;
+	unsigned int mmap_cache_generation;
+	struct queue_t* queue;
+#endif
 };
 
 /* TCB flags */
@@ -525,10 +533,11 @@ extern const struct xlat whence_codes[];
 # endif
 # define RVAL_LUDECIMAL	007	/* long unsigned decimal format */
 #endif
-#define RVAL_MASK	007	/* mask for these values */
+#define RVAL_FD		010	/* file descriptor */
+#define RVAL_MASK	017	/* mask for these values */
 
-#define RVAL_STR	010	/* Print `auxstr' field after return val */
-#define RVAL_NONE	020	/* Print nothing */
+#define RVAL_STR	020	/* Print `auxstr' field after return val */
+#define RVAL_NONE	040	/* Print nothing */
 
 #define TRACE_FILE	001	/* Trace file-related syscalls. */
 #define TRACE_IPC	002	/* Trace IPC-related syscalls. */
@@ -538,6 +547,8 @@ extern const struct xlat whence_codes[];
 #define TRACE_DESC	040	/* Trace file descriptor-related syscalls. */
 #define TRACE_MEMORY	0100	/* Trace memory mapping-related syscalls. */
 #define SYSCALL_NEVER_FAILS	0200	/* Syscall is always successful. */
+#define STACKTRACE_INVALIDATE_CACHE 0400  /* Trigger proc/maps cache updating */
+#define STACKTRACE_CAPTURE_ON_ENTER 01000 /* Capture stacktrace on "entering" stage */
 
 typedef enum {
 	CFLAG_NONE = 0,
@@ -548,6 +559,7 @@ extern cflag_t cflag;
 extern bool debug_flag;
 extern bool Tflag;
 extern bool iflag;
+extern bool count_wallclock;
 extern unsigned int qflag;
 extern bool not_failing_only;
 extern bool show_fd_path;
@@ -558,6 +570,10 @@ extern const char **paths_selected;
 extern bool need_fork_exec_workarounds;
 extern unsigned xflag;
 extern unsigned followfork;
+#ifdef USE_LIBUNWIND
+/* if this is true do the stack trace for every system call */
+extern bool stack_trace_enabled;
+#endif
 extern unsigned ptrace_setoptions;
 extern unsigned max_strlen;
 extern unsigned os_release;
@@ -587,7 +603,7 @@ extern void set_overhead(int);
 extern void qualify(const char *);
 extern void print_pc(struct tcb *);
 extern int trace_syscall(struct tcb *);
-extern void count_syscall(struct tcb *, struct timeval *);
+extern void count_syscall(struct tcb *, const struct timeval *);
 extern void call_summary(FILE *);
 
 #if defined(AVR32) \
@@ -712,13 +728,22 @@ extern int ubi_ioctl(struct tcb *, long, long);
 extern int loop_ioctl(struct tcb *, long, long);
 extern int ptp_ioctl(struct tcb *, long, long);
 
-extern int tv_nz(struct timeval *);
-extern int tv_cmp(struct timeval *, struct timeval *);
-extern double tv_float(struct timeval *);
-extern void tv_add(struct timeval *, struct timeval *, struct timeval *);
-extern void tv_sub(struct timeval *, struct timeval *, struct timeval *);
-extern void tv_mul(struct timeval *, struct timeval *, int);
-extern void tv_div(struct timeval *, struct timeval *, int);
+extern int tv_nz(const struct timeval *);
+extern int tv_cmp(const struct timeval *, const struct timeval *);
+extern double tv_float(const struct timeval *);
+extern void tv_add(struct timeval *, const struct timeval *, const struct timeval *);
+extern void tv_sub(struct timeval *, const struct timeval *, const struct timeval *);
+extern void tv_mul(struct timeval *, const struct timeval *, int);
+extern void tv_div(struct timeval *, const struct timeval *, int);
+
+#ifdef USE_LIBUNWIND
+extern void unwind_init(void);
+extern void unwind_tcb_init(struct tcb *tcp);
+extern void unwind_tcb_fin(struct tcb *tcp);
+extern void unwind_cache_invalidate(struct tcb* tcp);
+extern void unwind_print_stacktrace(struct tcb* tcp);
+extern void unwind_capture_stacktrace(struct tcb* tcp);
+#endif
 
 /* Strace log generation machinery.
  *

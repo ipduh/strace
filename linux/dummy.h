@@ -57,8 +57,6 @@
 #define	sys_acct		sys_chdir
 #define	sys_chroot		sys_chdir
 #define	sys_clock_getres	sys_clock_gettime
-#define	sys_delete_module	sys_open
-#define	sys_dup			sys_close
 #define	sys_fchdir		sys_close
 #define	sys_fdatasync		sys_close
 #define	sys_fsync		sys_close
@@ -79,7 +77,6 @@
 #define	sys_set_robust_list	sys_munmap
 #define	sys_setfsgid		sys_setfsuid
 #define	sys_setgid		sys_setuid
-#define	sys_setns		sys_inotify_rm_watch
 #define	sys_setregid		sys_setreuid
 #define	sys_setresgid		sys_setresuid
 #define	sys_swapoff		sys_chdir
@@ -88,6 +85,7 @@
 #define	sys_umount		sys_chdir
 #define	sys_unlink		sys_chdir
 #define	sys_uselib		sys_chdir
+#define	sys_vfork		sys_fork
 
 /* printargs does the right thing */
 #define	sys_getpgid		printargs
