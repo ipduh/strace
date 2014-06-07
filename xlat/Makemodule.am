@@ -1,0 +1,348 @@
+XLAT_INPUT_FILES = xlat/access_flags.in xlat/aclcmds.in xlat/aclipc.in xlat/addrfams.in xlat/adjtimex_modes.in xlat/adjtimex_state.in xlat/adjtimex_status.in xlat/advise.in xlat/af_packet_types.in xlat/archvals.in xlat/at_flags.in xlat/atomic_ops.in xlat/baud_options.in xlat/blkpg_ops.in xlat/bootflags1.in xlat/bootflags2.in xlat/bootflags3.in xlat/cacheflush_scope.in xlat/capabilities.in xlat/cap_version.in xlat/clockflags.in xlat/clocknames.in xlat/clone_flags.in xlat/cpuclocknames.in xlat/delete_module_flags.in xlat/direnttypes.in xlat/domains.in xlat/epollctls.in xlat/epollevents.in xlat/epollflags.in xlat/fan_classes.in xlat/fan_event_flags.in xlat/fan_init_flags.in xlat/fan_mark_flags.in xlat/fcntlcmds.in xlat/fdflags.in xlat/fileflags.in xlat/flockcmds.in xlat/fsmagic.in xlat/futexops.in xlat/futexwakecmps.in xlat/futexwakeops.in xlat/icmpfilterflags.in xlat/if_dqblk_valid.in xlat/if_dqinfo_valid.in xlat/iffflags.in xlat/inet_protocols.in xlat/inotify_flags.in xlat/inotify_init_flags.in xlat/ioprio_class.in xlat/ioprio_who.in xlat/ipc_msg_flags.in xlat/itimer_which.in xlat/kexec_arch_values.in xlat/kexec_flags.in xlat/keyctl_commands.in xlat/key_perms.in xlat/key_reqkeys.in xlat/key_spec.in xlat/lockfcmds.in xlat/loop_crypt_type_options.in xlat/loop_flags_options.in xlat/madvise_cmds.in xlat/mbindflags.in xlat/mctl_funcs.in xlat/mctl_lockas.in xlat/mctl_sync.in xlat/mempolicyflags.in xlat/mlockall_flags.in xlat/mmap_flags.in xlat/mmap_prot.in xlat/modem_flags.in xlat/modetypes.in xlat/modflags.in xlat/module_init_flags.in xlat/mount_flags.in xlat/move_pages_flags.in xlat/mremap_flags.in xlat/msgctl_flags.in xlat/msg_flags.in xlat/msgflags.in xlat/mtd_flags_options.in xlat/mtd_mode_options.in xlat/mtd_nandecc_options.in xlat/mtd_otp_options.in xlat/mtd_type_options.in xlat/netlink_protocols.in xlat/notifyflags.in xlat/nt_descriptor_types.in xlat/open_access_modes.in xlat/open_mode_flags.in xlat/openmodessol.in xlat/perf_event_open_flags.in xlat/personality_options.in xlat/pmsgflags.in xlat/policies.in xlat/pollflags.in xlat/prctl_options.in xlat/priorities.in xlat/ptp_flags_options.in xlat/ptrace_cmds.in xlat/ptrace_setoptions_flags.in xlat/qm_which.in xlat/quotacmds.in xlat/quota_formats.in xlat/quotatypes.in xlat/resource_flags.in xlat/resources.in xlat/schedulers.in xlat/scmvals.in xlat/semctl_flags.in xlat/semop_flags.in xlat/sg_io_dxfer_direction.in xlat/shmctl_flags.in xlat/shm_flags.in xlat/shm_resource_flags.in xlat/shutdown_modes.in xlat/sigact_flags.in xlat/sigaltstack_flags.in xlat/sigbus_codes.in xlat/sigchld_codes.in xlat/sigemt_codes.in xlat/sigev_value.in xlat/sigfpe_codes.in xlat/sigill_codes.in xlat/siginfo_codes.in xlat/sigpoll_codes.in xlat/sigprocmaskcmds.in xlat/sigprof_codes.in xlat/sigsegv_codes.in xlat/sigsys_codes.in xlat/sigtrap_codes.in xlat/socketlayers.in xlat/sockipoptions.in xlat/sockipv6options.in xlat/sockipxoptions.in xlat/sockoptions.in xlat/sockpacketoptions.in xlat/sockrawoptions.in xlat/socksctpoptions.in xlat/socktcpoptions.in xlat/sock_type_flags.in xlat/socktypes.in xlat/splice_flags.in xlat/sram_alloc_flags.in xlat/swap_flags.in xlat/sync_file_range_flags.in xlat/sysctl_kern.in xlat/sysctl_net_core.in xlat/sysctl_net.in xlat/sysctl_net_ipv4_conf.in xlat/sysctl_net_ipv4.in xlat/sysctl_net_ipv4_route.in xlat/sysctl_net_ipv6.in xlat/sysctl_net_ipv6_route.in xlat/sysctl_net_unix.in xlat/sysctl_root.in xlat/sysctl_vm.in xlat/syslog_action_type.in xlat/sysmips_operations.in xlat/tcflsh_options.in xlat/tcxonc_options.in xlat/timerfdflags.in xlat/ubi_volume_props.in xlat/ubi_volume_types.in xlat/umount_flags.in xlat/usagewho.in xlat/wait4_options.in xlat/waitid_types.in xlat/whence_codes.in xlat/xattrflags.in xlat/xfs_dqblk_flags.in xlat/xfs_quota_flags.in 
+XLAT_HEADER_FILES = xlat/access_flags.h xlat/aclcmds.h xlat/aclipc.h xlat/addrfams.h xlat/adjtimex_modes.h xlat/adjtimex_state.h xlat/adjtimex_status.h xlat/advise.h xlat/af_packet_types.h xlat/archvals.h xlat/at_flags.h xlat/atomic_ops.h xlat/baud_options.h xlat/blkpg_ops.h xlat/bootflags1.h xlat/bootflags2.h xlat/bootflags3.h xlat/cacheflush_scope.h xlat/capabilities.h xlat/cap_version.h xlat/clockflags.h xlat/clocknames.h xlat/clone_flags.h xlat/cpuclocknames.h xlat/delete_module_flags.h xlat/direnttypes.h xlat/domains.h xlat/epollctls.h xlat/epollevents.h xlat/epollflags.h xlat/fan_classes.h xlat/fan_event_flags.h xlat/fan_init_flags.h xlat/fan_mark_flags.h xlat/fcntlcmds.h xlat/fdflags.h xlat/fileflags.h xlat/flockcmds.h xlat/fsmagic.h xlat/futexops.h xlat/futexwakecmps.h xlat/futexwakeops.h xlat/icmpfilterflags.h xlat/if_dqblk_valid.h xlat/if_dqinfo_valid.h xlat/iffflags.h xlat/inet_protocols.h xlat/inotify_flags.h xlat/inotify_init_flags.h xlat/ioprio_class.h xlat/ioprio_who.h xlat/ipc_msg_flags.h xlat/itimer_which.h xlat/kexec_arch_values.h xlat/kexec_flags.h xlat/keyctl_commands.h xlat/key_perms.h xlat/key_reqkeys.h xlat/key_spec.h xlat/lockfcmds.h xlat/loop_crypt_type_options.h xlat/loop_flags_options.h xlat/madvise_cmds.h xlat/mbindflags.h xlat/mctl_funcs.h xlat/mctl_lockas.h xlat/mctl_sync.h xlat/mempolicyflags.h xlat/mlockall_flags.h xlat/mmap_flags.h xlat/mmap_prot.h xlat/modem_flags.h xlat/modetypes.h xlat/modflags.h xlat/module_init_flags.h xlat/mount_flags.h xlat/move_pages_flags.h xlat/mremap_flags.h xlat/msgctl_flags.h xlat/msg_flags.h xlat/msgflags.h xlat/mtd_flags_options.h xlat/mtd_mode_options.h xlat/mtd_nandecc_options.h xlat/mtd_otp_options.h xlat/mtd_type_options.h xlat/netlink_protocols.h xlat/notifyflags.h xlat/nt_descriptor_types.h xlat/open_access_modes.h xlat/open_mode_flags.h xlat/openmodessol.h xlat/perf_event_open_flags.h xlat/personality_options.h xlat/pmsgflags.h xlat/policies.h xlat/pollflags.h xlat/prctl_options.h xlat/priorities.h xlat/ptp_flags_options.h xlat/ptrace_cmds.h xlat/ptrace_setoptions_flags.h xlat/qm_which.h xlat/quotacmds.h xlat/quota_formats.h xlat/quotatypes.h xlat/resource_flags.h xlat/resources.h xlat/schedulers.h xlat/scmvals.h xlat/semctl_flags.h xlat/semop_flags.h xlat/sg_io_dxfer_direction.h xlat/shmctl_flags.h xlat/shm_flags.h xlat/shm_resource_flags.h xlat/shutdown_modes.h xlat/sigact_flags.h xlat/sigaltstack_flags.h xlat/sigbus_codes.h xlat/sigchld_codes.h xlat/sigemt_codes.h xlat/sigev_value.h xlat/sigfpe_codes.h xlat/sigill_codes.h xlat/siginfo_codes.h xlat/sigpoll_codes.h xlat/sigprocmaskcmds.h xlat/sigprof_codes.h xlat/sigsegv_codes.h xlat/sigsys_codes.h xlat/sigtrap_codes.h xlat/socketlayers.h xlat/sockipoptions.h xlat/sockipv6options.h xlat/sockipxoptions.h xlat/sockoptions.h xlat/sockpacketoptions.h xlat/sockrawoptions.h xlat/socksctpoptions.h xlat/socktcpoptions.h xlat/sock_type_flags.h xlat/socktypes.h xlat/splice_flags.h xlat/sram_alloc_flags.h xlat/swap_flags.h xlat/sync_file_range_flags.h xlat/sysctl_kern.h xlat/sysctl_net_core.h xlat/sysctl_net.h xlat/sysctl_net_ipv4_conf.h xlat/sysctl_net_ipv4.h xlat/sysctl_net_ipv4_route.h xlat/sysctl_net_ipv6.h xlat/sysctl_net_ipv6_route.h xlat/sysctl_net_unix.h xlat/sysctl_root.h xlat/sysctl_vm.h xlat/syslog_action_type.h xlat/sysmips_operations.h xlat/tcflsh_options.h xlat/tcxonc_options.h xlat/timerfdflags.h xlat/ubi_volume_props.h xlat/ubi_volume_types.h xlat/umount_flags.h xlat/usagewho.h xlat/wait4_options.h xlat/waitid_types.h xlat/whence_codes.h xlat/xattrflags.h xlat/xfs_dqblk_flags.h xlat/xfs_quota_flags.h 
+$(top_srcdir)/xlat/access_flags.h: $(top_srcdir)/xlat/access_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/aclcmds.h: $(top_srcdir)/xlat/aclcmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/aclipc.h: $(top_srcdir)/xlat/aclipc.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/addrfams.h: $(top_srcdir)/xlat/addrfams.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/adjtimex_modes.h: $(top_srcdir)/xlat/adjtimex_modes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/adjtimex_state.h: $(top_srcdir)/xlat/adjtimex_state.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/adjtimex_status.h: $(top_srcdir)/xlat/adjtimex_status.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/advise.h: $(top_srcdir)/xlat/advise.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/af_packet_types.h: $(top_srcdir)/xlat/af_packet_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/archvals.h: $(top_srcdir)/xlat/archvals.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/at_flags.h: $(top_srcdir)/xlat/at_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/atomic_ops.h: $(top_srcdir)/xlat/atomic_ops.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/baud_options.h: $(top_srcdir)/xlat/baud_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/blkpg_ops.h: $(top_srcdir)/xlat/blkpg_ops.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/bootflags1.h: $(top_srcdir)/xlat/bootflags1.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/bootflags2.h: $(top_srcdir)/xlat/bootflags2.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/bootflags3.h: $(top_srcdir)/xlat/bootflags3.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/cacheflush_scope.h: $(top_srcdir)/xlat/cacheflush_scope.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/capabilities.h: $(top_srcdir)/xlat/capabilities.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/cap_version.h: $(top_srcdir)/xlat/cap_version.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/clockflags.h: $(top_srcdir)/xlat/clockflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/clocknames.h: $(top_srcdir)/xlat/clocknames.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/clone_flags.h: $(top_srcdir)/xlat/clone_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/cpuclocknames.h: $(top_srcdir)/xlat/cpuclocknames.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/delete_module_flags.h: $(top_srcdir)/xlat/delete_module_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/direnttypes.h: $(top_srcdir)/xlat/direnttypes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/domains.h: $(top_srcdir)/xlat/domains.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/epollctls.h: $(top_srcdir)/xlat/epollctls.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/epollevents.h: $(top_srcdir)/xlat/epollevents.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/epollflags.h: $(top_srcdir)/xlat/epollflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fan_classes.h: $(top_srcdir)/xlat/fan_classes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fan_event_flags.h: $(top_srcdir)/xlat/fan_event_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fan_init_flags.h: $(top_srcdir)/xlat/fan_init_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fan_mark_flags.h: $(top_srcdir)/xlat/fan_mark_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fcntlcmds.h: $(top_srcdir)/xlat/fcntlcmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fdflags.h: $(top_srcdir)/xlat/fdflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fileflags.h: $(top_srcdir)/xlat/fileflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/flockcmds.h: $(top_srcdir)/xlat/flockcmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/fsmagic.h: $(top_srcdir)/xlat/fsmagic.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/futexops.h: $(top_srcdir)/xlat/futexops.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/futexwakecmps.h: $(top_srcdir)/xlat/futexwakecmps.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/futexwakeops.h: $(top_srcdir)/xlat/futexwakeops.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/icmpfilterflags.h: $(top_srcdir)/xlat/icmpfilterflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/if_dqblk_valid.h: $(top_srcdir)/xlat/if_dqblk_valid.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/if_dqinfo_valid.h: $(top_srcdir)/xlat/if_dqinfo_valid.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/iffflags.h: $(top_srcdir)/xlat/iffflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/inet_protocols.h: $(top_srcdir)/xlat/inet_protocols.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/inotify_flags.h: $(top_srcdir)/xlat/inotify_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/inotify_init_flags.h: $(top_srcdir)/xlat/inotify_init_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ioprio_class.h: $(top_srcdir)/xlat/ioprio_class.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ioprio_who.h: $(top_srcdir)/xlat/ioprio_who.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ipc_msg_flags.h: $(top_srcdir)/xlat/ipc_msg_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/itimer_which.h: $(top_srcdir)/xlat/itimer_which.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/kexec_arch_values.h: $(top_srcdir)/xlat/kexec_arch_values.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/kexec_flags.h: $(top_srcdir)/xlat/kexec_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/keyctl_commands.h: $(top_srcdir)/xlat/keyctl_commands.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/key_perms.h: $(top_srcdir)/xlat/key_perms.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/key_reqkeys.h: $(top_srcdir)/xlat/key_reqkeys.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/key_spec.h: $(top_srcdir)/xlat/key_spec.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/lockfcmds.h: $(top_srcdir)/xlat/lockfcmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/loop_crypt_type_options.h: $(top_srcdir)/xlat/loop_crypt_type_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/loop_flags_options.h: $(top_srcdir)/xlat/loop_flags_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/madvise_cmds.h: $(top_srcdir)/xlat/madvise_cmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mbindflags.h: $(top_srcdir)/xlat/mbindflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mctl_funcs.h: $(top_srcdir)/xlat/mctl_funcs.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mctl_lockas.h: $(top_srcdir)/xlat/mctl_lockas.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mctl_sync.h: $(top_srcdir)/xlat/mctl_sync.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mempolicyflags.h: $(top_srcdir)/xlat/mempolicyflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mlockall_flags.h: $(top_srcdir)/xlat/mlockall_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mmap_flags.h: $(top_srcdir)/xlat/mmap_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mmap_prot.h: $(top_srcdir)/xlat/mmap_prot.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/modem_flags.h: $(top_srcdir)/xlat/modem_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/modetypes.h: $(top_srcdir)/xlat/modetypes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/modflags.h: $(top_srcdir)/xlat/modflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/module_init_flags.h: $(top_srcdir)/xlat/module_init_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mount_flags.h: $(top_srcdir)/xlat/mount_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/move_pages_flags.h: $(top_srcdir)/xlat/move_pages_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mremap_flags.h: $(top_srcdir)/xlat/mremap_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/msgctl_flags.h: $(top_srcdir)/xlat/msgctl_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/msg_flags.h: $(top_srcdir)/xlat/msg_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/msgflags.h: $(top_srcdir)/xlat/msgflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mtd_flags_options.h: $(top_srcdir)/xlat/mtd_flags_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mtd_mode_options.h: $(top_srcdir)/xlat/mtd_mode_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mtd_nandecc_options.h: $(top_srcdir)/xlat/mtd_nandecc_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mtd_otp_options.h: $(top_srcdir)/xlat/mtd_otp_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/mtd_type_options.h: $(top_srcdir)/xlat/mtd_type_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/netlink_protocols.h: $(top_srcdir)/xlat/netlink_protocols.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/notifyflags.h: $(top_srcdir)/xlat/notifyflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nt_descriptor_types.h: $(top_srcdir)/xlat/nt_descriptor_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/open_access_modes.h: $(top_srcdir)/xlat/open_access_modes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/open_mode_flags.h: $(top_srcdir)/xlat/open_mode_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/openmodessol.h: $(top_srcdir)/xlat/openmodessol.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/perf_event_open_flags.h: $(top_srcdir)/xlat/perf_event_open_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/personality_options.h: $(top_srcdir)/xlat/personality_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/pmsgflags.h: $(top_srcdir)/xlat/pmsgflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/policies.h: $(top_srcdir)/xlat/policies.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/pollflags.h: $(top_srcdir)/xlat/pollflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/prctl_options.h: $(top_srcdir)/xlat/prctl_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/priorities.h: $(top_srcdir)/xlat/priorities.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ptp_flags_options.h: $(top_srcdir)/xlat/ptp_flags_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ptrace_cmds.h: $(top_srcdir)/xlat/ptrace_cmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ptrace_setoptions_flags.h: $(top_srcdir)/xlat/ptrace_setoptions_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/qm_which.h: $(top_srcdir)/xlat/qm_which.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/quotacmds.h: $(top_srcdir)/xlat/quotacmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/quota_formats.h: $(top_srcdir)/xlat/quota_formats.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/quotatypes.h: $(top_srcdir)/xlat/quotatypes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/resource_flags.h: $(top_srcdir)/xlat/resource_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/resources.h: $(top_srcdir)/xlat/resources.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/schedulers.h: $(top_srcdir)/xlat/schedulers.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/scmvals.h: $(top_srcdir)/xlat/scmvals.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/semctl_flags.h: $(top_srcdir)/xlat/semctl_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/semop_flags.h: $(top_srcdir)/xlat/semop_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sg_io_dxfer_direction.h: $(top_srcdir)/xlat/sg_io_dxfer_direction.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/shmctl_flags.h: $(top_srcdir)/xlat/shmctl_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/shm_flags.h: $(top_srcdir)/xlat/shm_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/shm_resource_flags.h: $(top_srcdir)/xlat/shm_resource_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/shutdown_modes.h: $(top_srcdir)/xlat/shutdown_modes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigact_flags.h: $(top_srcdir)/xlat/sigact_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigaltstack_flags.h: $(top_srcdir)/xlat/sigaltstack_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigbus_codes.h: $(top_srcdir)/xlat/sigbus_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigchld_codes.h: $(top_srcdir)/xlat/sigchld_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigemt_codes.h: $(top_srcdir)/xlat/sigemt_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigev_value.h: $(top_srcdir)/xlat/sigev_value.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigfpe_codes.h: $(top_srcdir)/xlat/sigfpe_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigill_codes.h: $(top_srcdir)/xlat/sigill_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/siginfo_codes.h: $(top_srcdir)/xlat/siginfo_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigpoll_codes.h: $(top_srcdir)/xlat/sigpoll_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigprocmaskcmds.h: $(top_srcdir)/xlat/sigprocmaskcmds.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigprof_codes.h: $(top_srcdir)/xlat/sigprof_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigsegv_codes.h: $(top_srcdir)/xlat/sigsegv_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigsys_codes.h: $(top_srcdir)/xlat/sigsys_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sigtrap_codes.h: $(top_srcdir)/xlat/sigtrap_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/socketlayers.h: $(top_srcdir)/xlat/socketlayers.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sockipoptions.h: $(top_srcdir)/xlat/sockipoptions.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sockipv6options.h: $(top_srcdir)/xlat/sockipv6options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sockipxoptions.h: $(top_srcdir)/xlat/sockipxoptions.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sockoptions.h: $(top_srcdir)/xlat/sockoptions.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sockpacketoptions.h: $(top_srcdir)/xlat/sockpacketoptions.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sockrawoptions.h: $(top_srcdir)/xlat/sockrawoptions.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/socksctpoptions.h: $(top_srcdir)/xlat/socksctpoptions.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/socktcpoptions.h: $(top_srcdir)/xlat/socktcpoptions.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sock_type_flags.h: $(top_srcdir)/xlat/sock_type_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/socktypes.h: $(top_srcdir)/xlat/socktypes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/splice_flags.h: $(top_srcdir)/xlat/splice_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sram_alloc_flags.h: $(top_srcdir)/xlat/sram_alloc_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/swap_flags.h: $(top_srcdir)/xlat/swap_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sync_file_range_flags.h: $(top_srcdir)/xlat/sync_file_range_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_kern.h: $(top_srcdir)/xlat/sysctl_kern.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net_core.h: $(top_srcdir)/xlat/sysctl_net_core.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net.h: $(top_srcdir)/xlat/sysctl_net.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net_ipv4_conf.h: $(top_srcdir)/xlat/sysctl_net_ipv4_conf.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net_ipv4.h: $(top_srcdir)/xlat/sysctl_net_ipv4.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net_ipv4_route.h: $(top_srcdir)/xlat/sysctl_net_ipv4_route.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net_ipv6.h: $(top_srcdir)/xlat/sysctl_net_ipv6.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net_ipv6_route.h: $(top_srcdir)/xlat/sysctl_net_ipv6_route.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_net_unix.h: $(top_srcdir)/xlat/sysctl_net_unix.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_root.h: $(top_srcdir)/xlat/sysctl_root.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysctl_vm.h: $(top_srcdir)/xlat/sysctl_vm.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/syslog_action_type.h: $(top_srcdir)/xlat/syslog_action_type.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/sysmips_operations.h: $(top_srcdir)/xlat/sysmips_operations.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/tcflsh_options.h: $(top_srcdir)/xlat/tcflsh_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/tcxonc_options.h: $(top_srcdir)/xlat/tcxonc_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/timerfdflags.h: $(top_srcdir)/xlat/timerfdflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ubi_volume_props.h: $(top_srcdir)/xlat/ubi_volume_props.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/ubi_volume_types.h: $(top_srcdir)/xlat/ubi_volume_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/umount_flags.h: $(top_srcdir)/xlat/umount_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/usagewho.h: $(top_srcdir)/xlat/usagewho.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/wait4_options.h: $(top_srcdir)/xlat/wait4_options.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/waitid_types.h: $(top_srcdir)/xlat/waitid_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/whence_codes.h: $(top_srcdir)/xlat/whence_codes.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/xattrflags.h: $(top_srcdir)/xlat/xattrflags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/xfs_dqblk_flags.h: $(top_srcdir)/xlat/xfs_dqblk_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/xfs_quota_flags.h: $(top_srcdir)/xlat/xfs_quota_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
