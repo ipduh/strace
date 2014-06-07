@@ -209,7 +209,7 @@ update-ioctls:
 # We don't build ioctlsort unless really necessary, because we don't check
 # in the temporary files needed to build it. This tool is only necessary
 # when updating strace's list of ioctls.
-ifneq (,$(filter ioctlsort,$(MAKECMDGOALS)))
+ifneq (,$(filter $(TARGET_OUT_EXECUTABLES)/ioctlsort,$(MAKECMDGOALS)))
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := linux/ioctlsort.c
 LOCAL_CFLAGS += -include asm/types.h -include linux/ashmem.h
