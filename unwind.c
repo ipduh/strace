@@ -47,7 +47,7 @@
 struct mmap_cache_t {
 	/**
 	 * example entry:
-	 * 7fabbb09b000-7fabbb09f000 r--p 00179000 fc:00 1180246 /lib/libc-2.11.1.so
+	 * 7fabbb09b000-7fabbb09f000 r-xp 00179000 fc:00 1180246 /lib/libc-2.11.1.so
 	 *
 	 * start_addr  is 0x7fabbb09b000
 	 * end_addr    is 0x7fabbb09f000
@@ -57,16 +57,15 @@ struct mmap_cache_t {
 	unsigned long start_addr;
 	unsigned long end_addr;
 	unsigned long mmap_offset;
-	char* binary_filename;
-	bool deleted;
+	char *binary_filename;
 };
 
 /*
  * Type used in stacktrace walker
  */
 typedef void (*call_action_fn)(void *data,
-			       char *binary_filename,
-			       char *symbol_name,
+			       const char *binary_filename,
+			       const char *symbol_name,
 			       unw_word_t function_offset,
 			       unsigned long true_offset);
 typedef void (*error_action_fn)(void *data,
@@ -131,28 +130,22 @@ unwind_tcb_fin(struct tcb *tcp)
 /*
  * caching of /proc/ID/maps for each process to speed up stack tracing
  *
- * The cache must be refreshed after some syscall: mmap, mprotect, munmap, execve
+ * The cache must be refreshed after syscalls that affect memory mappings,
+ * e.g. mmap, mprotect, munmap, execve.
  */
 static void
 build_mmap_cache(struct tcb* tcp)
 {
-	unsigned long start_addr, end_addr, mmap_offset;
-	char filename[sizeof ("/proc/0123456789/maps")];
-	char buffer[PATH_MAX + 80];
-	char binary_path[PATH_MAX];
-	struct mmap_cache_t *cur_entry, *prev_entry;
+	FILE *fp;
+	struct mmap_cache_t *cache_head;
 	/* start with a small dynamically-allocated array and then expand it */
 	size_t cur_array_size = 10;
-	struct mmap_cache_t *cache_head;
-	FILE *fp;
+	char filename[sizeof("/proc/4294967296/maps")];
+	char buffer[PATH_MAX + 80];
 
-	const char *deleted = " (deleted)";
-	size_t blen;
-	size_t dlen;
+	unw_flush_cache(libunwind_as, 0, 0);
 
-	unw_flush_cache (libunwind_as, 0, 0);
-
-	sprintf(filename, "/proc/%d/maps", tcp->pid);
+	sprintf(filename, "/proc/%u/maps", tcp->pid);
 	fp = fopen_for_input(filename, "r");
 	if (!fp) {
 		perror_msg("fopen: %s", filename);
@@ -164,59 +157,60 @@ build_mmap_cache(struct tcb* tcp)
 		die_out_of_memory();
 
 	while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-		binary_path[0] = '\0'; // 'reset' it just to be paranoid
+		struct mmap_cache_t *entry;
+		unsigned long start_addr, end_addr, mmap_offset;
+		char exec_bit;
+		char binary_path[PATH_MAX];
 
-		sscanf(buffer, "%lx-%lx %*c%*c%*c%*c %lx %*x:%*x %*d %[^\n]",
-		       &start_addr, &end_addr, &mmap_offset, binary_path);
-
-		/* ignore special 'fake files' like "[vdso]", "[heap]", "[stack]", */
-		if (binary_path[0] == '[') {
+		if (sscanf(buffer, "%lx-%lx %*c%*c%c%*c %lx %*x:%*x %*d %[^\n]",
+			   &start_addr, &end_addr, &exec_bit,
+			   &mmap_offset, binary_path) != 5)
 			continue;
-		}
 
-		if (binary_path[0] == '\0') {
+		/* ignore mappings that have no PROT_EXEC bit set */
+		if (exec_bit != 'x')
 			continue;
+
+		if (end_addr < start_addr) {
+			error_msg("%s: unrecognized file format", filename);
+			break;
 		}
-
-		if (end_addr < start_addr)
-			perror_msg_and_die("%s: unrecognized maps file format",
-					   filename);
-
-		cur_entry = &cache_head[tcp->mmap_cache_size];
-		cur_entry->start_addr = start_addr;
-		cur_entry->end_addr = end_addr;
-		cur_entry->mmap_offset = mmap_offset;
-		cur_entry->binary_filename = strdup(binary_path);
-
-		dlen = strlen(deleted);
-		blen = strlen(binary_path);
-		if (blen >= dlen && strcmp(binary_path + blen - dlen, deleted) == 0)
-			cur_entry->deleted = true;
-		else
-			cur_entry->deleted = false;
 
 		/*
 		 * sanity check to make sure that we're storing
 		 * non-overlapping regions in ascending order
 		 */
 		if (tcp->mmap_cache_size > 0) {
-			prev_entry = &cache_head[tcp->mmap_cache_size - 1];
-			if (prev_entry->start_addr >= cur_entry->start_addr)
-				perror_msg_and_die("Overlaying memory region in %s",
-						   filename);
-			if (prev_entry->end_addr > cur_entry->start_addr)
-				perror_msg_and_die("Overlaying memory region in %s",
-						   filename);
+			entry = &cache_head[tcp->mmap_cache_size - 1];
+			if (entry->start_addr == start_addr &&
+			    entry->end_addr == end_addr) {
+				/* duplicate entry, e.g. [vsyscall] */
+				continue;
+			}
+			if (start_addr <= entry->start_addr ||
+			    start_addr < entry->end_addr) {
+				error_msg("%s: overlapping memory region",
+					  filename);
+				continue;
+			}
 		}
-		tcp->mmap_cache_size++;
 
-		/* resize doubling its size */
 		if (tcp->mmap_cache_size >= cur_array_size) {
 			cur_array_size *= 2;
-			cache_head = realloc(cache_head, cur_array_size * sizeof(*cache_head));
+			cache_head = realloc(cache_head,
+					     cur_array_size * sizeof(*cache_head));
 			if (!cache_head)
 				die_out_of_memory();
 		}
+
+		entry = &cache_head[tcp->mmap_cache_size];
+		entry->start_addr = start_addr;
+		entry->end_addr = end_addr;
+		entry->mmap_offset = mmap_offset;
+		entry->binary_filename = strdup(binary_path);
+		if (!entry->binary_filename)
+			die_out_of_memory();
+		tcp->mmap_cache_size++;
 	}
 	fclose(fp);
 	tcp->mmap_cache = cache_head;
@@ -269,12 +263,94 @@ rebuild_cache_if_invalid(struct tcb *tcp, const char *caller)
 void
 unwind_cache_invalidate(struct tcb* tcp)
 {
+#if SUPPORTED_PERSONALITIES > 1
+	if (tcp->currpers != DEFAULT_PERSONALITY) {
+		/* disable strack trace */
+		return;
+	}
+#endif
 	mmap_cache_generation++;
 	DPRINTF("tgen=%u, ggen=%u, tcp=%p, cache=%p", "increment",
 		tcp->mmap_cache_generation,
 		mmap_cache_generation,
 		tcp,
 		tcp->mmap_cache);
+}
+
+static void
+get_symbol_name(unw_cursor_t *cursor, char **name,
+		size_t *size, unw_word_t *offset)
+{
+	for (;;) {
+		int rc = unw_get_proc_name(cursor, *name, *size, offset);
+		if (rc == 0)
+			break;
+		if (rc != -UNW_ENOMEM) {
+			**name = '\0';
+			*offset = 0;
+			break;
+		}
+		*size *= 2;
+		*name = realloc(*name, *size);
+		if (!*name)
+			die_out_of_memory();
+	}
+}
+
+static int
+print_stack_frame(struct tcb *tcp,
+		  call_action_fn call_action,
+		  error_action_fn error_action,
+		  void *data,
+		  unw_cursor_t *cursor,
+		  char **symbol_name,
+		  size_t *symbol_name_size)
+{
+	unw_word_t ip;
+	int lower = 0;
+	int upper = (int) tcp->mmap_cache_size - 1;
+
+	if (unw_get_reg(cursor, UNW_REG_IP, &ip) < 0) {
+		perror_msg("Can't walk the stack of process %d", tcp->pid);
+		return -1;
+	}
+
+	while (lower <= upper) {
+		struct mmap_cache_t *cur_mmap_cache;
+		int mid = (upper + lower) / 2;
+
+		cur_mmap_cache = &tcp->mmap_cache[mid];
+
+		if (ip >= cur_mmap_cache->start_addr &&
+		    ip < cur_mmap_cache->end_addr) {
+			unsigned long true_offset;
+			unw_word_t function_offset;
+
+			get_symbol_name(cursor, symbol_name, symbol_name_size,
+					&function_offset);
+			true_offset = ip - cur_mmap_cache->start_addr +
+				cur_mmap_cache->mmap_offset;
+			call_action(data,
+				    cur_mmap_cache->binary_filename,
+				    *symbol_name,
+				    function_offset,
+				    true_offset);
+			return 0;
+		}
+		else if (ip < cur_mmap_cache->start_addr)
+			upper = mid - 1;
+		else
+			lower = mid + 1;
+	}
+
+	/*
+	 * there is a bug in libunwind >= 1.0
+	 * after a set_tid_address syscall
+	 * unw_get_reg returns IP == 0
+	 */
+	if(ip)
+		error_action(data, "unexpected_backtracing_error", ip);
+	return -1;
 }
 
 /*
@@ -286,17 +362,10 @@ stacktrace_walk(struct tcb *tcp,
 		error_action_fn error_action,
 		void *data)
 {
-	unw_word_t ip;
-	unw_cursor_t cursor;
-	unw_word_t function_offset;
-	int stack_depth = 0, ret_val;
-	/* these are used for the binary search through the mmap_chace */
-	int lower, upper, mid;
+	char *symbol_name;
 	size_t symbol_name_size = 40;
-	char * symbol_name;
-	struct mmap_cache_t* cur_mmap_cache;
-	unsigned long true_offset;
-	bool berror_expected = false;
+	unw_cursor_t cursor;
+	int stack_depth;
 
 	if (!tcp->mmap_cache)
 		error_msg_and_die("bug: mmap_cache is NULL");
@@ -310,90 +379,16 @@ stacktrace_walk(struct tcb *tcp,
 	if (unw_init_remote(&cursor, libunwind_as, tcp->libunwind_ui) < 0)
 		perror_msg_and_die("Can't initiate libunwind");
 
-	do {
-		/* looping on the stack frame */
-		if (unw_get_reg(&cursor, UNW_REG_IP, &ip) < 0) {
-			perror_msg("Can't walk the stack of process %d", tcp->pid);
+	for (stack_depth = 0; stack_depth < 256; ++stack_depth) {
+		if (print_stack_frame(tcp, call_action, error_action, data,
+				&cursor, &symbol_name, &symbol_name_size) < 0)
 			break;
-		}
-
-		lower = 0;
-		upper = (int) tcp->mmap_cache_size - 1;
-
-		while (lower <= upper) {
-			/* find the mmap_cache and print the stack frame */
-			mid = (upper + lower) / 2;
-			cur_mmap_cache = &tcp->mmap_cache[mid];
-
-			if (ip >= cur_mmap_cache->start_addr &&
-			    ip < cur_mmap_cache->end_addr) {
-				for (;;) {
-					symbol_name[0] = '\0';
-					ret_val = unw_get_proc_name(&cursor, symbol_name,
-						symbol_name_size, &function_offset);
-					if (ret_val != -UNW_ENOMEM)
-						break;
-					symbol_name_size *= 2;
-					symbol_name = realloc(symbol_name, symbol_name_size);
-					if (!symbol_name)
-						die_out_of_memory();
-				}
-
-				if (cur_mmap_cache->deleted)
-					berror_expected = true;
-
-				true_offset = ip - cur_mmap_cache->start_addr +
-					cur_mmap_cache->mmap_offset;
-				if (symbol_name[0]) {
-					call_action(data,
-						    cur_mmap_cache->binary_filename,
-						    symbol_name,
-						    function_offset,
-						    true_offset);
-				} else {
-					call_action(data,
-						    cur_mmap_cache->binary_filename,
-						    symbol_name,
-						    0,
-						    true_offset);
-				}
-				break; /* stack frame printed */
-			}
-			else if (mid == 0) {
-				/*
-				 * there is a bug in libunwind >= 1.0
-				 * after a set_tid_address syscall
-				 * unw_get_reg returns IP == 0
-				 */
-				if(ip)
-					error_action(data,
-						     "backtracing_error", 0);
-				goto ret;
-			}
-			else if (ip < cur_mmap_cache->start_addr)
-				upper = mid - 1;
-			else
-				lower = mid + 1;
-
-		}
-		if (lower > upper) {
-			error_action(data,
-				     berror_expected
-				     ?"expected_backtracing_error"
-				     :"unexpected_backtracing_error",
-				     ip);
-			goto ret;
-		}
-
-		ret_val = unw_step(&cursor);
-
-		if (++stack_depth > 255) {
-			error_action(data,
-				     "too many stack frames", 0);
+		if (unw_step(&cursor) <= 0)
 			break;
-		}
-	} while (ret_val > 0);
-ret:
+	}
+	if (stack_depth >= 256)
+		error_action(data, "too many stack frames", 0);
+
 	free(symbol_name);
 }
 
@@ -427,8 +422,8 @@ ret:
 
 static void
 print_call_cb(void *dummy,
-	      char *binary_filename,
-	      char *symbol_name,
+	      const char *binary_filename,
+	      const char *symbol_name,
 	      unw_word_t function_offset,
 	      unsigned long true_offset)
 {
@@ -456,8 +451,8 @@ print_error_cb(void *dummy,
 }
 
 static char *
-sprint_call_or_error(char *binary_filename,
-		     char *symbol_name,
+sprint_call_or_error(const char *binary_filename,
+		     const char *symbol_name,
 		     unw_word_t function_offset,
 		     unsigned long true_offset,
 		     const char *error)
@@ -487,8 +482,8 @@ sprint_call_or_error(char *binary_filename,
  */
 static void
 queue_put(struct queue_t *queue,
-	  char *binary_filename,
-	  char *symbol_name,
+	  const char *binary_filename,
+	  const char *symbol_name,
 	  unw_word_t function_offset,
 	  unsigned long true_offset,
 	  const char *error)
@@ -517,8 +512,8 @@ queue_put(struct queue_t *queue,
 
 static void
 queue_put_call(void *queue,
-	       char *binary_filename,
-	       char *symbol_name,
+	       const char *binary_filename,
+	       const char *symbol_name,
 	       unw_word_t function_offset,
 	       unsigned long true_offset)
 {
@@ -566,6 +561,12 @@ queue_print(struct queue_t *queue)
 void
 unwind_print_stacktrace(struct tcb* tcp)
 {
+#if SUPPORTED_PERSONALITIES > 1
+	if (tcp->currpers != DEFAULT_PERSONALITY) {
+		/* disable strack trace */
+		return;
+	}
+#endif
        if (tcp->queue->head) {
 	       DPRINTF("tcp=%p, queue=%p", "queueprint", tcp, tcp->queue->head);
 	       queue_print(tcp->queue);
@@ -582,6 +583,12 @@ unwind_print_stacktrace(struct tcb* tcp)
 void
 unwind_capture_stacktrace(struct tcb *tcp)
 {
+#if SUPPORTED_PERSONALITIES > 1
+	if (tcp->currpers != DEFAULT_PERSONALITY) {
+		/* disable strack trace */
+		return;
+	}
+#endif
 	if (tcp->queue->head)
 		error_msg_and_die("bug: unprinted entries in queue");
 
