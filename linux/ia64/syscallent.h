@@ -1101,6 +1101,15 @@
 	{ 3,	TD|TS,	sys_signalfd,		"signalfd"	}, /* 1307 */
 	{ 4,	TD,	sys_timerfd,		"timerfd"	}, /* 1308 */
 	{ 1,	TD,	sys_eventfd,		"eventfd"	}, /* 1309 */
+	{ 2,	TD,	sys_timerfd_create,	"timerfd_create"}, /* 1310 */
+	{ 4,	TD,	sys_timerfd_settime,	"timerfd_settime"}, /* 1311 */
+	{ 2,	TD,	sys_timerfd_gettime,	"timerfd_gettime"}, /* 1312 */
+	{ 4,	TD|TS,	sys_signalfd4,		"signalfd4"	}, /* 1313 */
+	{ 2,	TD,	sys_eventfd2,		"eventfd2"	}, /* 1314 */
+	{ 1,	TD,	sys_epoll_create1,	"epoll_create1"	}, /* 1315 */
+	{ 3,	TD,	sys_dup3,		"dup3"		}, /* 1316 */
+	{ 2,	TD,	sys_pipe2,		"pipe2"		}, /* 1317 */
+	{ 1,	TD,	sys_inotify_init1,	"inotify_init1"	}, /* 1318 */
 	{ 4,	TD,	sys_preadv,		"preadv"	}, /* 1319 */
 	{ 4,	TD,	sys_pwritev,		"pwritev"	}, /* 1320 */
 	{ 4,	TP|TS,	sys_rt_tgsigqueueinfo,	"rt_tgsigqueueinfo"}, /* 1321 */
@@ -1118,3 +1127,6 @@
 	{ 6,	0,	sys_process_vm_writev,	"process_vm_writev"	}, /* 1333 */
 	{ 4,	TN,	sys_accept4,		"accept4"	}, /* 1334 */
 	{ 3,	TD,	sys_finit_module,	"finit_module"	}, /* 1335 */
+	{ 3,	0,	sys_sched_setattr,	"sched_setattr"	}, /* 1336 */
+	{ 4,	0,	sys_sched_getattr,	"sched_getattr"	}, /* 1337 */
+	{ 5,	TD|TF,	sys_renameat2,		"renameat2"	}, /* 1338 */

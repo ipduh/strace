@@ -7,6 +7,11 @@
 check_prog sleep
 check_prog grep
 
+$STRACE -d -enone / > /dev/null 2> $LOG
+if grep -F -x "PTRACE_SEIZE doesn't work" $LOG > /dev/null; then
+	skip_ "PTRACE_SEIZE doesn't work"
+fi
+
 set -e
 
 rm -f $LOG
@@ -27,6 +32,7 @@ cleanup()
 	kill $tracee_pid
 	kill -CONT $tracee_pid
 	wait $tracee_pid 2> /dev/null
+	return 0
 }
 
 rm -f $LOG
