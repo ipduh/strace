@@ -100,6 +100,12 @@ struct sigcontext {
 # endif
 #endif
 
+/* Some arches define this in their headers, but don't actually have it,
+   so we have to delete the define.  */
+#if defined(HPPA) || defined(IA64)
+# undef SA_RESTORER
+#endif
+
 #include "xlat/sigact_flags.h"
 #include "xlat/sigprocmaskcmds.h"
 
@@ -1128,7 +1134,9 @@ struct new_sigaction
 #else
 	void (*__sa_handler)(int);
 	unsigned long sa_flags;
+# if !defined(ALPHA) && !defined(HPPA) && !defined(IA64)
 	void (*sa_restorer)(void);
+# endif /* !ALPHA && !HPPA && !IA64 */
 #endif /* !MIPS */
 	/* Kernel treats sa_mask as an array of longs. */
 	unsigned long sa_mask[NSIG / sizeof(long) ? NSIG / sizeof(long) : 1];
