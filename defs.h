@@ -414,7 +414,7 @@ struct tcb {
 #endif
 	long u_rval;		/* Return value */
 #if SUPPORTED_PERSONALITIES > 1
-	int currpers;		/* Personality at the time of scno update */
+	unsigned int currpers;	/* Personality at the time of scno update */
 #endif
 	int curcol;		/* Output column for this process */
 	FILE *outf;		/* Output file for this process */
@@ -508,7 +508,7 @@ typedef uint8_t qualbits_t;
 #define filtered(tcp)	((tcp)->flags & TCB_FILTERED)
 
 struct xlat {
-	int val;
+	unsigned int val;
 	const char *str;
 };
 #define XLAT(x) { x, #x }
@@ -642,12 +642,13 @@ extern long getrval2(struct tcb *);
 extern int setbpt(struct tcb *);
 extern int clearbpt(struct tcb *);
 
-extern const char *signame(int);
+extern const char *signame(const int);
 extern void pathtrace_select(const char *);
 extern int pathtrace_match(struct tcb *);
 extern int getfdpath(struct tcb *, int, char *, unsigned);
 
-extern const char *xlookup(const struct xlat *, int);
+extern const char *xlookup(const struct xlat *, const unsigned int);
+extern const char *xlat_search(const struct xlat *, const size_t, const unsigned int);
 
 extern int string_to_uint(const char *str);
 extern int string_quote(const char *, char *, long, int);
@@ -665,7 +666,7 @@ extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_b
 #endif
 extern int printllval(struct tcb *, const char *, int);
 
-extern void printxval(const struct xlat *, int, const char *);
+extern void printxval(const struct xlat *, const unsigned int, const char *);
 extern int printargs(struct tcb *);
 extern int printargs_lu(struct tcb *);
 extern int printargs_ld(struct tcb *);
@@ -678,7 +679,7 @@ extern void printstr(struct tcb *, long, long);
 extern void printnum(struct tcb *, long, const char *);
 extern void printnum_int(struct tcb *, long, const char *);
 extern void printpath(struct tcb *, long);
-extern void printpathn(struct tcb *, long, int);
+extern void printpathn(struct tcb *, long, unsigned int);
 #define TIMESPEC_TEXT_BUFSIZE (sizeof(long)*3 * 2 + sizeof("{%u, %u}"))
 #define TIMEVAL_TEXT_BUFSIZE  TIMESPEC_TEXT_BUFSIZE
 extern void printtv_bitness(struct tcb *, long, enum bitness_t, int);
@@ -694,6 +695,7 @@ extern void printsiginfo(siginfo_t *, int);
 extern void printsiginfo_at(struct tcb *tcp, long addr);
 #endif
 extern void printfd(struct tcb *, int);
+extern bool print_sockaddr_by_inode(const unsigned long);
 extern void print_dirfd(struct tcb *, int);
 extern void printsock(struct tcb *, long, int);
 extern void print_sock_optmgmt(struct tcb *, long, int);
@@ -710,7 +712,7 @@ extern void tprint_open_modes(mode_t);
 extern const char *sprint_open_modes(mode_t);
 extern void print_loff_t(struct tcb *, long);
 
-extern const struct_ioctlent *ioctl_lookup(long);
+extern const struct_ioctlent *ioctl_lookup(unsigned long);
 extern const struct_ioctlent *ioctl_next_match(const struct_ioctlent *);
 extern int ioctl_decode(struct tcb *, long, long);
 extern int term_ioctl(struct tcb *, long, long);
