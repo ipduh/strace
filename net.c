@@ -189,7 +189,7 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 		return;
 	}
 
-	if (addrlen < 2 || addrlen > sizeof(addrbuf))
+	if (addrlen < 2 || addrlen > (int) sizeof(addrbuf))
 		addrlen = sizeof(addrbuf);
 
 	memset(&addrbuf, 0, sizeof(addrbuf));
@@ -273,7 +273,7 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 			tprintf("proto=%#04x, if%d, pkttype=",
 					ntohs(addrbuf.ll.sll_protocol),
 					addrbuf.ll.sll_ifindex);
-			printxval(af_packet_types, addrbuf.ll.sll_pkttype, "?");
+			printxval(af_packet_types, addrbuf.ll.sll_pkttype, "PACKET_???");
 			tprintf(", addr(%d)={%d, ",
 					addrbuf.ll.sll_halen,
 					addrbuf.ll.sll_hatype);
@@ -491,7 +491,7 @@ decode_mmsg(struct tcb *tcp, unsigned long msg_len)
  * other bits are socket type flags.
  */
 static void
-tprint_sock_type(struct tcb *tcp, int flags)
+tprint_sock_type(int flags)
 {
 	const char *str = xlookup(socktypes, flags & SOCK_TYPE_MASK);
 
@@ -511,7 +511,7 @@ sys_socket(struct tcb *tcp)
 	if (entering(tcp)) {
 		printxval(domains, tcp->u_arg[0], "PF_???");
 		tprints(", ");
-		tprint_sock_type(tcp, tcp->u_arg[1]);
+		tprint_sock_type(tcp->u_arg[1]);
 		tprints(", ");
 		switch (tcp->u_arg[0]) {
 		case PF_INET:
@@ -886,7 +886,7 @@ sys_socketpair(struct tcb *tcp)
 	if (entering(tcp)) {
 		printxval(domains, tcp->u_arg[0], "PF_???");
 		tprints(", ");
-		tprint_sock_type(tcp, tcp->u_arg[1]);
+		tprint_sock_type(tcp->u_arg[1]);
 		tprintf(", %lu", tcp->u_arg[2]);
 	} else {
 		if (syserror(tcp)) {

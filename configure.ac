@@ -164,6 +164,7 @@ AC_DEFINE_UNQUOTED([ENABLE_ARM_OABI], [$enable_arm_oabi],
 
 gl_WARN_ADD([-Wall])
 gl_WARN_ADD([-Wwrite-strings])
+gl_WARN_ADD([-Wsign-compare])
 AC_ARG_ENABLE([gcc-Werror],
   [AS_HELP_STRING([--enable-gcc-Werror], [turn on gcc's -Werror option])],
   [case $enableval in
@@ -272,6 +273,11 @@ AC_CHECK_MEMBERS([struct sigevent._sigev_un._pad,
 		  siginfo_t.si_syscall],,, [#include <signal.h>])
 
 AC_CHECK_TYPES([struct flock64],,, [#include <fcntl.h>])
+
+AC_CHECK_HEADERS([libaio.h], [
+	AC_CHECK_MEMBERS([struct iocb.u.c.flags],,, [#include <libaio.h>])
+	AC_CHECK_DECLS([IO_CMD_PWRITE, IO_CMD_PWRITEV],,, [#include <libaio.h>])
+])
 
 AC_CHECK_DECLS([sys_errlist])
 AC_CHECK_DECLS(m4_normalize([
