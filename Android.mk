@@ -45,6 +45,7 @@ LOCAL_SRC_FILES := \
     block.c \
     count.c \
     desc.c \
+    dirent.c \
     fanotify.c \
     file.c \
     inotify.c \
@@ -68,6 +69,8 @@ LOCAL_SRC_FILES := \
     scsi.c \
     signal.c \
     sock.c \
+    socketutils.c \
+    statfs.c \
     strace.c \
     stream.c \
     syscall.c \
@@ -170,6 +173,8 @@ LOCAL_CFLAGS_x86_64 += -DX86_64=1
 
 LOCAL_CFLAGS += \
     -Wall \
+    -Wwrite-strings \
+    -Wsign-compare \
     -Wno-missing-field-initializers \
     -Wno-unused-parameter \
     -Wno-sign-compare \
