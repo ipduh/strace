@@ -33,6 +33,11 @@ LOCAL_PATH := $(call my-dir)
 #  git commit -a
 #
 
+# We don't currently have a good solution for the 'configure' side of things.
+# You can get a list of the HAVE_* variables in use and manually go through it:
+#
+#   find . -name "*.[ch]" | xargs grep HAVE_ | sed 's/.*\(HAVE_[A-Z0-9_]*\).*/\1/p' | sort | uniq -d
+
 # -------------------------------------------------------------------------
 
 include $(CLEAR_VARS)
@@ -107,24 +112,30 @@ LOCAL_CFLAGS := \
     -UHAVE_DECL_LO_FLAGS_PARTSCAN \
     -DHAVE_DECL_SYS_ERRLIST=1 \
     -DHAVE_ELF_H=1 \
+    -DHAVE_FOPEN64=1 \
     -DHAVE_FORK=1 \
     -DHAVE_IF_INDEXTONAME=1 \
     -DHAVE_INET_NTOP=1 \
     -DHAVE_LINUX_CAPABILITY_H=1 \
+    -DHAVE_LINUX_FUTEX_H=1 \
     -DHAVE_LINUX_ICMP_H=1 \
     -DHAVE_LINUX_IF_PACKET_H=1 \
     -DHAVE_LINUX_IN6_H=1 \
     -DHAVE_LINUX_NETLINK_H=1 \
+    -DHAVE_LINUX_PERF_EVENT_H=1 \
     -DHAVE_LITTLE_ENDIAN_LONG_LONG=1 \
     -DHAVE_LONG_LONG=1 \
     -DHAVE_NETINET_TCP_H=1 \
     -DHAVE_NETINET_UDP_H=1 \
     -DHAVE_POLL_H=1 \
     -DHAVE_PRCTL=1 \
+    -DHAVE_PWRITEV=1 \
     -DHAVE_SENDMSG=1 \
     -DHAVE_SIGACTION=1 \
-    -DHAVE_SIGINFO_T=1 \
     -DHAVE_SIG_ATOMIC_T=1 \
+    -DHAVE_SIGINFO_T=1 \
+    -DHAVE_SIGINFO_T_SI_SYSCALL=1 \
+    -DHAVE_STAT64=1 \
     -DHAVE_STATFS64=1 \
     -DHAVE_STDBOOL_H=1 \
     -DHAVE_STRERROR=1 \
@@ -133,13 +144,18 @@ LOCAL_CFLAGS := \
     -DHAVE_STRUCT_SIGCONTEXT=1 \
     -DHAVE_STRUCT_SIGEVENT__SIGEV_UN__PAD=1 \
     -DHAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID=1 \
+    -DHAVE_STRUCT_STAT_ST_ACLCNT=0 \
     -DHAVE_STRUCT_STAT_ST_BLKSIZE=1 \
     -DHAVE_STRUCT_STAT_ST_BLOCKS=1 \
+    -DHAVE_STRUCT_STAT_ST_FLAGS=0 \
+    -DHAVE_STRUCT_STAT_ST_FSTYPE=0 \
+    -DHAVE_STRUCT_STAT_ST_GEN=0 \
+    -DHAVE_STRUCT_STAT_ST_LEVEL=0 \
     -DHAVE_STRUCT_STAT_ST_RDEV=1 \
     -DHAVE_STRUCT_SYSINFO_FREEHIGH=1 \
     -DHAVE_STRUCT_SYSINFO_MEM_UNIT=1 \
     -DHAVE_STRUCT_SYSINFO_TOTALHIGH=1 \
-    -DHAVE_STRUCT_USER_DESC=1 \
+    -DHAVE_STRUCT_UTSNAME_DOMAINNAME=1 \
     -DHAVE_SYS_EPOLL_H=1 \
     -DHAVE_SYS_IOCTL_H=1 \
     -DHAVE_SYS_POLL_H=1 \
