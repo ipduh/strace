@@ -862,6 +862,9 @@ printstat(struct tcb *tcp, long addr)
 #endif
 
 #if !defined HAVE_STAT64 && (defined AARCH64 || defined X86_64)
+#undef st_atime_nsec
+#undef st_mtime_nsec
+#undef st_ctime_nsec
 /*
  * Linux x86_64 has unified `struct stat' but its i386 biarch needs
  * `struct stat64'.  Its <asm-i386/stat.h> definition expects 32-bit `long'.
