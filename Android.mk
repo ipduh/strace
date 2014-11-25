@@ -160,6 +160,7 @@ LOCAL_CFLAGS := \
     -DHAVE_SYS_IOCTL_H=1 \
     -DHAVE_SYS_POLL_H=1 \
     -DHAVE_SYS_REG_H=1 \
+    -DHAVE_SYS_UIO_H=1 \
     -DHAVE_SYS_VFS_H=1 \
     -DMAJOR_IN_SYSMACROS \
     -DPACKAGE_NAME='"strace"' \
