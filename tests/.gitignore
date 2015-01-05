@@ -1,11 +1,17 @@
+caps
 inet-accept-connect-send-recv
+mmsg
 net-accept-connect
 netlink_inet_diag
+netlink_unix_diag
 scm_rights
 set_ptracer_any
 sigaction
 stack-fcall
 statfs
+uid
+uid16
+uid32
 uio
 *.log
 *.log.*

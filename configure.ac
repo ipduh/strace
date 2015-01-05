@@ -219,6 +219,7 @@ AC_CHECK_FUNCS(m4_normalize([
 	process_vm_readv
 	pwritev
 	sendmsg
+	sendmmsg
 	sigaction
 	stpcpy
 	strerror
@@ -227,10 +228,11 @@ AC_CHECK_FUNCS(m4_normalize([
 AC_CHECK_HEADERS(m4_normalize([
 	asm/cachectl.h
 	asm/sysmips.h
+	bluetooth/bluetooth.h
 	elf.h
 	inttypes.h
 	ioctls.h
-	linux/capability.h
+	linux/falloc.h
 	linux/perf_event.h
 	linux/ptrace.h
 	linux/utsname.h
@@ -239,8 +241,6 @@ AC_CHECK_HEADERS(m4_normalize([
 	poll.h
 	scsi/sg.h
 	stropts.h
-	sys/acl.h
-	sys/asynch.h
 	sys/conf.h
 	sys/epoll.h
 	sys/filio.h
@@ -248,8 +248,8 @@ AC_CHECK_HEADERS(m4_normalize([
 	sys/poll.h
 	sys/ptrace.h
 	sys/reg.h
-	sys/uio.h
 	sys/vfs.h
+	sys/xattr.h
 ]))
 AC_CHECK_HEADERS([linux/icmp.h linux/in6.h linux/netlink.h linux/if_packet.h],
                  [], [], [#include <stddef.h>
@@ -259,6 +259,7 @@ AC_CHECK_HEADERS([asm/sigcontext.h], [], [], [#include <signal.h>])
 AC_CHECK_TYPES([struct sigcontext],,, [#include <signal.h>])
 AC_CHECK_HEADERS([netinet/tcp.h netinet/udp.h],,, [#include <netinet/in.h>])
 
+AC_CHECK_TYPES([struct mmsghdr],,, [#include <sys/socket.h>])
 AC_CHECK_MEMBERS([struct msghdr.msg_control],,, [#include <sys/socket.h>])
 
 AC_CHECK_TYPES([struct __old_kernel_stat],,, [#include <asm/stat.h>])
@@ -626,6 +627,63 @@ AC_CHECK_DECLS(m4_normalize([
 ]),,,
 [#include <sys/types.h>
 #include <linux/sysctl.h>])
+
+AC_CHECK_DECLS(m4_normalize([
+	V4L2_FIELD_ANY,
+	V4L2_FIELD_NONE,
+	V4L2_FIELD_TOP,
+	V4L2_FIELD_BOTTOM,
+	V4L2_FIELD_INTERLACED,
+	V4L2_FIELD_SEQ_TB,
+	V4L2_FIELD_SEQ_BT,
+	V4L2_FIELD_ALTERNATE,
+	V4L2_FIELD_INTERLACED_TB,
+	V4L2_FIELD_INTERLACED_BT,
+	V4L2_BUF_TYPE_VIDEO_CAPTURE,
+	V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+	V4L2_BUF_TYPE_VIDEO_OUTPUT,
+	V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
+	V4L2_BUF_TYPE_VIDEO_OVERLAY,
+	V4L2_BUF_TYPE_VBI_CAPTURE,
+	V4L2_BUF_TYPE_VBI_OUTPUT,
+	V4L2_BUF_TYPE_SLICED_VBI_CAPTURE,
+	V4L2_BUF_TYPE_SLICED_VBI_OUTPUT,
+	V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY,
+	V4L2_TUNER_RADIO,
+	V4L2_TUNER_ANALOG_TV,
+	V4L2_TUNER_DIGITAL_TV,
+	V4L2_MEMORY_MMAP,
+	V4L2_MEMORY_USERPTR,
+	V4L2_MEMORY_OVERLAY,
+	V4L2_MEMORY_DMABUF,
+	V4L2_COLORSPACE_SMPTE170M,
+	V4L2_COLORSPACE_SMPTE240M,
+	V4L2_COLORSPACE_REC709,
+	V4L2_COLORSPACE_BT878,
+	V4L2_COLORSPACE_470_SYSTEM_M,
+	V4L2_COLORSPACE_470_SYSTEM_BG,
+	V4L2_COLORSPACE_JPEG,
+	V4L2_COLORSPACE_SRGB,
+	V4L2_PRIORITY_UNSET,
+	V4L2_PRIORITY_BACKGROUND,
+	V4L2_PRIORITY_INTERACTIVE,
+	V4L2_PRIORITY_RECORD,
+	V4L2_FRMSIZE_TYPE_DISCRETE,
+	V4L2_FRMSIZE_TYPE_CONTINUOUS,
+	V4L2_FRMSIZE_TYPE_STEPWISE,
+	V4L2_FRMIVAL_TYPE_DISCRETE,
+	V4L2_FRMIVAL_TYPE_CONTINUOUS,
+	V4L2_FRMIVAL_TYPE_STEPWISE,
+	V4L2_CTRL_TYPE_INTEGER,
+	V4L2_CTRL_TYPE_BOOLEAN,
+	V4L2_CTRL_TYPE_MENU,
+	V4L2_CTRL_TYPE_BUTTON,
+	V4L2_CTRL_TYPE_INTEGER64,
+	V4L2_CTRL_TYPE_CTRL_CLASS,
+	V4L2_CTRL_TYPE_STRING,
+	V4L2_CTRL_TYPE_BITMASK,
+	V4L2_CTRL_TYPE_INTEGER_MENU
+]),,, [#include <linux/videodev2.h>])
 
 AC_CACHE_CHECK([for BLKGETSIZE64], [ac_cv_have_blkgetsize64],
 	[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([

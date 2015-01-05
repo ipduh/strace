@@ -28,6 +28,7 @@
  */
 
 #include "defs.h"
+#include <fcntl.h>
 #include <linux/version.h>
 #include <sys/timex.h>
 #include <linux/ioctl.h>
@@ -66,11 +67,24 @@ printtv_bitness(struct tcb *tcp, long addr, enum bitness_t bitness, int special)
 	tprints(buf);
 }
 
+static char *
+do_sprinttv(char *buf, const unsigned long sec, const unsigned long usec,
+	    const int special)
+{
+	if (special) {
+		switch (usec) {
+			case UTIME_NOW:
+				return stpcpy(buf, "UTIME_NOW");
+			case UTIME_OMIT:
+				return stpcpy(buf, "UTIME_OMIT");
+		}
+	}
+	return buf + sprintf(buf, "{%lu, %lu}", sec, usec);
+}
+
 char *
 sprinttv(char *buf, struct tcb *tcp, long addr, enum bitness_t bitness, int special)
 {
-	int rc;
-
 	if (addr == 0)
 		return stpcpy(buf, "NULL");
 
@@ -85,32 +99,13 @@ sprinttv(char *buf, struct tcb *tcp, long addr, enum bitness_t bitness, int spec
 	{
 		struct timeval32 tv;
 
-		rc = umove(tcp, addr, &tv);
-		if (rc >= 0) {
-			if (special && tv.tv_sec == 0) {
-				if (tv.tv_usec == UTIME_NOW)
-					return stpcpy(buf, "UTIME_NOW");
-				if (tv.tv_usec == UTIME_OMIT)
-					return stpcpy(buf, "UTIME_OMIT");
-			}
-			return buf + sprintf(buf, "{%u, %u}",
-				tv.tv_sec, tv.tv_usec);
-		}
+		if (umove(tcp, addr, &tv) >= 0)
+			return do_sprinttv(buf, tv.tv_sec, tv.tv_usec, special);
 	} else {
 		struct timeval tv;
 
-		rc = umove(tcp, addr, &tv);
-		if (rc >= 0) {
-			if (special && tv.tv_sec == 0) {
-				if (tv.tv_usec == UTIME_NOW)
-					return stpcpy(buf, "UTIME_NOW");
-				if (tv.tv_usec == UTIME_OMIT)
-					return stpcpy(buf, "UTIME_OMIT");
-			}
-			return buf + sprintf(buf, "{%lu, %lu}",
-				(unsigned long) tv.tv_sec,
-				(unsigned long) tv.tv_usec);
-		}
+		if (umove(tcp, addr, &tv) >= 0)
+			return do_sprinttv(buf, tv.tv_sec, tv.tv_usec, special);
 	}
 
 	return stpcpy(buf, "{...}");
@@ -160,15 +155,6 @@ sprint_timespec(char *buf, struct tcb *tcp, long addr)
 
 int
 sys_time(struct tcb *tcp)
-{
-	if (exiting(tcp)) {
-		printnum(tcp, tcp->u_arg[0], "%ld");
-	}
-	return 0;
-}
-
-int
-sys_stime(struct tcb *tcp)
 {
 	if (exiting(tcp)) {
 		printnum(tcp, tcp->u_arg[0], "%ld");
@@ -823,10 +809,6 @@ rtc_ioctl(struct tcb *tcp, long code, long arg)
 	}
 	return 1;
 }
-
-#ifndef TFD_TIMER_ABSTIME
-#define TFD_TIMER_ABSTIME (1 << 0)
-#endif
 
 #include "xlat/timerfdflags.h"
 

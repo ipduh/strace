@@ -85,6 +85,7 @@ ioctl_decode(struct tcb *tcp, long code, long arg)
 		return rtc_ioctl(tcp, code, arg);
 	case 0x03:
 	case 0x12:
+	case 'X':
 		return block_ioctl(tcp, code, arg);
 #ifdef HAVE_SCSI_SG_H
 	case 0x22:
@@ -97,6 +98,8 @@ ioctl_decode(struct tcb *tcp, long code, long arg)
 	case 'o':
 	case 'O':
 		return ubi_ioctl(tcp, code, arg);
+	case 'V':
+		return v4l2_ioctl(tcp, code, arg);
 	case '=':
 		return ptp_ioctl(tcp, code, arg);
 	default:
@@ -149,6 +152,7 @@ ioctl_decode(struct tcb *tcp, long code, long arg)
  *   t	sys/ttycom.h			(possible overlap)
  *   v	sundev/vuid_event.h		*overlap*
  *   v	sys/vcmd.h			*overlap*
+ *   V	linux/videodev2.h
  *
  * End of Registry
  */

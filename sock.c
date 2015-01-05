@@ -60,12 +60,22 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 	unsigned char *bytes;
 
 	if (entering(tcp)) {
-		if (code == SIOCGIFCONF) {
+		switch (code) {
+		case SIOCGIFCONF:
 			if (umove(tcp, tcp->u_arg[2], &ifc) >= 0
 			    && ifc.ifc_buf == NULL)
 				tprintf(", {%d -> ", ifc.ifc_len);
 			else
 				tprints(", {");
+			break;
+		case SIOCSIFNAME:
+			if (umove(tcp, tcp->u_arg[2], &ifr) < 0)
+				tprintf(", %#lx", tcp->u_arg[2]);
+			else
+				tprintf(", {ifr_name=\"%.*s\", ifr_newname=\"%.*s\"}",
+					IFNAMSIZ, ifr.ifr_name,
+					IFNAMSIZ, ifr.ifr_newname);
+			break;
 		}
 		return 0;
 	}
@@ -99,9 +109,9 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 	case SIOCATMARK:
 #endif
 		printnum(tcp, arg, ", %#d");
+	case SIOCSIFNAME:
 		return 1;
 	case SIOCGIFNAME:
-	case SIOCSIFNAME:
 	case SIOCGIFINDEX:
 	case SIOCGIFADDR:
 	case SIOCSIFADDR:
@@ -128,15 +138,19 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 		if (umove(tcp, tcp->u_arg[2], &ifr) < 0)
 			tprintf(", %#lx", tcp->u_arg[2]);
 		else if (syserror(tcp)) {
-			if (code == SIOCGIFNAME || code == SIOCSIFNAME)
-				tprintf(", {ifr_index=%d, ifr_name=???}", ifr.ifr_ifindex);
-			else
-				tprintf(", {ifr_name=\"%s\", ???}", ifr.ifr_name);
-		} else if (code == SIOCGIFNAME || code == SIOCSIFNAME)
-			tprintf(", {ifr_index=%d, ifr_name=\"%s\"}",
-				ifr.ifr_ifindex, ifr.ifr_name);
-		else {
-			tprintf(", {ifr_name=\"%s\", ", ifr.ifr_name);
+			if (code == SIOCGIFNAME) {
+				tprintf(", {ifr_index=%d, ifr_name=???}",
+					ifr.ifr_ifindex);
+			} else {
+				tprintf(", {ifr_name=\"%.*s\", ???}",
+					IFNAMSIZ, ifr.ifr_name);
+			}
+		} else if (code == SIOCGIFNAME) {
+			tprintf(", {ifr_index=%d, ifr_name=\"%.*s\"}",
+				ifr.ifr_ifindex, IFNAMSIZ, ifr.ifr_name);
+		} else {
+			tprintf(", {ifr_name=\"%.*s\", ",
+				IFNAMSIZ, ifr.ifr_name);
 			switch (code) {
 			case SIOCGIFINDEX:
 				tprintf("ifr_index=%d", ifr.ifr_ifindex);
@@ -237,8 +251,8 @@ sock_ioctl(struct tcb *tcp, long code, long arg)
 			for (i = 0; i < nifra; ++i ) {
 				if (i > 0)
 					tprints(", ");
-				tprintf("{\"%s\", {",
-					ifra[i].ifr_name);
+				tprintf("{\"%.*s\", {",
+					IFNAMSIZ, ifra[i].ifr_newname);
 				if (verbose(tcp)) {
 					printxval(addrfams,
 						  ifra[i].ifr_addr.sa_family,

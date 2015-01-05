@@ -395,7 +395,6 @@ typedef struct sysent {
 } struct_sysent;
 
 typedef struct ioctlent {
-	const char *doth;
 	const char *symbol;
 	unsigned long code;
 } struct_ioctlent;
@@ -514,10 +513,10 @@ struct xlat {
 #define XLAT(x) { x, #x }
 #define XLAT_END { 0, NULL }
 
-extern const struct xlat open_mode_flags[];
 extern const struct xlat addrfams[];
-extern const struct xlat struct_user_offsets[];
+extern const struct xlat at_flags[];
 extern const struct xlat open_access_modes[];
+extern const struct xlat open_mode_flags[];
 extern const struct xlat whence_codes[];
 
 /* Format of syscall return values */
@@ -549,6 +548,20 @@ extern const struct xlat whence_codes[];
 #define SYSCALL_NEVER_FAILS	0200	/* Syscall is always successful. */
 #define STACKTRACE_INVALIDATE_CACHE 0400  /* Trigger proc/maps cache updating */
 #define STACKTRACE_CAPTURE_ON_ENTER 01000 /* Capture stacktrace on "entering" stage */
+
+#if defined(ARM) || defined(AARCH64) \
+ || defined(I386) || defined(X32) || defined(X86_64) \
+ || defined(BFIN) \
+ || defined(M68K) \
+ || defined(MICROBLAZE) \
+ || defined(S390) \
+ || defined(SH) || defined(SH64) \
+ || defined(SPARC) || defined(SPARC64) \
+ /**/
+# define NEED_UID16_PARSERS 1
+#else
+# define NEED_UID16_PARSERS 0
+#endif
 
 typedef enum {
 	CFLAG_NONE = 0,
@@ -673,6 +686,10 @@ extern int printargs_ld(struct tcb *);
 extern void addflags(const struct xlat *, int);
 extern int printflags(const struct xlat *, int, const char *);
 extern const char *sprintflags(const char *, const struct xlat *, int);
+extern const char *sprintmode(int);
+extern const char *sprinttime(time_t);
+extern void dumpiov_in_msghdr(struct tcb *, long);
+extern void dumpiov_in_mmsghdr(struct tcb *, long);
 extern void dumpiov(struct tcb *, int, long);
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
@@ -695,7 +712,7 @@ extern void printsiginfo(siginfo_t *, int);
 extern void printsiginfo_at(struct tcb *tcp, long addr);
 #endif
 extern void printfd(struct tcb *, int);
-extern bool print_sockaddr_by_inode(const unsigned long);
+extern bool print_sockaddr_by_inode(const unsigned long, const char *);
 extern void print_dirfd(struct tcb *, int);
 extern void printsock(struct tcb *, long, int);
 extern void print_sock_optmgmt(struct tcb *, long, int);
@@ -703,7 +720,7 @@ extern void printrusage(struct tcb *, long);
 #ifdef ALPHA
 extern void printrusage32(struct tcb *, long);
 #endif
-extern void printuid(const char *, unsigned long);
+extern void printuid(const char *, const unsigned int);
 extern void print_sigset_addr_len(struct tcb *, long, long);
 extern void printsignal(int);
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
@@ -721,6 +738,7 @@ extern int proc_ioctl(struct tcb *, int, int);
 extern int rtc_ioctl(struct tcb *, long, long);
 extern int scsi_ioctl(struct tcb *, long, long);
 extern int block_ioctl(struct tcb *, long, long);
+extern int v4l2_ioctl(struct tcb *, unsigned long, long);
 extern int mtd_ioctl(struct tcb *, long, long);
 extern int ubi_ioctl(struct tcb *, long, long);
 extern int loop_ioctl(struct tcb *, long, long);

@@ -17,14 +17,31 @@ AM_CPPFLAGS = -I$(srcdir)/$(OS)/$(ARCH) -I$(srcdir)/$(OS) -I$(builddir)/$(OS)
 include xlat/Makemodule.am
 
 strace_SOURCES =	\
+	access.c	\
+	affinity.c	\
 	aio.c		\
 	bjm.c		\
 	block.c		\
+	cacheflush.c	\
+	capability.c	\
+	chdir.c		\
+	chmod.c		\
+	clone.c		\
 	count.c		\
 	desc.c		\
 	dirent.c	\
+	execve.c	\
+	exit.c		\
+	fadvise.c	\
+	fallocate.c	\
 	fanotify.c	\
+	fchownat.c	\
 	file.c		\
+	futex.c		\
+	get_robust_list.c \
+	getcpu.c	\
+	getcwd.c	\
+	hostname.c	\
 	inotify.c	\
 	io.c		\
 	ioctl.c		\
@@ -33,30 +50,60 @@ strace_SOURCES =	\
 	kexec.c		\
 	keyctl.c	\
 	ldt.c		\
+	link.c		\
 	loop.c		\
+	lseek.c		\
 	mem.c		\
+	mknod.c		\
+	mount.c		\
 	mtd.c		\
 	net.c		\
+	open.c		\
+	or1k_atomic.c	\
 	pathtrace.c	\
+	personality.c	\
+	prctl.c		\
+	printmode.c	\
 	process.c	\
+	process_vm.c	\
 	ptp.c		\
 	quota.c		\
+	readahead.c	\
+	readlink.c	\
 	reboot.c	\
+	renameat.c	\
 	resource.c	\
+	sched.c		\
 	scsi.c		\
 	signal.c	\
 	sock.c		\
 	socketutils.c	\
+	sram_alloc.c	\
 	statfs.c	\
 	strace.c	\
 	stream.c	\
+	swapon.c	\
+	sync_file_range.c \
 	syscall.c	\
+	sysctl.c	\
 	sysinfo.c	\
-	system.c	\
+	syslog.c	\
+	sysmips.c	\
 	term.c		\
 	time.c		\
+	truncate.c	\
+	uid.c		\
+	uid16.c		\
+	umask.c		\
+	umount.c	\
+	uname.c		\
 	util.c		\
-	vsprintf.c
+	utime.c		\
+	utimes.c	\
+	v4l2.c		\
+	vsprintf.c	\
+	wait.c		\
+	xattr.c
 
 if USE_LIBUNWIND
 strace_SOURCES += unwind.c
@@ -95,6 +142,7 @@ EXTRA_DIST =				\
 	debian/strace64.manpages	\
 	debian/watch			\
 	errnoent.sh			\
+	ioctlsort.c			\
 	linux/aarch64/errnoent1.h	\
 	linux/aarch64/ioctlent.h.in	\
 	linux/aarch64/ioctlent1.h	\
@@ -105,14 +153,20 @@ EXTRA_DIST =				\
 	linux/alpha/ioctlent.h.in	\
 	linux/alpha/signalent.h		\
 	linux/alpha/syscallent.h	\
+	linux/alpha/userent.h		\
 	linux/arc/ioctlent.h.in		\
 	linux/arc/syscallent.h		\
 	linux/arm/ioctlent.h.in		\
 	linux/arm/syscallent.h		\
+	linux/arm/userent.h		\
 	linux/avr32/ioctlent.h.in	\
 	linux/avr32/syscallent.h	\
+	linux/avr32/userent.h		\
 	linux/bfin/ioctlent.h.in	\
 	linux/bfin/syscallent.h		\
+	linux/bfin/userent.h		\
+	linux/crisv10/userent.h		\
+	linux/crisv32/userent.h		\
 	linux/dummy.h			\
 	linux/errnoent.h		\
 	linux/fanotify.h		\
@@ -122,23 +176,26 @@ EXTRA_DIST =				\
 	linux/hppa/syscallent.h		\
 	linux/i386/ioctlent.h.in	\
 	linux/i386/syscallent.h		\
+	linux/i386/userent.h		\
+	linux/i386/userent0.h		\
 	linux/ia64/ioctlent.h.in	\
 	linux/ia64/signalent.h		\
 	linux/ia64/syscallent.h		\
+	linux/ia64/userent.h		\
 	linux/inet_diag.h		\
 	linux/inotify.h			\
-	linux/ioctlent-filter.awk	\
 	linux/ioctlent.h.in		\
 	linux/ioctlent.sh		\
-	linux/ioctlsort.c		\
 	linux/kexec.h			\
 	linux/keyctl.h			\
 	linux/m68k/ioctlent.h.in	\
 	linux/m68k/syscallent.h		\
+	linux/m68k/userent.h		\
 	linux/metag/ioctlent.h.in	\
 	linux/metag/syscallent.h	\
 	linux/microblaze/ioctlent.h.in	\
 	linux/microblaze/syscallent.h	\
+	linux/microblaze/userent.h	\
 	linux/mips/errnoent.h		\
 	linux/mips/ioctlent.h.in	\
 	linux/mips/ioctlent.sh		\
@@ -148,9 +205,11 @@ EXTRA_DIST =				\
 	linux/mips/syscallent-n64.h	\
 	linux/mips/syscallent-o32.h	\
 	linux/mips/syscallent.h		\
+	linux/mips/userent.h		\
 	linux/mtd-abi.h			\
 	linux/or1k/ioctlent.h.in	\
 	linux/or1k/syscallent.h		\
+	linux/or1k/userent.h		\
 	linux/personality.h		\
 	linux/powerpc/errnoent1.h	\
 	linux/powerpc/ioctlent.h.in	\
@@ -158,16 +217,24 @@ EXTRA_DIST =				\
 	linux/powerpc/signalent1.h	\
 	linux/powerpc/syscallent.h	\
 	linux/powerpc/syscallent1.h	\
+	linux/powerpc/userent.h		\
 	linux/ptp_clock.h		\
 	linux/reboot.h			\
 	linux/s390/ioctlent.h.in	\
 	linux/s390/syscallent.h		\
+	linux/s390/userent.h		\
+	linux/s390/userent0.h		\
+	linux/s390/userent1.h		\
 	linux/s390x/ioctlent.h.in	\
 	linux/s390x/syscallent.h	\
+	linux/s390x/userent.h		\
 	linux/sh/ioctlent.h.in		\
 	linux/sh/syscallent.h		\
+	linux/sh/userent.h		\
+	linux/sh/userent0.h		\
 	linux/sh64/ioctlent.h.in	\
 	linux/sh64/syscallent.h		\
+	linux/sh64/userent.h		\
 	linux/signalent.h		\
 	linux/sock_diag.h		\
 	linux/sparc/dummy2.h		\
@@ -181,6 +248,7 @@ EXTRA_DIST =				\
 	linux/sparc/syscall1.h		\
 	linux/sparc/syscallent.h	\
 	linux/sparc/syscallent1.h	\
+	linux/sparc/userent.h		\
 	linux/sparc64/dummy2.h		\
 	linux/sparc64/errnoent.h	\
 	linux/sparc64/errnoent1.h	\
@@ -195,6 +263,7 @@ EXTRA_DIST =				\
 	linux/sparc64/syscallent.h	\
 	linux/sparc64/syscallent1.h	\
 	linux/sparc64/syscallent2.h	\
+	linux/sparc64/userent.h		\
 	linux/subcall.h			\
 	linux/syscall.h			\
 	linux/tile/errnoent1.h		\
@@ -203,7 +272,10 @@ EXTRA_DIST =				\
 	linux/tile/signalent1.h		\
 	linux/tile/syscallent.h		\
 	linux/tile/syscallent1.h	\
+	linux/tile/userent.h		\
 	linux/ubi-user.h		\
+	linux/userent.h			\
+	linux/userent0.h		\
 	linux/x32/errnoent.h		\
 	linux/x32/errnoent1.h		\
 	linux/x32/ioctlent.h.in		\
@@ -212,6 +284,7 @@ EXTRA_DIST =				\
 	linux/x32/signalent1.h		\
 	linux/x32/syscallent.h		\
 	linux/x32/syscallent1.h		\
+	linux/x32/userent.h		\
 	linux/x86_64/errnoent1.h	\
 	linux/x86_64/errnoent2.h	\
 	linux/x86_64/gentab.pl		\
@@ -223,8 +296,10 @@ EXTRA_DIST =				\
 	linux/x86_64/syscallent.h	\
 	linux/x86_64/syscallent1.h	\
 	linux/x86_64/syscallent2.h	\
+	linux/x86_64/userent.h		\
 	linux/xtensa/ioctlent.h.in	\
 	linux/xtensa/syscallent.h	\
+	linux/xtensa/userent.h		\
 	signalent.sh			\
 	strace-graph			\
 	strace-log-merge		\
@@ -260,6 +335,17 @@ news-check: NEWS
 		exit 1;						\
 	fi
 
+ioctlent_h = $(builddir)/$(OS)/ioctlent.h
+BUILT_SOURCES += $(ioctlent_h)
+CLEANFILES = $(ioctlent_h)
+ioctlent_h_deps = $(srcdir)/$(OS)/ioctlent.h.in $(srcdir)/$(OS)/$(ARCH)/ioctlent.h.in
+$(ioctlent_h): $(top_builddir)/config.status $(ioctlent_h_deps)
+	$(MKDIR_P) $(builddir)/$(OS)
+	cat $(ioctlent_h_deps) | \
+		$(COMPILE) -E -P - | \
+		sed 's/^\([[:space:]]*{\)"[^"]\+",[[:space:]]*/\1/' | \
+		LC_ALL=C sort -u -k2,2 -k1,1 > $@
+
 if MAINTAINER_MODE
 
 gen_changelog_start_date = 2009-07-08 20:00
@@ -288,33 +374,28 @@ $(srcdir)/CREDITS: $(srcdir)/CREDITS.in $(srcdir)/.mailmap \
 
 export TAR_OPTIONS = --owner=0 --group=0 --numeric-owner --mode=go-w,go+rX
 
-IOCTLDIR = /usr/include
-IOCTLASM = asm
-IOCTLSORT_INCLUDEDIR = $(IOCTLDIR)
+INCLUDEDIR = /usr/include
+KERNEL_RELEASE = $(shell uname -r)
+# Candidates for the kernel headers tree.
+KERNEL_INCLUDE = \
+	/lib/modules/$(KERNEL_RELEASE)/build/include \
+	/usr/src/linux-$(KERNEL_RELEASE)/include \
+	$(INCLUDEDIR)
+IOCTLDIR = $(shell find $(KERNEL_INCLUDE) -maxdepth 0 -type d -print -quit 2>/dev/null)
+IOCTLASM = $(INCLUDEDIR)/asm
 
-ioctlent_h_in = linux/ioctlent.h.in
-
-BUILT_SOURCES += $(ioctlent_h_in)
-
-$(srcdir)/$(ioctlent_h_in): ioctlsort
-	$(<D)/$(<F) > $@
-ioctlsort: $(srcdir)/linux/ioctlsort.c ioctls.h ioctldefs.h
-	$(filter-out -I%,$(LINK.c)) -I. -I$(IOCTLSORT_INCLUDEDIR) \
-	$(filter -I%,$(LINK.c)) \
-	  -o $@ $<
+noinst_PROGRAMS = ioctlsort
+ioctlsort_SOURCES = ioctlsort.c
+nodist_ioctlsort_SOURCES = ioctls.h ioctldefs.h
+CLEANFILES += $(nodist_ioctlsort_SOURCES)
+ioctlsort.$(OBJEXT): $(nodist_ioctlsort_SOURCES)
 ioctls.h: $(srcdir)/linux/ioctlent.sh
 	$(SHELL) $< $(IOCTLDIR) $(IOCTLASM)
 ioctldefs.h: ioctls.h ;
 
-endif
+ioctlent_h_in = linux/ioctlent.h.in
+BUILT_SOURCES += $(ioctlent_h_in)
+$(srcdir)/$(ioctlent_h_in): ioctlsort
+	$(<D)/$(<F) > $@
 
-ioctlent_h = $(builddir)/$(OS)/ioctlent.h
-BUILT_SOURCES += $(ioctlent_h)
-CLEANFILES = $(ioctlent_h)
-ioctlent_h_deps = $(srcdir)/$(OS)/ioctlent.h.in $(srcdir)/$(OS)/$(ARCH)/ioctlent.h.in
-$(ioctlent_h): $(top_builddir)/config.status $(ioctlent_h_deps)
-	$(MKDIR_P) $(builddir)/$(OS)
-	cat $(ioctlent_h_deps) | \
-		$(COMPILE) -E -P - | \
-		LC_ALL=C sort -u -k3,3 -k2,2 | \
-		awk -f $(srcdir)/linux/ioctlent-filter.awk > $@
+endif

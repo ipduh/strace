@@ -100,10 +100,8 @@ int sys_getdents();
 int sys_getdents64();
 int sys_getdtablesize();
 int sys_getgroups();
-int sys_getgroups32();
 int sys_gethostname();
 int sys_getitimer();
-int sys_getpeername();
 int sys_getpmsg(); /* TODO: non-Linux, remove? */
 int sys_getpriority();
 int sys_getresuid();
@@ -140,8 +138,6 @@ int sys_madvise();
 int sys_mbind();
 int sys_migrate_pages();
 int sys_mincore();
-int sys_mkdir();
-int sys_mkdirat();
 int sys_mknod();
 int sys_mknodat();
 int sys_mlockall();
@@ -238,10 +234,8 @@ int sys_sendmsg();
 int sys_sendto();
 int sys_set_mempolicy();
 int sys_set_thread_area();
-int sys_setdomainname();
 int sys_setfsuid();
 int sys_setgroups();
-int sys_setgroups32();
 int sys_sethostname();
 int sys_setitimer();
 int sys_setns();
@@ -277,7 +271,6 @@ int sys_stat();
 int sys_stat64();
 int sys_statfs();
 int sys_statfs64();
-int sys_stime();
 int sys_swapon();
 int sys_symlinkat();
 int sys_sync_file_range();
@@ -357,4 +350,17 @@ int sys_sram_alloc();
 int sys_execv();
 int sys_getmsg();
 int sys_putmsg();
+#endif
+
+#if NEED_UID16_PARSERS
+int sys_chown16();
+int sys_fchown16();
+int sys_getgroups16();
+int sys_getresuid16();
+int sys_getuid16();
+int sys_setfsuid16();
+int sys_setgroups16();
+int sys_setresuid16();
+int sys_setreuid16();
+int sys_setuid16();
 #endif
