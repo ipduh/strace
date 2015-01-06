@@ -56,6 +56,7 @@ strace_SOURCES =	\
 	term.c		\
 	time.c		\
 	util.c		\
+	v4l2.c		\
 	vsprintf.c
 
 if USE_LIBUNWIND
@@ -315,4 +316,5 @@ $(ioctlent_h): $(top_builddir)/config.status $(ioctlent_h_deps)
 	$(MKDIR_P) $(builddir)/$(OS)
 	cat $(ioctlent_h_deps) | \
 		$(COMPILE) -E -P - | \
-		LC_ALL=C sort -u -k3,3 -k2,2 > $@
+		sed 's/^\([[:space:]]*{\)"[^"]\+",[[:space:]]*/\1/' | \
+		LC_ALL=C sort -u -k2,2 -k1,1 > $@
