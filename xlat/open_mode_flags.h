@@ -60,6 +60,10 @@ const struct xlat open_mode_flags[] = {
 #if defined(O_PATH) || (defined(HAVE_DECL_O_PATH) && HAVE_DECL_O_PATH)
 	XLAT(O_PATH),
 #endif
+#if defined(O_TMPFILE) && defined(O_DIRECTORY)
+/* The kernel & C libraries often inline O_DIRECTORY */
+{ O_TMPFILE & ~O_DIRECTORY, "O_TMPFILE" },
+#endif
 #if defined(FNDELAY) || (defined(HAVE_DECL_FNDELAY) && HAVE_DECL_FNDELAY)
 	XLAT(FNDELAY),
 #endif
