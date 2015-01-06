@@ -29,7 +29,6 @@
  */
 
 #include "defs.h"
-#include <sys/swap.h>
 
 #if defined(SPARC) || defined(SPARC64)
 struct stat {
@@ -1849,104 +1848,6 @@ sys_fremovexattr(struct tcb *tcp)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 		printstr(tcp, tcp->u_arg[1], -1);
-	}
-	return 0;
-}
-
-#include "xlat/advise.h"
-
-int
-sys_fadvise64(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		int argn;
-		printfd(tcp, tcp->u_arg[0]);
-		argn = printllval(tcp, ", %lld", 1);
-		tprintf(", %ld, ", tcp->u_arg[argn++]);
-		printxval(advise, tcp->u_arg[argn], "POSIX_FADV_???");
-	}
-	return 0;
-}
-
-int
-sys_fadvise64_64(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		int argn;
-		printfd(tcp, tcp->u_arg[0]);
-		argn = printllval(tcp, ", %lld, ", 1);
-		argn = printllval(tcp, "%lld, ", argn);
-#if defined __ARM_EABI__ || defined AARCH64 || defined POWERPC || defined XTENSA
-		printxval(advise, tcp->u_arg[1], "POSIX_FADV_???");
-#else
-		printxval(advise, tcp->u_arg[argn], "POSIX_FADV_???");
-#endif
-	}
-	return 0;
-}
-
-#include "xlat/sync_file_range_flags.h"
-
-int
-sys_sync_file_range(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		int argn;
-		printfd(tcp, tcp->u_arg[0]);
-		argn = printllval(tcp, ", %lld, ", 1);
-		argn = printllval(tcp, "%lld, ", argn);
-		printflags(sync_file_range_flags, tcp->u_arg[argn],
-		           "SYNC_FILE_RANGE_???");
-	}
-	return 0;
-}
-
-int
-sys_sync_file_range2(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		int argn;
-		printfd(tcp, tcp->u_arg[0]);
-		printflags(sync_file_range_flags, 1,
-		           "SYNC_FILE_RANGE_???");
-		argn = printllval(tcp, ", %lld, ", 2);
-		argn = printllval(tcp, "%lld, ", argn);
-	}
-	return 0;
-}
-
-int
-sys_fallocate(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		int argn;
-		printfd(tcp, tcp->u_arg[0]);		/* fd */
-		tprintf(", %#lo, ", tcp->u_arg[1]);	/* mode */
-		argn = printllval(tcp, "%llu, ", 2);	/* offset */
-		printllval(tcp, "%llu", argn);		/* len */
-	}
-	return 0;
-}
-
-#ifndef SWAP_FLAG_PREFER
-# define SWAP_FLAG_PREFER 0x8000
-#endif
-#ifndef SWAP_FLAG_DISCARD
-# define SWAP_FLAG_DISCARD 0x10000
-#endif
-#include "xlat/swap_flags.h"
-
-int
-sys_swapon(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		int flags = tcp->u_arg[1];
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printflags(swap_flags, flags & ~SWAP_FLAG_PRIO_MASK,
-			"SWAP_FLAG_???");
-		if (flags & SWAP_FLAG_PREFER)
-			tprintf("|%d", flags & SWAP_FLAG_PRIO_MASK);
 	}
 	return 0;
 }

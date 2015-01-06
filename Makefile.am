@@ -20,9 +20,13 @@ strace_SOURCES =	\
 	aio.c		\
 	bjm.c		\
 	block.c		\
+	cacheflush.c	\
+	capability.c	\
 	count.c		\
 	desc.c		\
 	dirent.c	\
+	fadvise.c	\
+	fallocate.c	\
 	fanotify.c	\
 	file.c		\
 	inotify.c	\
@@ -35,9 +39,12 @@ strace_SOURCES =	\
 	ldt.c		\
 	loop.c		\
 	mem.c		\
+	mount.c		\
 	mtd.c		\
 	net.c		\
+	or1k_atomic.c	\
 	pathtrace.c	\
+	personality.c	\
 	process.c	\
 	ptp.c		\
 	quota.c		\
@@ -47,14 +54,20 @@ strace_SOURCES =	\
 	signal.c	\
 	sock.c		\
 	socketutils.c	\
+	sram_alloc.c	\
 	statfs.c	\
 	strace.c	\
 	stream.c	\
+	swapon.c	\
+	sync_file_range.c \
 	syscall.c	\
+	sysctl.c	\
 	sysinfo.c	\
-	system.c	\
+	syslog.c	\
+	sysmips.c	\
 	term.c		\
 	time.c		\
+	umount.c	\
 	util.c		\
 	v4l2.c		\
 	vsprintf.c
