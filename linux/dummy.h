@@ -65,9 +65,12 @@
 #define	sys_getegid		sys_getuid
 #define	sys_geteuid		sys_getuid
 #define	sys_getgid		sys_getuid
+#define	sys_getpeername		sys_getsockname
 #define	sys_getresgid		sys_getresuid
 #define	sys_lstat		sys_stat
 #define	sys_lstat64		sys_stat64
+#define	sys_mkdir		sys_chmod
+#define	sys_mkdirat		sys_fchmodat
 #define	sys_mlock		sys_munmap
 #define	sys_mq_unlink		sys_chdir
 #define	sys_munlock		sys_munmap
@@ -81,6 +84,7 @@
 #define	sys_setgid		sys_setuid
 #define	sys_setregid		sys_setreuid
 #define	sys_setresgid		sys_setresuid
+#define	sys_stime		sys_time
 #define	sys_swapoff		sys_chdir
 #define	sys_symlink		sys_link
 #define	sys_syncfs		sys_close

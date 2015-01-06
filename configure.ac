@@ -219,6 +219,7 @@ AC_CHECK_FUNCS(m4_normalize([
 	process_vm_readv
 	pwritev
 	sendmsg
+	sendmmsg
 	sigaction
 	stpcpy
 	strerror
@@ -240,8 +241,6 @@ AC_CHECK_HEADERS(m4_normalize([
 	poll.h
 	scsi/sg.h
 	stropts.h
-	sys/acl.h
-	sys/asynch.h
 	sys/conf.h
 	sys/epoll.h
 	sys/filio.h
@@ -249,8 +248,8 @@ AC_CHECK_HEADERS(m4_normalize([
 	sys/poll.h
 	sys/ptrace.h
 	sys/reg.h
-	sys/uio.h
 	sys/vfs.h
+	sys/xattr.h
 ]))
 AC_CHECK_HEADERS([linux/icmp.h linux/in6.h linux/netlink.h linux/if_packet.h],
                  [], [], [#include <stddef.h>
@@ -260,6 +259,7 @@ AC_CHECK_HEADERS([asm/sigcontext.h], [], [], [#include <signal.h>])
 AC_CHECK_TYPES([struct sigcontext],,, [#include <signal.h>])
 AC_CHECK_HEADERS([netinet/tcp.h netinet/udp.h],,, [#include <netinet/in.h>])
 
+AC_CHECK_TYPES([struct mmsghdr],,, [#include <sys/socket.h>])
 AC_CHECK_MEMBERS([struct msghdr.msg_control],,, [#include <sys/socket.h>])
 
 AC_CHECK_TYPES([struct __old_kernel_stat],,, [#include <asm/stat.h>])

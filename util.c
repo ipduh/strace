@@ -35,9 +35,10 @@
 #include <sys/user.h>
 #include <sys/param.h>
 #include <fcntl.h>
-#if HAVE_SYS_UIO_H
-# include <sys/uio.h>
+#if HAVE_SYS_XATTR_H
+# include <sys/xattr.h>
 #endif
+#include <sys/uio.h>
 
 #if defined(IA64)
 # include <asm/ptrace_offsets.h>
@@ -420,6 +421,33 @@ printnum_int(struct tcb *tcp, long addr, const char *fmt)
 	tprints("]");
 }
 
+static char *
+getfdproto(struct tcb *tcp, int fd, char *buf, unsigned bufsize)
+{
+#if HAVE_SYS_XATTR_H
+	ssize_t r;
+	char path[sizeof("/proc/%u/fd/%u") + 2 * sizeof(int)*3];
+
+	if (fd < 0)
+		return NULL;
+
+	sprintf(path, "/proc/%u/fd/%u", tcp->pid, fd);
+	r = getxattr(path, "system.sockprotoname", buf, bufsize - 1);
+	if (r <= 0)
+		return NULL;
+	else {
+		/*
+		 * This is a protection for the case when the kernel
+		 * side does not append a null byte to the buffer.
+		 */
+		buf[r] = '\0';
+		return buf;
+	}
+#else
+	return NULL;
+#endif
+}
+
 void
 printfd(struct tcb *tcp, int fd)
 {
@@ -435,8 +463,17 @@ printfd(struct tcb *tcp, int fd)
 			unsigned long inodenr;
 			inodenr = strtoul(path + socket_prefix_len, NULL, 10);
 			tprintf("%d<", fd);
-			if (!print_sockaddr_by_inode(inodenr))
-				tprints(path);
+			if (!print_sockaddr_by_inode(inodenr)) {
+#define PROTO_NAME_LEN 32
+				char proto_buf[PROTO_NAME_LEN];
+				const char *proto =
+					getfdproto(tcp, fd, proto_buf, PROTO_NAME_LEN);
+
+				if (proto)
+					tprintf("%s:[%lu]", proto, inodenr);
+				else
+					tprints(path);
+			}
 			tprints(">");
 		} else {
 			tprintf("%d<%s>", fd, path);
@@ -600,7 +637,7 @@ string_quote(const char *instr, char *outstr, long len, int size)
 void
 printpathn(struct tcb *tcp, long addr, unsigned int n)
 {
-	char path[MAXPATHLEN + 1];
+	char path[PATH_MAX + 1];
 	int nul_seen;
 
 	if (!addr) {
@@ -633,7 +670,7 @@ void
 printpath(struct tcb *tcp, long addr)
 {
 	/* Size must correspond to char path[] size in printpathn */
-	printpathn(tcp, addr, MAXPATHLEN);
+	printpathn(tcp, addr, PATH_MAX);
 }
 
 /*
@@ -699,7 +736,6 @@ printstr(struct tcb *tcp, long addr, long len)
 		tprints("...");
 }
 
-#if HAVE_SYS_UIO_H
 void
 dumpiov(struct tcb *tcp, int len, long addr)
 {
@@ -747,7 +783,6 @@ dumpiov(struct tcb *tcp, int len, long addr)
 #undef iov_iov_len
 #undef iov
 }
-#endif
 
 void
 dumpstr(struct tcb *tcp, long addr, int len)
