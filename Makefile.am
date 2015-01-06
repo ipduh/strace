@@ -29,6 +29,7 @@ strace_SOURCES =	\
 	fallocate.c	\
 	fanotify.c	\
 	file.c		\
+	getcwd.c	\
 	inotify.c	\
 	io.c		\
 	ioctl.c		\
@@ -39,12 +40,14 @@ strace_SOURCES =	\
 	ldt.c		\
 	loop.c		\
 	mem.c		\
+	mknod.c		\
 	mount.c		\
 	mtd.c		\
 	net.c		\
 	or1k_atomic.c	\
 	pathtrace.c	\
 	personality.c	\
+	printmode.c	\
 	process.c	\
 	ptp.c		\
 	quota.c		\
@@ -70,7 +73,8 @@ strace_SOURCES =	\
 	umount.c	\
 	util.c		\
 	v4l2.c		\
-	vsprintf.c
+	vsprintf.c	\
+	xattr.c
 
 if USE_LIBUNWIND
 strace_SOURCES += unwind.c
