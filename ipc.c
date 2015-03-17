@@ -97,16 +97,7 @@ int sys_msgget(struct tcb *tcp)
 static int
 indirect_ipccall(struct tcb *tcp)
 {
-#ifdef X86_64
-	return current_personality == 1;
-#endif
-#if defined IA64
-	return tcp->scno < 1024; /* ia32 emulation syscalls are low */
-#endif
-#if defined(ALPHA) || defined(MIPS) || defined(HPPA) || defined(__ARM_EABI__) || defined(AARCH64)
-	return 0;
-#endif
-	return 1;
+	return tcp->s_ent->sys_flags & TRACE_INDIRECT_SUBCALL;
 }
 
 int sys_msgctl(struct tcb *tcp)
@@ -290,7 +281,16 @@ int sys_semctl(struct tcb *tcp)
 	if (entering(tcp)) {
 		tprintf("%lu, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
 		PRINTCTL(semctl_flags, tcp->u_arg[2], "SEM_???");
-		tprintf(", %#lx", tcp->u_arg[3]);
+		tprints(", ");
+		if (indirect_ipccall(tcp)) {
+			if (current_wordsize == sizeof(int)) {
+				printnum_int(tcp, tcp->u_arg[3], "%#x");
+			} else {
+				printnum_long(tcp, tcp->u_arg[3], "%#lx");
+			}
+		} else {
+			tprintf("%#lx", tcp->u_arg[3]);
+		}
 	}
 	return 0;
 }

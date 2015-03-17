@@ -42,9 +42,9 @@
 #ifdef HAVE_PRCTL
 # include <sys/prctl.h>
 #endif
-#if defined(IA64)
-# include <asm/ptrace_offsets.h>
-#endif
+
+#include "ptrace.h"
+
 /* In some libc, these aren't declared. Do it ourself: */
 extern char **environ;
 extern int optind;
@@ -74,18 +74,17 @@ bool stack_trace_enabled = false;
 # define fork() vfork()
 #endif
 
+const unsigned int syscall_trap_sig = SIGTRAP | 0x80;
+
 cflag_t cflag = CFLAG_NONE;
 unsigned int followfork = 0;
-unsigned int ptrace_setoptions = 0;
+unsigned int ptrace_setoptions = PTRACE_O_TRACESYSGOOD | PTRACE_O_TRACEEXEC;
 unsigned int xflag = 0;
-bool need_fork_exec_workarounds = 0;
 bool debug_flag = 0;
 bool Tflag = 0;
 bool iflag = 0;
 bool count_wallclock = 0;
 unsigned int qflag = 0;
-/* Which WSTOPSIG(status) value marks syscall traps? */
-static unsigned int syscall_trap_sig = SIGTRAP;
 static unsigned int tflag = 0;
 static bool rflag = 0;
 static bool print_pid_pfx = 0;
@@ -347,7 +346,7 @@ ptrace_attach_or_seize(int pid)
 	int r;
 	if (!use_seize)
 		return ptrace(PTRACE_ATTACH, pid, 0L, 0L);
-	r = ptrace(PTRACE_SEIZE, pid, 0L, (unsigned long)ptrace_setoptions);
+	r = ptrace(PTRACE_SEIZE, pid, 0L, (unsigned long) ptrace_setoptions);
 	if (r)
 		return r;
 	r = ptrace(PTRACE_INTERRUPT, pid, 0L, 0L);
@@ -766,9 +765,6 @@ detach(struct tcb *tcp)
 	int error;
 	int status;
 
-	if (tcp->flags & TCB_BPTSET)
-		clearbpt(tcp);
-
 	/*
 	 * Linux wrongly insists the child be stopped
 	 * before detaching.  Arghh.  We go through hoops
@@ -1161,16 +1157,19 @@ startup_child(char **argv)
 {
 	struct_stat statbuf;
 	const char *filename;
+	size_t filename_len;
 	char pathname[PATH_MAX];
 	int pid;
 	struct tcb *tcp;
 
 	filename = argv[0];
+	filename_len = strlen(filename);
+
+	if (filename_len > sizeof(pathname) - 1) {
+		errno = ENAMETOOLONG;
+		perror_msg_and_die("exec");
+	}
 	if (strchr(filename, '/')) {
-		if (strlen(filename) > sizeof pathname - 1) {
-			errno = ENAMETOOLONG;
-			perror_msg_and_die("exec");
-		}
 		strcpy(pathname, filename);
 	}
 #ifdef USE_DEBUGGING_EXEC
@@ -1207,6 +1206,8 @@ startup_child(char **argv)
 			}
 			if (len && pathname[len - 1] != '/')
 				pathname[len++] = '/';
+			if (filename_len + len > sizeof(pathname) - 1)
+				continue;
 			strcpy(pathname + len, filename);
 			if (stat_file(pathname, &statbuf) == 0 &&
 			    /* Accept only regular files
@@ -1216,6 +1217,8 @@ startup_child(char **argv)
 			    (statbuf.st_mode & 0111))
 				break;
 		}
+		if (!path || !*path)
+			pathname[0] = '\0';
 	}
 	if (stat_file(pathname, &statbuf) < 0) {
 		perror_msg_and_die("Can't stat '%s'", filename);
@@ -1319,219 +1322,6 @@ startup_child(char **argv)
 		 * to create a genuine separate stack and execute on it.
 		 */
 	}
-}
-
-/*
- * Test whether the kernel support PTRACE_O_TRACECLONE et al options.
- * First fork a new child, call ptrace with PTRACE_SETOPTIONS on it,
- * and then see which options are supported by the kernel.
- */
-static int
-test_ptrace_setoptions_followfork(void)
-{
-	int pid, expected_grandchild = 0, found_grandchild = 0;
-	const unsigned int test_options = PTRACE_O_TRACECLONE |
-					  PTRACE_O_TRACEFORK |
-					  PTRACE_O_TRACEVFORK;
-
-	/* Need fork for test. NOMMU has no forks */
-	if (NOMMU_SYSTEM)
-		goto worked; /* be bold, and pretend that test succeeded */
-
-	pid = fork();
-	if (pid < 0)
-		perror_msg_and_die("fork");
-	if (pid == 0) {
-		pid = getpid();
-		if (ptrace(PTRACE_TRACEME, 0L, 0L, 0L) < 0)
-			perror_msg_and_die("%s: PTRACE_TRACEME doesn't work",
-					   __func__);
-		kill_save_errno(pid, SIGSTOP);
-		if (fork() < 0)
-			perror_msg_and_die("fork");
-		_exit(0);
-	}
-
-	while (1) {
-		int status, tracee_pid;
-
-		errno = 0;
-		tracee_pid = wait(&status);
-		if (tracee_pid <= 0) {
-			if (errno == EINTR)
-				continue;
-			if (errno == ECHILD)
-				break;
-			kill_save_errno(pid, SIGKILL);
-			perror_msg_and_die("%s: unexpected wait result %d",
-					   __func__, tracee_pid);
-		}
-		if (WIFEXITED(status)) {
-			if (WEXITSTATUS(status)) {
-				if (tracee_pid != pid)
-					kill_save_errno(pid, SIGKILL);
-				error_msg_and_die("%s: unexpected exit status %u",
-						  __func__, WEXITSTATUS(status));
-			}
-			continue;
-		}
-		if (WIFSIGNALED(status)) {
-			if (tracee_pid != pid)
-				kill_save_errno(pid, SIGKILL);
-			error_msg_and_die("%s: unexpected signal %u",
-					  __func__, WTERMSIG(status));
-		}
-		if (!WIFSTOPPED(status)) {
-			if (tracee_pid != pid)
-				kill_save_errno(tracee_pid, SIGKILL);
-			kill_save_errno(pid, SIGKILL);
-			error_msg_and_die("%s: unexpected wait status %x",
-					  __func__, status);
-		}
-		if (tracee_pid != pid) {
-			found_grandchild = tracee_pid;
-			if (ptrace(PTRACE_CONT, tracee_pid, 0, 0) < 0) {
-				kill_save_errno(tracee_pid, SIGKILL);
-				kill_save_errno(pid, SIGKILL);
-				perror_msg_and_die("PTRACE_CONT doesn't work");
-			}
-			continue;
-		}
-		switch (WSTOPSIG(status)) {
-		case SIGSTOP:
-			if (ptrace(PTRACE_SETOPTIONS, pid, 0, test_options) < 0
-			    && errno != EINVAL && errno != EIO)
-				perror_msg("PTRACE_SETOPTIONS");
-			break;
-		case SIGTRAP:
-			if (status >> 16 == PTRACE_EVENT_FORK) {
-				long msg = 0;
-
-				if (ptrace(PTRACE_GETEVENTMSG, pid,
-					   NULL, (long) &msg) == 0)
-					expected_grandchild = msg;
-			}
-			break;
-		}
-		if (ptrace(PTRACE_SYSCALL, pid, 0, 0) < 0) {
-			kill_save_errno(pid, SIGKILL);
-			perror_msg_and_die("PTRACE_SYSCALL doesn't work");
-		}
-	}
-	if (expected_grandchild && expected_grandchild == found_grandchild) {
- worked:
-		ptrace_setoptions |= test_options;
-		if (debug_flag)
-			fprintf(stderr, "ptrace_setoptions = %#x\n",
-				ptrace_setoptions);
-		return 0;
-	}
-	error_msg("Test for PTRACE_O_TRACECLONE failed, "
-		  "giving up using this feature.");
-	return 1;
-}
-
-/*
- * Test whether the kernel support PTRACE_O_TRACESYSGOOD.
- * First fork a new child, call ptrace(PTRACE_SETOPTIONS) on it,
- * and then see whether it will stop with (SIGTRAP | 0x80).
- *
- * Use of this option enables correct handling of user-generated SIGTRAPs,
- * and SIGTRAPs generated by special instructions such as int3 on x86:
-
-# compile with: gcc -nostartfiles -nostdlib -o int3 int3.S
-_start:		.globl	_start
-		int3
-		movl	$42, %ebx
-		movl	$1, %eax
-		int	$0x80
- */
-static int
-test_ptrace_setoptions_for_all(void)
-{
-	const unsigned int test_options = PTRACE_O_TRACESYSGOOD |
-					  PTRACE_O_TRACEEXEC;
-	int pid;
-	int it_worked = 0;
-
-	/* Need fork for test. NOMMU has no forks */
-	if (NOMMU_SYSTEM)
-		goto worked; /* be bold, and pretend that test succeeded */
-
-	pid = fork();
-	if (pid < 0)
-		perror_msg_and_die("fork");
-
-	if (pid == 0) {
-		pid = getpid();
-		if (ptrace(PTRACE_TRACEME, 0L, 0L, 0L) < 0)
-			/* Note: exits with exitcode 1 */
-			perror_msg_and_die("%s: PTRACE_TRACEME doesn't work",
-					   __func__);
-		kill(pid, SIGSTOP);
-		_exit(0); /* parent should see entry into this syscall */
-	}
-
-	while (1) {
-		int status, tracee_pid;
-
-		errno = 0;
-		tracee_pid = wait(&status);
-		if (tracee_pid <= 0) {
-			if (errno == EINTR)
-				continue;
-			kill_save_errno(pid, SIGKILL);
-			perror_msg_and_die("%s: unexpected wait result %d",
-					   __func__, tracee_pid);
-		}
-		if (WIFEXITED(status)) {
-			if (WEXITSTATUS(status) == 0)
-				break;
-			error_msg_and_die("%s: unexpected exit status %u",
-					  __func__, WEXITSTATUS(status));
-		}
-		if (WIFSIGNALED(status)) {
-			error_msg_and_die("%s: unexpected signal %u",
-					  __func__, WTERMSIG(status));
-		}
-		if (!WIFSTOPPED(status)) {
-			kill(pid, SIGKILL);
-			error_msg_and_die("%s: unexpected wait status %x",
-					  __func__, status);
-		}
-		if (WSTOPSIG(status) == SIGSTOP) {
-			/*
-			 * We don't check "options aren't accepted" error.
-			 * If it happens, we'll never get (SIGTRAP | 0x80),
-			 * and thus will decide to not use the option.
-			 * IOW: the outcome of the test will be correct.
-			 */
-			if (ptrace(PTRACE_SETOPTIONS, pid, 0L, test_options) < 0
-			    && errno != EINVAL && errno != EIO)
-				perror_msg("PTRACE_SETOPTIONS");
-		}
-		if (WSTOPSIG(status) == (SIGTRAP | 0x80)) {
-			it_worked = 1;
-		}
-		if (ptrace(PTRACE_SYSCALL, pid, 0L, 0L) < 0) {
-			kill_save_errno(pid, SIGKILL);
-			perror_msg_and_die("PTRACE_SYSCALL doesn't work");
-		}
-	}
-
-	if (it_worked) {
- worked:
-		syscall_trap_sig = (SIGTRAP | 0x80);
-		ptrace_setoptions |= test_options;
-		if (debug_flag)
-			fprintf(stderr, "ptrace_setoptions = %#x\n",
-				ptrace_setoptions);
-		return 0;
-	}
-
-	error_msg("Test for PTRACE_O_TRACESYSGOOD failed, "
-		  "giving up using this feature.");
-	return 1;
 }
 
 #if USE_SEIZE
@@ -1871,14 +1661,12 @@ init(int argc, char *argv[])
 		run_gid = getgid();
 	}
 
-	/*
-	 * On any reasonably recent Linux kernel (circa about 2.5.46)
-	 * need_fork_exec_workarounds should stay 0 after these tests:
-	 */
-	/*need_fork_exec_workarounds = 0; - already is */
 	if (followfork)
-		need_fork_exec_workarounds = test_ptrace_setoptions_followfork();
-	need_fork_exec_workarounds |= test_ptrace_setoptions_for_all();
+		ptrace_setoptions |= PTRACE_O_TRACECLONE |
+				     PTRACE_O_TRACEFORK |
+				     PTRACE_O_TRACEVFORK;
+	if (debug_flag)
+		fprintf(stderr, "ptrace_setoptions = %#x\n", ptrace_setoptions);
 	test_ptrace_seize();
 
 	/* Check if they want to redirect the output. */
@@ -2030,143 +1818,284 @@ interrupt(int sig)
 }
 
 static void
+print_debug_info(const int pid, int status)
+{
+	const unsigned int event = (unsigned int) status >> 16;
+	char buf[sizeof("WIFEXITED,exitcode=%u") + sizeof(int)*3 /*paranoia:*/ + 16];
+	char evbuf[sizeof(",EVENT_VFORK_DONE (%u)") + sizeof(int)*3 /*paranoia:*/ + 16];
+
+	strcpy(buf, "???");
+	if (WIFSIGNALED(status))
+#ifdef WCOREDUMP
+		sprintf(buf, "WIFSIGNALED,%ssig=%s",
+				WCOREDUMP(status) ? "core," : "",
+				signame(WTERMSIG(status)));
+#else
+		sprintf(buf, "WIFSIGNALED,sig=%s",
+				signame(WTERMSIG(status)));
+#endif
+	if (WIFEXITED(status))
+		sprintf(buf, "WIFEXITED,exitcode=%u", WEXITSTATUS(status));
+	if (WIFSTOPPED(status))
+		sprintf(buf, "WIFSTOPPED,sig=%s", signame(WSTOPSIG(status)));
+#ifdef WIFCONTINUED
+	/* Should never be seen */
+	if (WIFCONTINUED(status))
+		strcpy(buf, "WIFCONTINUED");
+#endif
+	evbuf[0] = '\0';
+	if (event != 0) {
+		static const char *const event_names[] = {
+			[PTRACE_EVENT_CLONE] = "CLONE",
+			[PTRACE_EVENT_FORK]  = "FORK",
+			[PTRACE_EVENT_VFORK] = "VFORK",
+			[PTRACE_EVENT_VFORK_DONE] = "VFORK_DONE",
+			[PTRACE_EVENT_EXEC]  = "EXEC",
+			[PTRACE_EVENT_EXIT]  = "EXIT",
+			/* [PTRACE_EVENT_STOP (=128)] would make biggish array */
+		};
+		const char *e = "??";
+		if (event < ARRAY_SIZE(event_names))
+			e = event_names[event];
+		else if (event == PTRACE_EVENT_STOP)
+			e = "STOP";
+		sprintf(evbuf, ",EVENT_%s (%u)", e, event);
+	}
+	fprintf(stderr, " [wait(0x%06x) = %u] %s%s\n", status, pid, buf, evbuf);
+}
+
+static struct tcb *
+maybe_allocate_tcb(const int pid, int status)
+{
+	if (!WIFSTOPPED(status)) {
+		if (detach_on_execve && pid == strace_child) {
+			/* example: strace -bexecve sh -c 'exec true' */
+			strace_child = 0;
+			return NULL;
+		}
+		/*
+		 * This can happen if we inherited an unknown child.
+		 * Example: (sleep 1 & exec strace true)
+		 */
+		error_msg("Exit of unknown pid %u ignored", pid);
+		return NULL;
+	}
+	if (followfork) {
+		/* We assume it's a fork/vfork/clone child */
+		struct tcb *tcp = alloctcb(pid);
+		tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
+		newoutf(tcp);
+		if (!qflag)
+			fprintf(stderr, "Process %d attached\n", pid);
+		return tcp;
+	} else {
+		/* This can happen if a clone call used
+		 * CLONE_PTRACE itself.
+		 */
+		ptrace(PTRACE_CONT, pid, (char *) 0, 0);
+		error_msg("Stop of unknown pid %u seen, PTRACE_CONTed it", pid);
+		return NULL;
+	}
+}
+
+static struct tcb *
+maybe_switch_tcbs(struct tcb *tcp, const int pid)
+{
+	FILE *fp;
+	struct tcb *execve_thread;
+	long old_pid = 0;
+
+	if (ptrace(PTRACE_GETEVENTMSG, pid, NULL, (long) &old_pid) < 0)
+		return tcp;
+	/* Avoid truncation in pid2tcb() param passing */
+	if (old_pid <= 0 || old_pid == pid)
+		return tcp;
+	if ((unsigned long) old_pid > UINT_MAX)
+		return tcp;
+	execve_thread = pid2tcb(old_pid);
+	/* It should be !NULL, but I feel paranoid */
+	if (!execve_thread)
+		return tcp;
+
+	if (execve_thread->curcol != 0) {
+		/*
+		 * One case we are here is -ff:
+		 * try "strace -oLOG -ff test/threaded_execve"
+		 */
+		fprintf(execve_thread->outf, " <pid changed to %d ...>\n", pid);
+		/*execve_thread->curcol = 0; - no need, see code below */
+	}
+	/* Swap output FILEs (needed for -ff) */
+	fp = execve_thread->outf;
+	execve_thread->outf = tcp->outf;
+	tcp->outf = fp;
+	/* And their column positions */
+	execve_thread->curcol = tcp->curcol;
+	tcp->curcol = 0;
+	/* Drop leader, but close execve'd thread outfile (if -ff) */
+	droptcb(tcp);
+	/* Switch to the thread, reusing leader's outfile and pid */
+	tcp = execve_thread;
+	tcp->pid = pid;
+	if (cflag != CFLAG_ONLY_STATS) {
+		printleader(tcp);
+		tprintf("+++ superseded by execve in pid %lu +++\n", old_pid);
+		line_ended();
+		tcp->flags |= TCB_REPRINT;
+	}
+
+	return tcp;
+}
+
+static void
+print_signalled(struct tcb *tcp, const int pid, int status)
+{
+	if (pid == strace_child) {
+		exit_code = 0x100 | WTERMSIG(status);
+		strace_child = 0;
+	}
+
+	if (cflag != CFLAG_ONLY_STATS
+	 && (qual_flags[WTERMSIG(status)] & QUAL_SIGNAL)
+	) {
+		printleader(tcp);
+#ifdef WCOREDUMP
+		tprintf("+++ killed by %s %s+++\n",
+			signame(WTERMSIG(status)),
+			WCOREDUMP(status) ? "(core dumped) " : "");
+#else
+		tprintf("+++ killed by %s +++\n",
+			signame(WTERMSIG(status)));
+#endif
+		line_ended();
+	}
+}
+
+static void
+print_exited(struct tcb *tcp, const int pid, int status)
+{
+	if (pid == strace_child) {
+		exit_code = WEXITSTATUS(status);
+		strace_child = 0;
+	}
+
+	if (cflag != CFLAG_ONLY_STATS &&
+	    qflag < 2) {
+		printleader(tcp);
+		tprintf("+++ exited with %d +++\n", WEXITSTATUS(status));
+		line_ended();
+	}
+}
+
+static void
+print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
+{
+	if (cflag != CFLAG_ONLY_STATS
+	    && !hide_log_until_execve
+	    && (qual_flags[sig] & QUAL_SIGNAL)
+	   ) {
+		printleader(tcp);
+		if (si) {
+			tprintf("--- %s ", signame(sig));
+			printsiginfo(si, verbose(tcp));
+			tprints(" ---\n");
+		} else
+			tprintf("--- stopped by %s ---\n", signame(sig));
+		line_ended();
+	}
+}
+
+static bool
+startup_tcb(struct tcb *tcp)
+{
+	if (debug_flag)
+		fprintf(stderr, "pid %d has TCB_STARTUP, initializing it\n",
+			tcp->pid);
+
+	tcp->flags &= ~TCB_STARTUP;
+
+	if (!use_seize) {
+		if (debug_flag)
+			fprintf(stderr, "setting opts 0x%x on pid %d\n",
+				ptrace_setoptions, tcp->pid);
+		if (ptrace(PTRACE_SETOPTIONS, tcp->pid, NULL, ptrace_setoptions) < 0) {
+			if (errno != ESRCH) {
+				/* Should never happen, really */
+				perror_msg_and_die("PTRACE_SETOPTIONS");
+			}
+		}
+	}
+
+	return true;
+}
+
+/* Returns true iff the main trace loop has to continue. */
+static bool
 trace(void)
 {
+	int pid;
+	int wait_errno;
+	int status;
+	bool stopped;
+	unsigned int sig;
+	unsigned int event;
+	struct tcb *tcp;
 	struct rusage ru;
 
-	/* Used to be "while (nprocs != 0)", but in this testcase:
-	 *  int main() { _exit(!!fork()); }
-	 * under strace -f, parent sometimes (rarely) manages
-	 * to exit before we see the first stop of the child,
-	 * and we are losing track of it:
-	 *  19923 clone(...) = 19924
-	 *  19923 exit_group(1)     = ?
-	 *  19923 +++ exited with 1 +++
-	 * Waiting for ECHILD works better.
-	 * (However, if -o|logger is in use, we can't do that.
-	 * Can work around that by double-forking the logger,
-	 * but that loses the ability to wait for its completion on exit.
-	 * Oh well...)
-	 */
-	while (1) {
-		int pid;
-		int wait_errno;
-		int status;
-		int stopped;
-		unsigned int sig;
-		unsigned event;
-		struct tcb *tcp;
+	if (interrupted)
+		return false;
 
-		if (interrupted)
-			return;
+	if (popen_pid != 0 && nprocs == 0)
+		return false;
 
-		if (popen_pid != 0 && nprocs == 0)
-			return;
+	if (interactive)
+		sigprocmask(SIG_SETMASK, &empty_set, NULL);
+	pid = wait4(-1, &status, __WALL, (cflag ? &ru : NULL));
+	wait_errno = errno;
+	if (interactive)
+		sigprocmask(SIG_BLOCK, &blocked_set, NULL);
 
-		if (interactive)
-			sigprocmask(SIG_SETMASK, &empty_set, NULL);
-		pid = wait4(-1, &status, __WALL, (cflag ? &ru : NULL));
-		wait_errno = errno;
-		if (interactive)
-			sigprocmask(SIG_BLOCK, &blocked_set, NULL);
+	if (pid < 0) {
+		if (wait_errno == EINTR)
+			return true;
+		if (nprocs == 0 && wait_errno == ECHILD)
+			return false;
+		/*
+		 * If nprocs > 0, ECHILD is not expected,
+		 * treat it as any other error here:
+		 */
+		errno = wait_errno;
+		perror_msg_and_die("wait4(__WALL)");
+	}
 
-		if (pid < 0) {
-			if (wait_errno == EINTR)
-				continue;
-			if (nprocs == 0 && wait_errno == ECHILD)
-				return;
-			/* If nprocs > 0, ECHILD is not expected,
-			 * treat it as any other error here:
-			 */
-			errno = wait_errno;
-			perror_msg_and_die("wait4(__WALL)");
-		}
+	if (pid == popen_pid) {
+		if (!WIFSTOPPED(status))
+			popen_pid = 0;
+		return true;
+	}
 
-		if (pid == popen_pid) {
-			if (!WIFSTOPPED(status))
-				popen_pid = 0;
-			continue;
-		}
+	if (debug_flag)
+		print_debug_info(pid, status);
 
-		event = ((unsigned)status >> 16);
-		if (debug_flag) {
-			char buf[sizeof("WIFEXITED,exitcode=%u") + sizeof(int)*3 /*paranoia:*/ + 16];
-			char evbuf[sizeof(",EVENT_VFORK_DONE (%u)") + sizeof(int)*3 /*paranoia:*/ + 16];
-			strcpy(buf, "???");
-			if (WIFSIGNALED(status))
-#ifdef WCOREDUMP
-				sprintf(buf, "WIFSIGNALED,%ssig=%s",
-						WCOREDUMP(status) ? "core," : "",
-						signame(WTERMSIG(status)));
-#else
-				sprintf(buf, "WIFSIGNALED,sig=%s",
-						signame(WTERMSIG(status)));
-#endif
-			if (WIFEXITED(status))
-				sprintf(buf, "WIFEXITED,exitcode=%u", WEXITSTATUS(status));
-			if (WIFSTOPPED(status))
-				sprintf(buf, "WIFSTOPPED,sig=%s", signame(WSTOPSIG(status)));
-#ifdef WIFCONTINUED
-			/* Should never be seen */
-			if (WIFCONTINUED(status))
-				strcpy(buf, "WIFCONTINUED");
-#endif
-			evbuf[0] = '\0';
-			if (event != 0) {
-				static const char *const event_names[] = {
-					[PTRACE_EVENT_CLONE] = "CLONE",
-					[PTRACE_EVENT_FORK]  = "FORK",
-					[PTRACE_EVENT_VFORK] = "VFORK",
-					[PTRACE_EVENT_VFORK_DONE] = "VFORK_DONE",
-					[PTRACE_EVENT_EXEC]  = "EXEC",
-					[PTRACE_EVENT_EXIT]  = "EXIT",
-					/* [PTRACE_EVENT_STOP (=128)] would make biggish array */
-				};
-				const char *e = "??";
-				if (event < ARRAY_SIZE(event_names))
-					e = event_names[event];
-				else if (event == PTRACE_EVENT_STOP)
-					e = "STOP";
-				sprintf(evbuf, ",EVENT_%s (%u)", e, event);
-			}
-			fprintf(stderr, " [wait(0x%06x) = %u] %s%s\n", status, pid, buf, evbuf);
-		}
+	/* Look up 'pid' in our table. */
+	tcp = pid2tcb(pid);
 
-		/* Look up 'pid' in our table. */
-		tcp = pid2tcb(pid);
+	if (!tcp) {
+		tcp = maybe_allocate_tcb(pid, status);
+		if (!tcp)
+			return true;
+	}
 
-		if (!tcp) {
-			if (!WIFSTOPPED(status)) {
-				/* This can happen if we inherited
-				 * an unknown child. Example:
-				 * (sleep 1 & exec strace sleep 2)
-				 */
-				error_msg("Exit of unknown pid %u seen", pid);
-				continue;
-			}
-			if (followfork) {
-				/* We assume it's a fork/vfork/clone child */
-				tcp = alloctcb(pid);
-				tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
-				newoutf(tcp);
-				if (!qflag)
-					fprintf(stderr, "Process %d attached\n",
-						pid);
-			} else {
-				/* This can happen if a clone call used
-				 * CLONE_PTRACE itself.
-				 */
-				ptrace(PTRACE_CONT, pid, (char *) 0, 0);
-				error_msg("Stop of unknown pid %u seen, PTRACE_CONTed it", pid);
-				continue;
-			}
-		}
-
+	if (WIFSTOPPED(status))
+		get_regs(pid);
+	else
 		clear_regs();
-		if (WIFSTOPPED(status))
-			get_regs(pid);
 
-		/* Under Linux, execve changes pid to thread leader's pid,
+	event = (unsigned int) status >> 16;
+
+	if (event == PTRACE_EVENT_EXEC) {
+		/*
+		 * Under Linux, execve changes pid to thread leader's pid,
 		 * and we see this changed pid on EVENT_EXEC and later,
 		 * execve sysexit. Leader "disappears" without exit
 		 * notification. Let user know that, drop leader's tcb,
@@ -2180,248 +2109,160 @@ trace(void)
 		 * PTRACE_GETEVENTMSG returns old pid starting from Linux 3.0.
 		 * On 2.6 and earlier, it can return garbage.
 		 */
-		if (event == PTRACE_EVENT_EXEC && os_release >= KERNEL_VERSION(3,0,0)) {
-			FILE *fp;
-			struct tcb *execve_thread;
-			long old_pid = 0;
+		if (os_release >= KERNEL_VERSION(3,0,0))
+			tcp = maybe_switch_tcbs(tcp, pid);
 
-			if (ptrace(PTRACE_GETEVENTMSG, pid, NULL, (long) &old_pid) < 0)
-				goto dont_switch_tcbs;
-			/* Avoid truncation in pid2tcb() param passing */
-			if (old_pid <= 0 || old_pid == pid)
-				goto dont_switch_tcbs;
-			if ((unsigned long) old_pid > UINT_MAX)
-				goto dont_switch_tcbs;
-			execve_thread = pid2tcb(old_pid);
-			/* It should be !NULL, but I feel paranoid */
-			if (!execve_thread)
-				goto dont_switch_tcbs;
-
-			if (execve_thread->curcol != 0) {
-				/*
-				 * One case we are here is -ff:
-				 * try "strace -oLOG -ff test/threaded_execve"
-				 */
-				fprintf(execve_thread->outf, " <pid changed to %d ...>\n", pid);
-				/*execve_thread->curcol = 0; - no need, see code below */
-			}
-			/* Swap output FILEs (needed for -ff) */
-			fp = execve_thread->outf;
-			execve_thread->outf = tcp->outf;
-			tcp->outf = fp;
-			/* And their column positions */
-			execve_thread->curcol = tcp->curcol;
-			tcp->curcol = 0;
-			/* Drop leader, but close execve'd thread outfile (if -ff) */
-			droptcb(tcp);
-			/* Switch to the thread, reusing leader's outfile and pid */
-			tcp = execve_thread;
-			tcp->pid = pid;
-			if (cflag != CFLAG_ONLY_STATS) {
-				printleader(tcp);
-				tprintf("+++ superseded by execve in pid %lu +++\n", old_pid);
-				line_ended();
-				tcp->flags |= TCB_REPRINT;
-			}
+		if (detach_on_execve && !skip_one_b_execve) {
+			detach(tcp); /* do "-b execve" thingy */
+			return true;
 		}
- dont_switch_tcbs:
+		skip_one_b_execve = 0;
+	}
 
-		if (event == PTRACE_EVENT_EXEC) {
-			if (detach_on_execve && !skip_one_b_execve)
-				detach(tcp); /* do "-b execve" thingy */
-			skip_one_b_execve = 0;
-		}
+	/* Set current output file */
+	current_tcp = tcp;
 
-		/* Set current output file */
-		current_tcp = tcp;
+	if (cflag) {
+		tv_sub(&tcp->dtime, &ru.ru_stime, &tcp->stime);
+		tcp->stime = ru.ru_stime;
+	}
 
-		if (cflag) {
-			tv_sub(&tcp->dtime, &ru.ru_stime, &tcp->stime);
-			tcp->stime = ru.ru_stime;
-		}
+	if (WIFSIGNALED(status)) {
+		print_signalled(tcp, pid, status);
+		droptcb(tcp);
+		return true;
+	}
 
-		if (WIFSIGNALED(status)) {
-			if (pid == strace_child)
-				exit_code = 0x100 | WTERMSIG(status);
-			if (cflag != CFLAG_ONLY_STATS
-			 && (qual_flags[WTERMSIG(status)] & QUAL_SIGNAL)
-			) {
-				printleader(tcp);
-#ifdef WCOREDUMP
-				tprintf("+++ killed by %s %s+++\n",
-					signame(WTERMSIG(status)),
-					WCOREDUMP(status) ? "(core dumped) " : "");
-#else
-				tprintf("+++ killed by %s +++\n",
-					signame(WTERMSIG(status)));
-#endif
-				line_ended();
-			}
-			droptcb(tcp);
-			continue;
-		}
-		if (WIFEXITED(status)) {
-			if (pid == strace_child)
-				exit_code = WEXITSTATUS(status);
-			if (cflag != CFLAG_ONLY_STATS &&
-			    qflag < 2) {
-				printleader(tcp);
-				tprintf("+++ exited with %d +++\n", WEXITSTATUS(status));
-				line_ended();
-			}
-			droptcb(tcp);
-			continue;
-		}
-		if (!WIFSTOPPED(status)) {
-			fprintf(stderr, "PANIC: pid %u not stopped\n", pid);
-			droptcb(tcp);
-			continue;
-		}
+	if (WIFEXITED(status)) {
+		print_exited(tcp, pid, status);
+		droptcb(tcp);
+		return true;
+	}
 
-		/* Is this the very first time we see this tracee stopped? */
-		if (tcp->flags & TCB_STARTUP) {
-			if (debug_flag)
-				fprintf(stderr, "pid %d has TCB_STARTUP, initializing it\n", tcp->pid);
-			tcp->flags &= ~TCB_STARTUP;
-			if (tcp->flags & TCB_BPTSET) {
-				/*
-				 * One example is a breakpoint inherited from
-				 * parent through fork().
-				 */
-				if (clearbpt(tcp) < 0) {
-					/* Pretty fatal */
-					droptcb(tcp);
-					exit_code = 1;
-					return;
-				}
-			}
-			if (!use_seize && ptrace_setoptions) {
-				if (debug_flag)
-					fprintf(stderr, "setting opts 0x%x on pid %d\n", ptrace_setoptions, tcp->pid);
-				if (ptrace(PTRACE_SETOPTIONS, tcp->pid, NULL, ptrace_setoptions) < 0) {
-					if (errno != ESRCH) {
-						/* Should never happen, really */
-						perror_msg_and_die("PTRACE_SETOPTIONS");
-					}
-				}
-			}
-		}
+	if (!WIFSTOPPED(status)) {
+		/*
+		 * Neither signalled, exited or stopped.
+		 * How could that be?
+		 */
+		error_msg("pid %u not stopped!", pid);
+		droptcb(tcp);
+		return true;
+	}
 
-		sig = WSTOPSIG(status);
+	/* Is this the very first time we see this tracee stopped? */
+	if (tcp->flags & TCB_STARTUP) {
+		if (!startup_tcb(tcp))
+			return false;
+	}
 
-		if (event != 0) {
-			/* Ptrace event */
+	sig = WSTOPSIG(status);
+
+	if (event != 0) {
+		/* Ptrace event */
 #if USE_SEIZE
-			if (event == PTRACE_EVENT_STOP) {
-				/*
-				 * PTRACE_INTERRUPT-stop or group-stop.
-				 * PTRACE_INTERRUPT-stop has sig == SIGTRAP here.
-				 */
-				if (sig == SIGSTOP
-				 || sig == SIGTSTP
-				 || sig == SIGTTIN
-				 || sig == SIGTTOU
-				) {
-					stopped = 1;
+		if (event == PTRACE_EVENT_STOP) {
+			/*
+			 * PTRACE_INTERRUPT-stop or group-stop.
+			 * PTRACE_INTERRUPT-stop has sig == SIGTRAP here.
+			 */
+			switch (sig) {
+				case SIGSTOP:
+				case SIGTSTP:
+				case SIGTTIN:
+				case SIGTTOU:
+					stopped = true;
 					goto show_stopsig;
-				}
 			}
+		}
 #endif
-			goto restart_tracee_with_sig_0;
-		}
+		goto restart_tracee_with_sig_0;
+	}
 
-		/* Is this post-attach SIGSTOP?
-		 * Interestingly, the process may stop
-		 * with STOPSIG equal to some other signal
-		 * than SIGSTOP if we happend to attach
-		 * just before the process takes a signal.
+	/*
+	 * Is this post-attach SIGSTOP?
+	 * Interestingly, the process may stop
+	 * with STOPSIG equal to some other signal
+	 * than SIGSTOP if we happend to attach
+	 * just before the process takes a signal.
+	 */
+	if (sig == SIGSTOP && (tcp->flags & TCB_IGNORE_ONE_SIGSTOP)) {
+		if (debug_flag)
+			fprintf(stderr, "ignored SIGSTOP on pid %d\n", tcp->pid);
+		tcp->flags &= ~TCB_IGNORE_ONE_SIGSTOP;
+		goto restart_tracee_with_sig_0;
+	}
+
+	if (sig != syscall_trap_sig) {
+		siginfo_t si;
+
+		/*
+		 * True if tracee is stopped by signal
+		 * (as opposed to "tracee received signal").
+		 * TODO: shouldn't we check for errno == EINVAL too?
+		 * We can get ESRCH instead, you know...
 		 */
-		if (sig == SIGSTOP && (tcp->flags & TCB_IGNORE_ONE_SIGSTOP)) {
-			if (debug_flag)
-				fprintf(stderr, "ignored SIGSTOP on pid %d\n", tcp->pid);
-			tcp->flags &= ~TCB_IGNORE_ONE_SIGSTOP;
-			goto restart_tracee_with_sig_0;
-		}
-
-		if (sig != syscall_trap_sig) {
-			siginfo_t si;
-
-			/* Nonzero (true) if tracee is stopped by signal
-			 * (as opposed to "tracee received signal").
-			 * TODO: shouldn't we check for errno == EINVAL too?
-			 * We can get ESRCH instead, you know...
-			 */
-			stopped = (ptrace(PTRACE_GETSIGINFO, pid, 0, (long) &si) < 0);
+		stopped = ptrace(PTRACE_GETSIGINFO, pid, 0, (long) &si) < 0;
 #if USE_SEIZE
- show_stopsig:
+show_stopsig:
 #endif
-			if (cflag != CFLAG_ONLY_STATS
-			    && !hide_log_until_execve
-			    && (qual_flags[sig] & QUAL_SIGNAL)
-			   ) {
-				printleader(tcp);
-				if (!stopped) {
-					tprintf("--- %s ", signame(sig));
-					printsiginfo(&si, verbose(tcp));
-					tprints(" ---\n");
-				} else
-					tprintf("--- stopped by %s ---\n",
-						signame(sig));
-				line_ended();
-			}
+		print_stopped(tcp, stopped ? NULL : &si, sig);
 
-			if (!stopped)
-				/* It's signal-delivery-stop. Inject the signal */
-				goto restart_tracee;
-
-			/* It's group-stop */
-			if (use_seize) {
-				/*
-				 * This ends ptrace-stop, but does *not* end group-stop.
-				 * This makes stopping signals work properly on straced process
-				 * (that is, process really stops. It used to continue to run).
-				 */
-				if (ptrace_restart(PTRACE_LISTEN, tcp, 0) < 0) {
-					/* Note: ptrace_restart emitted error message */
-					exit_code = 1;
-					return;
-				}
-				continue;
-			}
-			/* We don't have PTRACE_LISTEN support... */
+		if (!stopped)
+			/* It's signal-delivery-stop. Inject the signal */
 			goto restart_tracee;
-		}
 
-		/* We handled quick cases, we are permitted to interrupt now. */
-		if (interrupted)
-			return;
-
-		/* This should be syscall entry or exit.
-		 * (Or it still can be that pesky post-execve SIGTRAP!)
-		 * Handle it.
-		 */
-		if (trace_syscall(tcp) < 0) {
-			/* ptrace() failed in trace_syscall().
-			 * Likely a result of process disappearing mid-flight.
-			 * Observed case: exit_group() or SIGKILL terminating
-			 * all processes in thread group.
-			 * We assume that ptrace error was caused by process death.
-			 * We used to detach(tcp) here, but since we no longer
-			 * implement "detach before death" policy/hack,
-			 * we can let this process to report its death to us
-			 * normally, via WIFEXITED or WIFSIGNALED wait status.
+		/* It's group-stop */
+		if (use_seize) {
+			/*
+			 * This ends ptrace-stop, but does *not* end group-stop.
+			 * This makes stopping signals work properly on straced process
+			 * (that is, process really stops. It used to continue to run).
 			 */
-			continue;
+			if (ptrace_restart(PTRACE_LISTEN, tcp, 0) < 0) {
+				/* Note: ptrace_restart emitted error message */
+				exit_code = 1;
+				return false;
+			}
+			return true;
 		}
- restart_tracee_with_sig_0:
-		sig = 0;
- restart_tracee:
-		if (ptrace_restart(PTRACE_SYSCALL, tcp, sig) < 0) {
-			/* Note: ptrace_restart emitted error message */
-			exit_code = 1;
-			return;
-		}
-	} /* while (1) */
+		/* We don't have PTRACE_LISTEN support... */
+		goto restart_tracee;
+	}
+
+	/* We handled quick cases, we are permitted to interrupt now. */
+	if (interrupted)
+		return false;
+
+	/*
+	 * This should be syscall entry or exit.
+	 * Handle it.
+	 */
+	if (trace_syscall(tcp) < 0) {
+		/*
+		 * ptrace() failed in trace_syscall().
+		 * Likely a result of process disappearing mid-flight.
+		 * Observed case: exit_group() or SIGKILL terminating
+		 * all processes in thread group.
+		 * We assume that ptrace error was caused by process death.
+		 * We used to detach(tcp) here, but since we no longer
+		 * implement "detach before death" policy/hack,
+		 * we can let this process to report its death to us
+		 * normally, via WIFEXITED or WIFSIGNALED wait status.
+		 */
+		return true;
+	}
+
+restart_tracee_with_sig_0:
+	sig = 0;
+
+restart_tracee:
+	if (ptrace_restart(PTRACE_SYSCALL, tcp, sig) < 0) {
+		/* Note: ptrace_restart emitted error message */
+		exit_code = 1;
+		return false;
+	}
+
+	return true;
 }
 
 int
@@ -2429,8 +2270,25 @@ main(int argc, char *argv[])
 {
 	init(argc, argv);
 
-	/* Run main tracing loop */
-	trace();
+	/*
+	 * Run main tracing loop.
+	 *
+	 * Used to be "while (nprocs != 0)", but in this testcase:
+	 *  int main() { _exit(!!fork()); }
+	 * under strace -f, parent sometimes (rarely) manages
+	 * to exit before we see the first stop of the child,
+	 * and we are losing track of it:
+	 *  19923 clone(...) = 19924
+	 *  19923 exit_group(1)     = ?
+	 *  19923 +++ exited with 1 +++
+	 * Waiting for ECHILD works better.
+	 * (However, if -o|logger is in use, we can't do that.
+	 * Can work around that by double-forking the logger,
+	 * but that loses the ability to wait for its completion on exit.
+	 * Oh well...)
+	 */
+	while (trace())
+		;
 
 	cleanup();
 	fflush(NULL);

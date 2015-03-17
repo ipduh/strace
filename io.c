@@ -217,9 +217,16 @@ static void
 print_llu_from_low_high_val(struct tcb *tcp, int arg)
 {
 #if SIZEOF_LONG == SIZEOF_LONG_LONG
-	tprintf("%lu", (unsigned long) tcp->u_arg[arg]);
-#elif defined(LINUX_MIPSN32)
-	tprintf("%llu", (unsigned long long) tcp->ext_arg[arg]);
+# if SUPPORTED_PERSONALITIES > 1
+	if (current_wordsize == sizeof(long))
+# endif
+		tprintf("%lu", (unsigned long) tcp->u_arg[arg]);
+# if SUPPORTED_PERSONALITIES > 1
+	else
+		tprintf("%lu",
+			((unsigned long) tcp->u_arg[arg + 1] << current_wordsize * 8)
+			| (unsigned long) tcp->u_arg[arg]);
+# endif
 #else
 # ifdef X32
 	if (current_personality == 0)
@@ -398,13 +405,16 @@ sys_ioctl(struct tcb *tcp)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		iop = ioctl_lookup(tcp->u_arg[1]);
-		if (iop) {
-			tprints(iop->symbol);
-			while ((iop = ioctl_next_match(iop)))
-				tprintf(" or %s", iop->symbol);
-		} else
-			tprintf("%#lx", tcp->u_arg[1]);
+		if (!ioctl_decode_command_number(tcp->u_arg[1])) {
+			iop = ioctl_lookup(tcp->u_arg[1]);
+			if (iop) {
+				tprints(iop->symbol);
+				while ((iop = ioctl_next_match(iop)))
+					tprintf(" or %s", iop->symbol);
+			} else {
+				ioctl_print_code(tcp->u_arg[1]);
+			}
+		}
 		ioctl_decode(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 	}
 	else {

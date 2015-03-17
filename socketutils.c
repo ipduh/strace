@@ -8,6 +8,10 @@
 #include <linux/unix_diag.h>
 #include <linux/rtnetlink.h>
 
+#if !defined NETLINK_SOCK_DIAG && defined NETLINK_INET_DIAG
+# define NETLINK_SOCK_DIAG NETLINK_INET_DIAG
+#endif
+
 #include <sys/un.h>
 #ifndef UNIX_PATH_MAX
 # define UNIX_PATH_MAX sizeof(((struct sockaddr_un *) 0)->sun_path)
@@ -110,7 +114,7 @@ receive_responses(const int fd, const unsigned long inode,
 		  const char *proto_name,
 		  bool (* parser) (const char *, const void *, int, const unsigned long))
 {
-	static char buf[8192];
+	static long buf[8192 / sizeof(long)];
 	struct sockaddr_nl nladdr = {
 		.nl_family = AF_NETLINK
 	};
@@ -248,13 +252,13 @@ unix_parse_response(const char *proto_name, const void *data, int data_len,
 			tprintf("->%u", peer);
 		if (path_len) {
 			if (path[0] == '\0') {
-				char *outstr = alloca(4 * path_len - 1);
-				string_quote(path + 1, outstr, -1, path_len);
-				tprintf(",@%s", outstr);
+				tprints(",@");
+				print_quoted_string(path + 1, path_len,
+						    QUOTE_0_TERMINATED);
 			} else {
-				char *outstr = alloca(4 * path_len + 3);
-				string_quote(path, outstr, -1, path_len + 1);
-				tprintf(",%s", outstr);
+				tprints(",");
+				print_quoted_string(path, path_len + 1,
+						    QUOTE_0_TERMINATED);
 			}
 		}
 		tprints("]");

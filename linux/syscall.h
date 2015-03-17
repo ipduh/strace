@@ -104,6 +104,7 @@ int sys_gethostname();
 int sys_getitimer();
 int sys_getpmsg(); /* TODO: non-Linux, remove? */
 int sys_getpriority();
+int sys_getrandom();
 int sys_getresuid();
 int sys_getrlimit();
 int sys_getrusage();
@@ -221,6 +222,7 @@ int sys_sched_rr_get_interval();
 int sys_sched_setaffinity();
 int sys_sched_setparam();
 int sys_sched_setscheduler();
+int sys_seccomp();
 int sys_select();
 int sys_semctl();
 int sys_semget();

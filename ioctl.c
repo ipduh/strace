@@ -30,22 +30,29 @@
 
 #include "defs.h"
 #include <asm/ioctl.h>
+#include "xlat/ioctl_dirs.h"
+
+#ifdef HAVE_LINUX_INPUT_H
+# include <linux/input.h>
+#endif
+
+#include "xlat/evdev_abs.h"
+#include "xlat/evdev_ev.h"
 
 static int
 compare(const void *a, const void *b)
 {
-	unsigned long code1 = (unsigned long) a;
-	unsigned long code2 = ((struct_ioctlent *) b)->code;
+	const unsigned int code1 = (const unsigned long) a;
+	const unsigned int code2 = ((struct_ioctlent *) b)->code;
 	return (code1 > code2) ? 1 : (code1 < code2) ? -1 : 0;
 }
 
 const struct_ioctlent *
-ioctl_lookup(unsigned long code)
+ioctl_lookup(const unsigned int code)
 {
 	struct_ioctlent *iop;
 
-	code &= (_IOC_NRMASK<<_IOC_NRSHIFT) | (_IOC_TYPEMASK<<_IOC_TYPESHIFT);
-	iop = bsearch((void*)code, ioctlent,
+	iop = bsearch((const void *) (const unsigned long) code, ioctlent,
 			nioctlents, sizeof(ioctlent[0]), compare);
 	while (iop > ioctlent) {
 		iop--;
@@ -60,19 +67,164 @@ ioctl_lookup(unsigned long code)
 const struct_ioctlent *
 ioctl_next_match(const struct_ioctlent *iop)
 {
-	unsigned long code;
-
-	code = iop->code;
+	const unsigned int code = iop->code;
 	iop++;
 	if (iop < ioctlent + nioctlents && iop->code == code)
 		return iop;
 	return NULL;
 }
 
-int
-ioctl_decode(struct tcb *tcp, long code, long arg)
+void
+ioctl_print_code(const unsigned int code)
 {
-	switch ((code >> 8) & 0xff) {
+	tprints("_IOC(");
+	printflags(ioctl_dirs, _IOC_DIR(code), "_IOC_???");
+	tprintf(", 0x%02x, 0x%02x, 0x%02x)",
+		_IOC_TYPE(code), _IOC_NR(code), _IOC_SIZE(code));
+}
+
+static int
+evdev_decode_number(unsigned int arg)
+{
+	unsigned int nr = _IOC_NR(arg);
+
+	if (_IOC_DIR(arg) == _IOC_WRITE) {
+		if (nr >= 0xc0 && nr <= 0xc0 + 0x3f) {
+			tprints("EVIOCSABS(");
+			printxval(evdev_abs, nr - 0xc0, "EV_???");
+			tprints(")");
+			return 1;
+		}
+	}
+
+	if (_IOC_DIR(arg) != _IOC_READ)
+		return 0;
+
+	if (nr >= 0x20 && nr <= 0x20 + 0x1f) {
+		tprints("EVIOCGBIT(");
+		printxval(evdev_ev, nr - 0x20, "EV_???");
+		tprintf(", %u)", _IOC_SIZE(arg));
+		return 1;
+	} else if (nr >= 0x40 && nr <= 0x40 + 0x3f) {
+		tprints("EVIOCGABS(");
+		printxval(evdev_abs, nr - 0x40, "ABS_???");
+		tprints(")");
+		return 1;
+	}
+
+	switch (_IOC_NR(nr)) {
+		case 0x06:
+			tprintf("EVIOCGNAME(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x07:
+			tprintf("EVIOCGPHYS(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x08:
+			tprintf("EVIOCGUNIQ(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x09:
+			tprintf("EVIOCGPROP(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x0a:
+			tprintf("EVIOCGMTSLOTS(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x18:
+			tprintf("EVIOCGKEY(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x19:
+			tprintf("EVIOCGLED(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x1a:
+			tprintf("EVIOCGSND(%u)", _IOC_SIZE(arg));
+			return 1;
+		case 0x1b:
+			tprintf("EVIOCGSW(%u)", _IOC_SIZE(arg));
+			return 1;
+		default:
+			return 0;
+	}
+}
+
+static int
+hiddev_decode_number(unsigned int arg)
+{
+	if (_IOC_DIR(arg) == _IOC_READ) {
+		switch (_IOC_NR(arg)) {
+			case 0x04:
+				tprintf("HIDIOCGRAWNAME(%u)", _IOC_SIZE(arg));
+				return 1;
+			case 0x05:
+				tprintf("HIDIOCGRAWPHYS(%u)", _IOC_SIZE(arg));
+				return 1;
+			case 0x06:
+				tprintf("HIDIOCSFEATURE(%u)", _IOC_SIZE(arg));
+				return 1;
+			case 0x12:
+				tprintf("HIDIOCGPHYS(%u)", _IOC_SIZE(arg));
+				return 1;
+			default:
+				return 0;
+		}
+	} else if (_IOC_DIR(arg) == (_IOC_READ | _IOC_WRITE)) {
+		switch (_IOC_NR(arg)) {
+			case 0x06:
+				tprintf("HIDIOCSFEATURE(%u)", _IOC_SIZE(arg));
+				return 1;
+			case 0x07:
+				tprintf("HIDIOCGFEATURE(%u)", _IOC_SIZE(arg));
+				return 1;
+			default:
+				return 0;
+		}
+	}
+
+	return 0;
+}
+
+int
+ioctl_decode_command_number(unsigned int arg)
+{
+	switch (_IOC_TYPE(arg)) {
+		case 'E':
+			return evdev_decode_number(arg);
+		case 'H':
+			return hiddev_decode_number(arg);
+		case 'M':
+			if (_IOC_DIR(arg) == _IOC_WRITE) {
+				tprintf("MIXER_WRITE(%u)", _IOC_NR(arg));
+				return 1;
+			} else if (_IOC_DIR(arg) == _IOC_READ) {
+				tprintf("MIXER_READ(%u)", _IOC_NR(arg));
+				return 1;
+			}
+			return 0;
+		case 'U':
+			if (_IOC_DIR(arg) == _IOC_READ && _IOC_NR(arg) == 0x2c) {
+				tprintf("UI_GET_SYSNAME(%u)", _IOC_SIZE(arg));
+				return 1;
+			}
+			return 0;
+		case 'j':
+			if (_IOC_DIR(arg) == _IOC_READ && _IOC_NR(arg) == 0x13) {
+				tprintf("JSIOCGNAME(%u)", _IOC_SIZE(arg));
+				return 1;
+			}
+			return 0;
+		case 'k':
+			if (_IOC_DIR(arg) == _IOC_WRITE && _IOC_NR(arg) == 0) {
+				tprintf("SPI_IOC_MESSAGE(%u)", _IOC_SIZE(arg));
+				return 1;
+			}
+			return 0;
+		default:
+			return 0;
+	}
+}
+
+int
+ioctl_decode(struct tcb *tcp, unsigned int code, long arg)
+{
+	switch (_IOC_TYPE(code)) {
 #if defined(ALPHA) || defined(POWERPC)
 	case 'f': case 't': case 'T':
 #else /* !ALPHA */
@@ -102,6 +254,10 @@ ioctl_decode(struct tcb *tcp, long code, long arg)
 		return v4l2_ioctl(tcp, code, arg);
 	case '=':
 		return ptp_ioctl(tcp, code, arg);
+#ifdef HAVE_LINUX_INPUT_H
+	case 'E':
+		return evdev_ioctl(tcp, code, arg);
+#endif
 	default:
 		break;
 	}

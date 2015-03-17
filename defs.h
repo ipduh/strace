@@ -31,19 +31,6 @@
 # include "config.h"
 #endif
 
-#ifdef MIPS
-# include <sgidefs.h>
-# if _MIPS_SIM == _MIPS_SIM_ABI64
-#  define LINUX_MIPSN64
-# elif _MIPS_SIM == _MIPS_SIM_NABI32
-#  define LINUX_MIPSN32
-# elif _MIPS_SIM == _MIPS_SIM_ABI32
-#  define LINUX_MIPSO32
-# else
-#  error Unsupported _MIPS_SIM
-# endif
-#endif
-
 #include <features.h>
 #ifdef HAVE_STDBOOL_H
 # include <stdbool.h>
@@ -150,23 +137,6 @@ extern char *stpcpy(char *dst, const char *src);
  */
 #define USE_CUSTOM_PRINTF 0
 
-#ifdef NEED_PTRACE_PROTOTYPE_WORKAROUND
-# define ptrace xptrace
-# include <sys/ptrace.h>
-# undef ptrace
-extern long ptrace(int, int, char *, long);
-#else
-# include <sys/ptrace.h>
-#endif
-
-#if defined(POWERPC)
-# include <asm/ptrace.h>
-#endif
-
-#if defined(TILE)
-# include <asm/ptrace.h>  /* struct pt_regs */
-#endif
-
 #ifndef ERESTARTSYS
 # define ERESTARTSYS    512
 #endif
@@ -180,145 +150,13 @@ extern long ptrace(int, int, char *, long);
 # define ERESTART_RESTARTBLOCK 516
 #endif
 
-#if !HAVE_DECL_PTRACE_SETOPTIONS
-# define PTRACE_SETOPTIONS	0x4200
-#endif
-#if !HAVE_DECL_PTRACE_GETEVENTMSG
-# define PTRACE_GETEVENTMSG	0x4201
-#endif
-#if !HAVE_DECL_PTRACE_GETSIGINFO
-# define PTRACE_GETSIGINFO	0x4202
-#endif
-
-#if !HAVE_DECL_PTRACE_O_TRACESYSGOOD
-# define PTRACE_O_TRACESYSGOOD	0x00000001
-#endif
-#if !HAVE_DECL_PTRACE_O_TRACEFORK
-# define PTRACE_O_TRACEFORK	0x00000002
-#endif
-#if !HAVE_DECL_PTRACE_O_TRACEVFORK
-# define PTRACE_O_TRACEVFORK	0x00000004
-#endif
-#if !HAVE_DECL_PTRACE_O_TRACECLONE
-# define PTRACE_O_TRACECLONE	0x00000008
-#endif
-#if !HAVE_DECL_PTRACE_O_TRACEEXEC
-# define PTRACE_O_TRACEEXEC	0x00000010
-#endif
-#if !HAVE_DECL_PTRACE_O_TRACEEXIT
-# define PTRACE_O_TRACEEXIT	0x00000040
-#endif
-
-#if !HAVE_DECL_PTRACE_EVENT_FORK
-# define PTRACE_EVENT_FORK	1
-#endif
-#if !HAVE_DECL_PTRACE_EVENT_VFORK
-# define PTRACE_EVENT_VFORK	2
-#endif
-#if !HAVE_DECL_PTRACE_EVENT_CLONE
-# define PTRACE_EVENT_CLONE	3
-#endif
-#if !HAVE_DECL_PTRACE_EVENT_EXEC
-# define PTRACE_EVENT_EXEC	4
-#endif
-#if !HAVE_DECL_PTRACE_EVENT_VFORK_DONE
-# define PTRACE_EVENT_VFORK_DONE	5
-#endif
-#if !HAVE_DECL_PTRACE_EVENT_EXIT
-# define PTRACE_EVENT_EXIT	6
-#endif
-
-#if !HAVE_DECL_PTRACE_PEEKUSER
-# define PTRACE_PEEKUSER PTRACE_PEEKUSR
-#endif
-#if !HAVE_DECL_PTRACE_POKEUSER
-# define PTRACE_POKEUSER PTRACE_POKEUSR
-#endif
-
-#undef PTRACE_SEIZE
-#define PTRACE_SEIZE		0x4206
-#undef PTRACE_INTERRUPT
-#define PTRACE_INTERRUPT	0x4207
-#undef PTRACE_LISTEN
-#define PTRACE_LISTEN		0x4208
-#undef PTRACE_EVENT_STOP
-#define PTRACE_EVENT_STOP	128
-
-#ifdef ALPHA
-# define REG_R0 0
-# define REG_A0 16
-# define REG_A3 19
-# define REG_FP 30
-# define REG_PC 64
-#endif /* ALPHA */
-#ifdef MIPS
-# define REG_V0 2
-# define REG_A0 4
-# define REG_A3 7
-# define REG_SP 29
-# define REG_EPC 64
-#endif /* MIPS */
-#ifdef HPPA
-# define PT_GR20 (20*4)
-# define PT_GR26 (26*4)
-# define PT_GR28 (28*4)
-# define PT_IAOQ0 (106*4)
-# define PT_IAOQ1 (107*4)
-#endif /* HPPA */
-#ifdef SH64
-   /* SH64 Linux - this code assumes the following kernel API for system calls:
-          PC           Offset 0
-          System Call  Offset 16 (actually, (syscall no.) | (0x1n << 16),
-                       where n = no. of parameters.
-          Other regs   Offset 24+
-
-          On entry:    R2-7 = parameters 1-6 (as many as necessary)
-          On return:   R9   = result. */
-
-   /* Offset for peeks of registers */
-# define REG_OFFSET         (24)
-# define REG_GENERAL(x)     (8*(x)+REG_OFFSET)
-# define REG_PC             (0*8)
-# define REG_SYSCALL        (2*8)
-#endif /* SH64 */
-#ifdef AARCH64
-struct arm_pt_regs {
-        int uregs[18];
-};
-# define ARM_cpsr       uregs[16]
-# define ARM_pc         uregs[15]
-# define ARM_lr         uregs[14]
-# define ARM_sp         uregs[13]
-# define ARM_ip         uregs[12]
-# define ARM_fp         uregs[11]
-# define ARM_r10        uregs[10]
-# define ARM_r9         uregs[9]
-# define ARM_r8         uregs[8]
-# define ARM_r7         uregs[7]
-# define ARM_r6         uregs[6]
-# define ARM_r5         uregs[5]
-# define ARM_r4         uregs[4]
-# define ARM_r3         uregs[3]
-# define ARM_r2         uregs[2]
-# define ARM_r1         uregs[1]
-# define ARM_r0         uregs[0]
-# define ARM_ORIG_r0    uregs[17]
-#endif /* AARCH64 */
-
 #if defined(SPARC) || defined(SPARC64)
-/* Indexes into the pt_regs.u_reg[] array -- UREG_XX from kernel are all off
- * by 1 and use Ix instead of Ox.  These work for both 32 and 64 bit Linux. */
-# define U_REG_G1 0
-# define U_REG_O0 7
-# define U_REG_O1 8
 # define PERSONALITY0_WORDSIZE 4
 # define PERSONALITY1_WORDSIZE 4
 # if defined(SPARC64)
-#  include <asm/psrcompat.h>
 #  define SUPPORTED_PERSONALITIES 3
 #  define PERSONALITY2_WORDSIZE 8
 # else
-#  include <asm/psr.h>
 #  define SUPPORTED_PERSONALITIES 2
 # endif /* SPARC64 */
 #endif /* SPARC[64] */
@@ -373,20 +211,6 @@ struct arm_pt_regs {
 # define PERSONALITY0_WORDSIZE SIZEOF_LONG
 #endif
 
-#if defined(I386) || defined(X86_64)
-extern uint32_t *const i386_esp_ptr;
-#elif defined(IA64)
-extern bool ia64_ia32mode;
-#elif defined(SPARC) || defined(SPARC64)
-extern struct pt_regs sparc_regs;
-#elif defined(ARM)
-extern struct pt_regs arm_regs;
-#elif defined(TILE)
-extern struct pt_regs tile_regs;
-#elif defined(POWERPC)
-extern struct pt_regs ppc_regs;
-#endif
-
 typedef struct sysent {
 	unsigned nargs;
 	int	sys_flags;
@@ -396,7 +220,7 @@ typedef struct sysent {
 
 typedef struct ioctlent {
 	const char *symbol;
-	unsigned long code;
+	unsigned int code;
 } struct_ioctlent;
 
 /* Trace Control Block */
@@ -450,41 +274,13 @@ struct tcb {
  * are limited to trace(), this condition is never observed in trace_syscall()
  * and below.
  * The bit is cleared after all syscall exit processing is done.
- * User-generated SIGTRAPs and post-execve SIGTRAP make it necessary
- * to be very careful and NOT set TCB_INSYSCALL bit when they are encountered.
- * TCB_WAITEXECVE bit is used for this purpose (see below).
  *
  * Use entering(tcp) / exiting(tcp) to check this bit to make code more readable.
  */
 #define TCB_INSYSCALL	0x04
 #define TCB_ATTACHED	0x08	/* We attached to it already */
-#define TCB_BPTSET	0x10	/* "Breakpoint" set after fork(2) */
-#define TCB_REPRINT	0x20	/* We should reprint this syscall on exit */
-#define TCB_FILTERED	0x40	/* This system call has been filtered out */
-/*
- * x86 does not need TCB_WAITEXECVE.
- * It can detect post-execve SIGTRAP by looking at eax/rax.
- * See "not a syscall entry (eax = %ld)\n" message.
- *
- * Note! On new kernels (about 2.5.46+), we use PTRACE_O_TRACEEXEC, which
- * suppresses post-execve SIGTRAP. If you are adding a new arch which is
- * only supported by newer kernels, you most likely don't need to define
- * TCB_WAITEXECVE!
- */
-#if defined(ALPHA) \
- || defined(SPARC) || defined(SPARC64) \
- || defined(POWERPC) \
- || defined(IA64) \
- || defined(HPPA) \
- || defined(SH) || defined(SH64) \
- || defined(S390) || defined(S390X) \
- || defined(ARM) \
- || defined(MIPS)
-/* This tracee has entered into execve syscall. Expect post-execve SIGTRAP
- * to happen. (When it is detected, tracee is continued and this bit is cleared.)
- */
-# define TCB_WAITEXECVE	0x80
-#endif
+#define TCB_REPRINT	0x10	/* We should reprint this syscall on exit */
+#define TCB_FILTERED	0x20	/* This system call has been filtered out */
 
 /* qualifier flags */
 #define QUAL_TRACE	0x001	/* this system call should be traced */
@@ -548,9 +344,11 @@ extern const struct xlat whence_codes[];
 #define SYSCALL_NEVER_FAILS	0200	/* Syscall is always successful. */
 #define STACKTRACE_INVALIDATE_CACHE 0400  /* Trigger proc/maps cache updating */
 #define STACKTRACE_CAPTURE_ON_ENTER 01000 /* Capture stacktrace on "entering" stage */
+#define TRACE_INDIRECT_SUBCALL	02000	/* Syscall is an indirect socket/ipc subcall. */
 
 #if defined(ARM) || defined(AARCH64) \
  || defined(I386) || defined(X32) || defined(X86_64) \
+ || defined(IA64) \
  || defined(BFIN) \
  || defined(M68K) \
  || defined(MICROBLAZE) \
@@ -580,7 +378,6 @@ extern bool hide_log_until_execve;
 /* are we filtering traces based on paths? */
 extern const char **paths_selected;
 #define tracing_paths (paths_selected != NULL)
-extern bool need_fork_exec_workarounds;
 extern unsigned xflag;
 extern unsigned followfork;
 #ifdef USE_LIBUNWIND
@@ -619,41 +416,17 @@ extern int trace_syscall(struct tcb *);
 extern void count_syscall(struct tcb *, const struct timeval *);
 extern void call_summary(FILE *);
 
-#if defined(AVR32) \
- || defined(I386) \
- || defined(X86_64) || defined(X32) \
- || defined(AARCH64) \
- || defined(ARM) \
- || defined(SPARC) || defined(SPARC64) \
- || defined(TILE) \
- || defined(OR1K) \
- || defined(METAG) \
- || defined(ARC) \
- || defined(POWERPC)
-extern long get_regs_error;
-# define clear_regs()  (get_regs_error = -1)
+extern void clear_regs(void);
 extern void get_regs(pid_t pid);
-#else
-# define get_regs_error 0
-# define clear_regs()  ((void)0)
-# define get_regs(pid) ((void)0)
-#endif
-extern int umoven(struct tcb *, long, int, char *);
+
+extern int umoven(struct tcb *, long, unsigned int, char *);
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof(*(objp)), (char *) (objp))
-extern int umovestr(struct tcb *, long, int, char *);
+extern int umovestr(struct tcb *, long, unsigned int, char *);
 extern int upeek(int pid, long, long *);
 #if defined(SPARC) || defined(SPARC64) || defined(IA64) || defined(SH)
 extern long getrval2(struct tcb *);
 #endif
-/*
- * On Linux, "setbpt" is a misnomer: we don't set a breakpoint
- * (IOW: no poking in user's text segment),
- * instead we change fork/vfork/clone into clone(CLONE_PTRACE).
- * On newer kernels, we use PTRACE_O_TRACECLONE/TRACE[V]FORK instead.
- */
-extern int setbpt(struct tcb *);
-extern int clearbpt(struct tcb *);
 
 extern const char *signame(const int);
 extern void pathtrace_select(const char *);
@@ -664,8 +437,12 @@ extern const char *xlookup(const struct xlat *, const unsigned int);
 extern const char *xlat_search(const struct xlat *, const size_t, const unsigned int);
 
 extern int string_to_uint(const char *str);
-extern int string_quote(const char *, char *, long, int);
 extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits);
+
+#define QUOTE_0_TERMINATED			0x01
+#define QUOTE_OMIT_LEADING_TRAILING_QUOTES	0x02
+
+extern int print_quoted_string(const char *, unsigned int, unsigned int);
 
 /* a refers to the lower numbered u_arg,
  * b refers to the higher numbered u_arg
@@ -677,7 +454,9 @@ extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_b
 # define LONG_LONG(a,b) \
 	((long long)((unsigned long long)(unsigned)(b) | ((unsigned long long)(a)<<32)))
 #endif
-extern int printllval(struct tcb *, const char *, int);
+extern int getllval(struct tcb *, unsigned long long *, int);
+extern int printllval(struct tcb *, const char *, int)
+	__attribute__ ((format (printf, 2, 0)));
 
 extern void printxval(const struct xlat *, const unsigned int, const char *);
 extern int printargs(struct tcb *);
@@ -693,8 +472,10 @@ extern void dumpiov_in_mmsghdr(struct tcb *, long);
 extern void dumpiov(struct tcb *, int, long);
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
-extern void printnum(struct tcb *, long, const char *);
-extern void printnum_int(struct tcb *, long, const char *);
+extern void printnum_int(struct tcb *, long, const char *)
+	__attribute__ ((format (printf, 3, 0)));
+extern void printnum_long(struct tcb *, long, const char *)
+	__attribute__ ((format (printf, 3, 0)));
 extern void printpath(struct tcb *, long);
 extern void printpathn(struct tcb *, long, unsigned int);
 #define TIMESPEC_TEXT_BUFSIZE (sizeof(long)*3 * 2 + sizeof("{%u, %u}"))
@@ -707,10 +488,8 @@ extern void printtv_bitness(struct tcb *, long, enum bitness_t, int);
 extern char *sprinttv(char *, struct tcb *, long, enum bitness_t, int special);
 extern void print_timespec(struct tcb *, long);
 extern void sprint_timespec(char *, struct tcb *, long);
-#ifdef HAVE_SIGINFO_T
-extern void printsiginfo(siginfo_t *, int);
+extern void printsiginfo(const siginfo_t *, int);
 extern void printsiginfo_at(struct tcb *tcp, long addr);
-#endif
 extern void printfd(struct tcb *, int);
 extern bool print_sockaddr_by_inode(const unsigned long, const char *);
 extern void print_dirfd(struct tcb *, int);
@@ -722,27 +501,33 @@ extern void printrusage32(struct tcb *, long);
 #endif
 extern void printuid(const char *, const unsigned int);
 extern void print_sigset_addr_len(struct tcb *, long, long);
+extern const char *sprintsigmask_n(const char *, const void *, unsigned int);
+#define tprintsigmask_addr(prefix, mask) \
+	tprints(sprintsigmask_n((prefix), (mask), sizeof(mask)))
 extern void printsignal(int);
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
 extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
 extern void tprint_open_modes(int);
 extern const char *sprint_open_modes(int);
 extern void print_loff_t(struct tcb *, long);
+extern void print_seccomp_filter(struct tcb *tcp, unsigned long);
 
-extern const struct_ioctlent *ioctl_lookup(unsigned long);
+extern const struct_ioctlent *ioctl_lookup(const unsigned int);
 extern const struct_ioctlent *ioctl_next_match(const struct_ioctlent *);
-extern int ioctl_decode(struct tcb *, long, long);
-extern int term_ioctl(struct tcb *, long, long);
-extern int sock_ioctl(struct tcb *, long, long);
-extern int proc_ioctl(struct tcb *, int, int);
-extern int rtc_ioctl(struct tcb *, long, long);
-extern int scsi_ioctl(struct tcb *, long, long);
-extern int block_ioctl(struct tcb *, long, long);
-extern int v4l2_ioctl(struct tcb *, unsigned long, long);
-extern int mtd_ioctl(struct tcb *, long, long);
-extern int ubi_ioctl(struct tcb *, long, long);
-extern int loop_ioctl(struct tcb *, long, long);
-extern int ptp_ioctl(struct tcb *, long, long);
+extern void ioctl_print_code(const unsigned int);
+extern int ioctl_decode(struct tcb *, const unsigned int, long);
+extern int ioctl_decode_command_number(const unsigned int);
+extern int block_ioctl(struct tcb *, const unsigned int, long);
+extern int evdev_ioctl(struct tcb *, const unsigned int, long);
+extern int loop_ioctl(struct tcb *, const unsigned int, long);
+extern int mtd_ioctl(struct tcb *, const unsigned int, long);
+extern int ptp_ioctl(struct tcb *, const unsigned int, long);
+extern int rtc_ioctl(struct tcb *, const unsigned int, long);
+extern int scsi_ioctl(struct tcb *, const unsigned int, long);
+extern int sock_ioctl(struct tcb *, const unsigned int, long);
+extern int term_ioctl(struct tcb *, const unsigned int, long);
+extern int ubi_ioctl(struct tcb *, const unsigned int, long);
+extern int v4l2_ioctl(struct tcb *, const unsigned int, long);
 
 extern int tv_nz(const struct timeval *);
 extern int tv_cmp(const struct timeval *, const struct timeval *);

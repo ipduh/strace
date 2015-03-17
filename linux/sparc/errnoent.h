@@ -1,127 +1,151 @@
-	"ERRNO_0", /* 0 */
-	"EPERM", /* 1 */
-	"ENOENT", /* 2 */
-	"ESRCH", /* 3 */
-	"EINTR", /* 4 */
-	"EIO", /* 5 */
-	"ENXIO", /* 6 */
-	"E2BIG", /* 7 */
-	"ENOEXEC", /* 8 */
-	"EBADF", /* 9 */
-	"ECHILD", /* 10 */
-	"EAGAIN", /* 11 */
-	"ENOMEM", /* 12 */
-	"EACCES", /* 13 */
-	"EFAULT", /* 14 */
-	"ENOTBLK", /* 15 */
-	"EBUSY", /* 16 */
-	"EEXIST", /* 17 */
-	"EXDEV", /* 18 */
-	"ENODEV", /* 19 */
-	"ENOTDIR", /* 20 */
-	"EISDIR", /* 21 */
-	"EINVAL", /* 22 */
-	"ENFILE", /* 23 */
-	"EMFILE", /* 24 */
-	"ENOTTY", /* 25 */
-	"ETXTBSY", /* 26 */
-	"EFBIG", /* 27 */
-	"ENOSPC", /* 28 */
-	"ESPIPE", /* 29 */
-	"EROFS", /* 30 */
-	"EMLINK", /* 31 */
-	"EPIPE", /* 32 */
-	"EDOM", /* 33 */
-	"ERANGE", /* 34 */
-	"EWOULDBLOCK", /* 35 */
-	"EINPROGRESS", /* 36 */
-	"EALREADY", /* 37 */
-	"ENOTSOCK", /* 38 */
-	"EDESTADDRREQ", /* 39 */
-	"EMSGSIZE", /* 40 */
-	"EPROTOTYPE", /* 41 */
-	"ENOPROTOOPT", /* 42 */
-	"EPROTONOSUPPORT", /* 43 */
-	"ESOCKTNOSUPPORT", /* 44 */
-	"EOPNOTSUPP", /* 45 */
-	"EPFNOSUPPORT", /* 46 */
-	"EAFNOSUPPORT", /* 47 */
-	"EADDRINUSE", /* 48 */
-	"EADDRNOTAVAIL", /* 49 */
-	"ENETDOWN", /* 50 */
-	"ENETUNREACH", /* 51 */
-	"ENETRESET", /* 52 */
-	"ECONNABORTED", /* 53 */
-	"ECONNRESET", /* 54 */
-	"ENOBUFS", /* 55 */
-	"EISCONN", /* 56 */
-	"ENOTCONN", /* 57 */
-	"ESHUTDOWN", /* 58 */
-	"ETOOMANYREFS", /* 59 */
-	"ETIMEDOUT", /* 60 */
-	"ECONNREFUSED", /* 61 */
-	"ELOOP", /* 62 */
-	"ENAMETOOLONG", /* 63 */
-	"EHOSTDOWN", /* 64 */
-	"EHOSTUNREACH", /* 65 */
-	"ENOTEMPTY", /* 66 */
-	"EPROCLIM", /* 67 */
-	"EUSERS", /* 68 */
-	"EDQUOT", /* 69 */
-	"ESTALE", /* 70 */
-	"EREMOTE", /* 71 */
-	"ENOSTR", /* 72 */
-	"ETIME", /* 73 */
-	"ENOSR", /* 74 */
-	"ENOMSG", /* 75 */
-	"EBADMSG", /* 76 */
-	"EIDRM", /* 77 */
-	"EDEADLK", /* 78 */
-	"ENOLCK", /* 79 */
-	"ENONET", /* 80 */
-	"ERREMOTE", /* 81 */
-	"ENOLINK", /* 82 */
-	"EADV", /* 83 */
-	"ESRMNT", /* 84 */
-	"ECOMM", /* 85 */
-	"EPROTO", /* 86 */
-	"EMULTIHOP", /* 87 */
-	"EDOTDOT", /* 88 */
-	"EREMCHG", /* 89 */
-	"ENOSYS", /* 90 */
-	"ESTRPIPE", /* 91 */
-	"EOVERFLOW", /* 92 */
-	"EBADFD", /* 93 */
-	"ECHRNG", /* 94 */
-	"EL2NSYNC", /* 95 */
-	"EL3HLT", /* 96 */
-	"EL3RST", /* 97 */
-	"ELNRNG", /* 98 */
-	"EUNATCH", /* 99 */
-	"ENOCSI", /* 100 */
-	"EL2HLT", /* 101 */
-	"EBADE", /* 102 */
-	"EBADR", /* 103 */
-	"EXFULL", /* 104 */
-	"ENOANO", /* 105 */
-	"EBADRQC", /* 106 */
-	"EBADSLT", /* 107 */
-	"EDEADLOCK", /* 108 */
-	"EBFONT", /* 109 */
-	"ELIBEXEC", /* 110 */
-	"ENODATA", /* 111 */
-	"ELIBBAD", /* 112 */
-	"ENOPKG", /* 113 */
-	"ELIBACC", /* 114 */
-	"ENOTUNIQ", /* 115 */
-	"ERESTART", /* 116 */
-	"EUCLEAN", /* 117 */
-	"ENOTNAM", /* 118 */
-	"ENAVAIL", /* 119 */
-	"EISNAM", /* 120 */
-	"EREMOTEIO", /* 121 */
-	"EILSEQ", /* 122 */
-	"ELIBMAX", /* 123 */
-	"ELIBSCN", /* 124 */
-	"ENOMEDIUM", /* 125 */
-	"EMEDIUMTYPE", /* 126 */
+[  1] = "EPERM",
+[  2] = "ENOENT",
+[  3] = "ESRCH",
+[  4] = "EINTR",
+[  5] = "EIO",
+[  6] = "ENXIO",
+[  7] = "E2BIG",
+[  8] = "ENOEXEC",
+[  9] = "EBADF",
+[ 10] = "ECHILD",
+[ 11] = "EAGAIN",
+[ 12] = "ENOMEM",
+[ 13] = "EACCES",
+[ 14] = "EFAULT",
+[ 15] = "ENOTBLK",
+[ 16] = "EBUSY",
+[ 17] = "EEXIST",
+[ 18] = "EXDEV",
+[ 19] = "ENODEV",
+[ 20] = "ENOTDIR",
+[ 21] = "EISDIR",
+[ 22] = "EINVAL",
+[ 23] = "ENFILE",
+[ 24] = "EMFILE",
+[ 25] = "ENOTTY",
+[ 26] = "ETXTBSY",
+[ 27] = "EFBIG",
+[ 28] = "ENOSPC",
+[ 29] = "ESPIPE",
+[ 30] = "EROFS",
+[ 31] = "EMLINK",
+[ 32] = "EPIPE",
+[ 33] = "EDOM",
+[ 34] = "ERANGE",
+[ 35] = "EWOULDBLOCK",
+[ 36] = "EINPROGRESS",
+[ 37] = "EALREADY",
+[ 38] = "ENOTSOCK",
+[ 39] = "EDESTADDRREQ",
+[ 40] = "EMSGSIZE",
+[ 41] = "EPROTOTYPE",
+[ 42] = "ENOPROTOOPT",
+[ 43] = "EPROTONOSUPPORT",
+[ 44] = "ESOCKTNOSUPPORT",
+[ 45] = "EOPNOTSUPP",
+[ 46] = "EPFNOSUPPORT",
+[ 47] = "EAFNOSUPPORT",
+[ 48] = "EADDRINUSE",
+[ 49] = "EADDRNOTAVAIL",
+[ 50] = "ENETDOWN",
+[ 51] = "ENETUNREACH",
+[ 52] = "ENETRESET",
+[ 53] = "ECONNABORTED",
+[ 54] = "ECONNRESET",
+[ 55] = "ENOBUFS",
+[ 56] = "EISCONN",
+[ 57] = "ENOTCONN",
+[ 58] = "ESHUTDOWN",
+[ 59] = "ETOOMANYREFS",
+[ 60] = "ETIMEDOUT",
+[ 61] = "ECONNREFUSED",
+[ 62] = "ELOOP",
+[ 63] = "ENAMETOOLONG",
+[ 64] = "EHOSTDOWN",
+[ 65] = "EHOSTUNREACH",
+[ 66] = "ENOTEMPTY",
+[ 67] = "EPROCLIM",
+[ 68] = "EUSERS",
+[ 69] = "EDQUOT",
+[ 70] = "ESTALE",
+[ 71] = "EREMOTE",
+[ 72] = "ENOSTR",
+[ 73] = "ETIME",
+[ 74] = "ENOSR",
+[ 75] = "ENOMSG",
+[ 76] = "EBADMSG",
+[ 77] = "EIDRM",
+[ 78] = "EDEADLK",
+[ 79] = "ENOLCK",
+[ 80] = "ENONET",
+[ 81] = "ERREMOTE",
+[ 82] = "ENOLINK",
+[ 83] = "EADV",
+[ 84] = "ESRMNT",
+[ 85] = "ECOMM",
+[ 86] = "EPROTO",
+[ 87] = "EMULTIHOP",
+[ 88] = "EDOTDOT",
+[ 89] = "EREMCHG",
+[ 90] = "ENOSYS",
+[ 91] = "ESTRPIPE",
+[ 92] = "EOVERFLOW",
+[ 93] = "EBADFD",
+[ 94] = "ECHRNG",
+[ 95] = "EL2NSYNC",
+[ 96] = "EL3HLT",
+[ 97] = "EL3RST",
+[ 98] = "ELNRNG",
+[ 99] = "EUNATCH",
+[100] = "ENOCSI",
+[101] = "EL2HLT",
+[102] = "EBADE",
+[103] = "EBADR",
+[104] = "EXFULL",
+[105] = "ENOANO",
+[106] = "EBADRQC",
+[107] = "EBADSLT",
+[108] = "EDEADLOCK",
+[109] = "EBFONT",
+[110] = "ELIBEXEC",
+[111] = "ENODATA",
+[112] = "ELIBBAD",
+[113] = "ENOPKG",
+[114] = "ELIBACC",
+[115] = "ENOTUNIQ",
+[116] = "ERESTART",
+[117] = "EUCLEAN",
+[118] = "ENOTNAM",
+[119] = "ENAVAIL",
+[120] = "EISNAM",
+[121] = "EREMOTEIO",
+[122] = "EILSEQ",
+[123] = "ELIBMAX",
+[124] = "ELIBSCN",
+[125] = "ENOMEDIUM",
+[126] = "EMEDIUMTYPE",
+[127] = "ECANCELED",
+[128] = "ENOKEY",
+[129] = "EKEYEXPIRED",
+[130] = "EKEYREVOKED",
+[131] = "EKEYREJECTED",
+[132] = "EOWNERDEAD",
+[133] = "ENOTRECOVERABLE",
+[134] = "ERFKILL",
+[135] = "EHWPOISON",
+[512] = "ERESTARTSYS",
+[513] = "ERESTARTNOINTR",
+[514] = "ERESTARTNOHAND",
+[515] = "ENOIOCTLCMD",
+[516] = "ERESTART_RESTARTBLOCK",
+[517] = "EPROBE_DEFER",
+[518] = "EOPENSTALE",
+[521] = "EBADHANDLE",
+[522] = "ENOTSYNC",
+[523] = "EBADCOOKIE",
+[524] = "ENOTSUPP",
+[525] = "ETOOSMALL",
+[526] = "ESERVERFAULT",
+[527] = "EBADTYPE",
+[528] = "EJUKEBOX",
+[529] = "EIOCBQUEUED",

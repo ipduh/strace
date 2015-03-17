@@ -11,6 +11,7 @@ AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
 
 AC_PROG_CC
+AX_PROG_CC_FOR_BUILD
 AC_USE_SYSTEM_EXTENSIONS
 
 AC_MSG_CHECKING([for supported architecture])
@@ -52,13 +53,12 @@ alpha*)
 	AC_DEFINE([ALPHA], 1, [Define for the Alpha architecture.])
 	;;
 powerpc*)
-	arch=powerpc
 	AC_DEFINE([POWERPC], 1, [Define for the PowerPC architecture.])
 	AC_TRY_COMPILE(
 [#ifndef __LP64__
 # error 32 bit
-#endif], [], ppc_bits=64, ppc_bits=32)
-	if test "$ppc_bits" = "64"; then
+#endif], [], arch=powerpc64, arch=powerpc)
+	if test "$arch" = "powerpc64"; then
 		AC_DEFINE([POWERPC64], 1, [Define for the PowerPC64 architecture.])
 	fi
 	;;
@@ -144,11 +144,28 @@ AC_MSG_RESULT($arch)
 
 AC_SUBST(arch)
 
-AM_CONDITIONAL([I386], [test x$arch = xi386])
-AM_CONDITIONAL([X86_64], [test x$arch = xx86_64])
-AM_CONDITIONAL([X32], [test x$arch = xx32])
-
-AC_INCLUDEDIR
+if test "$arch" = mips; then
+	AC_CACHE_CHECK([for MIPS ABI], [ac_cv_mips_abi],
+		[AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
+					 [[int i[_MIPS_SIM == _MIPS_SIM_ABI32 ? 1 : - 1];]])],
+			[ac_cv_mips_abi=o32],
+		[AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
+					 [[int i[_MIPS_SIM == _MIPS_SIM_NABI32 ? 1 : - 1];]])],
+			[ac_cv_mips_abi=n32],
+		[AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
+					 [[int i[_MIPS_SIM == _MIPS_SIM_ABI64 ? 1 : - 1];]])],
+			[ac_cv_mips_abi=n64],
+			[ac_cv_mips_abi=unknown])])])])
+	case "$ac_cv_mips_abi" in
+		o32) AC_DEFINE([LINUX_MIPSO32], [1], [Define for _MIPS_SIM_ABI32.]);;
+		n32) AC_DEFINE([LINUX_MIPSN32], [1], [Define for _MIPS_SIM_NABI32.]);;
+		n64) AC_DEFINE([LINUX_MIPSN64], [1], [Define for _MIPS_SIM_ABI64.]);;
+		*) AC_MSG_ERROR([Unsupported _MIPS_SIM]);;
+	esac
+fi
 
 AC_ARG_ENABLE([arm-oabi],
 	      [AS_HELP_STRING([--enable-arm-oabi],
@@ -184,24 +201,20 @@ AC_HEADER_STDBOOL
 AC_HEADER_DIRENT
 AC_HEADER_STAT
 AC_CHECK_MEMBERS(m4_normalize([
-	struct stat.st_aclcnt,
 	struct stat.st_blksize,
 	struct stat.st_blocks,
 	struct stat.st_flags,
 	struct stat.st_fstype,
 	struct stat.st_gen,
-	struct stat.st_level,
 	struct stat.st_rdev
 ]))
-AC_STAT64
-AC_STATFS64
 
 AC_TYPE_SIGNAL
 AC_TYPE_UID_T
 AC_TYPE_MODE_T
 AC_TYPE_GETGROUPS
 AC_HEADER_MAJOR
-AC_CHECK_TYPES([sig_atomic_t, siginfo_t],,, [#include <signal.h>])
+AC_CHECK_TYPES([sig_atomic_t],,, [#include <signal.h>])
 AC_CHECK_MEMBERS([struct sockaddr_in6.sin6_scope_id],,,
 [#include <sys/types.h>
 #include <sys/socket.h>
@@ -209,6 +222,7 @@ AC_CHECK_MEMBERS([struct sockaddr_in6.sin6_scope_id],,,
 AC_LITTLE_ENDIAN_LONG_LONG
 
 AC_CHECK_FUNCS(m4_normalize([
+	fanotify_mark
 	fopen64
 	fork
 	fputs_unlocked
@@ -232,9 +246,14 @@ AC_CHECK_HEADERS(m4_normalize([
 	elf.h
 	inttypes.h
 	ioctls.h
+	linux/bsg.h
 	linux/falloc.h
+	linux/filter.h
+	linux/hiddev.h
+	linux/mmtimer.h
 	linux/perf_event.h
-	linux/ptrace.h
+	linux/seccomp.h
+	linux/securebits.h
 	linux/utsname.h
 	mqueue.h
 	netinet/sctp.h
@@ -243,10 +262,10 @@ AC_CHECK_HEADERS(m4_normalize([
 	stropts.h
 	sys/conf.h
 	sys/epoll.h
+	sys/fanotify.h
 	sys/filio.h
 	sys/ioctl.h
 	sys/poll.h
-	sys/ptrace.h
 	sys/reg.h
 	sys/vfs.h
 	sys/xattr.h
@@ -262,7 +281,10 @@ AC_CHECK_HEADERS([netinet/tcp.h netinet/udp.h],,, [#include <netinet/in.h>])
 AC_CHECK_TYPES([struct mmsghdr],,, [#include <sys/socket.h>])
 AC_CHECK_MEMBERS([struct msghdr.msg_control],,, [#include <sys/socket.h>])
 
+AC_CHECK_TYPES([struct stat64],,, [#include <sys/types.h>
+#include <asm/stat.h>])
 AC_CHECK_TYPES([struct __old_kernel_stat],,, [#include <asm/stat.h>])
+AC_CHECK_TYPES([struct statfs64],,, [#include <sys/vfs.h>])
 
 AC_CHECK_TYPES([struct pt_all_user_regs, struct ia64_fpreg, struct ptrace_peeksiginfo_args],,,
 	       [#include <sys/ptrace.h>])
@@ -271,7 +293,9 @@ AC_CHECK_MEMBERS([struct utsname.domainname],,, [#include <sys/utsname.h>])
 
 AC_CHECK_MEMBERS([struct sigevent._sigev_un._pad,
 		  struct sigevent.__pad,
-		  siginfo_t.si_syscall],,, [#include <signal.h>])
+		  siginfo_t.si_syscall,
+		  siginfo_t.si_timerid,
+		  siginfo_t.si_overrun],,, [#include <signal.h>])
 
 AC_CHECK_MEMBERS([struct sysinfo.totalhigh,
 		  struct sysinfo.freehigh,
@@ -284,25 +308,14 @@ AC_CHECK_HEADERS([libaio.h], [
 	AC_CHECK_DECLS([IO_CMD_PWRITE, IO_CMD_PWRITEV],,, [#include <libaio.h>])
 ])
 
+AC_CHECK_HEADERS([linux/input.h], [
+	AC_CHECK_MEMBERS([struct input_absinfo.resolution],,, [#include <linux/input.h>])
+])
+
 AC_CHECK_DECLS([sys_errlist])
 AC_CHECK_DECLS(m4_normalize([
-	PTRACE_EVENT_CLONE,
-	PTRACE_EVENT_EXEC,
-	PTRACE_EVENT_EXIT,
-	PTRACE_EVENT_FORK,
-	PTRACE_EVENT_VFORK,
-	PTRACE_EVENT_VFORK_DONE,
-	PTRACE_GETEVENTMSG,
-	PTRACE_GETSIGINFO,
-	PTRACE_O_TRACECLONE,
-	PTRACE_O_TRACEEXEC,
-	PTRACE_O_TRACEEXIT,
-	PTRACE_O_TRACEFORK,
-	PTRACE_O_TRACESYSGOOD,
-	PTRACE_O_TRACEVFORK,
 	PTRACE_PEEKUSER,
-	PTRACE_POKEUSER,
-	PTRACE_SETOPTIONS
+	PTRACE_POKEUSER
 ]),,, [#include <sys/ptrace.h>])
 
 AC_CHECK_DECLS(m4_normalize([
@@ -698,13 +711,22 @@ AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
 AC_CHECK_SIZEOF([off_t],,[#include <sys/types.h>])
 
-AC_CACHE_CHECK([for SA_RESTORER], [st_cv_sa_restorer],
-	       [st_cv_sa_restorer="$(echo SA_RESTORER |
+AC_CACHE_CHECK([for SIGRTMIN], [st_cv_SIGRTMIN],
+	       [[st_cv_SIGRTMIN="$(echo SIGRTMIN |
+			$CPP $CPPFLAGS -P -imacros asm/signal.h - |
+			grep '^[0-9]')"
+	         test -n "$st_cv_SIGRTMIN" || st_cv_SIGRTMIN=no]])
+if test "x$st_cv_SIGRTMIN" != xno; then
+	AC_DEFINE_UNQUOTED([ASM_SIGRTMIN], [$st_cv_SIGRTMIN],
+			   [SIGRTMIN defined in <asm/signal.h>])
+fi
+AC_CACHE_CHECK([for SA_RESTORER], [st_cv_SA_RESTORER],
+	       [st_cv_SA_RESTORER="$(echo SA_RESTORER |
 			$CPP $CPPFLAGS -P -imacros asm/signal.h - |
 			grep ^0x)"
-	        test -n "$st_cv_sa_restorer" || st_cv_sa_restorer=no])
-if test "x$st_cv_sa_restorer" != xno; then
-	AC_DEFINE_UNQUOTED([ASM_SA_RESTORER], [$st_cv_sa_restorer],
+	        test -n "$st_cv_SA_RESTORER" || st_cv_SA_RESTORER=no])
+if test "x$st_cv_SA_RESTORER" != xno; then
+	AC_DEFINE_UNQUOTED([ASM_SA_RESTORER], [$st_cv_SA_RESTORER],
 			   [SA_RESTORER defined in <asm/signal.h>])
 fi
 
@@ -716,6 +738,12 @@ if test "x$st_cv_have___builtin_popcount" = xyes; then
 	AC_DEFINE([HAVE___BUILTIN_POPCOUNT], [1],
 		  [Define to 1 if the system provides __builtin_popcount function])
 fi
+
+AC_CHECK_LIB([dl], [dladdr], [dl_LIBS='-ldl'], [dl_LIBS=])
+if test "x$ac_cv_lib_dl_dladdr" = xyes; then
+	AC_DEFINE([HAVE_DLADDR], [1], [Define to 1 if the system provides dladdr])
+fi
+AC_SUBST(dl_LIBS)
 
 AC_PATH_PROG([PERL], [perl])
 
@@ -808,5 +836,42 @@ fi
 AM_CONDITIONAL([USE_LIBUNWIND], [test "x$use_libunwind" = xyes])
 AC_MSG_RESULT([$use_libunwind])
 
-AC_CONFIG_FILES([Makefile tests/Makefile])
+if test "$arch" = mips && test "$no_create" != yes; then
+	mkdir -p linux/mips
+	if $srcdir/linux/mips/genstub.sh linux/mips; then
+		AC_MSG_RESULT([Generated MIPS syscallent stubs])
+	else
+		AC_MSG_FAILURE([Failed to generate syscallent stubs])
+	fi
+fi
+
+have_m32=no
+case "$arch" in
+	aarch64|powerpc64|sparc64|tile|x32|x86_64)
+	AC_MSG_CHECKING([for -m32 runtime support])
+	saved_CFLAGS="$CFLAGS"
+	CFLAGS="$CFLAGS -m32"
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(){return 0;}]])],
+		[have_m32=yes],[have_m32=no],[have_m32=no])
+	CFLAGS="$saved_CFLAGS"
+	AC_MSG_RESULT($have_m32)
+	;;
+esac
+AM_CONDITIONAL([HAVE_M32_RUNTIME], [test "$have_m32" = yes])
+
+have_mx32=no
+case "$arch" in
+	x86_64)
+	AC_MSG_CHECKING([for -mx32 runtime support])
+	saved_CFLAGS="$CFLAGS"
+	CFLAGS="$CFLAGS -mx32"
+	AC_RUN_IFELSE([AC_LANG_SOURCE([[int main(){return 0;}]])],
+		[have_mx32=yes],[have_mx32=no],[have_mx32=no])
+	CFLAGS="$saved_CFLAGS"
+	AC_MSG_RESULT($have_mx32)
+	;;
+esac
+AM_CONDITIONAL([HAVE_MX32_RUNTIME], [test "$have_mx32" = yes])
+
+AC_CONFIG_FILES([Makefile tests/Makefile tests-m32/Makefile tests-mx32/Makefile])
 AC_OUTPUT

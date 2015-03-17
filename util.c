@@ -32,7 +32,6 @@
  */
 
 #include "defs.h"
-#include <sys/user.h>
 #include <sys/param.h>
 #include <fcntl.h>
 #if HAVE_SYS_XATTR_H
@@ -40,31 +39,8 @@
 #endif
 #include <sys/uio.h>
 
-#if defined(IA64)
-# include <asm/ptrace_offsets.h>
-# include <asm/rse.h>
-#endif
-
-#ifdef HAVE_SYS_REG_H
-# include <sys/reg.h>
-#endif
-
-#ifdef HAVE_LINUX_PTRACE_H
-# undef PTRACE_SYSCALL
-# ifdef HAVE_STRUCT_IA64_FPREG
-#  define ia64_fpreg XXX_ia64_fpreg
-# endif
-# ifdef HAVE_STRUCT_PT_ALL_USER_REGS
-#  define pt_all_user_regs XXX_pt_all_user_regs
-# endif
-# ifdef HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS
-#  define ptrace_peeksiginfo_args XXX_ptrace_peeksiginfo_args
-# endif
-# include <linux/ptrace.h>
-# undef ptrace_peeksiginfo_args
-# undef ia64_fpreg
-# undef pt_all_user_regs
-#endif
+#include "regs.h"
+#include "ptrace.h"
 
 int
 string_to_uint(const char *str)
@@ -242,39 +218,39 @@ printxval(const struct xlat *xlat, const unsigned int val, const char *dflt)
 }
 
 /*
- * Print 64bit argument at position arg_no and return the index of the next
- * argument.
+ * Fetch 64bit argument at position arg_no and
+ * return the index of the next argument.
  */
 int
-printllval(struct tcb *tcp, const char *format, int arg_no)
+getllval(struct tcb *tcp, unsigned long long *val, int arg_no)
 {
 #if SIZEOF_LONG > 4 && SIZEOF_LONG == SIZEOF_LONG_LONG
 # if SUPPORTED_PERSONALITIES > 1
 	if (current_wordsize > 4) {
 # endif
-		tprintf(format, tcp->u_arg[arg_no]);
+		*val = tcp->u_arg[arg_no];
 		arg_no++;
 # if SUPPORTED_PERSONALITIES > 1
 	} else {
 #  if defined(AARCH64) || defined(POWERPC64)
 		/* Align arg_no to the next even number. */
 		arg_no = (arg_no + 1) & 0xe;
-#  endif
-		tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+#  endif /* AARCH64 || POWERPC64 */
+		*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 		arg_no += 2;
 	}
-# endif /* SUPPORTED_PERSONALITIES */
+# endif /* SUPPORTED_PERSONALITIES > 1 */
 #elif SIZEOF_LONG > 4
 #  error Unsupported configuration: SIZEOF_LONG > 4 && SIZEOF_LONG_LONG > SIZEOF_LONG
 #elif defined LINUX_MIPSN32
-	tprintf(format, tcp->ext_arg[arg_no]);
+	*val = tcp->ext_arg[arg_no];
 	arg_no++;
 #elif defined X32
 	if (current_personality == 0) {
-		tprintf(format, tcp->ext_arg[arg_no]);
+		*val = tcp->ext_arg[arg_no];
 		arg_no++;
 	} else {
-		tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+		*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 		arg_no += 2;
 	}
 #else
@@ -285,10 +261,24 @@ printllval(struct tcb *tcp, const char *format, int arg_no)
 	/* Align arg_no to the next even number. */
 	arg_no = (arg_no + 1) & 0xe;
 # endif
-	tprintf(format, LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]));
+	*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 	arg_no += 2;
 #endif
 
+	return arg_no;
+}
+
+/*
+ * Print 64bit argument at position arg_no and
+ * return the index of the next argument.
+ */
+int
+printllval(struct tcb *tcp, const char *format, int arg_no)
+{
+	unsigned long long val = 0;
+
+	arg_no = getllval(tcp, &val, arg_no);
+	tprintf(format, val);
 	return arg_no;
 }
 
@@ -386,7 +376,7 @@ printflags(const struct xlat *xlat, int flags, const char *dflt)
 }
 
 void
-printnum(struct tcb *tcp, long addr, const char *fmt)
+printnum_long(struct tcb *tcp, long addr, const char *fmt)
 {
 	long num;
 
@@ -425,7 +415,7 @@ const char *
 sprinttime(time_t t)
 {
 	struct tm *tmp;
-	static char buf[sizeof("yyyy/mm/dd-hh:mm:ss")];
+	static char buf[sizeof(int) * 3 * 6];
 
 	if (t == 0) {
 		strcpy(buf, "0");
@@ -476,28 +466,29 @@ printfd(struct tcb *tcp, int fd)
 	if (show_fd_path && getfdpath(tcp, fd, path, sizeof(path)) >= 0) {
 		static const char socket_prefix[] = "socket:[";
 		const size_t socket_prefix_len = sizeof(socket_prefix) - 1;
-		size_t path_len;
+		const size_t path_len = strlen(path);
 
+		tprintf("%d<", fd);
 		if (show_fd_path > 1 &&
 		    strncmp(path, socket_prefix, socket_prefix_len) == 0 &&
-		    path[(path_len = strlen(path)) - 1] == ']') {
+		    path[path_len - 1] == ']') {
 			unsigned long inodenr;
 #define PROTO_NAME_LEN 32
 			char proto_buf[PROTO_NAME_LEN];
 			const char *proto =
 				getfdproto(tcp, fd, proto_buf, PROTO_NAME_LEN);
 			inodenr = strtoul(path + socket_prefix_len, NULL, 10);
-			tprintf("%d<", fd);
 			if (!print_sockaddr_by_inode(inodenr, proto)) {
 				if (proto)
 					tprintf("%s:[%lu]", proto, inodenr);
 				else
 					tprints(path);
 			}
-			tprints(">");
 		} else {
-			tprintf("%d<%s>", fd, path);
+			print_quoted_string(path, path_len,
+					    QUOTE_OMIT_LEADING_TRAILING_QUOTES);
 		}
+		tprints(">");
 	} else
 		tprintf("%d", fd);
 }
@@ -505,24 +496,30 @@ printfd(struct tcb *tcp, int fd)
 /*
  * Quote string `instr' of length `size'
  * Write up to (3 + `size' * 4) bytes to `outstr' buffer.
- * If `len' is -1, treat `instr' as a NUL-terminated string
- * and quote at most (`size' - 1) bytes.
  *
- * Returns 0 if len == -1 and NUL was seen, 1 otherwise.
- * Note that if len >= 0, always returns 1.
+ * If QUOTE_0_TERMINATED `style' flag is set,
+ * treat `instr' as a NUL-terminated string,
+ * checking up to (`size' + 1) bytes of `instr'.
+ *
+ * If QUOTE_OMIT_LEADING_TRAILING_QUOTES `style' flag is set,
+ * do not add leading and trailing quoting symbols.
+ *
+ * Returns 0 if QUOTE_0_TERMINATED is set and NUL was seen, 1 otherwise.
+ * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
  */
-int
-string_quote(const char *instr, char *outstr, long len, int size)
+static int
+string_quote(const char *instr, char *outstr, const unsigned int size,
+	     const unsigned int style)
 {
 	const unsigned char *ustr = (const unsigned char *) instr;
 	char *s = outstr;
-	int usehex, c, i, eol;
+	unsigned int i;
+	int usehex, c, eol;
 
-	eol = 0x100; /* this can never match a char */
-	if (len == -1) {
-		size--;
+	if (style & QUOTE_0_TERMINATED)
 		eol = '\0';
-	}
+	else
+		eol = 0x100; /* this can never match a char */
 
 	usehex = 0;
 	if (xflag > 1)
@@ -551,7 +548,8 @@ string_quote(const char *instr, char *outstr, long len, int size)
 		}
 	}
 
-	*s++ = '\"';
+	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
+		*s++ = '\"';
 
 	if (usehex) {
 		/* Hex-quote the whole string. */
@@ -624,11 +622,12 @@ string_quote(const char *instr, char *outstr, long len, int size)
 		}
 	}
 
-	*s++ = '\"';
+	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
+		*s++ = '\"';
 	*s = '\0';
 
 	/* Return zero if we printed entire ASCIZ string (didn't truncate it) */
-	if (len == -1 && ustr[i] == '\0') {
+	if (style & QUOTE_0_TERMINATED && ustr[i] == '\0') {
 		/* We didn't see NUL yet (otherwise we'd jump to 'asciz_ended')
 		 * but next char is NUL.
 		 */
@@ -638,10 +637,68 @@ string_quote(const char *instr, char *outstr, long len, int size)
 	return 1;
 
  asciz_ended:
-	*s++ = '\"';
+	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
+		*s++ = '\"';
 	*s = '\0';
 	/* Return zero: we printed entire ASCIZ string (didn't truncate it) */
 	return 0;
+}
+
+#ifndef ALLOCA_CUTOFF
+# define ALLOCA_CUTOFF	4032
+#endif
+#define use_alloca(n) ((n) <= ALLOCA_CUTOFF)
+
+/*
+ * Quote string `str' of length `size' and print the result.
+ *
+ * If QUOTE_0_TERMINATED `style' flag is set,
+ * treat `str' as a NUL-terminated string and
+ * quote at most (`size' - 1) bytes.
+ *
+ * If QUOTE_OMIT_LEADING_TRAILING_QUOTES `style' flag is set,
+ * do not add leading and trailing quoting symbols.
+ *
+ * Returns 0 if QUOTE_0_TERMINATED is set and NUL was seen, 1 otherwise.
+ * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
+ */
+int
+print_quoted_string(const char *str, unsigned int size,
+		    const unsigned int style)
+{
+	char *buf;
+	char *outstr;
+	unsigned int alloc_size;
+	int rc;
+
+	if (size && style & QUOTE_0_TERMINATED)
+		--size;
+
+	alloc_size = 4 * size;
+	if (alloc_size / 4 != size) {
+		error_msg("Out of memory");
+		tprints("???");
+		return -1;
+	}
+	alloc_size += 1 + (style & QUOTE_OMIT_LEADING_TRAILING_QUOTES ? 0 : 2);
+
+	if (use_alloca(alloc_size)) {
+		outstr = alloca(alloc_size);
+		buf = NULL;
+	} else {
+		outstr = buf = malloc(alloc_size);
+		if (!buf) {
+			error_msg("Out of memory");
+			tprints("???");
+			return -1;
+		}
+	}
+
+	rc = string_quote(str, outstr, size, style);
+	tprints(outstr);
+
+	free(buf);
+	return rc;
 }
 
 /*
@@ -668,13 +725,8 @@ printpathn(struct tcb *tcp, long addr, unsigned int n)
 	if (nul_seen < 0)
 		tprintf("%#lx", addr);
 	else {
-		char *outstr;
-
-		path[n] = '\0';
-		n++;
-		outstr = alloca(4 * n); /* 4*(n-1) + 3 for quotes and NUL */
-		string_quote(path, outstr, -1, n);
-		tprints(outstr);
+		path[n++] = '\0';
+		print_quoted_string(path, n, QUOTE_0_TERMINATED);
 		if (!nul_seen)
 			tprints("...");
 	}
@@ -698,6 +750,7 @@ printstr(struct tcb *tcp, long addr, long len)
 	static char *str = NULL;
 	static char *outstr;
 	unsigned int size;
+	unsigned int style;
 	int ellipsis;
 
 	if (!addr) {
@@ -718,31 +771,32 @@ printstr(struct tcb *tcp, long addr, long len)
 			die_out_of_memory();
 	}
 
+	size = max_strlen;
 	if (len == -1) {
 		/*
 		 * Treat as a NUL-terminated string: fetch one byte more
-		 * because string_quote() quotes one byte less.
+		 * because string_quote may look one byte ahead.
 		 */
-		size = max_strlen + 1;
-		if (umovestr(tcp, addr, size, str) < 0) {
+		if (umovestr(tcp, addr, size + 1, str) < 0) {
 			tprintf("%#lx", addr);
 			return;
 		}
+		style = QUOTE_0_TERMINATED;
 	}
 	else {
-		size = max_strlen;
 		if (size > (unsigned long)len)
 			size = (unsigned long)len;
 		if (umoven(tcp, addr, size, str) < 0) {
 			tprintf("%#lx", addr);
 			return;
 		}
+		style = 0;
 	}
 
 	/* If string_quote didn't see NUL and (it was supposed to be ASCIZ str
 	 * or we were requested to print more than -s NUM chars)...
 	 */
-	ellipsis = (string_quote(str, outstr, len, size) &&
+	ellipsis = (string_quote(str, outstr, size, style) &&
 			(len < 0 || (unsigned long) len > max_strlen));
 
 	tprints(outstr);
@@ -915,10 +969,10 @@ static bool process_vm_readv_not_supported = 1;
  * at address `addr' to our space at `laddr'
  */
 int
-umoven(struct tcb *tcp, long addr, int len, char *laddr)
+umoven(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 {
 	int pid = tcp->pid;
-	int n, m, nread;
+	unsigned int n, m, nread;
 	union {
 		long val;
 		char x[sizeof(long)];
@@ -937,11 +991,11 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 		remote[0].iov_base = (void*)addr;
 		local[0].iov_len = remote[0].iov_len = len;
 		r = process_vm_readv(pid, local, 1, remote, 1, 0);
-		if (r == len)
+		if ((unsigned int) r == len)
 			return 0;
 		if (r >= 0) {
-			error_msg("umoven: short read (%d < %d) @0x%lx",
-				  r, len, addr);
+			error_msg("umoven: short read (%u < %u) @0x%lx",
+				  (unsigned int) r, len, addr);
 			return -1;
 		}
 		switch (errno) {
@@ -964,8 +1018,8 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 	nread = 0;
 	if (addr & (sizeof(long) - 1)) {
 		/* addr not a multiple of sizeof(long) */
-		n = addr - (addr & -sizeof(long)); /* residue */
-		addr &= -sizeof(long); /* residue */
+		n = addr & (sizeof(long) - 1);	/* residue */
+		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *) addr, 0);
 		switch (errno) {
@@ -1002,7 +1056,7 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
 			case EFAULT: case EIO: case EPERM:
 				/* address space is inaccessible */
 				if (nread) {
-					perror_msg("umoven: short read (%d < %d) @0x%lx",
+					perror_msg("umoven: short read (%u < %u) @0x%lx",
 						   nread, nread + len, addr - nread);
 				}
 				return -1;
@@ -1036,7 +1090,7 @@ umoven(struct tcb *tcp, long addr, int len, char *laddr)
  * we never write past laddr[len-1]).
  */
 int
-umovestr(struct tcb *tcp, long addr, int len, char *laddr)
+umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 {
 #if SIZEOF_LONG == 4
 	const unsigned long x01010101 = 0x01010101ul;
@@ -1049,7 +1103,7 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 #endif
 
 	int pid = tcp->pid;
-	int n, m, nread;
+	unsigned int n, m, nread;
 	union {
 		unsigned long val;
 		char x[sizeof(long)];
@@ -1068,9 +1122,9 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 		remote[0].iov_base = (void*)addr;
 
 		while (len > 0) {
-			int end_in_page;
+			unsigned int chunk_len;
+			unsigned int end_in_page;
 			int r;
-			int chunk_len;
 
 			/* Don't read kilobytes: most strings are short */
 			chunk_len = len;
@@ -1082,9 +1136,8 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 			 * (I hope there aren't arches with pages < 4K)
 			 */
 			end_in_page = ((addr + chunk_len) & 4095);
-			r = chunk_len - end_in_page;
-			if (r > 0) /* if chunk_len > end_in_page */
-				chunk_len = r; /* chunk_len -= end_in_page */
+			if (chunk_len > end_in_page) /* crosses to the next page */
+				chunk_len -= end_in_page;
 
 			local[0].iov_len = remote[0].iov_len = chunk_len;
 			r = process_vm_readv(pid, local, 1, remote, 1, 0);
@@ -1123,8 +1176,8 @@ umovestr(struct tcb *tcp, long addr, int len, char *laddr)
 
 	if (addr & (sizeof(long) - 1)) {
 		/* addr not a multiple of sizeof(long) */
-		n = addr - (addr & -sizeof(long)); /* residue */
-		addr &= -sizeof(long); /* residue */
+		n = addr & (sizeof(long) - 1);	/* residue */
+		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
 		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *)addr, 0);
 		switch (errno) {
@@ -1202,429 +1255,5 @@ upeek(int pid, long off, long *res)
 		return -1;
 	}
 	*res = val;
-	return 0;
-}
-
-/* Note! On new kernels (about 2.5.46+), we use PTRACE_O_TRACECLONE
- * and PTRACE_O_TRACE[V]FORK for tracing children.
- * If you are adding a new arch which is only supported by newer kernels,
- * you most likely don't need to add any code below
- * beside a dummy "return 0" block in change_syscall().
- */
-
-/*
- * These #if's are huge, please indent them correctly.
- * It's easy to get confused otherwise.
- */
-
-#include "syscall.h"
-
-#ifndef CLONE_PTRACE
-# define CLONE_PTRACE    0x00002000
-#endif
-#ifndef CLONE_VFORK
-# define CLONE_VFORK     0x00004000
-#endif
-#ifndef CLONE_VM
-# define CLONE_VM        0x00000100
-#endif
-
-#ifdef IA64
-
-typedef unsigned long *arg_setup_state;
-
-static int
-arg_setup(struct tcb *tcp, arg_setup_state *state)
-{
-	unsigned long cfm, sof, sol;
-	long bsp;
-
-	if (ia64_ia32mode) {
-		/* Satisfy a false GCC warning.  */
-		*state = NULL;
-		return 0;
-	}
-
-	if (upeek(tcp->pid, PT_AR_BSP, &bsp) < 0)
-		return -1;
-	if (upeek(tcp->pid, PT_CFM, (long *) &cfm) < 0)
-		return -1;
-
-	sof = (cfm >> 0) & 0x7f;
-	sol = (cfm >> 7) & 0x7f;
-	bsp = (long) ia64_rse_skip_regs((unsigned long *) bsp, -sof + sol);
-
-	*state = (unsigned long *) bsp;
-	return 0;
-}
-
-# define arg_finish_change(tcp, state)	0
-
-static int
-get_arg0(struct tcb *tcp, arg_setup_state *state, long *valp)
-{
-	int ret;
-
-	if (ia64_ia32mode)
-		ret = upeek(tcp->pid, PT_R11, valp);
-	else
-		ret = umoven(tcp,
-			      (unsigned long) ia64_rse_skip_regs(*state, 0),
-			      sizeof(long), (void *) valp);
-	return ret;
-}
-
-static int
-get_arg1(struct tcb *tcp, arg_setup_state *state, long *valp)
-{
-	int ret;
-
-	if (ia64_ia32mode)
-		ret = upeek(tcp->pid, PT_R9, valp);
-	else
-		ret = umoven(tcp,
-			      (unsigned long) ia64_rse_skip_regs(*state, 1),
-			      sizeof(long), (void *) valp);
-	return ret;
-}
-
-static int
-set_arg0(struct tcb *tcp, arg_setup_state *state, long val)
-{
-	int req = PTRACE_POKEDATA;
-	void *ap;
-
-	if (ia64_ia32mode) {
-		ap = (void *) (intptr_t) PT_R11;	 /* r11 == EBX */
-		req = PTRACE_POKEUSER;
-	} else
-		ap = ia64_rse_skip_regs(*state, 0);
-	errno = 0;
-	ptrace(req, tcp->pid, ap, val);
-	return errno ? -1 : 0;
-}
-
-static int
-set_arg1(struct tcb *tcp, arg_setup_state *state, long val)
-{
-	int req = PTRACE_POKEDATA;
-	void *ap;
-
-	if (ia64_ia32mode) {
-		ap = (void *) (intptr_t) PT_R9;		/* r9 == ECX */
-		req = PTRACE_POKEUSER;
-	} else
-		ap = ia64_rse_skip_regs(*state, 1);
-	errno = 0;
-	ptrace(req, tcp->pid, ap, val);
-	return errno ? -1 : 0;
-}
-
-/* ia64 does not return the input arguments from functions (and syscalls)
-   according to ia64 RSE (Register Stack Engine) behavior.  */
-
-# define restore_arg0(tcp, state, val) ((void) (state), 0)
-# define restore_arg1(tcp, state, val) ((void) (state), 0)
-
-#elif defined(SPARC) || defined(SPARC64)
-
-# if defined(SPARC64)
-#  undef PTRACE_GETREGS
-#  define PTRACE_GETREGS PTRACE_GETREGS64
-#  undef PTRACE_SETREGS
-#  define PTRACE_SETREGS PTRACE_SETREGS64
-# endif
-
-typedef struct pt_regs arg_setup_state;
-
-# define arg_setup(tcp, state) \
-    (ptrace(PTRACE_GETREGS, (tcp)->pid, (char *) (state), 0))
-# define arg_finish_change(tcp, state) \
-    (ptrace(PTRACE_SETREGS, (tcp)->pid, (char *) (state), 0))
-
-# define get_arg0(tcp, state, valp) (*(valp) = (state)->u_regs[U_REG_O0], 0)
-# define get_arg1(tcp, state, valp) (*(valp) = (state)->u_regs[U_REG_O1], 0)
-# define set_arg0(tcp, state, val)  ((state)->u_regs[U_REG_O0] = (val), 0)
-# define set_arg1(tcp, state, val)  ((state)->u_regs[U_REG_O1] = (val), 0)
-# define restore_arg0(tcp, state, val) 0
-
-#else /* other architectures */
-
-# if defined S390 || defined S390X
-/* Note: this is only true for the `clone' system call, which handles
-   arguments specially.  We could as well say that its first two arguments
-   are swapped relative to other architectures, but that would just be
-   another #ifdef in the calls.  */
-#  define arg0_offset	PT_GPR3
-#  define arg1_offset	PT_ORIGGPR2
-#  define restore_arg0(tcp, state, val) ((void) (state), 0)
-#  define restore_arg1(tcp, state, val) ((void) (state), 0)
-#  define arg0_index	1
-#  define arg1_index	0
-# elif defined(ALPHA) || defined(MIPS)
-#  define arg0_offset	REG_A0
-#  define arg1_offset	(REG_A0+1)
-# elif defined(POWERPC)
-#  define arg0_offset	(sizeof(unsigned long)*PT_R3)
-#  define arg1_offset	(sizeof(unsigned long)*PT_R4)
-#  define restore_arg0(tcp, state, val) ((void) (state), 0)
-# elif defined(HPPA)
-#  define arg0_offset	PT_GR26
-#  define arg1_offset	(PT_GR26-4)
-# elif defined(X86_64) || defined(X32)
-#  define arg0_offset	((long)(8*(current_personality ? RBX : RDI)))
-#  define arg1_offset	((long)(8*(current_personality ? RCX : RSI)))
-# elif defined(SH)
-#  define arg0_offset	(4*(REG_REG0+4))
-#  define arg1_offset	(4*(REG_REG0+5))
-# elif defined(SH64)
-   /* ABI defines arg0 & 1 in r2 & r3 */
-#  define arg0_offset	(REG_OFFSET+16)
-#  define arg1_offset	(REG_OFFSET+24)
-#  define restore_arg0(tcp, state, val) 0
-# elif defined CRISV10 || defined CRISV32
-#  define arg0_offset	(4*PT_R11)
-#  define arg1_offset	(4*PT_ORIG_R10)
-#  define restore_arg0(tcp, state, val) 0
-#  define restore_arg1(tcp, state, val) 0
-#  define arg0_index	1
-#  define arg1_index	0
-# else
-#  define arg0_offset	0
-#  define arg1_offset	4
-#  if defined ARM
-#   define restore_arg0(tcp, state, val) 0
-#  endif
-# endif
-
-typedef int arg_setup_state;
-
-# define arg_setup(tcp, state)         (0)
-# define arg_finish_change(tcp, state) 0
-# define get_arg0(tcp, cookie, valp)   (upeek((tcp)->pid, arg0_offset, (valp)))
-# define get_arg1(tcp, cookie, valp)   (upeek((tcp)->pid, arg1_offset, (valp)))
-
-static int
-set_arg0(struct tcb *tcp, void *cookie, long val)
-{
-	return ptrace(PTRACE_POKEUSER, tcp->pid, (char*)arg0_offset, val);
-}
-
-static int
-set_arg1(struct tcb *tcp, void *cookie, long val)
-{
-	return ptrace(PTRACE_POKEUSER, tcp->pid, (char*)arg1_offset, val);
-}
-
-#endif /* architectures */
-
-#ifndef restore_arg0
-# define restore_arg0(tcp, state, val) set_arg0((tcp), (state), (val))
-#endif
-#ifndef restore_arg1
-# define restore_arg1(tcp, state, val) set_arg1((tcp), (state), (val))
-#endif
-
-#ifndef arg0_index
-# define arg0_index 0
-# define arg1_index 1
-#endif
-
-static int
-change_syscall(struct tcb *tcp, arg_setup_state *state, int new)
-{
-#if defined(I386)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(ORIG_EAX * 4), new) < 0)
-		return -1;
-	return 0;
-#elif defined(X86_64)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(ORIG_RAX * 8), new) < 0)
-		return -1;
-	return 0;
-#elif defined(X32)
-	/* setbpt/clearbpt never used: */
-	/* X32 is only supported since about linux-3.0.30 */
-#elif defined(POWERPC)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid,
-		   (char*)(sizeof(unsigned long)*PT_R0), new) < 0)
-		return -1;
-	return 0;
-#elif defined(S390) || defined(S390X)
-	/* s390 linux after 2.4.7 has a hook in entry.S to allow this */
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_GPR2), new) < 0)
-		return -1;
-	return 0;
-#elif defined(M68K)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*PT_ORIG_D0), new) < 0)
-		return -1;
-	return 0;
-#elif defined(SPARC) || defined(SPARC64)
-	state->u_regs[U_REG_G1] = new;
-	return 0;
-#elif defined(MIPS)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_V0), new) < 0)
-		return -1;
-	return 0;
-#elif defined(ALPHA)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_A3), new) < 0)
-		return -1;
-	return 0;
-#elif defined(AVR32)
-	/* setbpt/clearbpt never used: */
-	/* AVR32 is only supported since about linux-2.6.19 */
-#elif defined(BFIN)
-	/* setbpt/clearbpt never used: */
-	/* Blackfin is only supported since about linux-2.6.23 */
-#elif defined(IA64)
-	if (ia64_ia32mode) {
-		switch (new) {
-		case 2:
-			break;	/* x86 SYS_fork */
-		case SYS_clone:
-			new = 120;
-			break;
-		default:
-			fprintf(stderr, "%s: unexpected syscall %d\n",
-				__FUNCTION__, new);
-			return -1;
-		}
-		if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_R1), new) < 0)
-			return -1;
-	} else if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_R15), new) < 0)
-		return -1;
-	return 0;
-#elif defined(HPPA)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(PT_GR20), new) < 0)
-		return -1;
-	return 0;
-#elif defined(SH)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*(REG_REG0+3)), new) < 0)
-		return -1;
-	return 0;
-#elif defined(SH64)
-	/* Top half of reg encodes the no. of args n as 0x1n.
-	   Assume 0 args as kernel never actually checks... */
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(REG_SYSCALL),
-				0x100000 | new) < 0)
-		return -1;
-	return 0;
-#elif defined(CRISV10) || defined(CRISV32)
-	if (ptrace(PTRACE_POKEUSER, tcp->pid, (char*)(4*PT_R9), new) < 0)
-		return -1;
-	return 0;
-#elif defined(ARM)
-	/* Some kernels support this, some (pre-2.6.16 or so) don't.  */
-# ifndef PTRACE_SET_SYSCALL
-#  define PTRACE_SET_SYSCALL 23
-# endif
-	if (ptrace(PTRACE_SET_SYSCALL, tcp->pid, 0, new & 0xffff) != 0)
-		return -1;
-	return 0;
-#elif defined(AARCH64)
-	/* setbpt/clearbpt never used: */
-	/* AARCH64 is only supported since about linux-3.0.31 */
-#elif defined(TILE)
-	/* setbpt/clearbpt never used: */
-	/* Tilera CPUs are only supported since about linux-2.6.34 */
-#elif defined(MICROBLAZE)
-	/* setbpt/clearbpt never used: */
-	/* microblaze is only supported since about linux-2.6.30 */
-#elif defined(OR1K)
-	/* never reached; OR1K is only supported by kernels since 3.1.0. */
-#elif defined(METAG)
-	/* setbpt/clearbpt never used: */
-	/* Meta is only supported since linux-3.7 */
-#elif defined(XTENSA)
-	/* setbpt/clearbpt never used: */
-	/* Xtensa is only supported since linux 2.6.13 */
-#elif defined(ARC)
-	/* setbpt/clearbpt never used: */
-	/* ARC only supported since 3.9 */
-#else
-#warning Do not know how to handle change_syscall for this architecture
-#endif /* architecture */
-	return -1;
-}
-
-int
-setbpt(struct tcb *tcp)
-{
-	static int clone_scno[SUPPORTED_PERSONALITIES] = { SYS_clone };
-	arg_setup_state state;
-
-	if (tcp->flags & TCB_BPTSET) {
-		fprintf(stderr, "PANIC: TCB already set in pid %u\n", tcp->pid);
-		return -1;
-	}
-
-	/*
-	 * It's a silly kludge to initialize this with a search at runtime.
-	 * But it's better than maintaining another magic thing in the
-	 * godforsaken tables.
-	 */
-	if (clone_scno[current_personality] == 0) {
-		unsigned int i;
-		for (i = 0; i < nsyscalls; ++i)
-			if (sysent[i].sys_func == sys_clone) {
-				clone_scno[current_personality] = i;
-				break;
-			}
-	}
-
-	if (tcp->s_ent->sys_func == sys_fork) {
-		if (arg_setup(tcp, &state) < 0
-		    || get_arg0(tcp, &state, &tcp->inst[0]) < 0
-		    || get_arg1(tcp, &state, &tcp->inst[1]) < 0
-		    || change_syscall(tcp, &state,
-				      clone_scno[current_personality]) < 0
-		    || set_arg0(tcp, &state, CLONE_PTRACE|SIGCHLD) < 0
-		    || set_arg1(tcp, &state, 0) < 0
-		    || arg_finish_change(tcp, &state) < 0)
-			return -1;
-		tcp->u_arg[arg0_index] = CLONE_PTRACE|SIGCHLD;
-		tcp->u_arg[arg1_index] = 0;
-		tcp->flags |= TCB_BPTSET;
-		return 0;
-	}
-
-	if (tcp->s_ent->sys_func == sys_clone) {
-		/* ia64 calls directly `clone (CLONE_VFORK | CLONE_VM)'
-		   contrary to x86 vfork above.  Even on x86 we turn the
-		   vfork semantics into plain fork - each application must not
-		   depend on the vfork specifics according to POSIX.  We would
-		   hang waiting for the parent resume otherwise.  We need to
-		   clear also CLONE_VM but only in the CLONE_VFORK case as
-		   otherwise we would break pthread_create.  */
-
-		long new_arg0 = (tcp->u_arg[arg0_index] | CLONE_PTRACE);
-		if (new_arg0 & CLONE_VFORK)
-			new_arg0 &= ~(unsigned long)(CLONE_VFORK | CLONE_VM);
-		if (arg_setup(tcp, &state) < 0
-		 || set_arg0(tcp, &state, new_arg0) < 0
-		 || arg_finish_change(tcp, &state) < 0)
-			return -1;
-		tcp->inst[0] = tcp->u_arg[arg0_index];
-		tcp->inst[1] = tcp->u_arg[arg1_index];
-		tcp->flags |= TCB_BPTSET;
-		return 0;
-	}
-
-	fprintf(stderr, "PANIC: setbpt for syscall %ld on %u???\n",
-		tcp->scno, tcp->pid);
-	return -1;
-}
-
-int
-clearbpt(struct tcb *tcp)
-{
-	arg_setup_state state;
-	if (arg_setup(tcp, &state) < 0
-	    || change_syscall(tcp, &state, tcp->scno) < 0
-	    || restore_arg0(tcp, &state, tcp->inst[0]) < 0
-	    || restore_arg1(tcp, &state, tcp->inst[1]) < 0
-	    || arg_finish_change(tcp, &state))
-		if (errno != ESRCH)
-			return -1;
-	tcp->flags &= ~TCB_BPTSET;
 	return 0;
 }

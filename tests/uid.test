@@ -4,7 +4,7 @@
 
 . "${srcdir=.}/init.sh"
 
-check_prog awk
+check_prog gawk
 
 s="${uid_syscall_suffix-}"
 w="${uid_t_size-}"
@@ -17,14 +17,14 @@ uid="uid$s$w"
 	fi
 }
 
-syscalls="getuid$s,setuid$s,getresuid$s,setreuid$s,setresuid$s,chown$s,getgroups$s"
+syscalls="getuid$s,setuid$s,getresuid$s,setreuid$s,setresuid$s,fchown$s,getgroups$s"
 args="-e trace=$syscalls"
 $STRACE -o "$LOG" $args ./"$uid"|| {
 	cat "$LOG"
 	fail_ "$STRACE $args ./$uid failed"
 }
 
-awk -f "$srcdir"/uid.awk -v suffix="$s" "$LOG" || {
+gawk -f "$srcdir"/uid.awk -v suffix="$s" "$LOG" || {
 	cat "$LOG"
 	fail_ 'unexpected output'
 }
