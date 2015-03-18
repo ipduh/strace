@@ -2,16 +2,16 @@
 
 static const struct xlat archvals[] = {
 #if defined(ARCH_SET_GS) || (defined(HAVE_DECL_ARCH_SET_GS) && HAVE_DECL_ARCH_SET_GS)
-	XLAT(ARCH_SET_GS),
+ XLAT(ARCH_SET_GS),
 #endif
 #if defined(ARCH_SET_FS) || (defined(HAVE_DECL_ARCH_SET_FS) && HAVE_DECL_ARCH_SET_FS)
-	XLAT(ARCH_SET_FS),
+ XLAT(ARCH_SET_FS),
 #endif
 #if defined(ARCH_GET_FS) || (defined(HAVE_DECL_ARCH_GET_FS) && HAVE_DECL_ARCH_GET_FS)
-	XLAT(ARCH_GET_FS),
+ XLAT(ARCH_GET_FS),
 #endif
 #if defined(ARCH_GET_GS) || (defined(HAVE_DECL_ARCH_GET_GS) && HAVE_DECL_ARCH_GET_GS)
-	XLAT(ARCH_GET_GS),
+ XLAT(ARCH_GET_GS),
 #endif
-	XLAT_END
+ XLAT_END
 };

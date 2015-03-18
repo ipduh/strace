@@ -2,10 +2,10 @@
 
 static const struct xlat sigsegv_codes[] = {
 #if defined(SEGV_MAPERR) || (defined(HAVE_DECL_SEGV_MAPERR) && HAVE_DECL_SEGV_MAPERR)
-	XLAT(SEGV_MAPERR),
+ XLAT(SEGV_MAPERR),
 #endif
 #if defined(SEGV_ACCERR) || (defined(HAVE_DECL_SEGV_ACCERR) && HAVE_DECL_SEGV_ACCERR)
-	XLAT(SEGV_ACCERR),
+ XLAT(SEGV_ACCERR),
 #endif
-	XLAT_END
+ XLAT_END
 };

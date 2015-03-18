@@ -2,13 +2,13 @@
 
 static const struct xlat umount_flags[] = {
 #if defined(MNT_FORCE) || (defined(HAVE_DECL_MNT_FORCE) && HAVE_DECL_MNT_FORCE)
-	XLAT(MNT_FORCE),
+ XLAT(MNT_FORCE),
 #endif
 #if defined(MNT_DETACH) || (defined(HAVE_DECL_MNT_DETACH) && HAVE_DECL_MNT_DETACH)
-	XLAT(MNT_DETACH),
+ XLAT(MNT_DETACH),
 #endif
 #if defined(MNT_EXPIRE) || (defined(HAVE_DECL_MNT_EXPIRE) && HAVE_DECL_MNT_EXPIRE)
-	XLAT(MNT_EXPIRE),
+ XLAT(MNT_EXPIRE),
 #endif
-	XLAT_END
+ XLAT_END
 };

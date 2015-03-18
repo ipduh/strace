@@ -2,10 +2,13 @@
 
 static const struct xlat scmvals[] = {
 #if defined(SCM_RIGHTS) || (defined(HAVE_DECL_SCM_RIGHTS) && HAVE_DECL_SCM_RIGHTS)
-	XLAT(SCM_RIGHTS),
+ XLAT(SCM_RIGHTS),
 #endif
 #if defined(SCM_CREDENTIALS) || (defined(HAVE_DECL_SCM_CREDENTIALS) && HAVE_DECL_SCM_CREDENTIALS)
-	XLAT(SCM_CREDENTIALS),
+ XLAT(SCM_CREDENTIALS),
 #endif
-	XLAT_END
+#if defined(SCM_SECURITY) || (defined(HAVE_DECL_SCM_SECURITY) && HAVE_DECL_SCM_SECURITY)
+ XLAT(SCM_SECURITY),
+#endif
+ XLAT_END
 };

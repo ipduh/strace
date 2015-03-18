@@ -2,7 +2,7 @@
 
 static const struct xlat sockipxoptions[] = {
 #if defined(IPX_TYPE) || (defined(HAVE_DECL_IPX_TYPE) && HAVE_DECL_IPX_TYPE)
-	XLAT(IPX_TYPE),
+ XLAT(IPX_TYPE),
 #endif
-	XLAT_END
+ XLAT_END
 };

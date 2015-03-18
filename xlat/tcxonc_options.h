@@ -2,16 +2,16 @@
 
 static const struct xlat tcxonc_options[] = {
 #if defined(TCOOFF) || (defined(HAVE_DECL_TCOOFF) && HAVE_DECL_TCOOFF)
-	XLAT(TCOOFF),
+ XLAT(TCOOFF),
 #endif
 #if defined(TCOON) || (defined(HAVE_DECL_TCOON) && HAVE_DECL_TCOON)
-	XLAT(TCOON),
+ XLAT(TCOON),
 #endif
 #if defined(TCIOFF) || (defined(HAVE_DECL_TCIOFF) && HAVE_DECL_TCIOFF)
-	XLAT(TCIOFF),
+ XLAT(TCIOFF),
 #endif
 #if defined(TCION) || (defined(HAVE_DECL_TCION) && HAVE_DECL_TCION)
-	XLAT(TCION),
+ XLAT(TCION),
 #endif
-	XLAT_END
+ XLAT_END
 };

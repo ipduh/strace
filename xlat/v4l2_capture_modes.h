@@ -2,7 +2,7 @@
 
 static const struct xlat v4l2_capture_modes[] = {
 #if defined(V4L2_MODE_HIGHQUALITY) || (defined(HAVE_DECL_V4L2_MODE_HIGHQUALITY) && HAVE_DECL_V4L2_MODE_HIGHQUALITY)
-	XLAT(V4L2_MODE_HIGHQUALITY),
+ XLAT(V4L2_MODE_HIGHQUALITY),
 #endif
-	XLAT_END
+ XLAT_END
 };

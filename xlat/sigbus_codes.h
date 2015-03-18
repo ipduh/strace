@@ -2,13 +2,13 @@
 
 static const struct xlat sigbus_codes[] = {
 #if defined(BUS_ADRALN) || (defined(HAVE_DECL_BUS_ADRALN) && HAVE_DECL_BUS_ADRALN)
-	XLAT(BUS_ADRALN),
+ XLAT(BUS_ADRALN),
 #endif
 #if defined(BUS_ADRERR) || (defined(HAVE_DECL_BUS_ADRERR) && HAVE_DECL_BUS_ADRERR)
-	XLAT(BUS_ADRERR),
+ XLAT(BUS_ADRERR),
 #endif
 #if defined(BUS_OBJERR) || (defined(HAVE_DECL_BUS_OBJERR) && HAVE_DECL_BUS_OBJERR)
-	XLAT(BUS_OBJERR),
+ XLAT(BUS_OBJERR),
 #endif
-	XLAT_END
+ XLAT_END
 };

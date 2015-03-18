@@ -2,7 +2,7 @@
 
 static const struct xlat clockflags[] = {
 #if defined(TIMER_ABSTIME) || (defined(HAVE_DECL_TIMER_ABSTIME) && HAVE_DECL_TIMER_ABSTIME)
-	XLAT(TIMER_ABSTIME),
+ XLAT(TIMER_ABSTIME),
 #endif
-	XLAT_END
+ XLAT_END
 };

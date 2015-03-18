@@ -2,13 +2,13 @@
 
 static const struct xlat pmsgflags[] = {
 #if defined(MSG_HIPRI) || (defined(HAVE_DECL_MSG_HIPRI) && HAVE_DECL_MSG_HIPRI)
-	XLAT(MSG_HIPRI),
+ XLAT(MSG_HIPRI),
 #endif
 #if defined(MSG_ANY) || (defined(HAVE_DECL_MSG_ANY) && HAVE_DECL_MSG_ANY)
-	XLAT(MSG_ANY),
+ XLAT(MSG_ANY),
 #endif
 #if defined(MSG_BAND) || (defined(HAVE_DECL_MSG_BAND) && HAVE_DECL_MSG_BAND)
-	XLAT(MSG_BAND),
+ XLAT(MSG_BAND),
 #endif
-	XLAT_END
+ XLAT_END
 };

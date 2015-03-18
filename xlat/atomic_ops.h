@@ -10,5 +10,5 @@ static const struct xlat atomic_ops[] = {
 { OR1K_ATOMIC_OR,		"OR"		},
 { OR1K_ATOMIC_UMAX,		"UMAX"		},
 { OR1K_ATOMIC_UMIN,		"UMIN"		},
-	XLAT_END
+ XLAT_END
 };

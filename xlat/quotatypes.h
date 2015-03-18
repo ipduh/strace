@@ -2,10 +2,10 @@
 
 static const struct xlat quotatypes[] = {
 #if defined(USRQUOTA) || (defined(HAVE_DECL_USRQUOTA) && HAVE_DECL_USRQUOTA)
-	XLAT(USRQUOTA),
+ XLAT(USRQUOTA),
 #endif
 #if defined(GRPQUOTA) || (defined(HAVE_DECL_GRPQUOTA) && HAVE_DECL_GRPQUOTA)
-	XLAT(GRPQUOTA),
+ XLAT(GRPQUOTA),
 #endif
-	XLAT_END
+ XLAT_END
 };

@@ -2,10 +2,10 @@
 
 static const struct xlat semop_flags[] = {
 #if defined(SEM_UNDO) || (defined(HAVE_DECL_SEM_UNDO) && HAVE_DECL_SEM_UNDO)
-	XLAT(SEM_UNDO),
+ XLAT(SEM_UNDO),
 #endif
 #if defined(IPC_NOWAIT) || (defined(HAVE_DECL_IPC_NOWAIT) && HAVE_DECL_IPC_NOWAIT)
-	XLAT(IPC_NOWAIT),
+ XLAT(IPC_NOWAIT),
 #endif
-	XLAT_END
+ XLAT_END
 };

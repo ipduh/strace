@@ -2,10 +2,10 @@
 
 static const struct xlat mempolicyflags[] = {
 #if defined(MPOL_F_NODE) || (defined(HAVE_DECL_MPOL_F_NODE) && HAVE_DECL_MPOL_F_NODE)
-	XLAT(MPOL_F_NODE),
+ XLAT(MPOL_F_NODE),
 #endif
 #if defined(MPOL_F_ADDR) || (defined(HAVE_DECL_MPOL_F_ADDR) && HAVE_DECL_MPOL_F_ADDR)
-	XLAT(MPOL_F_ADDR),
+ XLAT(MPOL_F_ADDR),
 #endif
-	XLAT_END
+ XLAT_END
 };
