@@ -34,7 +34,6 @@ Makefile.in
 /strace
 /test-driver
 
-/ioctlent[012].h
 /ioctls_all[012].h
 /ioctlsort[012]
 
