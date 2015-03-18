@@ -2,7 +2,7 @@
 
 static const struct xlat sockrawoptions[] = {
 #if defined(ICMP_FILTER) || (defined(HAVE_DECL_ICMP_FILTER) && HAVE_DECL_ICMP_FILTER)
-	XLAT(ICMP_FILTER),
+ XLAT(ICMP_FILTER),
 #endif
-	XLAT_END
+ XLAT_END
 };

@@ -3,32 +3,23 @@
 static const struct xlat timerfdflags[] = {
 /* The Linux userspace headers didn't export these for a long time. */
 
-#ifndef TFD_TIMER_ABSTIME
+#if !(defined(TFD_TIMER_ABSTIME) || (defined(HAVE_DECL_TFD_TIMER_ABSTIME) && HAVE_DECL_TFD_TIMER_ABSTIME))
 # define TFD_TIMER_ABSTIME (1 << 0)
 #endif
-#if defined(TFD_TIMER_ABSTIME) || (defined(HAVE_DECL_TFD_TIMER_ABSTIME) && HAVE_DECL_TFD_TIMER_ABSTIME)
-	XLAT(TFD_TIMER_ABSTIME),
-#endif
-
-#ifndef TFD_TIMER_CANCEL_ON_SET
+ XLAT(TFD_TIMER_ABSTIME),
+#if !(defined(TFD_TIMER_CANCEL_ON_SET) || (defined(HAVE_DECL_TFD_TIMER_CANCEL_ON_SET) && HAVE_DECL_TFD_TIMER_CANCEL_ON_SET))
 # define TFD_TIMER_CANCEL_ON_SET (1 << 1)
 #endif
-#if defined(TFD_TIMER_CANCEL_ON_SET) || (defined(HAVE_DECL_TFD_TIMER_CANCEL_ON_SET) && HAVE_DECL_TFD_TIMER_CANCEL_ON_SET)
-	XLAT(TFD_TIMER_CANCEL_ON_SET),
-#endif
-
-#ifndef TFD_CLOEXEC
+ XLAT(TFD_TIMER_CANCEL_ON_SET),
+#ifdef O_CLOEXEC
+#if !(defined(TFD_CLOEXEC) || (defined(HAVE_DECL_TFD_CLOEXEC) && HAVE_DECL_TFD_CLOEXEC))
 # define TFD_CLOEXEC O_CLOEXEC
 #endif
-#if defined(TFD_CLOEXEC) || (defined(HAVE_DECL_TFD_CLOEXEC) && HAVE_DECL_TFD_CLOEXEC)
-	XLAT(TFD_CLOEXEC),
+ XLAT(TFD_CLOEXEC),
 #endif
-
-#ifndef TFD_NONBLOCK
+#if !(defined(TFD_NONBLOCK) || (defined(HAVE_DECL_TFD_NONBLOCK) && HAVE_DECL_TFD_NONBLOCK))
 # define TFD_NONBLOCK O_NONBLOCK
 #endif
-#if defined(TFD_NONBLOCK) || (defined(HAVE_DECL_TFD_NONBLOCK) && HAVE_DECL_TFD_NONBLOCK)
-	XLAT(TFD_NONBLOCK),
-#endif
-	XLAT_END
+ XLAT(TFD_NONBLOCK),
+ XLAT_END
 };

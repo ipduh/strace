@@ -2,7 +2,7 @@
 
 static const struct xlat msgflags[] = {
 #if defined(RS_HIPRI) || (defined(HAVE_DECL_RS_HIPRI) && HAVE_DECL_RS_HIPRI)
-	XLAT(RS_HIPRI),
+ XLAT(RS_HIPRI),
 #endif
-	XLAT_END
+ XLAT_END
 };

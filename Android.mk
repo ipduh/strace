@@ -68,6 +68,7 @@ LOCAL_SRC_FILES := \
     futex.c \
     getcpu.c \
     getcwd.c \
+    getrandom.c \
     get_robust_list.c \
     hostname.c \
     inotify.c \
@@ -102,7 +103,9 @@ LOCAL_SRC_FILES := \
     resource.c \
     sched.c \
     scsi.c \
+    seccomp.c \
     signal.c \
+    sigreturn.c \
     sock.c \
     socketutils.c \
     sram_alloc.c \
@@ -164,6 +167,7 @@ LOCAL_CFLAGS := \
     -DHAVE_INET_NTOP=1 \
     -DHAVE_LINUX_CAPABILITY_H=1 \
     -DHAVE_LINUX_FALLOC_H=1 \
+    -DHAVE_LINUX_FILTER_H=1 \
     -DHAVE_LINUX_FUTEX_H=1 \
     -DHAVE_LINUX_ICMP_H=1 \
     -DHAVE_LINUX_IF_PACKET_H=1 \
@@ -181,7 +185,9 @@ LOCAL_CFLAGS := \
     -DHAVE_SIGACTION=1 \
     -DHAVE_SIG_ATOMIC_T=1 \
     -DHAVE_SIGINFO_T=1 \
+    -DHAVE_SIGINFO_T_SI_OVERRUN=1 \
     -DHAVE_SIGINFO_T_SI_SYSCALL=1 \
+    -DHAVE_SIGINFO_T_SI_TIMERID=1 \
     -UHAVE_STAT64 \
     -DHAVE_STATFS64=1 \
     -DHAVE_STDBOOL_H=1 \
@@ -192,6 +198,7 @@ LOCAL_CFLAGS := \
     -DHAVE_STRUCT_SIGCONTEXT=1 \
     -DHAVE_STRUCT_SIGEVENT__SIGEV_UN__PAD=1 \
     -DHAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID=1 \
+    -DHAVE_STRUCT_STATFS64=1 \
     -DHAVE_STRUCT_STAT_ST_ACLCNT=0 \
     -DHAVE_STRUCT_STAT_ST_BLKSIZE=1 \
     -DHAVE_STRUCT_STAT_ST_BLOCKS=1 \
@@ -209,6 +216,7 @@ LOCAL_CFLAGS := \
     -DHAVE_SYS_POLL_H=1 \
     -DHAVE_SYS_REG_H=1 \
     -DHAVE_SYS_VFS_H=1 \
+    -DHAVE_SYS_XATTR_H=1 \
     -DMAJOR_IN_SYSMACROS \
     -DPACKAGE_NAME='"strace"' \
     -DVERSION='"$(strace_version)"' \
@@ -247,15 +255,12 @@ LOCAL_CFLAGS += \
     -Wno-unused-parameter \
     -Wno-sign-compare \
 
-LOCAL_C_INCLUDES := \
-    $(LOCAL_PATH)/linux
-
-LOCAL_C_INCLUDES_arm := $(LOCAL_PATH)/linux/arm
-LOCAL_C_INCLUDES_arm64 := $(LOCAL_PATH)/linux/aarch64
-LOCAL_C_INCLUDES_mips := $(LOCAL_PATH)/linux/mips
-LOCAL_C_INCLUDES_mips64 := $(LOCAL_PATH)/linux/mips
-LOCAL_C_INCLUDES_x86 := $(LOCAL_PATH)/linux/i386
-LOCAL_C_INCLUDES_x86_64 := $(LOCAL_PATH)/linux/x86_64
+LOCAL_C_INCLUDES_arm := $(LOCAL_PATH)/linux/arm $(LOCAL_PATH)/linux
+LOCAL_C_INCLUDES_arm64 := $(LOCAL_PATH)/linux/aarch64 $(LOCAL_PATH)/linux
+LOCAL_C_INCLUDES_mips := $(LOCAL_PATH)/linux/mips $(LOCAL_PATH)/linux
+LOCAL_C_INCLUDES_mips64 := $(LOCAL_PATH)/linux/mips $(LOCAL_PATH)/linux
+LOCAL_C_INCLUDES_x86 := $(LOCAL_PATH)/linux/i386 $(LOCAL_PATH)/linux
+LOCAL_C_INCLUDES_x86_64 := $(LOCAL_PATH)/linux/x86_64 $(LOCAL_PATH)/linux
 
 LOCAL_MODULE := strace
 
@@ -269,6 +274,8 @@ include $(BUILD_EXECUTABLE)
 
 
 # -------------------------------------------------------------------------
+
+# TODO: this is currently broken; the checked in ioctlent*.h files are from the 4.10 release.
 
 .PHONY: update-ioctls
 update-ioctls:
@@ -300,5 +307,3 @@ include $(BUILD_HOST_EXECUTABLE)
 endif
 
 # -------------------------------------------------------------------------
-
-include $(LOCAL_PATH)/test/Android.mk

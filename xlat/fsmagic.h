@@ -69,5 +69,5 @@ static const struct xlat fsmagic[] = {
 { 0xf2f52010,	"F2FS_SUPER_MAGIC"	},
 { 0xf97cff8c,	"SELINUX_MAGIC"		},
 { 0xf995e849,	"HPFS_SUPER_MAGIC"	},
-  /* this array should remain not NULL-terminated */
+ /* this array should remain not NULL-terminated */
 };

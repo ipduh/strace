@@ -2,7 +2,7 @@
 
 static const struct xlat sigemt_codes[] = {
 #if defined(EMT_TAGOVF) || (defined(HAVE_DECL_EMT_TAGOVF) && HAVE_DECL_EMT_TAGOVF)
-	XLAT(EMT_TAGOVF),
+ XLAT(EMT_TAGOVF),
 #endif
-	XLAT_END
+ XLAT_END
 };

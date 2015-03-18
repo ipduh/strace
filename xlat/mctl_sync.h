@@ -2,13 +2,13 @@
 
 static const struct xlat mctl_sync[] = {
 #if defined(MS_SYNC) || (defined(HAVE_DECL_MS_SYNC) && HAVE_DECL_MS_SYNC)
-	XLAT(MS_SYNC),
+ XLAT(MS_SYNC),
 #endif
 #if defined(MS_ASYNC) || (defined(HAVE_DECL_MS_ASYNC) && HAVE_DECL_MS_ASYNC)
-	XLAT(MS_ASYNC),
+ XLAT(MS_ASYNC),
 #endif
 #if defined(MS_INVALIDATE) || (defined(HAVE_DECL_MS_INVALIDATE) && HAVE_DECL_MS_INVALIDATE)
-	XLAT(MS_INVALIDATE),
+ XLAT(MS_INVALIDATE),
 #endif
-	XLAT_END
+ XLAT_END
 };

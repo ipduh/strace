@@ -2,10 +2,10 @@
 
 static const struct xlat move_pages_flags[] = {
 #if defined(MPOL_MF_MOVE) || (defined(HAVE_DECL_MPOL_MF_MOVE) && HAVE_DECL_MPOL_MF_MOVE)
-	XLAT(MPOL_MF_MOVE),
+ XLAT(MPOL_MF_MOVE),
 #endif
 #if defined(MPOL_MF_MOVE_ALL) || (defined(HAVE_DECL_MPOL_MF_MOVE_ALL) && HAVE_DECL_MPOL_MF_MOVE_ALL)
-	XLAT(MPOL_MF_MOVE_ALL),
+ XLAT(MPOL_MF_MOVE_ALL),
 #endif
-	XLAT_END
+ XLAT_END
 };

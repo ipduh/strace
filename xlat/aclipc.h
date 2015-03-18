@@ -2,13 +2,13 @@
 
 static const struct xlat aclipc[] = {
 #if defined(IPC_SHM) || (defined(HAVE_DECL_IPC_SHM) && HAVE_DECL_IPC_SHM)
-	XLAT(IPC_SHM),
+ XLAT(IPC_SHM),
 #endif
 #if defined(IPC_SEM) || (defined(HAVE_DECL_IPC_SEM) && HAVE_DECL_IPC_SEM)
-	XLAT(IPC_SEM),
+ XLAT(IPC_SEM),
 #endif
 #if defined(IPC_MSG) || (defined(HAVE_DECL_IPC_MSG) && HAVE_DECL_IPC_MSG)
-	XLAT(IPC_MSG),
+ XLAT(IPC_MSG),
 #endif
-	XLAT_END
+ XLAT_END
 };

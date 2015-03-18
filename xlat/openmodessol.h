@@ -15,5 +15,5 @@ static const struct xlat openmodessol[] = {
 { 0x8000,	"O_RSYNC"	},
 { 4,		"O_NDELAY"	},
 { 0x1000,	"O_PRIV"	},
-	XLAT_END
+ XLAT_END
 };

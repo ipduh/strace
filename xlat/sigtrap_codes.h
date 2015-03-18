@@ -2,10 +2,10 @@
 
 static const struct xlat sigtrap_codes[] = {
 #if defined(TRAP_BRKPT) || (defined(HAVE_DECL_TRAP_BRKPT) && HAVE_DECL_TRAP_BRKPT)
-	XLAT(TRAP_BRKPT),
+ XLAT(TRAP_BRKPT),
 #endif
 #if defined(TRAP_TRACE) || (defined(HAVE_DECL_TRAP_TRACE) && HAVE_DECL_TRAP_TRACE)
-	XLAT(TRAP_TRACE),
+ XLAT(TRAP_TRACE),
 #endif
-	XLAT_END
+ XLAT_END
 };

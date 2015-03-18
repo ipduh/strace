@@ -2,13 +2,13 @@
 
 static const struct xlat mtd_otp_options[] = {
 #if defined(MTD_OTP_OFF) || (defined(HAVE_DECL_MTD_OTP_OFF) && HAVE_DECL_MTD_OTP_OFF)
-	XLAT(MTD_OTP_OFF),
+ XLAT(MTD_OTP_OFF),
 #endif
 #if defined(MTD_OTP_FACTORY) || (defined(HAVE_DECL_MTD_OTP_FACTORY) && HAVE_DECL_MTD_OTP_FACTORY)
-	XLAT(MTD_OTP_FACTORY),
+ XLAT(MTD_OTP_FACTORY),
 #endif
 #if defined(MTD_OTP_USER) || (defined(HAVE_DECL_MTD_OTP_USER) && HAVE_DECL_MTD_OTP_USER)
-	XLAT(MTD_OTP_USER),
+ XLAT(MTD_OTP_USER),
 #endif
-	XLAT_END
+ XLAT_END
 };

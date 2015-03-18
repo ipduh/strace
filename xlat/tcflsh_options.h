@@ -2,13 +2,13 @@
 
 static const struct xlat tcflsh_options[] = {
 #if defined(TCIFLUSH) || (defined(HAVE_DECL_TCIFLUSH) && HAVE_DECL_TCIFLUSH)
-	XLAT(TCIFLUSH),
+ XLAT(TCIFLUSH),
 #endif
 #if defined(TCOFLUSH) || (defined(HAVE_DECL_TCOFLUSH) && HAVE_DECL_TCOFLUSH)
-	XLAT(TCOFLUSH),
+ XLAT(TCOFLUSH),
 #endif
 #if defined(TCIOFLUSH) || (defined(HAVE_DECL_TCIOFLUSH) && HAVE_DECL_TCIOFLUSH)
-	XLAT(TCIOFLUSH),
+ XLAT(TCIOFLUSH),
 #endif
-	XLAT_END
+ XLAT_END
 };

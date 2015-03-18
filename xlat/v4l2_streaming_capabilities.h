@@ -2,7 +2,7 @@
 
 static const struct xlat v4l2_streaming_capabilities[] = {
 #if defined(V4L2_CAP_TIMEPERFRAME) || (defined(HAVE_DECL_V4L2_CAP_TIMEPERFRAME) && HAVE_DECL_V4L2_CAP_TIMEPERFRAME)
-	XLAT(V4L2_CAP_TIMEPERFRAME),
+ XLAT(V4L2_CAP_TIMEPERFRAME),
 #endif
-	XLAT_END
+ XLAT_END
 };

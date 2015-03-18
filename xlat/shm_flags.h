@@ -2,13 +2,13 @@
 
 static const struct xlat shm_flags[] = {
 #if defined(SHM_REMAP) || (defined(HAVE_DECL_SHM_REMAP) && HAVE_DECL_SHM_REMAP)
-	XLAT(SHM_REMAP),
+ XLAT(SHM_REMAP),
 #endif
 #if defined(SHM_RDONLY) || (defined(HAVE_DECL_SHM_RDONLY) && HAVE_DECL_SHM_RDONLY)
-	XLAT(SHM_RDONLY),
+ XLAT(SHM_RDONLY),
 #endif
 #if defined(SHM_RND) || (defined(HAVE_DECL_SHM_RND) && HAVE_DECL_SHM_RND)
-	XLAT(SHM_RND),
+ XLAT(SHM_RND),
 #endif
-	XLAT_END
+ XLAT_END
 };

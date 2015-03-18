@@ -2,10 +2,10 @@
 
 static const struct xlat xattrflags[] = {
 #if defined(XATTR_CREATE) || (defined(HAVE_DECL_XATTR_CREATE) && HAVE_DECL_XATTR_CREATE)
-	XLAT(XATTR_CREATE),
+ XLAT(XATTR_CREATE),
 #endif
 #if defined(XATTR_REPLACE) || (defined(HAVE_DECL_XATTR_REPLACE) && HAVE_DECL_XATTR_REPLACE)
-	XLAT(XATTR_REPLACE),
+ XLAT(XATTR_REPLACE),
 #endif
-	XLAT_END
+ XLAT_END
 };

@@ -2,13 +2,13 @@
 
 static const struct xlat xfs_dqblk_flags[] = {
 #if defined(XFS_USER_QUOTA) || (defined(HAVE_DECL_XFS_USER_QUOTA) && HAVE_DECL_XFS_USER_QUOTA)
-	XLAT(XFS_USER_QUOTA),
+ XLAT(XFS_USER_QUOTA),
 #endif
 #if defined(XFS_PROJ_QUOTA) || (defined(HAVE_DECL_XFS_PROJ_QUOTA) && HAVE_DECL_XFS_PROJ_QUOTA)
-	XLAT(XFS_PROJ_QUOTA),
+ XLAT(XFS_PROJ_QUOTA),
 #endif
 #if defined(XFS_GROUP_QUOTA) || (defined(HAVE_DECL_XFS_GROUP_QUOTA) && HAVE_DECL_XFS_GROUP_QUOTA)
-	XLAT(XFS_GROUP_QUOTA),
+ XLAT(XFS_GROUP_QUOTA),
 #endif
-	XLAT_END
+ XLAT_END
 };
