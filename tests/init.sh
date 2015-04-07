@@ -59,6 +59,18 @@ run_strace_merge()
 	rm -f -- "$LOG".[0-9]*
 }
 
+check_gawk()
+{
+	check_prog gawk
+	check_prog grep
+
+	local program="$1"; shift
+	if grep '^@include[[:space:]]' < "$program" > /dev/null; then
+		gawk '@include "/dev/null"' < /dev/null ||
+			framework_skip_ 'gawk does not support @include'
+	fi
+}
+
 # Usage: [FILE_TO_CHECK [AWK_PROGRAM [ERROR_MESSAGE [EXTRA_AWK_OPTIONS...]]]]
 # Check whether all patterns listed in AWK_PROGRAM
 # match FILE_TO_CHECK using egrep.
@@ -66,7 +78,7 @@ run_strace_merge()
 # dump both files and fail with ERROR_MESSAGE.
 match_awk()
 {
-	local output program error awk
+	local output program error
 	if [ $# -eq 0 ]; then
 		output="$LOG"
 	else
@@ -82,11 +94,10 @@ match_awk()
 	else
 		error="$1"; shift
 	fi
-	awk=${AWK:-awk}
 
-	check_prog "$awk"
+	check_gawk "$program"
 
-	"$awk" -f "$program" "$@" < "$output" || {
+	AWKPATH="$srcdir" gawk -f "$program" "$@" < "$output" || {
 		cat < "$output"
 		fail_ "$error"
 	}

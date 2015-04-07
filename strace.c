@@ -251,8 +251,8 @@ usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
 	exit(exitval);
 }
 
-static void die(void) __attribute__ ((noreturn));
-static void die(void)
+static void ATTRIBUTE_NORETURN
+die(void)
 {
 	if (strace_tracer_pid == getpid()) {
 		cflag = 0;
@@ -1097,7 +1097,8 @@ struct exec_params {
 	char *pathname;
 };
 static struct exec_params params_for_tracee;
-static void __attribute__ ((noinline, noreturn))
+
+static void ATTRIBUTE_NOINLINE ATTRIBUTE_NORETURN
 exec_or_die(void)
 {
 	struct exec_params *params = &params_for_tracee;
@@ -1420,7 +1421,7 @@ get_os_release(void)
  * Don't want main() to inline us and defeat the reason
  * we have a separate function.
  */
-static void __attribute__ ((noinline))
+static void ATTRIBUTE_NOINLINE
 init(int argc, char *argv[])
 {
 	struct tcb *tcp;
@@ -2005,7 +2006,7 @@ print_stopped(struct tcb *tcp, const siginfo_t *si, const unsigned int sig)
 	}
 }
 
-static bool
+static void
 startup_tcb(struct tcb *tcp)
 {
 	if (debug_flag)
@@ -2025,8 +2026,6 @@ startup_tcb(struct tcb *tcp)
 			}
 		}
 	}
-
-	return true;
 }
 
 /* Returns true iff the main trace loop has to continue. */
@@ -2045,8 +2044,26 @@ trace(void)
 	if (interrupted)
 		return false;
 
-	if (popen_pid != 0 && nprocs == 0)
-		return false;
+	/*
+	 * Used to exit simply when nprocs hits zero, but in this testcase:
+	 *  int main() { _exit(!!fork()); }
+	 * under strace -f, parent sometimes (rarely) manages
+	 * to exit before we see the first stop of the child,
+	 * and we are losing track of it:
+	 *  19923 clone(...) = 19924
+	 *  19923 exit_group(1)     = ?
+	 *  19923 +++ exited with 1 +++
+	 * Exiting only when wait() returns ECHILD works better.
+	 */
+	if (popen_pid != 0) {
+		/* However, if -o|logger is in use, we can't do that.
+		 * Can work around that by double-forking the logger,
+		 * but that loses the ability to wait for its completion
+		 * on exit. Oh well...
+		 */
+		if (nprocs == 0)
+			return false;
+	}
 
 	if (interactive)
 		sigprocmask(SIG_SETMASK, &empty_set, NULL);
@@ -2151,8 +2168,9 @@ trace(void)
 
 	/* Is this the very first time we see this tracee stopped? */
 	if (tcp->flags & TCB_STARTUP) {
-		if (!startup_tcb(tcp))
-			return false;
+		startup_tcb(tcp);
+		if (get_scno(tcp) == 1)
+			tcp->s_prev_ent = tcp->s_ent;
 	}
 
 	sig = WSTOPSIG(status);
@@ -2270,23 +2288,6 @@ main(int argc, char *argv[])
 {
 	init(argc, argv);
 
-	/*
-	 * Run main tracing loop.
-	 *
-	 * Used to be "while (nprocs != 0)", but in this testcase:
-	 *  int main() { _exit(!!fork()); }
-	 * under strace -f, parent sometimes (rarely) manages
-	 * to exit before we see the first stop of the child,
-	 * and we are losing track of it:
-	 *  19923 clone(...) = 19924
-	 *  19923 exit_group(1)     = ?
-	 *  19923 +++ exited with 1 +++
-	 * Waiting for ECHILD works better.
-	 * (However, if -o|logger is in use, we can't do that.
-	 * Can work around that by double-forking the logger,
-	 * but that loses the ability to wait for its completion on exit.
-	 * Oh well...)
-	 */
 	while (trace())
 		;
 

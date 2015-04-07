@@ -6,12 +6,16 @@ ioctl
 ipc_msg
 ipc_sem
 ipc_shm
+mmap
+mmap64
 mmsg
 net-accept-connect
 netlink_inet_diag
 netlink_unix_diag
 pc
+pipe
 scm_rights
+seccomp
 select
 set_ptracer_any
 sigaction
@@ -24,6 +28,8 @@ uid
 uid16
 uid32
 uio
+umovestr
+umovestr2
 unix-pair-send-recv
 *.log
 *.log.*

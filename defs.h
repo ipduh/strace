@@ -67,8 +67,46 @@ const char *strerror(int);
 extern char *stpcpy(char *dst, const char *src);
 #endif
 
-#if !defined __GNUC__
-# define __attribute__(x) /*nothing*/
+#if defined __GNUC__ && defined __GNUC_MINOR__
+# define GNUC_PREREQ(maj, min)	\
+	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#else
+# define __attribute__(x)	/* empty */
+# define GNUC_PREREQ(maj, min)	0
+#endif
+
+#if GNUC_PREREQ(2, 5)
+# define ATTRIBUTE_NORETURN	__attribute__((__noreturn__))
+#else
+# define ATTRIBUTE_NORETURN	/* empty */
+#endif
+
+#if GNUC_PREREQ(2, 7)
+# define ATTRIBUTE_FORMAT(args)	__attribute__((__format__ args))
+# define ATTRIBUTE_ALIGNED(arg)	__attribute__((__aligned__(arg)))
+# define ATTRIBUTE_PACKED	__attribute__((__packed__))
+#else
+# define ATTRIBUTE_FORMAT(args)	/* empty */
+# define ATTRIBUTE_ALIGNED(arg)	/* empty */
+# define ATTRIBUTE_PACKED	/* empty */
+#endif
+
+#if GNUC_PREREQ(3, 0)
+# define ATTRIBUTE_MALLOC	__attribute__((__malloc__))
+#else
+# define ATTRIBUTE_MALLOC	/* empty */
+#endif
+
+#if GNUC_PREREQ(3, 1)
+# define ATTRIBUTE_NOINLINE	__attribute__((__noinline__))
+#else
+# define ATTRIBUTE_NOINLINE	/* empty */
+#endif
+
+#if GNUC_PREREQ(4, 3)
+# define ATTRIBUTE_ALLOC_SIZE(args)	__attribute__((__alloc_size__ args))
+#else
+# define ATTRIBUTE_ALLOC_SIZE(args)	/* empty */
 #endif
 
 #ifndef offsetof
@@ -152,14 +190,11 @@ extern char *stpcpy(char *dst, const char *src);
 
 #if defined(SPARC) || defined(SPARC64)
 # define PERSONALITY0_WORDSIZE 4
-# define PERSONALITY1_WORDSIZE 4
 # if defined(SPARC64)
-#  define SUPPORTED_PERSONALITIES 3
-#  define PERSONALITY2_WORDSIZE 8
-# else
 #  define SUPPORTED_PERSONALITIES 2
-# endif /* SPARC64 */
-#endif /* SPARC[64] */
+#  define PERSONALITY1_WORDSIZE 8
+# endif
+#endif
 
 #ifdef X86_64
 # define SUPPORTED_PERSONALITIES 3
@@ -243,11 +278,10 @@ struct tcb {
 	FILE *outf;		/* Output file for this process */
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
 	const struct_sysent *s_ent; /* sysent[scno] or dummy struct for bad scno */
+	const struct_sysent *s_prev_ent; /* for "resuming interrupted SYSCALL" msg */
 	struct timeval stime;	/* System time usage as of last process wait */
 	struct timeval dtime;	/* Delta for system time usage */
 	struct timeval etime;	/* Syscall entry time */
-				/* Support for tracing forked processes: */
-	long inst[2];		/* Saved clone args (badly named) */
 
 #ifdef USE_LIBUNWIND
 	struct UPT_info* libunwind_ui;
@@ -392,11 +426,13 @@ extern unsigned os_release;
 
 enum bitness_t { BITNESS_CURRENT = 0, BITNESS_32 };
 
-void error_msg(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-void perror_msg(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-void error_msg_and_die(const char *fmt, ...) __attribute__ ((noreturn, format(printf, 1, 2)));
-void perror_msg_and_die(const char *fmt, ...) __attribute__ ((noreturn, format(printf, 1, 2)));
-void die_out_of_memory(void) __attribute__ ((noreturn));
+void error_msg(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
+void perror_msg(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
+void error_msg_and_die(const char *fmt, ...)
+	ATTRIBUTE_FORMAT((printf, 1, 2)) ATTRIBUTE_NORETURN;
+void perror_msg_and_die(const char *fmt, ...)
+	ATTRIBUTE_FORMAT((printf, 1, 2)) ATTRIBUTE_NORETURN;
+void die_out_of_memory(void) ATTRIBUTE_NORETURN;
 
 #if USE_CUSTOM_PRINTF
 /*
@@ -418,14 +454,20 @@ extern void call_summary(FILE *);
 
 extern void clear_regs(void);
 extern void get_regs(pid_t pid);
+extern int get_scno(struct tcb *tcp);
 
-extern int umoven(struct tcb *, long, unsigned int, char *);
+extern int umoven(struct tcb *, long, unsigned int, void *);
 #define umove(pid, addr, objp)	\
-	umoven((pid), (addr), sizeof(*(objp)), (char *) (objp))
+	umoven((pid), (addr), sizeof(*(objp)), (void *) (objp))
 extern int umovestr(struct tcb *, long, unsigned int, char *);
 extern int upeek(int pid, long, long *);
-#if defined(SPARC) || defined(SPARC64) || defined(IA64) || defined(SH)
+
+#if defined ALPHA || defined IA64 || defined MIPS \
+ || defined SH || defined SPARC || defined SPARC64
+# define HAVE_GETRVAL2
 extern long getrval2(struct tcb *);
+#else
+# undef HAVE_GETRVAL2
 #endif
 
 extern const char *signame(const int);
@@ -436,6 +478,7 @@ extern int getfdpath(struct tcb *, int, char *, unsigned);
 extern const char *xlookup(const struct xlat *, const unsigned int);
 extern const char *xlat_search(const struct xlat *, const size_t, const unsigned int);
 
+extern unsigned long get_pagesize(void);
 extern int string_to_uint(const char *str);
 extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits);
 
@@ -456,7 +499,7 @@ extern int print_quoted_string(const char *, unsigned int, unsigned int);
 #endif
 extern int getllval(struct tcb *, unsigned long long *, int);
 extern int printllval(struct tcb *, const char *, int)
-	__attribute__ ((format (printf, 2, 0)));
+	ATTRIBUTE_FORMAT((printf, 2, 0));
 
 extern void printxval(const struct xlat *, const unsigned int, const char *);
 extern int printargs(struct tcb *);
@@ -473,9 +516,9 @@ extern void dumpiov(struct tcb *, int, long);
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
 extern void printnum_int(struct tcb *, long, const char *)
-	__attribute__ ((format (printf, 3, 0)));
+	ATTRIBUTE_FORMAT((printf, 3, 0));
 extern void printnum_long(struct tcb *, long, const char *)
-	__attribute__ ((format (printf, 3, 0)));
+	ATTRIBUTE_FORMAT((printf, 3, 0));
 extern void printpath(struct tcb *, long);
 extern void printpathn(struct tcb *, long, unsigned int);
 #define TIMESPEC_TEXT_BUFSIZE (sizeof(long)*3 * 2 + sizeof("{%u, %u}"))
@@ -488,7 +531,7 @@ extern void printtv_bitness(struct tcb *, long, enum bitness_t, int);
 extern char *sprinttv(char *, struct tcb *, long, enum bitness_t, int special);
 extern void print_timespec(struct tcb *, long);
 extern void sprint_timespec(char *, struct tcb *, long);
-extern void printsiginfo(const siginfo_t *, int);
+extern void printsiginfo(const siginfo_t *, bool);
 extern void printsiginfo_at(struct tcb *tcp, long addr);
 extern void printfd(struct tcb *, int);
 extern bool print_sockaddr_by_inode(const unsigned long, const char *);
@@ -567,7 +610,7 @@ extern struct tcb *printing_tcp;
 extern void printleader(struct tcb *);
 extern void line_ended(void);
 extern void tabto(void);
-extern void tprintf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+extern void tprintf(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 extern void tprints(const char *str);
 
 #if SUPPORTED_PERSONALITIES > 1
