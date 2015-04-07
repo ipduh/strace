@@ -92,6 +92,7 @@ LOCAL_SRC_FILES := \
     personality.c \
     prctl.c \
     printmode.c \
+    printsiginfo.c \
     process.c \
     process_vm.c \
     ptp.c \
@@ -104,6 +105,7 @@ LOCAL_SRC_FILES := \
     sched.c \
     scsi.c \
     seccomp.c \
+    sigaltstack.c \
     signal.c \
     sigreturn.c \
     sock.c \
