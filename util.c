@@ -34,7 +34,7 @@
 #include "defs.h"
 #include <sys/param.h>
 #include <fcntl.h>
-#if HAVE_SYS_XATTR_H
+#ifdef HAVE_SYS_XATTR_H
 # include <sys/xattr.h>
 #endif
 #include <sys/uio.h>
@@ -435,7 +435,7 @@ sprinttime(time_t t)
 static char *
 getfdproto(struct tcb *tcp, int fd, char *buf, unsigned bufsize)
 {
-#if HAVE_SYS_XATTR_H
+#ifdef HAVE_SYS_XATTR_H
 	ssize_t r;
 	char path[sizeof("/proc/%u/fd/%u") + 2 * sizeof(int)*3];
 
@@ -763,12 +763,8 @@ printstr(struct tcb *tcp, long addr, long len)
 
 		if (outstr_size / 4 != max_strlen)
 			die_out_of_memory();
-		str = malloc(max_strlen + 1);
-		if (!str)
-			die_out_of_memory();
-		outstr = malloc(outstr_size);
-		if (!outstr)
-			die_out_of_memory();
+		str = xmalloc(max_strlen + 1);
+		outstr = xmalloc(outstr_size);
 	}
 
 	size = max_strlen;
@@ -832,7 +828,7 @@ dumpiov(struct tcb *tcp, int len, long addr)
 	/* Assuming no sane program has millions of iovs */
 	if ((unsigned)len > 1024*1024 /* insane or negative size? */
 	    || (iov = malloc(size)) == NULL) {
-		fprintf(stderr, "Out of memory\n");
+		error_msg("Out of memory");
 		return;
 	}
 	if (umoven(tcp, addr, size, iov) >= 0) {
@@ -875,7 +871,7 @@ dumpstr(struct tcb *tcp, long addr, int len)
 		str = malloc(len + 16);
 		if (!str) {
 			strsize = -1;
-			fprintf(stderr, "Out of memory\n");
+			error_msg("Out of memory");
 			return;
 		}
 		strsize = len + 16;

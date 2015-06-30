@@ -324,15 +324,6 @@ void perror_msg_and_die(const char *fmt, ...)
 	die();
 }
 
-void die_out_of_memory(void)
-{
-	static bool recursed = 0;
-	if (recursed)
-		exit(1);
-	recursed = 1;
-	error_msg_and_die("Out of memory");
-}
-
 static void
 error_opt_arg(int opt, const char *arg)
 {
@@ -676,10 +667,9 @@ expand_tcbtab(void)
 	   So tcbtab is a table of pointers.  Since we never
 	   free the TCBs, we allocate a single chunk of many.  */
 	unsigned int i = tcbtabsize;
-	struct tcb *newtcbs = calloc(tcbtabsize, sizeof(newtcbs[0]));
-	struct tcb **newtab = realloc(tcbtab, tcbtabsize * 2 * sizeof(tcbtab[0]));
-	if (!newtab || !newtcbs)
-		die_out_of_memory();
+	struct tcb *newtcbs = xcalloc(tcbtabsize, sizeof(newtcbs[0]));
+	struct tcb **newtab = xreallocarray(tcbtab, tcbtabsize * 2,
+					    sizeof(tcbtab[0]));
 	tcbtabsize *= 2;
 	tcbtab = newtab;
 	while (i < tcbtabsize)
@@ -711,7 +701,8 @@ alloctcb(int pid)
 
 			nprocs++;
 			if (debug_flag)
-				fprintf(stderr, "new tcb for pid %d, active tcbs:%d\n", tcp->pid, nprocs);
+				error_msg("new tcb for pid %d, active tcbs:%d",
+					  tcp->pid, nprocs);
 			return tcp;
 		}
 	}
@@ -732,7 +723,8 @@ droptcb(struct tcb *tcp)
 
 	nprocs--;
 	if (debug_flag)
-		fprintf(stderr, "dropped tcb for pid %d, %d remain\n", tcp->pid, nprocs);
+		error_msg("dropped tcb for pid %d, %d remain",
+			  tcp->pid, nprocs);
 
 	if (tcp->outf) {
 		if (followfork >= 2) {
@@ -861,8 +853,8 @@ detach(struct tcb *tcp)
 		}
 		sig = WSTOPSIG(status);
 		if (debug_flag)
-			fprintf(stderr, "detach wait: event:%d sig:%d\n",
-					(unsigned)status >> 16, sig);
+			error_msg("detach wait: event:%d sig:%d",
+				  (unsigned)status >> 16, sig);
 		if (use_seize) {
 			unsigned event = (unsigned)status >> 16;
 			if (event == PTRACE_EVENT_STOP /*&& sig == SIGTRAP*/) {
@@ -915,7 +907,7 @@ detach(struct tcb *tcp)
 
  drop:
 	if (!qflag && (tcp->flags & TCB_ATTACHED))
-		fprintf(stderr, "Process %u detached\n", tcp->pid);
+		error_msg("Process %u detached", tcp->pid);
 
 	droptcb(tcp);
 }
@@ -1017,11 +1009,11 @@ startup_attach(void)
 					if (ptrace_attach_or_seize(tid) < 0) {
 						++nerr;
 						if (debug_flag)
-							fprintf(stderr, "attach to pid %d failed\n", tid);
+							error_msg("attach to pid %d failed", tid);
 						continue;
 					}
 					if (debug_flag)
-						fprintf(stderr, "attach to pid %d succeeded\n", tid);
+						error_msg("attach to pid %d succeeded", tid);
 					cur_tcp = tcp;
 					if (tid != tcp->pid)
 						cur_tcp = alloctcb(tid);
@@ -1042,9 +1034,9 @@ startup_attach(void)
 					continue;
 				}
 				if (!qflag) {
-					fprintf(stderr, ntid > 1
-? "Process %u attached with %u threads\n"
-: "Process %u attached\n",
+					error_msg(ntid > 1
+? "Process %u attached with %u threads"
+: "Process %u attached",
 						tcp->pid, ntid);
 				}
 				if (!(tcp->flags & TCB_ATTACHED)) {
@@ -1065,7 +1057,7 @@ startup_attach(void)
 		tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 		newoutf(tcp);
 		if (debug_flag)
-			fprintf(stderr, "attach to pid %d (main) succeeded\n", tcp->pid);
+			error_msg("attach to pid %d (main) succeeded", tcp->pid);
 
 		if (daemonized_tracer) {
 			/*
@@ -1076,9 +1068,7 @@ startup_attach(void)
 		}
 
 		if (!qflag)
-			fprintf(stderr,
-				"Process %u attached\n",
-				tcp->pid);
+			error_msg("Process %u attached", tcp->pid);
 	} /* for each tcbtab[] */
 
  ret:
@@ -1233,7 +1223,7 @@ startup_child(char **argv)
 	 * On NOMMU, can be safely freed only after execve in tracee.
 	 * It's hard to know when that happens, so we just leak it.
 	 */
-	params_for_tracee.pathname = NOMMU_SYSTEM ? strdup(pathname) : pathname;
+	params_for_tracee.pathname = NOMMU_SYSTEM ? xstrdup(pathname) : pathname;
 
 #if defined HAVE_PRCTL && defined PR_SET_PTRACER && defined PR_SET_PTRACER_ANY
 	if (daemonized_tracer)
@@ -1353,7 +1343,7 @@ test_ptrace_seize(void)
 	if (ptrace(PTRACE_SEIZE, pid, 0, 0) == 0) {
 		post_attach_sigstop = 0; /* this sets use_seize to 1 */
 	} else if (debug_flag) {
-		fprintf(stderr, "PTRACE_SEIZE doesn't work\n");
+		error_msg("PTRACE_SEIZE doesn't work");
 	}
 
 	kill(pid, SIGKILL);
@@ -1445,12 +1435,8 @@ init(int argc, char *argv[])
 
 	/* Allocate the initial tcbtab.  */
 	tcbtabsize = argc;	/* Surely enough for all -p args.  */
-	tcbtab = calloc(tcbtabsize, sizeof(tcbtab[0]));
-	if (!tcbtab)
-		die_out_of_memory();
-	tcp = calloc(tcbtabsize, sizeof(*tcp));
-	if (!tcp)
-		die_out_of_memory();
+	tcbtab = xcalloc(tcbtabsize, sizeof(tcbtab[0]));
+	tcp = xcalloc(tcbtabsize, sizeof(*tcp));
 	for (tcbi = 0; tcbi < tcbtabsize; tcbi++)
 		tcbtab[tcbi] = tcp++;
 
@@ -1548,7 +1534,7 @@ init(int argc, char *argv[])
 			qualify(optarg);
 			break;
 		case 'o':
-			outfname = strdup(optarg);
+			outfname = xstrdup(optarg);
 			break;
 		case 'O':
 			i = string_to_uint(optarg);
@@ -1572,7 +1558,7 @@ init(int argc, char *argv[])
 			set_sortby(optarg);
 			break;
 		case 'u':
-			username = strdup(optarg);
+			username = xstrdup(optarg);
 			break;
 #ifdef USE_LIBUNWIND
 		case 'k':
@@ -1596,9 +1582,7 @@ init(int argc, char *argv[])
 	argv += optind;
 	/* argc -= optind; - no need, argc is not used below */
 
-	acolumn_spaces = malloc(acolumn + 1);
-	if (!acolumn_spaces)
-		die_out_of_memory();
+	acolumn_spaces = xmalloc(acolumn + 1);
 	memset(acolumn_spaces, ' ', acolumn);
 	acolumn_spaces[acolumn] = '\0';
 
@@ -1667,7 +1651,7 @@ init(int argc, char *argv[])
 				     PTRACE_O_TRACEFORK |
 				     PTRACE_O_TRACEVFORK;
 	if (debug_flag)
-		fprintf(stderr, "ptrace_setoptions = %#x\n", ptrace_setoptions);
+		error_msg("ptrace_setoptions = %#x", ptrace_setoptions);
 	test_ptrace_seize();
 
 	/* Check if they want to redirect the output. */
@@ -1691,15 +1675,14 @@ init(int argc, char *argv[])
 	}
 
 	if (!outfname || outfname[0] == '|' || outfname[0] == '!') {
-		char *buf = malloc(BUFSIZ);
-		if (!buf)
-			die_out_of_memory();
+		char *buf = xmalloc(BUFSIZ);
 		setvbuf(shared_log, buf, _IOLBF, BUFSIZ);
 	}
 	if (outfname && argv[0]) {
 		if (!opt_intr)
 			opt_intr = INTR_NEVER;
-		qflag = 1;
+		if (!qflag)
+			qflag = 1;
 	}
 	if (!opt_intr)
 		opt_intr = INTR_WHILE_WAIT;
@@ -1800,8 +1783,7 @@ cleanup(void)
 		if (!tcp->pid)
 			continue;
 		if (debug_flag)
-			fprintf(stderr,
-				"cleanup: looking at pid %u\n", tcp->pid);
+			error_msg("cleanup: looking at pid %u", tcp->pid);
 		if (tcp->pid == strace_child) {
 			kill(tcp->pid, SIGCONT);
 			kill(tcp->pid, fatal_sig);
@@ -1862,7 +1844,7 @@ print_debug_info(const int pid, int status)
 			e = "STOP";
 		sprintf(evbuf, ",EVENT_%s (%u)", e, event);
 	}
-	fprintf(stderr, " [wait(0x%06x) = %u] %s%s\n", status, pid, buf, evbuf);
+	error_msg("[wait(0x%06x) = %u] %s%s", status, pid, buf, evbuf);
 }
 
 static struct tcb *
@@ -1887,7 +1869,7 @@ maybe_allocate_tcb(const int pid, int status)
 		tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
 		newoutf(tcp);
 		if (!qflag)
-			fprintf(stderr, "Process %d attached\n", pid);
+			error_msg("Process %d attached", pid);
 		return tcp;
 	} else {
 		/* This can happen if a clone call used
@@ -2010,15 +1992,14 @@ static void
 startup_tcb(struct tcb *tcp)
 {
 	if (debug_flag)
-		fprintf(stderr, "pid %d has TCB_STARTUP, initializing it\n",
-			tcp->pid);
+		error_msg("pid %d has TCB_STARTUP, initializing it", tcp->pid);
 
 	tcp->flags &= ~TCB_STARTUP;
 
 	if (!use_seize) {
 		if (debug_flag)
-			fprintf(stderr, "setting opts 0x%x on pid %d\n",
-				ptrace_setoptions, tcp->pid);
+			error_msg("setting opts 0x%x on pid %d",
+				  ptrace_setoptions, tcp->pid);
 		if (ptrace(PTRACE_SETOPTIONS, tcp->pid, NULL, ptrace_setoptions) < 0) {
 			if (errno != ESRCH) {
 				/* Should never happen, really */
@@ -2205,7 +2186,7 @@ trace(void)
 	 */
 	if (sig == SIGSTOP && (tcp->flags & TCB_IGNORE_ONE_SIGSTOP)) {
 		if (debug_flag)
-			fprintf(stderr, "ignored SIGSTOP on pid %d\n", tcp->pid);
+			error_msg("ignored SIGSTOP on pid %d", tcp->pid);
 		tcp->flags &= ~TCB_IGNORE_ONE_SIGSTOP;
 		goto restart_tracee_with_sig_0;
 	}

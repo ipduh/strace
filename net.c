@@ -80,105 +80,6 @@
 # define SOCK_TYPE_MASK 0xf
 #endif
 
-#ifndef SOL_IP
-# define SOL_IP 0
-#endif
-#ifndef SOL_TCP
-# define SOL_TCP 6
-#endif
-#ifndef SOL_UDP
-# define SOL_UDP 17
-#endif
-#ifndef SOL_IPV6
-# define SOL_IPV6 41
-#endif
-#ifndef SOL_ICMPV6
-# define SOL_ICMPV6 58
-#endif
-#ifndef SOL_SCTP
-# define SOL_SCTP 132
-#endif
-#ifndef SOL_UDPLITE
-# define SOL_UDPLITE 136
-#endif
-#ifndef SOL_RAW
-# define SOL_RAW 255
-#endif
-#ifndef SOL_IPX
-# define SOL_IPX 256
-#endif
-#ifndef SOL_AX25
-# define SOL_AX25 257
-#endif
-#ifndef SOL_ATALK
-# define SOL_ATALK 258
-#endif
-#ifndef SOL_NETROM
-# define SOL_NETROM 259
-#endif
-#ifndef SOL_ROSE
-# define SOL_ROSE 260
-#endif
-#ifndef SOL_DECNET
-# define SOL_DECNET 261
-#endif
-#ifndef SOL_X25
-# define SOL_X25 262
-#endif
-#ifndef SOL_PACKET
-# define SOL_PACKET 263
-#endif
-#ifndef SOL_ATM
-# define SOL_ATM 264
-#endif
-#ifndef SOL_AAL
-# define SOL_AAL 265
-#endif
-#ifndef SOL_IRDA
-# define SOL_IRDA 266
-#endif
-#ifndef SOL_NETBEUI
-# define SOL_NETBEUI 267
-#endif
-#ifndef SOL_LLC
-# define SOL_LLC 268
-#endif
-#ifndef SOL_DCCP
-# define SOL_DCCP 269
-#endif
-#ifndef SOL_NETLINK
-# define SOL_NETLINK 270
-#endif
-#ifndef SOL_TIPC
-# define SOL_TIPC 271
-#endif
-#ifndef SOL_RXRPC
-# define SOL_RXRPC 272
-#endif
-#ifndef SOL_PPPOL2TP
-# define SOL_PPPOL2TP 273
-#endif
-#ifndef SOL_BLUETOOTH
-# define SOL_BLUETOOTH 274
-#endif
-#ifndef SOL_PNPIPE
-# define SOL_PNPIPE 275
-#endif
-#ifndef SOL_RDS
-# define SOL_RDS 276
-#endif
-#ifndef SOL_IUCV
-# define SOL_IUCV 277
-#endif
-#ifndef SOL_CAIF
-# define SOL_CAIF 278
-#endif
-#ifndef SOL_ALG
-# define SOL_ALG 279
-#endif
-#ifndef SOL_NFC
-# define SOL_NFC 280
-#endif
 #include "xlat/socketlayers.h"
 
 #include "xlat/inet_protocols.h"
@@ -199,6 +100,22 @@
 #if defined(AF_PACKET) /* from e.g. linux/if_packet.h */
 # include "xlat/af_packet_types.h"
 #endif
+
+static void
+print_ifindex(unsigned int ifindex)
+{
+#ifdef HAVE_IF_INDEXTONAME
+	char buf[IFNAMSIZ + 1];
+
+	if (if_indextoname(ifindex, buf)) {
+		tprints("if_nametoindex(");
+		print_quoted_string(buf, sizeof(buf), QUOTE_0_TERMINATED);
+		tprints(")");
+		return;
+	}
+#endif
+	tprintf("%u", ifindex);
+}
 
 void
 printsock(struct tcb *tcp, long addr, int addrlen)
@@ -279,30 +196,15 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 				ntohs(addrbuf.sa6.sin6_port), string_addr,
 				addrbuf.sa6.sin6_flowinfo);
 #ifdef HAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID
-		{
-#if defined(HAVE_IF_INDEXTONAME) && defined(IN6_IS_ADDR_LINKLOCAL) && defined(IN6_IS_ADDR_MC_LINKLOCAL)
-			int numericscope = 0;
-			if (IN6_IS_ADDR_LINKLOCAL(&addrbuf.sa6.sin6_addr)
-			    || IN6_IS_ADDR_MC_LINKLOCAL(&addrbuf.sa6.sin6_addr)) {
-				char scopebuf[IFNAMSIZ + 1];
-
-				if (if_indextoname(addrbuf.sa6.sin6_scope_id, scopebuf) == NULL)
-					numericscope++;
-				else {
-					tprints(", sin6_scope_id=if_nametoindex(");
-					print_quoted_string(scopebuf,
-							    sizeof(scopebuf),
-							    QUOTE_0_TERMINATED);
-					tprints(")");
-				}
-			} else
-				numericscope++;
-
-			if (numericscope)
+		tprints(", sin6_scope_id=");
+#if defined IN6_IS_ADDR_LINKLOCAL && defined IN6_IS_ADDR_MC_LINKLOCAL
+		if (IN6_IS_ADDR_LINKLOCAL(&addrbuf.sa6.sin6_addr)
+		    || IN6_IS_ADDR_MC_LINKLOCAL(&addrbuf.sa6.sin6_addr))
+			print_ifindex(addrbuf.sa6.sin6_scope_id);
+		else
 #endif
-				tprintf(", sin6_scope_id=%u", addrbuf.sa6.sin6_scope_id);
-		}
-#endif
+			tprintf("%u", addrbuf.sa6.sin6_scope_id);
+#endif /* HAVE_STRUCT_SOCKADDR_IN6_SIN6_SCOPE_ID */
 		break;
 #endif
 #if defined(AF_IPX)
@@ -378,7 +280,7 @@ printsock(struct tcb *tcp, long addr, int addrlen)
 	tprints("}");
 }
 
-#if HAVE_SENDMSG
+#ifdef HAVE_SENDMSG
 # ifndef SCM_SECURITY
 #  define SCM_SECURITY 0x03
 # endif
@@ -995,7 +897,7 @@ SYS_FUNC(recvmmsg)
 			/* Abusing tcp->auxstr as temp storage.
 			 * Will be used and freed on syscall exit.
 			 */
-			tcp->auxstr = strdup(str);
+			tcp->auxstr = xstrdup(str);
 		} else {
 			tprintf("%#lx, %ld, ", tcp->u_arg[1], tcp->u_arg[2]);
 			printflags(msg_flags, tcp->u_arg[3], "MSG_???");
@@ -1306,6 +1208,64 @@ SYS_FUNC(getsockopt)
 	return 0;
 }
 
+#ifdef IP_ADD_MEMBERSHIP
+static void
+print_mreq(struct tcb *tcp, long addr, unsigned int len)
+{
+	struct ip_mreq mreq;
+
+	if (len < sizeof(mreq)) {
+		printstr(tcp, addr, len);
+		return;
+	}
+	if (umove(tcp, addr, &mreq) < 0) {
+		tprintf("%#lx", addr);
+		return;
+	}
+	tprints("{imr_multiaddr=inet_addr(");
+	print_quoted_string(inet_ntoa(mreq.imr_multiaddr),
+			    16, QUOTE_0_TERMINATED);
+	tprints("), imr_interface=inet_addr(");
+	print_quoted_string(inet_ntoa(mreq.imr_interface),
+			    16, QUOTE_0_TERMINATED);
+	tprints(")}");
+}
+#endif /* IP_ADD_MEMBERSHIP */
+
+#ifdef IPV6_ADD_MEMBERSHIP
+static void
+print_mreq6(struct tcb *tcp, long addr, unsigned int len)
+{
+	struct ipv6_mreq mreq;
+
+	if (len < sizeof(mreq))
+		goto fail;
+
+	if (umove(tcp, addr, &mreq) < 0) {
+		tprintf("%#lx", addr);
+		return;
+	}
+
+#ifdef HAVE_INET_NTOP
+	const struct in6_addr *in6 = &mreq.ipv6mr_multiaddr;
+	char address[INET6_ADDRSTRLEN];
+
+	if (!inet_ntop(AF_INET6, in6, address, sizeof(address)))
+		goto fail;
+
+	tprints("{ipv6mr_multiaddr=inet_pton(");
+	print_quoted_string(address, sizeof(address), QUOTE_0_TERMINATED);
+	tprints("), ipv6mr_interface=");
+	print_ifindex(mreq.ipv6mr_interface);
+	tprints("}");
+	return;
+#endif /* HAVE_INET_NTOP */
+
+fail:
+	printstr(tcp, addr, len);
+}
+#endif /* IPV6_ADD_MEMBERSHIP */
+
 #ifdef MCAST_JOIN_GROUP
 static void
 print_group_req(struct tcb *tcp, long addr, int len)
@@ -1419,12 +1379,35 @@ print_setsockopt(struct tcb *tcp, int level, int name, long addr, int len)
 
 	case SOL_IP:
 		switch (name) {
+#ifdef IP_ADD_MEMBERSHIP
+		case IP_ADD_MEMBERSHIP:
+		case IP_DROP_MEMBERSHIP:
+			print_mreq(tcp, addr, len);
+			goto done;
+#endif /* IP_ADD_MEMBERSHIP */
 #ifdef MCAST_JOIN_GROUP
 		case MCAST_JOIN_GROUP:
 		case MCAST_LEAVE_GROUP:
 			print_group_req(tcp, addr, len);
 			goto done;
 #endif /* MCAST_JOIN_GROUP */
+		}
+		break;
+
+	case SOL_IPV6:
+		switch (name) {
+#ifdef IPV6_ADD_MEMBERSHIP
+		case IPV6_ADD_MEMBERSHIP:
+		case IPV6_DROP_MEMBERSHIP:
+# ifdef IPV6_JOIN_ANYCAST
+		case IPV6_JOIN_ANYCAST:
+# endif
+# ifdef IPV6_LEAVE_ANYCAST
+		case IPV6_LEAVE_ANYCAST:
+# endif
+			print_mreq6(tcp, addr, len);
+			goto done;
+#endif /* IPV6_ADD_MEMBERSHIP */
 		}
 		break;
 

@@ -123,7 +123,8 @@ strace_SOURCES =	\
 	v4l2.c		\
 	vsprintf.c	\
 	wait.c		\
-	xattr.c
+	xattr.c		\
+	xmalloc.c
 
 if USE_LIBUNWIND
 strace_SOURCES += unwind.c
@@ -163,6 +164,8 @@ EXTRA_DIST =				\
 	errnoent.sh			\
 	ioctlsort.c			\
 	linux/32/ioctls_inc.h		\
+	linux/32/ioctls_inc_align32.h	\
+	linux/32/ioctls_inc_align64.h	\
 	linux/32/syscallent.h		\
 	linux/64/ioctls_inc.h		\
 	linux/64/syscallent.h		\
@@ -341,6 +344,14 @@ EXTRA_DIST =				\
 	linux/mips/syscallent.h		\
 	linux/mips/userent.h		\
 	linux/mtd-abi.h			\
+	linux/nios2/arch_regs.c		\
+	linux/nios2/get_error.c		\
+	linux/nios2/get_scno.c		\
+	linux/nios2/get_syscall_args.c	\
+	linux/nios2/ioctls_arch0.h	\
+	linux/nios2/ioctls_inc0.h	\
+	linux/nios2/print_pc.c		\
+	linux/nios2/syscallent.h	\
 	linux/or1k/arch_regs.c		\
 	linux/or1k/get_error.c		\
 	linux/or1k/get_scno.c		\

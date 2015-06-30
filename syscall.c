@@ -313,35 +313,23 @@ update_personality(struct tcb *tcp, unsigned int personality)
 		return;
 	tcp->currpers = personality;
 
-# if defined(POWERPC64)
+# undef PERSONALITY_NAMES
+# if defined POWERPC64
+#  define PERSONALITY_NAMES {"64 bit", "32 bit"}
+# elif defined X86_64
+#  define PERSONALITY_NAMES {"64 bit", "32 bit", "x32"}
+# elif defined X32
+#  define PERSONALITY_NAMES {"x32", "32 bit"}
+# elif defined AARCH64
+#  define PERSONALITY_NAMES {"32-bit", "AArch64"}
+# elif defined TILE
+#  define PERSONALITY_NAMES {"64-bit", "32-bit"}
+# endif
+# ifdef PERSONALITY_NAMES
 	if (!qflag) {
-		static const char *const names[] = {"64 bit", "32 bit"};
-		fprintf(stderr, "[ Process PID=%d runs in %s mode. ]\n",
-			tcp->pid, names[personality]);
-	}
-# elif defined(X86_64)
-	if (!qflag) {
-		static const char *const names[] = {"64 bit", "32 bit", "x32"};
-		fprintf(stderr, "[ Process PID=%d runs in %s mode. ]\n",
-			tcp->pid, names[personality]);
-	}
-# elif defined(X32)
-	if (!qflag) {
-		static const char *const names[] = {"x32", "32 bit"};
-		fprintf(stderr, "[ Process PID=%d runs in %s mode. ]\n",
-			tcp->pid, names[personality]);
-	}
-# elif defined(AARCH64)
-	if (!qflag) {
-		static const char *const names[] = {"32-bit", "AArch64"};
-		fprintf(stderr, "[ Process PID=%d runs in %s mode. ]\n",
-			tcp->pid, names[personality]);
-	}
-# elif defined(TILE)
-	if (!qflag) {
-		static const char *const names[] = {"64-bit", "32-bit"};
-		fprintf(stderr, "[ Process PID=%d runs in %s mode. ]\n",
-			tcp->pid, names[personality]);
+		static const char *const names[] = PERSONALITY_NAMES;
+		error_msg("[ Process PID=%d runs in %s mode. ]",
+			  tcp->pid, names[personality]);
 	}
 # endif
 }
@@ -381,9 +369,8 @@ reallocate_qual(const unsigned int n)
 	unsigned p;
 	qualbits_t *qp;
 	for (p = 0; p < SUPPORTED_PERSONALITIES; p++) {
-		qp = qual_vec[p] = realloc(qual_vec[p], n * sizeof(qualbits_t));
-		if (!qp)
-			die_out_of_memory();
+		qp = qual_vec[p] = xreallocarray(qual_vec[p], n,
+						 sizeof(qualbits_t));
 		memset(&qp[num_quals], 0, (n - num_quals) * sizeof(qualbits_t));
 	}
 	num_quals = n;
@@ -531,9 +518,7 @@ qualify(const char *s)
 	for (i = 0; i < num_quals; i++) {
 		qualify_one(i, opt->bitflag, !not, -1);
 	}
-	copy = strdup(s);
-	if (!copy)
-		die_out_of_memory();
+	copy = xstrdup(s);
 	for (p = strtok(copy, ","); p; p = strtok(NULL, ",")) {
 		int n;
 		if (opt->bitflag == QUAL_TRACE && (n = lookup_class(p)) > 0) {
@@ -602,6 +587,30 @@ decode_ipc_subcall(struct tcb *tcp)
 }
 #endif
 
+#ifdef LINUX_MIPSO32
+static void
+decode_mips_subcall(struct tcb *tcp)
+{
+	if (!SCNO_IS_VALID(tcp->u_arg[0]))
+		return;
+	tcp->scno = tcp->u_arg[0];
+	tcp->qual_flg = qual_flags[tcp->scno];
+	tcp->s_ent = &sysent[tcp->scno];
+	memmove(&tcp->u_arg[0], &tcp->u_arg[1],
+		sizeof(tcp->u_arg) - sizeof(tcp->u_arg[0]));
+	/*
+	 * Fetching the last arg of 7-arg syscalls (fadvise64_64
+	 * and sync_file_range) would require additional code,
+	 * see linux/mips/get_syscall_args.c
+	 */
+}
+
+SYS_FUNC(syscall)
+{
+	return printargs(tcp);
+}
+#endif
+
 int
 printargs(struct tcb *tcp)
 {
@@ -660,7 +669,7 @@ dumpio(struct tcb *tcp)
 		} else if (func == sys_readv) {
 			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 			return;
-#if HAVE_SENDMSG
+#ifdef HAVE_SENDMSG
 		} else if (func == sys_recvmsg) {
 			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
 			return;
@@ -678,7 +687,7 @@ dumpio(struct tcb *tcp)
 			dumpstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 		else if (func == sys_writev)
 			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
-#if HAVE_SENDMSG
+#ifdef HAVE_SENDMSG
 		else if (func == sys_sendmsg)
 			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
 		else if (func == sys_sendmmsg)
@@ -770,6 +779,11 @@ trace_syscall_entering(struct tcb *tcp)
 		goto ret;
 	}
 
+#ifdef LINUX_MIPSO32
+	if (sys_syscall == tcp->s_ent->sys_func)
+		decode_mips_subcall(tcp);
+#endif
+
 	if (   sys_execve == tcp->s_ent->sys_func
 # if defined(SPARC) || defined(SPARC64)
 	    || sys_execv == tcp->s_ent->sys_func
@@ -859,10 +873,8 @@ trace_syscall_exiting(struct tcb *tcp)
 	update_personality(tcp, tcp->currpers);
 #endif
 	res = (get_regs_error ? -1 : get_syscall_result(tcp));
-	if (res == 1) {
-		if (filtered(tcp) || hide_log_until_execve)
-			goto ret;
-	}
+	if (filtered(tcp) || hide_log_until_execve)
+		goto ret;
 
 	if (cflag) {
 		count_syscall(tcp, &tv);
@@ -1046,8 +1058,7 @@ trace_syscall_exiting(struct tcb *tcp)
 			*/
 #endif
 			default:
-				fprintf(stderr,
-					"invalid rval format\n");
+				error_msg("invalid rval format");
 				break;
 			}
 		}
@@ -1269,8 +1280,7 @@ get_scno(struct tcb *tcp)
 		tcp->s_ent = &unknown;
 		tcp->qual_flg = UNDEFINED_SCNO | QUAL_RAW | DEFAULT_QUAL_FLAGS;
 		if (debug_flag)
-			fprintf(stderr, "pid %d invalid syscall %ld\n",
-				tcp->pid, scno);
+			error_msg("pid %d invalid syscall %ld", tcp->pid, scno);
 	}
 	return 1;
 }

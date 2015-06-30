@@ -125,6 +125,11 @@ microblaze*)
 	arch=microblaze
 	AC_DEFINE([MICROBLAZE], 1, [Define for the MicroBlaze architecture.])
 	;;
+nios2*)
+	arch=nios2
+	AC_DEFINE([NIOS2], 1, [Define for the Nios-II architecture.])
+	;;
+
 or1k*)
 	arch=or1k
 	AC_DEFINE([OR1K], 1, [Define for the OpenRISC 1000 architecture.])
@@ -228,6 +233,7 @@ AC_CHECK_FUNCS(m4_normalize([
 	fputs_unlocked
 	if_indextoname
 	inet_ntop
+	inet_pton
 	pipe2
 	prctl
 	preadv
@@ -711,6 +717,7 @@ AC_CACHE_CHECK([for BLKGETSIZE64], [ac_cv_have_blkgetsize64],
 AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
 AC_CHECK_SIZEOF([off_t],,[#include <sys/types.h>])
+AC_CHECK_SIZEOF([struct i64_i32],,[struct i64_i32 {long long i64; int i32;};])
 
 AC_CACHE_CHECK([for SIGRTMIN], [st_cv_SIGRTMIN],
 	       [[st_cv_SIGRTMIN="$(echo SIGRTMIN |
