@@ -264,6 +264,7 @@ extern SYS_FUNC(swapon);
 extern SYS_FUNC(symlinkat);
 extern SYS_FUNC(sync_file_range);
 extern SYS_FUNC(sync_file_range2);
+extern SYS_FUNC(syscall);
 extern SYS_FUNC(sysctl);
 extern SYS_FUNC(sysinfo);
 extern SYS_FUNC(syslog);
