@@ -24,14 +24,17 @@ static const struct xlat wait4_options[] = {
 #if defined(WNOWAIT) || (defined(HAVE_DECL_WNOWAIT) && HAVE_DECL_WNOWAIT)
  XLAT(WNOWAIT),
 #endif
-#if defined(__WCLONE) || (defined(HAVE_DECL___WCLONE) && HAVE_DECL___WCLONE)
+#if !(defined(__WCLONE) || (defined(HAVE_DECL___WCLONE) && HAVE_DECL___WCLONE))
+# define __WCLONE 0x80000000
+#endif
  XLAT(__WCLONE),
+#if !(defined(__WALL) || (defined(HAVE_DECL___WALL) && HAVE_DECL___WALL))
+# define __WALL 0x40000000
 #endif
-#if defined(__WALL) || (defined(HAVE_DECL___WALL) && HAVE_DECL___WALL)
  XLAT(__WALL),
+#if !(defined(__WNOTHREAD) || (defined(HAVE_DECL___WNOTHREAD) && HAVE_DECL___WNOTHREAD))
+# define __WNOTHREAD 0x20000000
 #endif
-#if defined(__WNOTHREAD) || (defined(HAVE_DECL___WNOTHREAD) && HAVE_DECL___WNOTHREAD)
  XLAT(__WNOTHREAD),
-#endif
  XLAT_END
 };

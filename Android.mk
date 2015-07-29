@@ -50,6 +50,7 @@ LOCAL_SRC_FILES := \
     aio.c \
     bjm.c \
     block.c \
+    bpf.c \
     cacheflush.c \
     capability.c \
     chdir.c \
@@ -83,6 +84,7 @@ LOCAL_SRC_FILES := \
     loop.c \
     lseek.c \
     mem.c \
+    memfd_create.c \
     mknod.c \
     mount.c \
     mtd.c \
@@ -92,6 +94,7 @@ LOCAL_SRC_FILES := \
     personality.c \
     prctl.c \
     printmode.c \
+    printrusage.c \
     printsiginfo.c \
     process.c \
     process_vm.c \
@@ -102,6 +105,7 @@ LOCAL_SRC_FILES := \
     reboot.c \
     renameat.c \
     resource.c \
+    rtc.c \
     sched.c \
     scsi.c \
     seccomp.c \
