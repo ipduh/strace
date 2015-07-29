@@ -50,7 +50,6 @@
 /* #include <ctype.h> */
 #include <string.h>
 #include <errno.h>
-#include <signal.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/syscall.h>
@@ -249,6 +248,7 @@ extern char *stpcpy(char *dst, const char *src);
 typedef struct sysent {
 	unsigned nargs;
 	int	sys_flags;
+	int	sen;
 	int	(*sys_func)();
 	const char *sys_name;
 } struct_sysent;
@@ -274,6 +274,7 @@ struct tcb {
 #if SUPPORTED_PERSONALITIES > 1
 	unsigned int currpers;	/* Personality at the time of scno update */
 #endif
+	int sys_func_rval;	/* Syscall entry parser's return value */
 	int curcol;		/* Output column for this process */
 	FILE *outf;		/* Output file for this process */
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
@@ -367,6 +368,8 @@ extern const struct xlat whence_codes[];
 
 #define RVAL_STR	020	/* Print `auxstr' field after return val */
 #define RVAL_NONE	040	/* Print nothing */
+
+#define RVAL_DECODED	0100	/* syscall decoding finished */
 
 #define TRACE_FILE	001	/* Trace file-related syscalls. */
 #define TRACE_IPC	002	/* Trace IPC-related syscalls. */
@@ -466,6 +469,9 @@ extern int get_scno(struct tcb *tcp);
 extern int umoven(struct tcb *, long, unsigned int, void *);
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof(*(objp)), (void *) (objp))
+extern int umoven_or_printaddr(struct tcb *, long, unsigned int, void *);
+#define umove_or_printaddr(pid, addr, objp)	\
+	umoven_or_printaddr((pid), (addr), sizeof(*(objp)), (void *) (objp))
 extern int umovestr(struct tcb *, long, unsigned int, char *);
 extern int upeek(int pid, long, long *);
 
@@ -508,6 +514,7 @@ extern int getllval(struct tcb *, unsigned long long *, int);
 extern int printllval(struct tcb *, const char *, int)
 	ATTRIBUTE_FORMAT((printf, 2, 0));
 
+extern void printaddr(long);
 extern void printxval(const struct xlat *, const unsigned int, const char *);
 extern int printargs(struct tcb *);
 extern int printargs_lu(struct tcb *);
@@ -522,10 +529,28 @@ extern void dumpiov_in_mmsghdr(struct tcb *, long);
 extern void dumpiov(struct tcb *, int, long);
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
+extern void printnum_short(struct tcb *, long, const char *)
+	ATTRIBUTE_FORMAT((printf, 3, 0));
 extern void printnum_int(struct tcb *, long, const char *)
 	ATTRIBUTE_FORMAT((printf, 3, 0));
 extern void printnum_long(struct tcb *, long, const char *)
 	ATTRIBUTE_FORMAT((printf, 3, 0));
+#if SIZEOF_LONG == 8
+# define printnum_int64 printnum_long
+#else
+extern void printnum_int64(struct tcb *, long, const char *)
+	ATTRIBUTE_FORMAT((printf, 3, 0));
+#endif
+extern void printpair_int(struct tcb *, long, const char *)
+	ATTRIBUTE_FORMAT((printf, 3, 0));
+extern void printpair_long(struct tcb *, long, const char *)
+	ATTRIBUTE_FORMAT((printf, 3, 0));
+#if SIZEOF_LONG == 8
+# define printpair_int64 printpair_long
+#else
+extern void printpair_int64(struct tcb *, long, const char *)
+	ATTRIBUTE_FORMAT((printf, 3, 0));
+#endif
 extern void printpath(struct tcb *, long);
 extern void printpathn(struct tcb *, long, unsigned int);
 #define TIMESPEC_TEXT_BUFSIZE (sizeof(long)*3 * 2 + sizeof("{%u, %u}"))
@@ -538,7 +563,6 @@ extern void printtv_bitness(struct tcb *, long, enum bitness_t, int);
 extern char *sprinttv(char *, struct tcb *, long, enum bitness_t, int special);
 extern void print_timespec(struct tcb *, long);
 extern void sprint_timespec(char *, struct tcb *, long);
-extern void printsiginfo(const siginfo_t *, bool);
 extern void printsiginfo_at(struct tcb *tcp, long addr);
 extern void printfd(struct tcb *, int);
 extern bool print_sockaddr_by_inode(const unsigned long, const char *);
@@ -559,14 +583,8 @@ extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_io
 extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
 extern void tprint_open_modes(int);
 extern const char *sprint_open_modes(int);
-extern void print_loff_t(struct tcb *, long);
 extern void print_seccomp_filter(struct tcb *tcp, unsigned long);
 
-extern const struct_ioctlent *ioctl_lookup(const unsigned int);
-extern const struct_ioctlent *ioctl_next_match(const struct_ioctlent *);
-extern void ioctl_print_code(const unsigned int);
-extern int ioctl_decode(struct tcb *, const unsigned int, long);
-extern int ioctl_decode_command_number(const unsigned int);
 extern int block_ioctl(struct tcb *, const unsigned int, long);
 extern int evdev_ioctl(struct tcb *, const unsigned int, long);
 extern int loop_ioctl(struct tcb *, const unsigned int, long);

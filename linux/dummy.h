@@ -32,18 +32,13 @@
 #endif
 
 /* still unfinished */
-#define	sys_bpf			printargs
-#define	sys_execveat		printargs
 #define	sys_ioperm		printargs
 #define	sys_iopl		printargs
 #define	sys_kcmp		printargs
 #define	sys_kexec_file_load	printargs
 #define	sys_lookup_dcookie	printargs
-#define	sys_memfd_create	printargs
 #define	sys_name_to_handle_at	printargs
 #define	sys_open_by_handle_at	printargs
-#define	sys_sched_getattr	printargs
-#define	sys_sched_setattr	printargs
 #define	sys_sysfs		printargs
 #define	sys_vm86		printargs
 #define	sys_vm86old		printargs
@@ -63,6 +58,7 @@
 #define	sys_acct		sys_chdir
 #define	sys_chroot		sys_chdir
 #define	sys_clock_getres	sys_clock_gettime
+#define	sys_connect		sys_bind
 #define	sys_fchdir		sys_close
 #define	sys_fdatasync		sys_close
 #define	sys_fsync		sys_close
@@ -113,13 +109,16 @@
 #define	sys_gettid		printargs
 #define	sys_idle		printargs
 #define	sys_inotify_init	printargs
+#define	sys_ipc			printargs
 #define	sys_munlockall		printargs
 #define	sys_pause		printargs
+#define	sys_printargs		printargs
 #define	sys_rt_sigreturn	printargs
 #define	sys_sched_yield		printargs
 #define	sys_setsid		printargs
 #define	sys_set_tid_address	printargs
 #define	sys_setup		printargs
+#define	sys_socketcall		printargs
 #define	sys_sync		printargs
 #define	sys_timer_delete	printargs
 #define	sys_timer_getoverrun	printargs
@@ -127,6 +126,7 @@
 
 /* printargs_lu/ld does the right thing */
 #define	sys_alarm		printargs_lu
+#define	sys_epoll_create	printargs_ld
 #define	sys_getpgrp		printargs_lu
 #define	sys_getsid		printargs_lu
 #define	sys_nice		printargs_ld

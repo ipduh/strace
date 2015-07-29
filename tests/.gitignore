@@ -1,4 +1,7 @@
+bpf
 caps
+execve
+execveat
 fanotify_mark
 filter-unavailable
 getrandom
@@ -8,6 +11,7 @@ ip_mreq
 ipc_msg
 ipc_sem
 ipc_shm
+memfd_create
 mmap
 mmap64
 mmsg
@@ -16,11 +20,13 @@ netlink_inet_diag
 netlink_unix_diag
 pc
 pipe
+sched_xetattr
 scm_rights
 seccomp
 select
 set_ptracer_any
 sigaction
+sigaltstack
 sigreturn
 stack-fcall
 stat
@@ -33,6 +39,8 @@ uio
 umovestr
 umovestr2
 unix-pair-send-recv
+utime
+xattr
 *.log
 *.log.*
 *.o

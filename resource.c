@@ -31,7 +31,6 @@
 #include "defs.h"
 #include <sys/resource.h>
 #include <sys/times.h>
-#include <linux/kernel.h>
 
 #include "xlat/resources.h"
 
@@ -58,24 +57,10 @@ print_rlimit64(struct tcb *tcp, unsigned long addr)
 		uint64_t rlim_max;
 	} rlim;
 
-	if (umove(tcp, addr, &rlim) < 0)
-		tprintf("%#lx", addr);
-	else {
+	if (!umove_or_printaddr(tcp, addr, &rlim)) {
 		tprintf("{rlim_cur=%s,", sprint_rlim64(rlim.rlim_cur));
 		tprintf(" rlim_max=%s}", sprint_rlim64(rlim.rlim_max));
 	}
-}
-
-static void
-decode_rlimit64(struct tcb *tcp, unsigned long addr)
-{
-	if (!addr)
-		tprints("NULL");
-	else if (!verbose(tcp) ||
-		 (exiting(tcp) && syserror(tcp)))
-		tprintf("%#lx", addr);
-	else
-		print_rlimit64(tcp, addr);
 }
 
 #if !defined(current_wordsize) || current_wordsize == 4
@@ -103,9 +88,7 @@ print_rlimit32(struct tcb *tcp, unsigned long addr)
 		uint32_t rlim_max;
 	} rlim;
 
-	if (umove(tcp, addr, &rlim) < 0)
-		tprintf("%#lx", addr);
-	else {
+	if (!umove_or_printaddr(tcp, addr, &rlim)) {
 		tprintf("{rlim_cur=%s,", sprint_rlim32(rlim.rlim_cur));
 		tprintf(" rlim_max=%s}", sprint_rlim32(rlim.rlim_max));
 	}
@@ -114,31 +97,25 @@ print_rlimit32(struct tcb *tcp, unsigned long addr)
 static void
 decode_rlimit(struct tcb *tcp, unsigned long addr)
 {
-	if (!addr)
-		tprints("NULL");
-	else if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)))
-		tprintf("%#lx", addr);
-	else {
 # if defined(X86_64) || defined(X32)
-		/*
-		 * i386 is the only personality on X86_64 and X32
-		 * with 32-bit rlim_t.
-		 * When current_personality is X32, current_wordsize
-		 * equals to 4 but rlim_t is 64-bit.
-		 */
-		if (current_personality == 1)
+	/*
+	 * i386 is the only personality on X86_64 and X32
+	 * with 32-bit rlim_t.
+	 * When current_personality is X32, current_wordsize
+	 * equals to 4 but rlim_t is 64-bit.
+	 */
+	if (current_personality == 1)
 # else
-		if (current_wordsize == 4)
+	if (current_wordsize == 4)
 # endif
-			print_rlimit32(tcp, addr);
-		else
-			print_rlimit64(tcp, addr);
-	}
+		print_rlimit32(tcp, addr);
+	else
+		print_rlimit64(tcp, addr);
 }
 
 #else /* defined(current_wordsize) && current_wordsize != 4 */
 
-# define decode_rlimit decode_rlimit64
+# define decode_rlimit print_rlimit64
 
 #endif
 
@@ -156,12 +133,11 @@ SYS_FUNC(getrlimit)
 
 SYS_FUNC(setrlimit)
 {
-	if (entering(tcp)) {
-		printxval(resources, tcp->u_arg[0], "RLIMIT_???");
-		tprints(", ");
-		decode_rlimit(tcp, tcp->u_arg[1]);
-	}
-	return 0;
+	printxval(resources, tcp->u_arg[0], "RLIMIT_???");
+	tprints(", ");
+	decode_rlimit(tcp, tcp->u_arg[1]);
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(prlimit64)
@@ -170,108 +146,15 @@ SYS_FUNC(prlimit64)
 		tprintf("%ld, ", tcp->u_arg[0]);
 		printxval(resources, tcp->u_arg[1], "RLIMIT_???");
 		tprints(", ");
-		decode_rlimit64(tcp, tcp->u_arg[2]);
+		print_rlimit64(tcp, tcp->u_arg[2]);
 		tprints(", ");
 	} else {
-		decode_rlimit64(tcp, tcp->u_arg[3]);
+		print_rlimit64(tcp, tcp->u_arg[3]);
 	}
 	return 0;
 }
 
 #include "xlat/usagewho.h"
-
-#ifdef ALPHA
-void
-printrusage32(struct tcb *tcp, long addr)
-{
-	struct timeval32 {
-		unsigned tv_sec;
-		unsigned tv_usec;
-	};
-	struct rusage32 {
-		struct timeval32 ru_utime;	/* user time used */
-		struct timeval32 ru_stime;	/* system time used */
-		long	ru_maxrss;		/* maximum resident set size */
-		long	ru_ixrss;		/* integral shared memory size */
-		long	ru_idrss;		/* integral unshared data size */
-		long	ru_isrss;		/* integral unshared stack size */
-		long	ru_minflt;		/* page reclaims */
-		long	ru_majflt;		/* page faults */
-		long	ru_nswap;		/* swaps */
-		long	ru_inblock;		/* block input operations */
-		long	ru_oublock;		/* block output operations */
-		long	ru_msgsnd;		/* messages sent */
-		long	ru_msgrcv;		/* messages received */
-		long	ru_nsignals;		/* signals received */
-		long	ru_nvcsw;		/* voluntary context switches */
-		long	ru_nivcsw;		/* involuntary " */
-	} ru;
-
-	if (!addr)
-		tprints("NULL");
-	else if (syserror(tcp) || !verbose(tcp))
-		tprintf("%#lx", addr);
-	else if (umove(tcp, addr, &ru) < 0)
-		tprints("{...}");
-	else if (!abbrev(tcp)) {
-		tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ",
-			(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
-			(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
-		tprintf("ru_maxrss=%lu, ru_ixrss=%lu, ",
-			ru.ru_maxrss, ru.ru_ixrss);
-		tprintf("ru_idrss=%lu, ru_isrss=%lu, ",
-			ru.ru_idrss, ru.ru_isrss);
-		tprintf("ru_minflt=%lu, ru_majflt=%lu, ru_nswap=%lu, ",
-			ru.ru_minflt, ru.ru_majflt, ru.ru_nswap);
-		tprintf("ru_inblock=%lu, ru_oublock=%lu, ",
-			ru.ru_inblock, ru.ru_oublock);
-		tprintf("ru_msgsnd=%lu, ru_msgrcv=%lu, ",
-			ru.ru_msgsnd, ru.ru_msgrcv);
-		tprintf("ru_nsignals=%lu, ru_nvcsw=%lu, ru_nivcsw=%lu}",
-			ru.ru_nsignals, ru.ru_nvcsw, ru.ru_nivcsw);
-	}
-	else {
-		tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ...}",
-			(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
-			(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
-	}
-}
-#endif
-
-void
-printrusage(struct tcb *tcp, long addr)
-{
-	struct rusage ru;
-
-	if (!addr)
-		tprints("NULL");
-	else if (syserror(tcp) || !verbose(tcp))
-		tprintf("%#lx", addr);
-	else if (umove(tcp, addr, &ru) < 0)
-		tprints("{...}");
-	else if (!abbrev(tcp)) {
-		tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ",
-			(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
-			(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
-		tprintf("ru_maxrss=%lu, ru_ixrss=%lu, ",
-			ru.ru_maxrss, ru.ru_ixrss);
-		tprintf("ru_idrss=%lu, ru_isrss=%lu, ",
-			ru.ru_idrss, ru.ru_isrss);
-		tprintf("ru_minflt=%lu, ru_majflt=%lu, ru_nswap=%lu, ",
-			ru.ru_minflt, ru.ru_majflt, ru.ru_nswap);
-		tprintf("ru_inblock=%lu, ru_oublock=%lu, ",
-			ru.ru_inblock, ru.ru_oublock);
-		tprintf("ru_msgsnd=%lu, ru_msgrcv=%lu, ",
-			ru.ru_msgsnd, ru.ru_msgrcv);
-		tprintf("ru_nsignals=%lu, ru_nvcsw=%lu, ru_nivcsw=%lu}",
-			ru.ru_nsignals, ru.ru_nvcsw, ru.ru_nivcsw);
-	}
-	else {
-		tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ...}",
-			(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
-			(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
-	}
-}
 
 SYS_FUNC(getrusage)
 {
@@ -301,20 +184,18 @@ SYS_FUNC(osf_getrusage)
 
 SYS_FUNC(getpriority)
 {
-	if (entering(tcp)) {
-		printxval(priorities, tcp->u_arg[0], "PRIO_???");
-		tprintf(", %lu", tcp->u_arg[1]);
-	}
-	return 0;
+	printxval(priorities, tcp->u_arg[0], "PRIO_???");
+	tprintf(", %lu", tcp->u_arg[1]);
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(setpriority)
 {
-	if (entering(tcp)) {
-		printxval(priorities, tcp->u_arg[0], "PRIO_???");
-		tprintf(", %lu, %ld", tcp->u_arg[1], tcp->u_arg[2]);
-	}
-	return 0;
+	printxval(priorities, tcp->u_arg[0], "PRIO_???");
+	tprintf(", %lu, %d", tcp->u_arg[1], (int) tcp->u_arg[2]);
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(times)
@@ -322,13 +203,7 @@ SYS_FUNC(times)
 	struct tms tbuf;
 
 	if (exiting(tcp)) {
-		if (tcp->u_arg[0] == 0)
-			tprints("NULL");
-		else if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[0]);
-		else if (umove(tcp, tcp->u_arg[0], &tbuf) < 0)
-			tprints("{...}");
-		else {
+		if (!umove_or_printaddr(tcp, tcp->u_arg[0], &tbuf)) {
 			tprintf("{tms_utime=%llu, tms_stime=%llu, ",
 				(unsigned long long) tbuf.tms_utime,
 				(unsigned long long) tbuf.tms_stime);

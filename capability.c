@@ -51,13 +51,8 @@ get_cap_header(struct tcb *tcp, unsigned long addr)
 static void
 print_cap_header(struct tcb *tcp, unsigned long addr, cap_user_header_t h)
 {
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-
-	if (!h) {
-		tprintf("%#lx", addr);
+	if (!addr || !h) {
+		printaddr(addr);
 		return;
 	}
 
@@ -86,14 +81,8 @@ print_cap_data(struct tcb *tcp, unsigned long addr, const cap_user_header_t h)
 	struct user_cap_data_struct data[2];
 	unsigned int len;
 
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-
-	if (!h || !verbose(tcp) ||
-	    (exiting(tcp) && syserror(tcp))) {
-		tprintf("%#lx", addr);
+	if (!addr || !h) {
+		printaddr(addr);
 		return;
 	}
 
@@ -103,10 +92,8 @@ print_cap_data(struct tcb *tcp, unsigned long addr, const cap_user_header_t h)
 	else
 		len = 1;
 
-	if (umoven(tcp, addr, len * sizeof(data[0]), data) < 0) {
-		tprintf("%#lx", addr);
+	if (umoven_or_printaddr(tcp, addr, len * sizeof(data[0]), data))
 		return;
-	}
 
 	tprints("{");
 	print_cap_bits(data[0].effective, len > 1 ? data[1].effective : 0);
@@ -134,11 +121,10 @@ SYS_FUNC(capget)
 
 SYS_FUNC(capset)
 {
-	if (entering(tcp)) {
-		cap_user_header_t h = get_cap_header(tcp, tcp->u_arg[0]);
-		print_cap_header(tcp, tcp->u_arg[0], h);
-		tprints(", ");
-		print_cap_data(tcp, tcp->u_arg[1], h);
-	}
-	return 0;
+	cap_user_header_t h = get_cap_header(tcp, tcp->u_arg[0]);
+	print_cap_header(tcp, tcp->u_arg[0], h);
+	tprints(", ");
+	print_cap_data(tcp, tcp->u_arg[1], h);
+
+	return RVAL_DECODED;
 }

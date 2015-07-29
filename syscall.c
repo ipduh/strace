@@ -81,6 +81,9 @@
 #define SI STACKTRACE_INVALIDATE_CACHE
 #define SE STACKTRACE_CAPTURE_ON_ENTER
 
+#define SEN_NAME(syscall_name) SEN_ ## syscall_name
+#define SEN(syscall_name) SEN_NAME(syscall_name), SYS_FUNC_NAME(syscall_name)
+
 const struct_sysent sysent0[] = {
 #include "syscallent.h"
 };
@@ -98,6 +101,8 @@ static const struct_sysent sysent2[] = {
 #endif
 
 /* Now undef them since short defines cause wicked namespace pollution. */
+#undef SEN
+#undef SEN_NAME
 #undef TD
 #undef TF
 #undef TI
@@ -650,49 +655,56 @@ printargs_ld(struct tcb *tcp)
 static void
 dumpio(struct tcb *tcp)
 {
-	int (*func)();
+	int sen;
 
 	if (syserror(tcp))
 		return;
 	if ((unsigned long) tcp->u_arg[0] >= num_quals)
 		return;
-	func = tcp->s_ent->sys_func;
-	if (func == printargs)
+	sen = tcp->s_ent->sen;
+	if (SEN_printargs == sen)
 		return;
 	if (qual_flags[tcp->u_arg[0]] & QUAL_READ) {
-		if (func == sys_read ||
-		    func == sys_pread ||
-		    func == sys_recv ||
-		    func == sys_recvfrom) {
+		switch (sen) {
+		case SEN_read:
+		case SEN_pread:
+		case SEN_recv:
+		case SEN_recvfrom:
 			dumpstr(tcp, tcp->u_arg[1], tcp->u_rval);
 			return;
-		} else if (func == sys_readv) {
+		case SEN_readv:
 			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 			return;
 #ifdef HAVE_SENDMSG
-		} else if (func == sys_recvmsg) {
+		case SEN_recvmsg:
 			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
 			return;
-		} else if (func == sys_recvmmsg) {
+		case SEN_recvmmsg:
 			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
 			return;
 #endif
 		}
 	}
 	if (qual_flags[tcp->u_arg[0]] & QUAL_WRITE) {
-		if (func == sys_write ||
-		    func == sys_pwrite ||
-		    func == sys_send ||
-		    func == sys_sendto)
+		switch (sen) {
+		case SEN_write:
+		case SEN_pwrite:
+		case SEN_send:
+		case SEN_sendto:
 			dumpstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		else if (func == sys_writev)
+			break;
+		case SEN_writev:
 			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
+			break;
 #ifdef HAVE_SENDMSG
-		else if (func == sys_sendmsg)
+		case SEN_sendmsg:
 			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
-		else if (func == sys_sendmmsg)
+			break;
+		case SEN_sendmmsg:
 			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
+			break;
 #endif
+		}
 	}
 }
 
@@ -780,33 +792,30 @@ trace_syscall_entering(struct tcb *tcp)
 	}
 
 #ifdef LINUX_MIPSO32
-	if (sys_syscall == tcp->s_ent->sys_func)
+	if (SEN_syscall == tcp->s_ent->sen)
 		decode_mips_subcall(tcp);
 #endif
 
-	if (   sys_execve == tcp->s_ent->sys_func
+	if (   SEN_execve == tcp->s_ent->sen
 # if defined(SPARC) || defined(SPARC64)
-	    || sys_execv == tcp->s_ent->sys_func
+	    || SEN_execv == tcp->s_ent->sen
 # endif
 	   ) {
 		hide_log_until_execve = 0;
 	}
 
 #if defined(SYS_socket_subcall) || defined(SYS_ipc_subcall)
-	while (1) {
+	switch (tcp->s_ent->sen) {
 # ifdef SYS_socket_subcall
-		if (tcp->s_ent->sys_func == sys_socketcall) {
+		case SEN_socketcall:
 			decode_socket_subcall(tcp);
 			break;
-		}
 # endif
 # ifdef SYS_ipc_subcall
-		if (tcp->s_ent->sys_func == sys_ipc) {
+		case SEN_ipc:
 			decode_ipc_subcall(tcp);
 			break;
-		}
 # endif
-		break;
 	}
 #endif
 
@@ -814,6 +823,7 @@ trace_syscall_entering(struct tcb *tcp)
 	 || (tracing_paths && !pathtrace_match(tcp))
 	) {
 		tcp->flags |= TCB_INSYSCALL | TCB_FILTERED;
+		tcp->sys_func_rval = 0;
 		return 0;
 	}
 
@@ -836,7 +846,7 @@ trace_syscall_entering(struct tcb *tcp)
 		tprintf("%s(", undefined_scno_name(tcp));
 	else
 		tprintf("%s(", tcp->s_ent->sys_name);
-	if ((tcp->qual_flg & QUAL_RAW) && tcp->s_ent->sys_func != sys_exit)
+	if ((tcp->qual_flg & QUAL_RAW) && SEN_exit != tcp->s_ent->sen)
 		res = printargs(tcp);
 	else
 		res = tcp->s_ent->sys_func(tcp);
@@ -844,6 +854,7 @@ trace_syscall_entering(struct tcb *tcp)
 	fflush(tcp->outf);
  ret:
 	tcp->flags |= TCB_INSYSCALL;
+	tcp->sys_func_rval = res;
 	/* Measure the entrance time as late as possible to avoid errors. */
 	if (Tflag || cflag)
 		gettimeofday(&tcp->etime, NULL);
@@ -910,6 +921,7 @@ trace_syscall_exiting(struct tcb *tcp)
 		tprints("= ? <unavailable>\n");
 		line_ended();
 		tcp->flags &= ~TCB_INSYSCALL;
+		tcp->sys_func_rval = 0;
 		return res;
 	}
 	tcp->s_prev_ent = tcp->s_ent;
@@ -928,7 +940,10 @@ trace_syscall_exiting(struct tcb *tcp)
 	 */
 		if (not_failing_only && tcp->u_error)
 			goto ret;	/* ignore failed syscalls */
-		sys_res = tcp->s_ent->sys_func(tcp);
+		if (tcp->sys_func_rval & RVAL_DECODED)
+			sys_res = tcp->sys_func_rval;
+		else
+			sys_res = tcp->s_ent->sys_func(tcp);
 	}
 
 	tprints(") ");
@@ -1081,6 +1096,7 @@ trace_syscall_exiting(struct tcb *tcp)
 
  ret:
 	tcp->flags &= ~TCB_INSYSCALL;
+	tcp->sys_func_rval = 0;
 	return 0;
 }
 

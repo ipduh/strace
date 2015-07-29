@@ -34,16 +34,14 @@ SYS_FUNC(syslog)
 				return 0;
 			break;
 		default:
-			if (entering(tcp)) {
-				tprintf("%#lx, %lu",
-					tcp->u_arg[1], tcp->u_arg[2]);
-			}
-			return 0;
+			printaddr(tcp->u_arg[1]);
+			tprintf(", %lu", tcp->u_arg[2]);
+			return RVAL_DECODED;
 	}
 
 	/* bufp */
 	if (syserror(tcp))
-		tprintf("%#lx", tcp->u_arg[1]);
+		printaddr(tcp->u_arg[1]);
 	else
 		printstr(tcp, tcp->u_arg[1], tcp->u_rval);
 	/* len */

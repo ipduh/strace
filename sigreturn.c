@@ -1,4 +1,5 @@
 #include "defs.h"
+#include <signal.h>
 #include "regs.h"
 #include "ptrace.h"
 
@@ -13,10 +14,15 @@
 # error NSIG < 32
 #endif
 
+static void
+arch_sigreturn(struct tcb *tcp)
+{
+#include "arch_sigreturn.c"
+}
+
 SYS_FUNC(sigreturn)
 {
-	if (entering(tcp)) {
-#include "arch_sigreturn.c"
-	}
-	return 0;
+	arch_sigreturn(tcp);
+
+	return RVAL_DECODED;
 }

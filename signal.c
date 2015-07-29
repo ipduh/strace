@@ -32,6 +32,7 @@
  */
 
 #include "defs.h"
+#include <signal.h>
 
 #ifndef NSIG
 # warning NSIG is not defined, using 32
@@ -227,16 +228,11 @@ print_sigset_addr_len(struct tcb *tcp, long addr, long len)
 {
 	char mask[NSIG / 8];
 
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
 	/* Here len is usually equals NSIG / 8 or current_wordsize.
 	 * But we code this defensively:
 	 */
 	if (len < 0) {
- bad:
-		tprintf("%#lx", addr);
+		printaddr(addr);
 		return;
 	}
 	if (len >= NSIG / 8)
@@ -244,8 +240,8 @@ print_sigset_addr_len(struct tcb *tcp, long addr, long len)
 	else
 		len = (len + 3) & ~3;
 
-	if (umoven(tcp, addr, len, mask) < 0)
-		goto bad;
+	if (umoven_or_printaddr(tcp, addr, len, mask))
+		return;
 	tprints(sprintsigmask_n("", mask, len));
 }
 
@@ -294,39 +290,25 @@ static void
 decode_old_sigaction(struct tcb *tcp, long addr)
 {
 	struct old_sigaction sa;
-	int r;
-
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp))) {
-		tprintf("%#lx", addr);
-		return;
-	}
 
 #if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
 	if (current_wordsize != sizeof(sa.__sa_handler) && current_wordsize == 4) {
 		struct old_sigaction32 sa32;
-		r = umove(tcp, addr, &sa32);
-		if (r >= 0) {
-			memset(&sa, 0, sizeof(sa));
-			sa.__sa_handler = (void*)(uintptr_t)sa32.__sa_handler;
-			sa.sa_flags = sa32.sa_flags;
+
+		if (umove_or_printaddr(tcp, addr, &sa32))
+			return;
+
+		memset(&sa, 0, sizeof(sa));
+		sa.__sa_handler = (void*)(uintptr_t)sa32.__sa_handler;
+		sa.sa_flags = sa32.sa_flags;
 #if HAVE_SA_RESTORER && defined SA_RESTORER
-			sa.sa_restorer = (void*)(uintptr_t)sa32.sa_restorer;
+		sa.sa_restorer = (void*)(uintptr_t)sa32.sa_restorer;
 #endif
-			sa.sa_mask = sa32.sa_mask;
-		}
+		sa.sa_mask = sa32.sa_mask;
 	} else
 #endif
-	{
-		r = umove(tcp, addr, &sa);
-	}
-	if (r < 0) {
-		tprints("{...}");
+	if (umove_or_printaddr(tcp, addr, &sa))
 		return;
-	}
 
 	/* Architectures using function pointers, like
 	 * hppa, may need to manipulate the function pointer
@@ -336,14 +318,16 @@ decode_old_sigaction(struct tcb *tcp, long addr)
 	 * be manipulated by strace. In order to prevent the
 	 * compiler from generating code to manipulate
 	 * __sa_handler we cast the function pointers to long. */
+	tprints("{");
 	if ((long)sa.__sa_handler == (long)SIG_ERR)
-		tprints("{SIG_ERR, ");
+		tprints("SIG_ERR");
 	else if ((long)sa.__sa_handler == (long)SIG_DFL)
-		tprints("{SIG_DFL, ");
+		tprints("SIG_DFL");
 	else if ((long)sa.__sa_handler == (long)SIG_IGN)
-		tprints("{SIG_IGN, ");
+		tprints("SIG_IGN");
 	else
-		tprintf("{%#lx, ", (long) sa.__sa_handler);
+		printaddr((long) sa.__sa_handler);
+	tprints(", ");
 #ifdef MIPS
 	tprintsigmask_addr("", sa.sa_mask);
 #else
@@ -386,7 +370,7 @@ SYS_FUNC(signal)
 			tprints("SIG_IGN");
 			break;
 		default:
-			tprintf("%#lx", tcp->u_arg[1]);
+			printaddr(tcp->u_arg[1]);
 		}
 		return 0;
 	}
@@ -418,10 +402,9 @@ SYS_FUNC(siggetmask)
 
 SYS_FUNC(sigsuspend)
 {
-	if (entering(tcp)) {
-		tprintsigmask_val("", tcp->u_arg[2]);
-	}
-	return 0;
+	tprintsigmask_val("", tcp->u_arg[2]);
+
+	return RVAL_DECODED;
 }
 
 #ifdef HAVE_SIGACTION
@@ -457,10 +440,7 @@ SYS_FUNC(sigprocmask)
 		tprints(", ");
 	}
 	else {
-		if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[2]);
-		else
-			print_sigset_addr_len(tcp, tcp->u_arg[2], current_wordsize);
+		print_sigset_addr_len(tcp, tcp->u_arg[2], current_wordsize);
 	}
 # endif /* !ALPHA */
 	return 0;
@@ -470,35 +450,27 @@ SYS_FUNC(sigprocmask)
 
 SYS_FUNC(kill)
 {
-	if (entering(tcp)) {
-		tprintf("%ld, %s",
-			widen_to_long(tcp->u_arg[0]),
-			signame(tcp->u_arg[1])
-		);
-	}
-	return 0;
+	tprintf("%ld, %s",
+		widen_to_long(tcp->u_arg[0]),
+		signame(tcp->u_arg[1]));
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(tgkill)
 {
-	if (entering(tcp)) {
-		tprintf("%ld, %ld, %s",
-			widen_to_long(tcp->u_arg[0]),
-			widen_to_long(tcp->u_arg[1]),
-			signame(tcp->u_arg[2])
-		);
-	}
-	return 0;
+	tprintf("%ld, %ld, %s",
+		widen_to_long(tcp->u_arg[0]),
+		widen_to_long(tcp->u_arg[1]),
+		signame(tcp->u_arg[2]));
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(sigpending)
 {
-	if (exiting(tcp)) {
-		if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[0]);
-		else
-			print_sigset_addr_len(tcp, tcp->u_arg[0], current_wordsize);
-	}
+	if (exiting(tcp))
+		print_sigset_addr_len(tcp, tcp->u_arg[0], current_wordsize);
 	return 0;
 }
 
@@ -512,10 +484,7 @@ SYS_FUNC(rt_sigprocmask)
 		tprints(", ");
 	}
 	else {
-		if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[2]);
-		else
-			print_sigset_addr_len(tcp, tcp->u_arg[2], tcp->u_arg[3]);
+		print_sigset_addr_len(tcp, tcp->u_arg[2], tcp->u_arg[3]);
 		tprintf(", %lu", tcp->u_arg[3]);
 	}
 	return 0;
@@ -553,46 +522,34 @@ static void
 decode_new_sigaction(struct tcb *tcp, long addr)
 {
 	struct new_sigaction sa;
-	int r;
 
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp))) {
-		tprintf("%#lx", addr);
-		return;
-	}
 #if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
 	if (current_wordsize != sizeof(sa.sa_flags) && current_wordsize == 4) {
 		struct new_sigaction32 sa32;
-		r = umove(tcp, addr, &sa32);
-		if (r >= 0) {
-			memset(&sa, 0, sizeof(sa));
-			sa.__sa_handler = (void*)(unsigned long)sa32.__sa_handler;
-			sa.sa_flags     = sa32.sa_flags;
+
+		if (umove_or_printaddr(tcp, addr, &sa32))
+			return;
+
+		memset(&sa, 0, sizeof(sa));
+		sa.__sa_handler = (void*)(unsigned long)sa32.__sa_handler;
+		sa.sa_flags     = sa32.sa_flags;
 #if HAVE_SA_RESTORER && defined SA_RESTORER
-			sa.sa_restorer  = (void*)(unsigned long)sa32.sa_restorer;
+		sa.sa_restorer  = (void*)(unsigned long)sa32.sa_restorer;
 #endif
-			/* Kernel treats sa_mask as an array of longs.
-			 * For 32-bit process, "long" is uint32_t, thus, for example,
-			 * 32th bit in sa_mask will end up as bit 0 in sa_mask[1].
-			 * But for (64-bit) kernel, 32th bit in sa_mask is
-			 * 32th bit in 0th (64-bit) long!
-			 * For little-endian, it's the same.
-			 * For big-endian, we swap 32-bit words.
-			 */
-			sa.sa_mask[0] = sa32.sa_mask[0] + ((long)(sa32.sa_mask[1]) << 32);
-		}
+		/* Kernel treats sa_mask as an array of longs.
+		 * For 32-bit process, "long" is uint32_t, thus, for example,
+		 * 32th bit in sa_mask will end up as bit 0 in sa_mask[1].
+		 * But for (64-bit) kernel, 32th bit in sa_mask is
+		 * 32th bit in 0th (64-bit) long!
+		 * For little-endian, it's the same.
+		 * For big-endian, we swap 32-bit words.
+		 */
+		sa.sa_mask[0] = sa32.sa_mask[0] + ((long)(sa32.sa_mask[1]) << 32);
 	} else
 #endif
-	{
-		r = umove(tcp, addr, &sa);
-	}
-	if (r < 0) {
-		tprints("{...}");
+	if (umove_or_printaddr(tcp, addr, &sa))
 		return;
-	}
+
 	/* Architectures using function pointers, like
 	 * hppa, may need to manipulate the function pointer
 	 * to compute the result of a comparison. However,
@@ -656,10 +613,7 @@ SYS_FUNC(rt_sigpending)
 		 * This allows non-rt sigpending() syscall
 		 * to reuse rt_sigpending() code in kernel.
 		 */
-		if (syserror(tcp))
-			tprintf("%#lx", tcp->u_arg[0]);
-		else
-			print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[1]);
+		print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[1]);
 		tprintf(", %lu", tcp->u_arg[1]);
 	}
 	return 0;
@@ -667,12 +621,11 @@ SYS_FUNC(rt_sigpending)
 
 SYS_FUNC(rt_sigsuspend)
 {
-	if (entering(tcp)) {
-		/* NB: kernel requires arg[1] == NSIG / 8 */
-		print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[1]);
-		tprintf(", %lu", tcp->u_arg[1]);
-	}
-	return 0;
+	/* NB: kernel requires arg[1] == NSIG / 8 */
+	print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[1]);
+	tprintf(", %lu", tcp->u_arg[1]);
+
+	return RVAL_DECODED;
 }
 
 static void
@@ -685,20 +638,18 @@ print_sigqueueinfo(struct tcb *tcp, int sig, unsigned long uinfo)
 
 SYS_FUNC(rt_sigqueueinfo)
 {
-	if (entering(tcp)) {
-		tprintf("%lu, ", tcp->u_arg[0]);
-		print_sigqueueinfo(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	}
-	return 0;
+	tprintf("%lu, ", tcp->u_arg[0]);
+	print_sigqueueinfo(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(rt_tgsigqueueinfo)
 {
-	if (entering(tcp)) {
-		tprintf("%lu, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
-		print_sigqueueinfo(tcp, tcp->u_arg[2], tcp->u_arg[3]);
-	}
-	return 0;
+	tprintf("%lu, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
+	print_sigqueueinfo(tcp, tcp->u_arg[2], tcp->u_arg[3]);
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(rt_sigtimedwait)
@@ -729,31 +680,26 @@ SYS_FUNC(rt_sigtimedwait)
 
 SYS_FUNC(restart_syscall)
 {
-	if (entering(tcp)) {
-		tprintf("<... resuming interrupted %s ...>",
-			tcp->s_prev_ent
-			? tcp->s_prev_ent->sys_name
-			: "system call"
-		);
-	}
-	return 0;
+	tprintf("<... resuming interrupted %s ...>",
+		tcp->s_prev_ent ? tcp->s_prev_ent->sys_name : "system call");
+
+	return RVAL_DECODED;
 }
 
 static int
 do_signalfd(struct tcb *tcp, int flags_arg)
 {
 	/* NB: kernel requires arg[2] == NSIG / 8 */
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+	tprintf(", %lu", tcp->u_arg[2]);
+	if (flags_arg >= 0) {
 		tprints(", ");
-		print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %lu", tcp->u_arg[2]);
-		if (flags_arg >= 0) {
-			tprints(", ");
-			printflags(open_mode_flags, tcp->u_arg[flags_arg], "O_???");
-		}
+		printflags(open_mode_flags, tcp->u_arg[flags_arg], "O_???");
 	}
-	return 0;
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(signalfd)

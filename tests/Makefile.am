@@ -9,7 +9,10 @@ AM_CPPFLAGS = -I$(top_builddir)/$(OS)/$(ARCH) \
 	      -I$(top_srcdir)/$(OS)
 
 check_PROGRAMS = \
+	bpf \
 	caps \
+	execve \
+	execveat \
 	fanotify_mark \
 	filter-unavailable \
 	getrandom \
@@ -19,6 +22,7 @@ check_PROGRAMS = \
 	ipc_msg \
 	ipc_sem \
 	ipc_shm \
+	memfd_create \
 	mmap \
 	mmap64 \
 	mmsg \
@@ -27,11 +31,13 @@ check_PROGRAMS = \
 	netlink_unix_diag \
 	pc \
 	pipe \
+	sched_xetattr \
 	scm_rights \
 	seccomp \
 	select \
 	set_ptracer_any \
 	sigaction \
+	sigaltstack \
 	sigreturn \
 	stack-fcall \
 	stat \
@@ -43,9 +49,11 @@ check_PROGRAMS = \
 	uio \
 	umovestr \
 	umovestr2 \
-	unix-pair-send-recv
+	unix-pair-send-recv \
+	utime \
+	xattr
 
-filter_unavailable_LDFLAGS = -pthread
+filter_unavailable_LDADD = -lpthread
 mmap64_CFLAGS = $(AM_CFLAGS) -D_FILE_OFFSET_BITS=64
 pc_LDADD = $(dl_LIBS)
 stat_CFLAGS = $(AM_CFLAGS) -D_FILE_OFFSET_BITS=64
@@ -58,8 +66,11 @@ TESTS = \
 	strace-f.test \
 	qual_syscall.test \
 	bexecve.test \
+	bpf.test \
 	caps.test \
 	dumpio.test \
+	execve.test \
+	execveat.test \
 	fanotify_mark.test \
 	filter-unavailable.test \
 	getdents.test \
@@ -69,15 +80,18 @@ TESTS = \
 	ipc_msg.test \
 	ipc_shm.test \
 	ipc_sem.test \
+	sched_xetattr.test \
 	scm_rights-fd.test \
 	seccomp.test \
 	select.test \
 	sigaction.test \
+	sigaltstack.test \
 	sigreturn.test \
 	stat.test \
 	stat32-v.test \
 	stat64-v.test \
 	statfs.test \
+	memfd_create.test \
 	mmap.test \
 	mmap64.test \
 	mmsg.test \
@@ -94,6 +108,8 @@ TESTS = \
 	uid16.test \
 	uid32.test \
 	uio.test \
+	utime.test \
+	xattr.test \
 	count.test \
 	detach-sleeping.test \
 	detach-stopped.test \
@@ -109,6 +125,10 @@ AM_TEST_LOG_FLAGS = STRACE_ARCH=$(ARCH) $(srcdir)/run.sh
 EXTRA_DIST = init.sh run.sh match.awk \
 	     caps.awk \
 	     dumpio.expected \
+	     execve.expected \
+	     execve-v.expected \
+	     execveat.expected \
+	     execveat-v.expected \
 	     fanotify_mark.expected \
 	     filter-unavailable.expected \
 	     getdents.awk \
@@ -117,6 +137,7 @@ EXTRA_DIST = init.sh run.sh match.awk \
 	     ioctl.expected \
 	     ip_mreq.expected \
 	     ipc.sh \
+	     memfd_create.expected \
 	     mmsg.expected \
 	     net.expected \
 	     net-fd.expected \
@@ -127,6 +148,7 @@ EXTRA_DIST = init.sh run.sh match.awk \
 	     restart_syscall_unknown.expected \
 	     select.awk \
 	     sigaction.awk \
+	     sigaltstack.expected \
 	     statfs.expected \
 	     sun_path.expected \
 	     uid.awk \
@@ -134,6 +156,7 @@ EXTRA_DIST = init.sh run.sh match.awk \
 	     umovestr.expected \
 	     unix-yy-accept.awk \
 	     unix-yy-connect.awk \
+	     xattr.expected \
 	     $(TESTS)
 
 CLEANFILES = $(TESTS:=.tmp)

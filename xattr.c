@@ -7,74 +7,75 @@
 #include "xlat/xattrflags.h"
 
 static void
-print_xattr_val(struct tcb *tcp, int failed,
-		unsigned long arg,
+print_xattr_val(struct tcb *tcp,
+		unsigned long addr,
 		unsigned long insize,
 		unsigned long size)
 {
-	char *buf;
+	char *buf = NULL;
 	unsigned int len;
 
+	tprints(", ");
+
 	if (insize == 0)
-		goto failed;
+		goto done;
 
 	len = size;
 	if (size != (unsigned long) len)
-		goto failed;
+		goto done;
 
 	if (!len) {
-		tprintf(", \"\", %ld", insize);
+		tprintf("\"\", %ld", insize);
 		return;
 	}
 
+	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)))
+		goto done;
+
 	buf = malloc(len);
 	if (!buf)
-		goto failed;
+		goto done;
 
-	if (umoven(tcp, arg, len, buf) < 0) {
+	if (umoven(tcp, addr, len, buf) < 0) {
 		free(buf);
-		goto failed;
+		buf = NULL;
+		goto done;
 	}
 
 	/* Don't print terminating NUL if there is one. */
 	if (buf[len - 1] == '\0')
 		--len;
 
-	tprints(", ");
-	print_quoted_string(buf, len, 0);
+done:
+	if (buf) {
+		print_quoted_string(buf, len, 0);
+		free(buf);
+	} else {
+		printaddr(addr);
+	}
 	tprintf(", %ld", insize);
-
-	free(buf);
-	return;
-
-failed:
-	tprintf(", 0x%lx, %ld", arg, insize);
 }
 
 SYS_FUNC(setxattr)
 {
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
-		print_xattr_val(tcp, 0, tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[3]);
-		tprints(", ");
-		printflags(xattrflags, tcp->u_arg[4], "XATTR_???");
-	}
-	return 0;
+	printpath(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printstr(tcp, tcp->u_arg[1], -1);
+	print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[3]);
+	tprints(", ");
+	printflags(xattrflags, tcp->u_arg[4], "XATTR_???");
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(fsetxattr)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
-		print_xattr_val(tcp, 0, tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[3]);
-		tprints(", ");
-		printflags(xattrflags, tcp->u_arg[4], "XATTR_???");
-	}
-	return 0;
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printstr(tcp, tcp->u_arg[1], -1);
+	print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[3]);
+	tprints(", ");
+	printflags(xattrflags, tcp->u_arg[4], "XATTR_???");
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(getxattr)
@@ -84,8 +85,7 @@ SYS_FUNC(getxattr)
 		tprints(", ");
 		printstr(tcp, tcp->u_arg[1], -1);
 	} else {
-		print_xattr_val(tcp, syserror(tcp), tcp->u_arg[2], tcp->u_arg[3],
-				tcp->u_rval);
+		print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_rval);
 	}
 	return 0;
 }
@@ -97,8 +97,7 @@ SYS_FUNC(fgetxattr)
 		tprints(", ");
 		printstr(tcp, tcp->u_arg[1], -1);
 	} else {
-		print_xattr_val(tcp, syserror(tcp), tcp->u_arg[2], tcp->u_arg[3],
-				tcp->u_rval);
+		print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_rval);
 	}
 	return 0;
 }
@@ -107,16 +106,12 @@ static void
 print_xattr_list(struct tcb *tcp, unsigned long addr, unsigned long size)
 {
 	if (syserror(tcp)) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	} else {
-		if (!addr) {
-			tprints("NULL");
-		} else {
-			unsigned long len =
-				(size < (unsigned long) tcp->u_rval) ?
-					size : (unsigned long) tcp->u_rval;
-			printstr(tcp, addr, len);
-		}
+		unsigned long len =
+			(size < (unsigned long) tcp->u_rval) ?
+				size : (unsigned long) tcp->u_rval;
+		printstr(tcp, addr, len);
 	}
 	tprintf(", %lu", size);
 }
@@ -145,20 +140,16 @@ SYS_FUNC(flistxattr)
 
 SYS_FUNC(removexattr)
 {
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
-	}
-	return 0;
+	printpath(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printstr(tcp, tcp->u_arg[1], -1);
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(fremovexattr)
 {
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
-	}
-	return 0;
+	printfd(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	printstr(tcp, tcp->u_arg[1], -1);
+	return RVAL_DECODED;
 }

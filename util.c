@@ -376,40 +376,49 @@ printflags(const struct xlat *xlat, int flags, const char *dflt)
 }
 
 void
-printnum_long(struct tcb *tcp, long addr, const char *fmt)
+printaddr(const long addr)
 {
-	long num;
-
-	if (!addr) {
+	if (!addr)
 		tprints("NULL");
-		return;
-	}
-	if (umove(tcp, addr, &num) < 0) {
+	else
 		tprintf("%#lx", addr);
-		return;
-	}
-	tprints("[");
-	tprintf(fmt, num);
-	tprints("]");
 }
 
-void
-printnum_int(struct tcb *tcp, long addr, const char *fmt)
-{
-	int num;
-
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (umove(tcp, addr, &num) < 0) {
-		tprintf("%#lx", addr);
-		return;
-	}
-	tprints("[");
-	tprintf(fmt, num);
-	tprints("]");
+#define DEF_PRINTNUM(name, type) \
+void									\
+printnum_ ## name(struct tcb *tcp, const long addr, const char *fmt)	\
+{									\
+	type num;							\
+	if (!umove_or_printaddr(tcp, addr, &num)) {			\
+		tprints("[");						\
+		tprintf(fmt, num);					\
+		tprints("]");						\
+	}								\
 }
+
+#define DEF_PRINTPAIR(name, type) \
+void									\
+printpair_ ## name(struct tcb *tcp, const long addr, const char *fmt)	\
+{									\
+	type pair[2];							\
+	if (!umove_or_printaddr(tcp, addr, &pair)) {			\
+		tprints("[");						\
+		tprintf(fmt, pair[0]);					\
+		tprints(", ");						\
+		tprintf(fmt, pair[1]);					\
+		tprints("]");						\
+	}								\
+}
+
+DEF_PRINTNUM(long, long)
+DEF_PRINTPAIR(long, long)
+DEF_PRINTNUM(int, int)
+DEF_PRINTPAIR(int, int)
+DEF_PRINTNUM(short, short)
+#if SIZEOF_LONG != 8
+DEF_PRINTNUM(int64, uint64_t)
+DEF_PRINTPAIR(int64, uint64_t)
+#endif
 
 const char *
 sprinttime(time_t t)
@@ -1082,6 +1091,22 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 		len -= m;
 	}
 
+	return 0;
+}
+
+int
+umoven_or_printaddr(struct tcb *tcp, const long addr, const unsigned int len,
+		    void *our_addr)
+{
+	if (!addr) {
+		tprints("NULL");
+		return -1;
+	}
+	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
+	    umoven(tcp, addr, len, our_addr) < 0) {
+		tprintf("%#lx", addr);
+		return -1;
+	}
 	return 0;
 }
 

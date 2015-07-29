@@ -1,5 +1,9 @@
 #include "defs.h"
 
+#include <signal.h>
+
+#include "printsiginfo.h"
+
 #include "xlat/sigbus_codes.h"
 #include "xlat/sigchld_codes.h"
 #include "xlat/sigfpe_codes.h"
@@ -189,13 +193,7 @@ void
 printsiginfo_at(struct tcb *tcp, long addr)
 {
 	siginfo_t si;
-	if (!addr) {
-		tprints("NULL");
-		return;
-	}
-	if (syserror(tcp) || umove(tcp, addr, &si) < 0) {
-		tprintf("%#lx", addr);
-		return;
-	}
-	printsiginfo(&si, verbose(tcp));
+
+	if (!umove_or_printaddr(tcp, addr, &si))
+		printsiginfo(&si, verbose(tcp));
 }

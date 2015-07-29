@@ -10,14 +10,12 @@ printargv(struct tcb *tcp, long addr)
 	} cp;
 	const char *sep;
 	unsigned int n = 0;
-	unsigned wordsize = current_wordsize;
+	const unsigned wordsize = current_wordsize;
 
 	cp.p64 = 1;
 	for (sep = ""; !abbrev(tcp) || n < max_strlen / 2; sep = ", ", ++n) {
-		if (umoven(tcp, addr, wordsize, cp.data) < 0) {
-			tprintf("%#lx", addr);
+		if (umoven_or_printaddr(tcp, addr, wordsize, cp.data))
 			return;
-		}
 		if (wordsize == 4)
 			cp.p64 = cp.p32;
 		if (cp.p64 == 0)
@@ -34,51 +32,70 @@ static void
 printargc(const char *fmt, struct tcb *tcp, long addr)
 {
 	int count;
-	char *cp;
+	char *cp = NULL;
 
-	for (count = 0; umove(tcp, addr, &cp) >= 0 && cp != NULL; count++) {
-		addr += sizeof(char *);
+	for (count = 0; !umoven(tcp, addr, current_wordsize, &cp) && cp; count++) {
+		addr += current_wordsize;
 	}
 	tprintf(fmt, count, count == 1 ? "" : "s");
 }
 
+static void
+decode_execve(struct tcb *tcp, const unsigned int index)
+{
+	printpath(tcp, tcp->u_arg[index + 0]);
+	tprints(", ");
+
+	if (!tcp->u_arg[index + 1] || !verbose(tcp))
+		printaddr(tcp->u_arg[index + 1]);
+	else {
+		tprints("[");
+		printargv(tcp, tcp->u_arg[index + 1]);
+		tprints("]");
+	}
+	tprints(", ");
+
+	if (!tcp->u_arg[index + 2] || !verbose(tcp))
+		printaddr(tcp->u_arg[index + 2]);
+	else if (abbrev(tcp))
+		printargc("[/* %d var%s */]", tcp, tcp->u_arg[index + 2]);
+	else {
+		tprints("[");
+		printargv(tcp, tcp->u_arg[index + 2]);
+		tprints("]");
+	}
+}
+
 SYS_FUNC(execve)
 {
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		if (!verbose(tcp))
-			tprintf(", %#lx", tcp->u_arg[1]);
-		else {
-			tprints(", [");
-			printargv(tcp, tcp->u_arg[1]);
-			tprints("]");
-		}
-		if (!verbose(tcp))
-			tprintf(", %#lx", tcp->u_arg[2]);
-		else if (abbrev(tcp))
-			printargc(", [/* %d var%s */]", tcp, tcp->u_arg[2]);
-		else {
-			tprints(", [");
-			printargv(tcp, tcp->u_arg[2]);
-			tprints("]");
-		}
-	}
-	return 0;
+	decode_execve(tcp, 0);
+
+	return RVAL_DECODED;
+}
+
+SYS_FUNC(execveat)
+{
+	print_dirfd(tcp, tcp->u_arg[0]);
+	decode_execve(tcp, 1);
+	tprints(", ");
+	printflags(at_flags, tcp->u_arg[4], "AT_???");
+
+	return RVAL_DECODED;
 }
 
 #if defined(SPARC) || defined(SPARC64)
 SYS_FUNC(execv)
 {
-	if (entering(tcp)) {
-		printpath(tcp, tcp->u_arg[0]);
-		if (!verbose(tcp))
-			tprintf(", %#lx", tcp->u_arg[1]);
-		else {
-			tprints(", [");
-			printargv(tcp, tcp->u_arg[1]);
-			tprints("]");
-		}
+	printpath(tcp, tcp->u_arg[0]);
+	tprints(", ");
+	if (!tcp->u_arg[1] || !verbose(tcp))
+		printaddr(tcp->u_arg[1]);
+	else {
+		tprints("[");
+		printargv(tcp, tcp->u_arg[1]);
+		tprints("]");
 	}
-	return 0;
+
+	return RVAL_DECODED;
 }
 #endif /* SPARC || SPARC64 */
