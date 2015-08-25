@@ -282,39 +282,3 @@ LOCAL_MODULE_TAGS := debug
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 
 include $(BUILD_EXECUTABLE)
-
-
-# -------------------------------------------------------------------------
-
-# TODO: this is currently broken; the checked in ioctlent*.h files are from the 4.10 release.
-
-.PHONY: update-ioctls
-update-ioctls:
-	# Build the generated .h files needed by ioctlsort from the current bionic uapi headers.
-	cd external/strace; ./linux/ioctlent.sh ../../bionic/libc/kernel/uapi/
-	# Build the ioctlsort tool.
-	ONE_SHOT_MAKEFILE=external/strace/Android.mk make -f build/core/main.mk $(HOST_OUT_EXECUTABLES)/ioctlsort
-	# Remove the generated .h files now we've built ioctlsort.
-	rm external/strace/ioctls.h external/strace/ioctldefs.h
-	# Run the ioctlsort tool to generate the one file we do want to check in.
-	ioctlsort | tr -d '\r' | sed 's/^\([[:space:]]*{\)"[^"]\+",[[:space:]]*/\1/' | sort -u -k2,2 -k1,1 > external/strace/linux/ioctlent.h
-	# Rebuild strace with the new "ioctlent.h".
-	ONE_SHOT_MAKEFILE=external/strace/Android.mk make -f build/core/main.mk $(TARGET_OUT_OPTIONAL_EXECUTABLES)/strace
-
-# We don't build ioctlsort unless really necessary, because we don't check
-# in the temporary files needed to build it. This tool is only necessary
-# when updating strace's list of ioctls.
-ifneq (,$(filter $(HOST_OUT_EXECUTABLES)/ioctlsort,$(MAKECMDGOALS)))
-include $(CLEAR_VARS)
-LOCAL_SRC_FILES := ioctlsort.c
-# As long as ashmem isn't in glibc, we need the bionic header.
-# Unfortunately, it uses __u32 without pulling in a definition, so we need asm/types.h too.
-LOCAL_CFLAGS += -include asm/types.h -include bionic/libc/kernel/uapi/linux/ashmem.h
-LOCAL_CFLAGS += -Wno-unused-parameter
-LOCAL_MODULE := ioctlsort
-LOCAL_MODULE_TAGS := optional
-LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
-include $(BUILD_HOST_EXECUTABLE)
-endif
-
-# -------------------------------------------------------------------------
