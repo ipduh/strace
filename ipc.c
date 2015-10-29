@@ -33,10 +33,24 @@
 # include <mqueue.h>
 #endif
 #include <fcntl.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
-#include <sys/msg.h>
-#include <sys/shm.h>
+#ifdef HAVE_SYS_IPC_H
+# include <sys/ipc.h>
+#endif
+#ifdef HAVE_SYS_SEM_H
+# include <sys/sem.h>
+#endif
+#ifdef HAVE_SYS_MSG_H
+# include <sys/msg.h>
+#endif
+#ifdef HAVE_SYS_SHM_H
+# include <sys/shm.h>
+#endif
+#ifdef HAVE_LINUX_MQUEUE_H
+# include <linux/mqueue.h>
+#endif
+#ifdef HAVE_LINUX_SEM_H
+# include <linux/sem.h>
+#endif
 
 #ifndef MSG_STAT
 #define MSG_STAT 11
@@ -175,6 +189,7 @@ SYS_FUNC(msgrcv)
 	return 0;
 }
 
+#if defined(HAVE_SYS_SHM_H) || defined(HAVE_LINUX_SEM_H)
 static void
 tprint_sembuf(const struct sembuf *sb)
 {
@@ -182,10 +197,12 @@ tprint_sembuf(const struct sembuf *sb)
 	printflags(semop_flags, sb->sem_flg, "SEM_???");
 	tprints("}");
 }
+#endif
 
 static void
 tprint_sembuf_array(struct tcb *tcp, const long addr, const unsigned long count)
 {
+#if defined(HAVE_SYS_SHM_H) || defined(HAVE_LINUX_SEM_H)
 	unsigned long max_count;
 	struct sembuf sb;
 
@@ -215,6 +232,9 @@ tprint_sembuf_array(struct tcb *tcp, const long addr, const unsigned long count)
 
 		tprints("]");
 	}
+#else
+	printaddr(addr);
+#endif
 	tprintf(", %lu", count);
 }
 
@@ -341,7 +361,7 @@ SYS_FUNC(mq_open)
 	if (tcp->u_arg[1] & O_CREAT) {
 		/* mode */
 		tprintf(", %#lo, ", tcp->u_arg[2]);
-# ifndef HAVE_MQUEUE_H
+# if !defined(HAVE_MQUEUE_H) && !defined(HAVE_LINUX_MQUEUE_H)
 		printaddr(tcp->u_arg[3]);
 # else
 		struct mq_attr attr;
@@ -386,7 +406,7 @@ SYS_FUNC(mq_notify)
 static void
 printmqattr(struct tcb *tcp, const long addr)
 {
-# ifndef HAVE_MQUEUE_H
+# if !defined(HAVE_MQUEUE_H) && !defined(HAVE_LINUX_MQUEUE_H)
 	printaddr(addr);
 # else
 	struct mq_attr attr;
