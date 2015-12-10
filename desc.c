@@ -29,219 +29,6 @@
  */
 
 #include "defs.h"
-#include <fcntl.h>
-#include <sys/file.h>
-#ifdef HAVE_SYS_EPOLL_H
-# include <sys/epoll.h>
-#endif
-#ifdef HAVE_LINUX_PERF_EVENT_H
-# include  <linux/perf_event.h>
-#endif
-
-#include "xlat/fcntlcmds.h"
-#include "xlat/fdflags.h"
-#include "xlat/flockcmds.h"
-#include "xlat/lockfcmds.h"
-#include "xlat/notifyflags.h"
-#include "xlat/perf_event_open_flags.h"
-
-/*
- * Assume that F_SETLK64, F_SETLKW64, and F_GETLK64 are either defined
- * or not defined altogether.
- */
-#if defined(F_SETLK64) && F_SETLK64 + 0 != F_SETLK
-# define USE_PRINTFLOCK64 1
-#else
-# define USE_PRINTFLOCK64 0
-#endif
-
-#if USE_PRINTFLOCK64
-
-# ifndef HAVE_STRUCT_FLOCK64
-struct flock64 {
-	short int l_type, l_whence;
-	int64_t l_start, l_len;
-	int l_pid;
-};
-# endif
-
-static void
-printflock64(struct tcb *tcp, long addr, int getlk)
-{
-	struct flock64 fl;
-
-	if (umove_or_printaddr(tcp, addr, &fl))
-		return;
-	tprints("{type=");
-	printxval(lockfcmds, fl.l_type, "F_???");
-	tprints(", whence=");
-	printxval(whence_codes, fl.l_whence, "SEEK_???");
-	tprintf(", start=%lld, len=%lld", (long long) fl.l_start, (long long) fl.l_len);
-	if (getlk)
-		tprintf(", pid=%lu}", (unsigned long) fl.l_pid);
-	else
-		tprints("}");
-}
-#endif /* USE_PRINTFLOCK64 */
-
-static void
-printflock(struct tcb *tcp, long addr, int getlk)
-{
-	struct flock fl;
-
-#if SUPPORTED_PERSONALITIES > 1
-	if (
-# if SIZEOF_OFF_T > SIZEOF_LONG
-	    current_personality != DEFAULT_PERSONALITY &&
-# endif
-	    current_wordsize != sizeof(fl.l_start)) {
-		if (current_wordsize == 4) {
-			/* 32-bit x86 app on x86_64 and similar cases */
-			struct {
-				short int l_type;
-				short int l_whence;
-				int32_t l_start; /* off_t */
-				int32_t l_len; /* off_t */
-				int32_t l_pid; /* pid_t */
-			} fl32;
-			if (umove_or_printaddr(tcp, addr, &fl32))
-				return;
-			fl.l_type = fl32.l_type;
-			fl.l_whence = fl32.l_whence;
-			fl.l_start = fl32.l_start;
-			fl.l_len = fl32.l_len;
-			fl.l_pid = fl32.l_pid;
-		} else {
-			/* let people know we have a problem here */
-			tprintf("<decode error: unsupported wordsize %d>",
-				current_wordsize);
-			return;
-		}
-	} else
-#endif
-	if (umove_or_printaddr(tcp, addr, &fl))
-		return;
-	tprints("{type=");
-	printxval(lockfcmds, fl.l_type, "F_???");
-	tprints(", whence=");
-	printxval(whence_codes, fl.l_whence, "SEEK_???");
-#if SIZEOF_OFF_T > SIZEOF_LONG
-	tprintf(", start=%lld, len=%lld", fl.l_start, fl.l_len);
-#else
-	tprintf(", start=%ld, len=%ld", fl.l_start, fl.l_len);
-#endif
-	if (getlk)
-		tprintf(", pid=%lu}", (unsigned long) fl.l_pid);
-	else
-		tprints("}");
-}
-
-SYS_FUNC(fcntl)
-{
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-		printxval(fcntlcmds, tcp->u_arg[1], "F_???");
-		switch (tcp->u_arg[1]) {
-		case F_SETFD:
-			tprints(", ");
-			printflags(fdflags, tcp->u_arg[2], "FD_???");
-			break;
-		case F_SETOWN: case F_DUPFD:
-#ifdef F_DUPFD_CLOEXEC
-		case F_DUPFD_CLOEXEC:
-#endif
-			tprintf(", %ld", tcp->u_arg[2]);
-			break;
-		case F_SETFL:
-			tprints(", ");
-			tprint_open_modes(tcp->u_arg[2]);
-			break;
-		case F_SETLK: case F_SETLKW:
-			tprints(", ");
-			printflock(tcp, tcp->u_arg[2], 0);
-			break;
-#if USE_PRINTFLOCK64
-		case F_SETLK64: case F_SETLKW64:
-			tprints(", ");
-			printflock64(tcp, tcp->u_arg[2], 0);
-			break;
-#endif /* USE_PRINTFLOCK64 */
-#ifdef F_NOTIFY
-		case F_NOTIFY:
-			tprints(", ");
-			printflags(notifyflags, tcp->u_arg[2], "DN_???");
-			break;
-#endif
-#ifdef F_SETLEASE
-		case F_SETLEASE:
-			tprints(", ");
-			printxval(lockfcmds, tcp->u_arg[2], "F_???");
-			break;
-#endif
-		}
-	} else {
-		switch (tcp->u_arg[1]) {
-		case F_DUPFD:
-#ifdef F_DUPFD_CLOEXEC
-		case F_DUPFD_CLOEXEC:
-#endif
-		case F_SETFD: case F_SETFL:
-		case F_SETLK: case F_SETLKW:
-		case F_SETOWN: case F_GETOWN:
-#ifdef F_NOTIFY
-		case F_NOTIFY:
-#endif
-#ifdef F_SETLEASE
-		case F_SETLEASE:
-#endif
-			break;
-		case F_GETFD:
-			if (syserror(tcp) || tcp->u_rval == 0)
-				return 0;
-			tcp->auxstr = sprintflags("flags ", fdflags, tcp->u_rval);
-			return RVAL_HEX|RVAL_STR;
-		case F_GETFL:
-			if (syserror(tcp))
-				return 0;
-			tcp->auxstr = sprint_open_modes(tcp->u_rval);
-			return RVAL_HEX|RVAL_STR;
-		case F_GETLK:
-			tprints(", ");
-			printflock(tcp, tcp->u_arg[2], 1);
-			break;
-#if USE_PRINTFLOCK64
-		case F_GETLK64:
-			tprints(", ");
-			printflock64(tcp, tcp->u_arg[2], 1);
-			break;
-#endif
-#ifdef F_GETLEASE
-		case F_GETLEASE:
-			if (syserror(tcp))
-				return 0;
-			tcp->auxstr = xlookup(lockfcmds, tcp->u_rval);
-			return RVAL_HEX|RVAL_STR;
-#endif
-		default:
-			tprintf(", %#lx", tcp->u_arg[2]);
-			break;
-		}
-	}
-	return 0;
-}
-
-#ifdef LOCK_SH
-
-SYS_FUNC(flock)
-{
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printflags(flockcmds, tcp->u_arg[1], "LOCK_???");
-
-	return RVAL_DECODED;
-}
-#endif /* LOCK_SH */
 
 SYS_FUNC(close)
 {
@@ -289,7 +76,9 @@ SYS_FUNC(getdtablesize)
 #endif
 
 static int
-decode_select(struct tcb *tcp, long *args, enum bitness_t bitness)
+decode_select(struct tcb *tcp, long *args,
+	      void (*print_tv_ts) (struct tcb *, const long),
+	      const char * (*sprint_tv_ts) (struct tcb *, const long))
 {
 	int i, j;
 	int nfds, fdsize;
@@ -341,7 +130,7 @@ decode_select(struct tcb *tcp, long *args, enum bitness_t bitness)
 		}
 		free(fds);
 		tprints(", ");
-		printtv_bitness(tcp, args[4], bitness, 0);
+		print_tv_ts(tcp, args[4]);
 	} else {
 		static char outstr[1024];
 		char *outptr;
@@ -395,9 +184,9 @@ decode_select(struct tcb *tcp, long *args, enum bitness_t bitness)
 		free(fds);
 		/* This contains no useful information on SunOS.  */
 		if (args[4]) {
-			if (outptr < end_outstr - (10 + TIMEVAL_TEXT_BUFSIZE)) {
-				outptr += sprintf(outptr, "%sleft ", sep);
-				outptr = sprinttv(outptr, tcp, args[4], bitness, /*special:*/ 0);
+			const char *str = sprint_tv_ts(tcp, args[4]);
+			if (outptr + sizeof("left ") + strlen(sep) + strlen(str) < end_outstr) {
+				outptr += sprintf(outptr, "%sleft %s", sep, str);
 			}
 		}
 		*outptr = '\0';
@@ -410,198 +199,80 @@ decode_select(struct tcb *tcp, long *args, enum bitness_t bitness)
 
 SYS_FUNC(oldselect)
 {
-	long args[5];
+	long long_args[5];
+#undef oldselect_args
+#if SIZEOF_LONG == 4
+# define oldselect_args long_args
+#else
+	unsigned int oldselect_args[5];
+	unsigned int i;
+#endif
 
-	if (umove(tcp, tcp->u_arg[0], &args) < 0) {
+	if (umove(tcp, tcp->u_arg[0], &oldselect_args) < 0) {
 		printaddr(tcp->u_arg[0]);
 		return 0;
 	}
-	return decode_select(tcp, args, BITNESS_CURRENT);
+#ifndef oldselect_args
+	for (i = 0; i < 5; i++) {
+		long_args[i] = oldselect_args[i];
+	}
+#endif
+	return decode_select(tcp, long_args, print_timeval, sprint_timeval);
+#undef oldselect_args
 }
 
 #ifdef ALPHA
 SYS_FUNC(osf_select)
 {
-	return decode_select(tcp, tcp->u_arg, BITNESS_32);
+	return decode_select(tcp, tcp->u_arg, print_timeval32, sprint_timeval32);
 }
 #endif
-
-#include "xlat/epollctls.h"
-#include "xlat/epollevents.h"
-#include "xlat/epollflags.h"
-
-SYS_FUNC(epoll_create1)
-{
-	printflags(epollflags, tcp->u_arg[0], "EPOLL_???");
-
-	return RVAL_DECODED;
-}
-
-#ifdef HAVE_SYS_EPOLL_H
-static void
-print_epoll_event(struct epoll_event *ev)
-{
-	tprints("{");
-	printflags(epollevents, ev->events, "EPOLL???");
-	/* We cannot know what format the program uses, so print u32 and u64
-	   which will cover every value.  */
-	tprintf(", {u32=%" PRIu32 ", u64=%" PRIu64 "}}",
-		ev->data.u32, ev->data.u64);
-}
-#endif
-
-SYS_FUNC(epoll_ctl)
-{
-	struct epoll_event ev;
-
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	printxval(epollctls, tcp->u_arg[1], "EPOLL_CTL_???");
-	tprints(", ");
-	printfd(tcp, tcp->u_arg[2]);
-	tprints(", ");
-#ifdef HAVE_SYS_EPOLL_H
-	if (EPOLL_CTL_DEL == tcp->u_arg[1])
-		printaddr(tcp->u_arg[3]);
-	else if (!umove_or_printaddr(tcp, tcp->u_arg[3], &ev))
-		print_epoll_event(&ev);
-#else
-	printaddr(tcp->u_arg[3]);
-#endif
-
-	return RVAL_DECODED;
-}
-
-static void
-print_epoll_event_array(struct tcb *tcp, const long addr, const long len)
-{
-#ifdef HAVE_SYS_EPOLL_H
-	struct epoll_event ev, *start, *cur, *end;
-
-	if (!len) {
-		tprints("[]");
-		return;
-	}
-
-	if (umove_or_printaddr(tcp, addr, &ev))
-		return;
-
-	tprints("[");
-	print_epoll_event(&ev);
-
-	start = (struct epoll_event *) addr;
-	end = start + len;
-	for (cur = start + 1; cur < end; ++cur) {
-		tprints(", ");
-		if (umove_or_printaddr(tcp, (long) cur, &ev))
-			break;
-		print_epoll_event(&ev);
-	}
-	tprints("]");
-#else
-	printaddr(addr);
-#endif
-}
-
-static void
-epoll_wait_common(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		printfd(tcp, tcp->u_arg[0]);
-		tprints(", ");
-	} else {
-		print_epoll_event_array(tcp, tcp->u_arg[1], tcp->u_rval);
-		tprintf(", %d, %d", (int) tcp->u_arg[2], (int) tcp->u_arg[3]);
-	}
-}
-
-SYS_FUNC(epoll_wait)
-{
-	epoll_wait_common(tcp);
-	return 0;
-}
-
-SYS_FUNC(epoll_pwait)
-{
-	epoll_wait_common(tcp);
-	if (exiting(tcp)) {
-		tprints(", ");
-		/* NB: kernel requires arg[5] == NSIG / 8 */
-		print_sigset_addr_len(tcp, tcp->u_arg[4], tcp->u_arg[5]);
-		tprintf(", %lu", tcp->u_arg[5]);
-	}
-	return 0;
-}
 
 SYS_FUNC(select)
 {
-	return decode_select(tcp, tcp->u_arg, BITNESS_CURRENT);
+	return decode_select(tcp, tcp->u_arg, print_timeval, sprint_timeval);
+}
+
+#include "kernel_types.h"
+
+static int
+umove_kulong_array_or_printaddr(struct tcb *tcp, const long addr,
+				kernel_ulong_t *ptr, size_t n)
+{
+#if defined X86_64 || defined X32
+	if (current_personality == 1) {
+#else
+	if (current_wordsize < sizeof(*ptr)) {
+#endif
+		uint32_t ptr32[n];
+		int r = umove_or_printaddr(tcp, addr, &ptr32);
+		if (!r) {
+			size_t i;
+
+			for (i = 0; i < n; ++i)
+				ptr[i] = (kernel_ulong_t) ptr32[i];
+		}
+		return r;
+	}
+	return umoven_or_printaddr(tcp, addr, n * sizeof(*ptr), ptr);
 }
 
 SYS_FUNC(pselect6)
 {
-	int rc = decode_select(tcp, tcp->u_arg, BITNESS_CURRENT);
+	int rc = decode_select(tcp, tcp->u_arg, print_timespec, sprint_timespec);
 	if (entering(tcp)) {
-		long r;
-		struct {
-			unsigned long ptr;
-			unsigned long len;
-		} data;
+		kernel_ulong_t data[2];
 
 		tprints(", ");
-#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
-		if (current_wordsize == 4) {
-			struct {
-				uint32_t ptr;
-				uint32_t len;
-			} data32;
-			r = umove_or_printaddr(tcp, tcp->u_arg[5], &data32);
-			data.ptr = data32.ptr;
-			data.len = data32.len;
-		} else
-#endif
-			r = umove_or_printaddr(tcp, tcp->u_arg[5], &data);
-		if (r == 0) {
+		if (!umove_kulong_array_or_printaddr(tcp, tcp->u_arg[5],
+						     data, ARRAY_SIZE(data))) {
 			tprints("{");
-			/* NB: kernel requires data.len == NSIG / 8 */
-			print_sigset_addr_len(tcp, data.ptr, data.len);
-			tprintf(", %lu}", data.len);
+			/* NB: kernel requires data[1] == NSIG / 8 */
+			print_sigset_addr_len(tcp, (unsigned long) data[0],
+					      (unsigned long) data[1]);
+			tprintf(", %Lu}", (unsigned long long) data[1]);
 		}
 	}
+
 	return rc;
-}
-
-static int
-do_eventfd(struct tcb *tcp, int flags_arg)
-{
-	tprintf("%lu", tcp->u_arg[0]);
-	if (flags_arg >= 0) {
-		tprints(", ");
-		printflags(open_mode_flags, tcp->u_arg[flags_arg], "O_???");
-	}
-
-	return RVAL_DECODED;
-}
-
-SYS_FUNC(eventfd)
-{
-	return do_eventfd(tcp, -1);
-}
-
-SYS_FUNC(eventfd2)
-{
-	return do_eventfd(tcp, 1);
-}
-
-SYS_FUNC(perf_event_open)
-{
-	printaddr(tcp->u_arg[0]);
-	tprintf(", %d, %d, %d, ",
-		(int) tcp->u_arg[1],
-		(int) tcp->u_arg[2],
-		(int) tcp->u_arg[3]);
-	printflags(perf_event_open_flags, tcp->u_arg[4],
-		   "PERF_FLAG_???");
-
-	return RVAL_DECODED;
 }

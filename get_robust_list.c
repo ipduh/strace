@@ -3,11 +3,11 @@
 SYS_FUNC(get_robust_list)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", (long) (pid_t) tcp->u_arg[0]);
+		tprintf("%d, ", (int) tcp->u_arg[0]);
 	} else {
-		printnum_long(tcp, tcp->u_arg[1], "%#lx");
+		printnum_ptr(tcp, tcp->u_arg[1]);
 		tprints(", ");
-		printnum_long(tcp, tcp->u_arg[2], "%lu");
+		printnum_ulong(tcp, tcp->u_arg[2]);
 	}
 	return 0;
 }

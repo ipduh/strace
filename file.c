@@ -47,7 +47,7 @@
 #define off_t __kernel_off_t
 #define loff_t __kernel_loff_t
 
-#include <asm/stat.h>
+#include "asm_stat.h"
 
 #undef dev_t
 #undef ino_t
@@ -87,6 +87,14 @@
 
 #include "printstat.h"
 
+/* all locally defined structures provide these fields */
+#undef HAVE_STRUCT_STAT_ST_ATIME_NSEC
+#define HAVE_STRUCT_STAT_ST_ATIME_NSEC 1
+#undef HAVE_STRUCT_STAT_ST_CTIME_NSEC
+#define HAVE_STRUCT_STAT_ST_CTIME_NSEC 1
+#undef HAVE_STRUCT_STAT_ST_MTIME_NSEC
+#define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
+
 #undef STAT32_PERSONALITY
 #if SUPPORTED_PERSONALITIES > 1
 # if defined AARCH64 || defined X86_64 || defined X32
@@ -110,11 +118,7 @@ struct stat32 {
 	unsigned int	__unused4;
 	unsigned int	__unused5;
 };
-#  ifdef AARCH64
-#   define STAT32_PERSONALITY 0
-#  else
-#   define STAT32_PERSONALITY 1
-#  endif
+#  define STAT32_PERSONALITY 1
 # elif defined POWERPC64
 struct stat32 {
 	unsigned int	st_dev;

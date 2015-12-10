@@ -28,11 +28,7 @@
 
 #include "defs.h"
 #include <sys/param.h>
-#if defined HAVE_POLL_H
-# include <poll.h>
-#elif defined HAVE_SYS_POLL_H
-# include <sys/poll.h>
-#endif
+#include <poll.h>
 
 #include "syscall.h"
 
@@ -167,6 +163,7 @@ pathtrace_match(struct tcb *tcp)
 	switch (s->sen) {
 	case SEN_dup2:
 	case SEN_dup3:
+	case SEN_kexec_file_load:
 	case SEN_sendfile:
 	case SEN_sendfile64:
 	case SEN_tee:
@@ -181,6 +178,7 @@ pathtrace_match(struct tcb *tcp)
 	case SEN_inotify_add_watch:
 	case SEN_mkdirat:
 	case SEN_mknodat:
+	case SEN_name_to_handle_at:
 	case SEN_newfstatat:
 	case SEN_openat:
 	case SEN_pipe2:
@@ -320,6 +318,7 @@ pathtrace_match(struct tcb *tcp)
 
 	case SEN_bpf:
 	case SEN_epoll_create:
+	case SEN_epoll_create1:
 	case SEN_eventfd2:
 	case SEN_eventfd:
 	case SEN_fanotify_init:
@@ -333,6 +332,7 @@ pathtrace_match(struct tcb *tcp)
 	case SEN_timerfd_create:
 	case SEN_timerfd_gettime:
 	case SEN_timerfd_settime:
+	case SEN_userfaultfd:
 		/*
 		 * These have TRACE_FILE or TRACE_DESCRIPTOR or TRACE_NETWORK set,
 		 * but they don't have any file descriptor or path args to test.

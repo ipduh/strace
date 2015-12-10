@@ -196,51 +196,68 @@ strerror(int err_no)
 #endif /* HAVE_STERRROR */
 
 static void
-usage(FILE *ofp, int exitval)
+usage()
 {
-	fprintf(ofp, "\
-usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
+	printf("\
+usage: strace [-CdffhiqrtttTvVwxxy] [-I n] [-e expr]...\n\
               [-a column] [-o file] [-s strsize] [-P path]...\n\
               -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
-   or: strace -c[df] [-I n] [-e expr]... [-O overhead] [-S sortby]\n\
+   or: strace -c[dfw] [-I n] [-e expr]... [-O overhead] [-S sortby]\n\
               -p pid... / [-D] [-E var=val]... [-u username] PROG [ARGS]\n\
--c -- count time, calls, and errors for each syscall and report summary\n\
--C -- like -c but also print regular output\n\
--w -- summarise syscall latency (default is system time)\n\
--d -- enable debug output to stderr\n\
--D -- run tracer process as a detached grandchild, not as parent\n\
--f -- follow forks, -ff -- with output into separate files\n\
--i -- print instruction pointer at time of syscall\n\
--q -- suppress messages about attaching, detaching, etc.\n\
--r -- print relative timestamp, -t -- absolute timestamp, -tt -- with usecs\n\
--T -- print time spent in each syscall\n\
--v -- verbose mode: print unabbreviated argv, stat, termios, etc. args\n\
--x -- print non-ascii strings in hex, -xx -- print all strings in hex\n\
--y -- print paths associated with file descriptor arguments\n\
--yy -- print ip:port pairs associated with socket file descriptors\n\
--h -- print help message, -V -- print version\n\
--a column -- alignment COLUMN for printing syscall results (default %d)\n\
--b execve -- detach on this syscall\n\
--e expr -- a qualifying expression: option=[!]all or option=[!]val1[,val2]...\n\
-   options: trace, abbrev, verbose, raw, signal, read, write\n\
--I interruptible --\n\
-   1: no signals are blocked\n\
-   2: fatal signals are blocked while decoding syscall (default)\n\
-   3: fatal signals are always blocked (default if '-o FILE PROG')\n\
-   4: fatal signals and SIGTSTP (^Z) are always blocked\n\
-      (useful to make 'strace -o FILE PROG' not stop on ^Z)\n\
--o file -- send trace output to FILE instead of stderr\n\
--O overhead -- set overhead for tracing syscalls to OVERHEAD usecs\n\
--p pid -- trace process with process id PID, may be repeated\n\
--s strsize -- limit length of print strings to STRSIZE chars (default %d)\n\
--S sortby -- sort syscall counts by: time, calls, name, nothing (default %s)\n\
--u username -- run command as username handling setuid and/or setgid\n\
--E var=val -- put var=val in the environment for command\n\
--E var -- remove var from the environment for command\n\
--P path -- trace accesses to path\n\
+\n\
+Output format:\n\
+  -a column      alignment COLUMN for printing syscall results (default %d)\n\
+  -i             print instruction pointer at time of syscall\n\
+  -o file        send trace output to FILE instead of stderr\n\
+  -q             suppress messages about attaching, detaching, etc.\n\
+  -r             print relative timestamp\n\
+  -s strsize     limit length of print strings to STRSIZE chars (default %d)\n\
+  -t             print absolute timestamp\n\
+  -tt            print absolute timestamp with usecs\n\
+  -T             print time spent in each syscall\n\
+  -x             print non-ascii strings in hex\n\
+  -xx            print all strings in hex\n\
+  -y             print paths associated with file descriptor arguments\n\
+  -yy            print ip:port pairs associated with socket file descriptors\n\
+\n\
+Statistics:\n\
+  -c             count time, calls, and errors for each syscall and report summary\n\
+  -C             like -c but also print regular output\n\
+  -O overhead    set overhead for tracing syscalls to OVERHEAD usecs\n\
+  -S sortby      sort syscall counts by: time, calls, name, nothing (default %s)\n\
+  -w             summarise syscall latency (default is system time)\n\
+\n\
+Filtering:\n\
+  -e expr        a qualifying expression: option=[!]all or option=[!]val1[,val2]...\n\
+     options:    trace, abbrev, verbose, raw, signal, read, write\n\
+  -P path        trace accesses to path\n\
+\n\
+Tracing:\n\
+  -b execve      detach on execve syscall\n\
+  -D             run tracer process as a detached grandchild, not as parent\n\
+  -f             follow forks\n\
+  -ff            follow forks with output into separate files\n\
+  -I interruptible\n\
+     1:          no signals are blocked\n\
+     2:          fatal signals are blocked while decoding syscall (default)\n\
+     3:          fatal signals are always blocked (default if '-o FILE PROG')\n\
+     4:          fatal signals and SIGTSTP (^Z) are always blocked\n\
+                 (useful to make 'strace -o FILE PROG' not stop on ^Z)\n\
+\n\
+Startup:\n\
+  -E var         remove var from the environment for command\n\
+  -E var=val     put var=val in the environment for command\n\
+  -p pid         trace process with process id PID, may be repeated\n\
+  -u username    run command as username handling setuid and/or setgid\n\
+\n\
+Miscellaneous:\n\
+  -d             enable debug output to stderr\n\
+  -v             verbose mode: print unabbreviated argv, stat, termios, etc. args\n\
+  -h             print help message\n\
+  -V             print version\n\
 "
 #ifdef USE_LIBUNWIND
-"-k obtain stack trace between each syscall (experimental)\n\
+"  -k             obtain stack trace between each syscall (experimental)\n\
 "
 #endif
 /* ancient, no one should use it
@@ -250,7 +267,7 @@ usage: strace [-CdffhiqrtttTvVxxy] [-I n] [-e expr]...\n\
 -z -- print only succeeding syscalls\n\
  */
 , DEFAULT_ACOLUMN, DEFAULT_STRLEN, DEFAULT_SORTBY);
-	exit(exitval);
+	exit(0);
 }
 
 static void ATTRIBUTE_NORETURN
@@ -310,6 +327,17 @@ void error_msg_and_die(const char *fmt, ...)
 	die();
 }
 
+void error_msg_and_help(const char *fmt, ...)
+{
+	if (fmt != NULL) {
+		va_list p;
+		va_start(p, fmt);
+		verror_msg(0, fmt, p);
+	}
+	fprintf(stderr, "Try '%s -h' for more information.\n", progname);
+	die();
+}
+
 void perror_msg(const char *fmt, ...)
 {
 	va_list p;
@@ -329,7 +357,7 @@ void perror_msg_and_die(const char *fmt, ...)
 static void
 error_opt_arg(int opt, const char *arg)
 {
-	error_msg_and_die("Invalid -%c argument: '%s'", opt, arg);
+	error_msg_and_help("invalid -%c argument: '%s'", opt, arg);
 }
 
 #if USE_SEIZE
@@ -1036,10 +1064,13 @@ startup_attach(void)
 					continue;
 				}
 				if (!qflag) {
-					error_msg(ntid > 1
-? "Process %u attached with %u threads"
-: "Process %u attached",
-						tcp->pid, ntid);
+					if (ntid > 1)
+						error_msg("Process %u attached"
+							  " with %u threads",
+							  tcp->pid, ntid);
+					else
+						error_msg("Process %u attached",
+							  tcp->pid);
 				}
 				if (!(tcp->flags & TCB_ATTACHED)) {
 					/* -p PID, we failed to attach to PID itself
@@ -1468,13 +1499,13 @@ init(int argc, char *argv[])
 			break;
 		case 'c':
 			if (cflag == CFLAG_BOTH) {
-				error_msg_and_die("-c and -C are mutually exclusive");
+				error_msg_and_help("-c and -C are mutually exclusive");
 			}
 			cflag = CFLAG_ONLY_STATS;
 			break;
 		case 'C':
 			if (cflag == CFLAG_ONLY_STATS) {
-				error_msg_and_die("-c and -C are mutually exclusive");
+				error_msg_and_help("-c and -C are mutually exclusive");
 			}
 			cflag = CFLAG_BOTH;
 			break;
@@ -1491,7 +1522,7 @@ init(int argc, char *argv[])
 			followfork++;
 			break;
 		case 'h':
-			usage(stdout, 0);
+			usage();
 			break;
 		case 'i':
 			iflag = 1;
@@ -1577,7 +1608,7 @@ init(int argc, char *argv[])
 				error_opt_arg(c, optarg);
 			break;
 		default:
-			usage(stderr, 1);
+			error_msg_and_help(NULL);
 			break;
 		}
 	}
@@ -1589,22 +1620,23 @@ init(int argc, char *argv[])
 	acolumn_spaces[acolumn] = '\0';
 
 	/* Must have PROG [ARGS], or -p PID. Not both. */
-	if (!argv[0] == !nprocs)
-		usage(stderr, 1);
+	if (!argv[0] == !nprocs) {
+		error_msg_and_help("must have PROG [ARGS] or -p PID");
+	}
 
 	if (nprocs != 0 && daemonized_tracer) {
-		error_msg_and_die("-D and -p are mutually exclusive");
+		error_msg_and_help("-D and -p are mutually exclusive");
 	}
 
 	if (!followfork)
 		followfork = optF;
 
 	if (followfork >= 2 && cflag) {
-		error_msg_and_die("(-c or -C) and -ff are mutually exclusive");
+		error_msg_and_help("(-c or -C) and -ff are mutually exclusive");
 	}
 
 	if (count_wallclock && !cflag) {
-		error_msg_and_die("-w must be given with (-c or -C)");
+		error_msg_and_help("-w must be given with (-c or -C)");
 	}
 
 	if (cflag == CFLAG_ONLY_STATS) {
@@ -1665,7 +1697,7 @@ init(int argc, char *argv[])
 			 * when using popen, so prohibit it.
 			 */
 			if (followfork >= 2)
-				error_msg_and_die("Piping the output and -ff are mutually exclusive");
+				error_msg_and_help("piping the output and -ff are mutually exclusive");
 			shared_log = strace_popen(outfname + 1);
 		}
 		else if (followfork < 2)
@@ -2194,7 +2226,7 @@ trace(void)
 	}
 
 	if (sig != syscall_trap_sig) {
-		siginfo_t si;
+		siginfo_t si = {};
 
 		/*
 		 * True if tracee is stopped by signal

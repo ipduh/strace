@@ -32,6 +32,7 @@
  */
 
 #include "defs.h"
+#include "native_defs.h"
 #include <sys/param.h>
 
 /* for struct iovec */
@@ -89,12 +90,14 @@ const struct_sysent sysent0[] = {
 };
 
 #if SUPPORTED_PERSONALITIES > 1
+# include PERSONALITY1_INCLUDE_FUNCS
 static const struct_sysent sysent1[] = {
 # include "syscallent1.h"
 };
 #endif
 
 #if SUPPORTED_PERSONALITIES > 2
+# include PERSONALITY2_INCLUDE_FUNCS
 static const struct_sysent sysent2[] = {
 # include "syscallent2.h"
 };
@@ -143,6 +146,14 @@ static const char *const signalent1[] = {
 static const struct_ioctlent ioctlent1[] = {
 # include "ioctlent1.h"
 };
+# include PERSONALITY0_INCLUDE_PRINTERS_DECLS
+static const struct_printers printers0 = {
+# include PERSONALITY0_INCLUDE_PRINTERS_DEFS
+};
+# include PERSONALITY1_INCLUDE_PRINTERS_DECLS
+static const struct_printers printers1 = {
+# include PERSONALITY1_INCLUDE_PRINTERS_DEFS
+};
 #endif
 
 #if SUPPORTED_PERSONALITIES > 2
@@ -154,6 +165,10 @@ static const char *const signalent2[] = {
 };
 static const struct_ioctlent ioctlent2[] = {
 # include "ioctlent2.h"
+};
+# include PERSONALITY2_INCLUDE_PRINTERS_DECLS
+static const struct_printers printers2 = {
+# include PERSONALITY2_INCLUDE_PRINTERS_DEFS
 };
 #endif
 
@@ -202,7 +217,9 @@ const struct_sysent *sysent = sysent0;
 const char *const *errnoent = errnoent0;
 const char *const *signalent = signalent0;
 const struct_ioctlent *ioctlent = ioctlent0;
+const struct_printers *printers = &printers0;
 #endif
+
 unsigned nsyscalls = nsyscalls0;
 unsigned nerrnos = nerrnos0;
 unsigned nsignals = nsignals0;
@@ -278,6 +295,7 @@ set_personality(int personality)
 		nioctlents = nioctlents0;
 		signalent = signalent0;
 		nsignals = nsignals0;
+		printers = &printers0;
 		break;
 
 	case 1:
@@ -287,6 +305,7 @@ set_personality(int personality)
 		nioctlents = nioctlents1;
 		signalent = signalent1;
 		nsignals = nsignals1;
+		printers = &printers1;
 		break;
 
 # if SUPPORTED_PERSONALITIES > 2
@@ -297,6 +316,7 @@ set_personality(int personality)
 		nioctlents = nioctlents2;
 		signalent = signalent2;
 		nsignals = nsignals2;
+		printers = &printers2;
 		break;
 # endif
 	}
@@ -326,7 +346,7 @@ update_personality(struct tcb *tcp, unsigned int personality)
 # elif defined X32
 #  define PERSONALITY_NAMES {"x32", "32 bit"}
 # elif defined AARCH64
-#  define PERSONALITY_NAMES {"32-bit", "AArch64"}
+#  define PERSONALITY_NAMES {"64 bit", "32 bit"}
 # elif defined TILE
 #  define PERSONALITY_NAMES {"64-bit", "32-bit"}
 # endif
@@ -675,14 +695,12 @@ dumpio(struct tcb *tcp)
 		case SEN_readv:
 			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 			return;
-#ifdef HAVE_SENDMSG
 		case SEN_recvmsg:
 			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
 			return;
 		case SEN_recvmmsg:
 			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
 			return;
-#endif
 		}
 	}
 	if (qual_flags[tcp->u_arg[0]] & QUAL_WRITE) {
@@ -696,14 +714,12 @@ dumpio(struct tcb *tcp)
 		case SEN_writev:
 			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 			break;
-#ifdef HAVE_SENDMSG
 		case SEN_sendmsg:
 			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
 			break;
 		case SEN_sendmmsg:
 			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
 			break;
-#endif
 		}
 	}
 }
@@ -745,13 +761,17 @@ shuffle_scno(unsigned long scno)
 # define shuffle_scno(scno) ((long)(scno))
 #endif
 
-static char*
-undefined_scno_name(struct tcb *tcp)
+const char *
+syscall_name(long scno)
 {
 	static char buf[sizeof("syscall_%lu") + sizeof(long)*3];
 
-	sprintf(buf, "syscall_%lu", shuffle_scno(tcp->scno));
-	return buf;
+	if (SCNO_IS_VALID(scno))
+		return sysent[scno].sys_name;
+	else {
+		sprintf(buf, "syscall_%lu", shuffle_scno(scno));
+		return buf;
+	}
 }
 
 static long get_regs_error;
@@ -764,6 +784,11 @@ clear_regs(void)
 
 static int get_syscall_args(struct tcb *);
 static int get_syscall_result(struct tcb *);
+static int arch_get_scno(struct tcb *tcp);
+static void get_error(struct tcb *, const bool);
+#if defined X86_64 || defined POWERPC
+static int getregs_old(pid_t);
+#endif
 
 static int
 trace_syscall_entering(struct tcb *tcp)
@@ -781,7 +806,7 @@ trace_syscall_entering(struct tcb *tcp)
 		if (scno_good != 1)
 			tprints("????" /* anti-trigraph gap */ "(");
 		else if (tcp->qual_flg & UNDEFINED_SCNO)
-			tprintf("%s(", undefined_scno_name(tcp));
+			tprintf("%s(", syscall_name(tcp->scno));
 		else
 			tprintf("%s(", tcp->s_ent->sys_name);
 		/*
@@ -843,7 +868,7 @@ trace_syscall_entering(struct tcb *tcp)
 
 	printleader(tcp);
 	if (tcp->qual_flg & UNDEFINED_SCNO)
-		tprintf("%s(", undefined_scno_name(tcp));
+		tprintf("%s(", syscall_name(tcp->scno));
 	else
 		tprintf("%s(", tcp->s_ent->sys_name);
 	if ((tcp->qual_flg & QUAL_RAW) && SEN_exit != tcp->s_ent->sen)
@@ -907,7 +932,7 @@ trace_syscall_exiting(struct tcb *tcp)
 		tcp->flags &= ~TCB_REPRINT;
 		printleader(tcp);
 		if (tcp->qual_flg & UNDEFINED_SCNO)
-			tprintf("<... %s resumed> ", undefined_scno_name(tcp));
+			tprintf("<... %s resumed> ", syscall_name(tcp->scno));
 		else
 			tprintf("<... %s resumed> ", tcp->s_ent->sys_name);
 	}
@@ -1107,22 +1132,36 @@ trace_syscall(struct tcb *tcp)
 		trace_syscall_exiting(tcp) : trace_syscall_entering(tcp);
 }
 
-/*
- * Cannot rely on __kernel_[u]long_t being defined,
- * it is quite a recent feature of <asm/posix_types.h>.
- */
-#ifdef __kernel_long_t
-typedef __kernel_long_t kernel_long_t;
-typedef __kernel_ulong_t kernel_ulong_t;
-#else
-# ifdef X32
-typedef long long kernel_long_t;
-typedef unsigned long long kernel_ulong_t;
-# else
-typedef long kernel_long_t;
-typedef unsigned long kernel_ulong_t;
-# endif
-#endif
+bool
+is_erestart(struct tcb *tcp)
+{
+	switch (tcp->u_error) {
+		case ERESTARTSYS:
+		case ERESTARTNOINTR:
+		case ERESTARTNOHAND:
+		case ERESTART_RESTARTBLOCK:
+			return true;
+		default:
+			return false;
+	}
+}
+
+static int saved_u_error;
+
+void
+temporarily_clear_syserror(struct tcb *tcp)
+{
+	saved_u_error = tcp->u_error;
+	tcp->u_error = 0;
+}
+
+void
+restore_cleared_syserror(struct tcb *tcp)
+{
+	tcp->u_error = saved_u_error;
+}
+
+#include "kernel_types.h"
 
 /*
  * Check the syscall return value register value for whether it is
@@ -1163,37 +1202,22 @@ is_negated_errno(kernel_ulong_t val)
 void
 print_pc(struct tcb *tcp)
 {
-	const char *fmt;
-	const char *bad;
-
-#ifdef current_wordsize
-# define pc_wordsize current_wordsize
+#if defined ARCH_PC_REG
+# define ARCH_GET_PC 0
+#elif defined ARCH_PC_PEEK_ADDR
+	long pc;
+# define ARCH_PC_REG pc
+# define ARCH_GET_PC upeek(tcp->pid, ARCH_PC_PEEK_ADDR, &pc)
 #else
-# define pc_wordsize personality_wordsize[tcp->currpers]
+# error Neither ARCH_PC_REG nor ARCH_PC_PEEK_ADDR is defined
 #endif
-
-	if (pc_wordsize == 4) {
-		fmt = "[%08lx] ";
-		bad = "[????????] ";
-	} else {
-		fmt = "[%016lx] ";
-		bad = "[????????????????] ";
-	}
-
-#undef pc_wordsize
-#define PRINTBADPC tprints(bad)
-
-	if (get_regs_error) {
-		PRINTBADPC;
-		return;
-	}
-
-#include "print_pc.c"
+	if (get_regs_error || ARCH_GET_PC)
+		tprints(current_wordsize == 4 ? "[????????] "
+					      : "[????????????????] ");
+	else
+		tprintf(current_wordsize == 4 ? "[%08lx] " : "[%016lx] ",
+			(unsigned long) ARCH_PC_REG);
 }
-
-#if defined X86_64 || defined POWERPC
-# include "getregs_old.c"
-#endif
 
 #if defined ARCH_REGS_FOR_GETREGSET
 static long
@@ -1219,6 +1243,7 @@ get_regset(pid_t pid)
 void
 get_regs(pid_t pid)
 {
+#undef USE_GET_SYSCALL_RESULT_REGS
 #ifdef ARCH_REGS_FOR_GETREGSET
 # ifdef X86_64
 	/* Try PTRACE_GETREGSET first, fallback to PTRACE_GETREGS. */
@@ -1236,7 +1261,7 @@ get_regs(pid_t pid)
 			return;
 		getregset_support = -1;
 	}
-	getregs_old(pid);
+	get_regs_error = getregs_old(pid);
 # else /* !X86_64 */
 	/* Assume that PTRACE_GETREGSET works. */
 	get_regs_error = get_regset(pid);
@@ -1261,12 +1286,14 @@ get_regs(pid_t pid)
 # endif
 
 #else /* !ARCH_REGS_FOR_GETREGSET && !ARCH_REGS_FOR_GETREGS */
-#  warning get_regs is not implemented for this architecture yet
+# define USE_GET_SYSCALL_RESULT_REGS 1
+# warning get_regs is not implemented for this architecture yet
 	get_regs_error = 0;
 #endif
 }
 
-/* Returns:
+/*
+ * Returns:
  * 0: "ignore this ptrace stop", bail out of trace_syscall_entering() silently.
  * 1: ok, continue in trace_syscall_entering().
  * other: error, trace_syscall_entering() should print error indicator
@@ -1278,14 +1305,13 @@ get_scno(struct tcb *tcp)
 	if (get_regs_error)
 		return -1;
 
-	long scno = 0;
+	int rc = arch_get_scno(tcp);
+	if (rc != 1)
+		return rc;
 
-#include "get_scno.c"
-
-	tcp->scno = scno;
 	if (SCNO_IS_VALID(tcp->scno)) {
-		tcp->s_ent = &sysent[scno];
-		tcp->qual_flg = qual_flags[scno];
+		tcp->s_ent = &sysent[tcp->scno];
+		tcp->qual_flg = qual_flags[tcp->scno];
 	} else {
 		static const struct_sysent unknown = {
 			.nargs = MAX_ARGS,
@@ -1296,27 +1322,14 @@ get_scno(struct tcb *tcp)
 		tcp->s_ent = &unknown;
 		tcp->qual_flg = UNDEFINED_SCNO | QUAL_RAW | DEFAULT_QUAL_FLAGS;
 		if (debug_flag)
-			error_msg("pid %d invalid syscall %ld", tcp->pid, scno);
+			error_msg("pid %d invalid syscall %ld", tcp->pid, tcp->scno);
 	}
 	return 1;
 }
 
-/* Return -1 on error or 1 on success (never 0!) */
-static int
-get_syscall_args(struct tcb *tcp)
-{
-#include "get_syscall_args.c"
-	return 1;
-}
-
-static void
-get_error(struct tcb *tcp)
-{
-	const bool check_errno = !(tcp->s_ent->sys_flags & SYSCALL_NEVER_FAILS);
-	tcp->u_error = 0;
-
-#include "get_error.c"
-}
+#ifdef USE_GET_SYSCALL_RESULT_REGS
+static int get_syscall_result_regs(struct tcb *);
+#endif
 
 /* Returns:
  * 1: ok, continue in trace_syscall_exiting().
@@ -1326,11 +1339,22 @@ get_error(struct tcb *tcp)
 static int
 get_syscall_result(struct tcb *tcp)
 {
-#if defined ARCH_REGS_FOR_GETREGSET || defined ARCH_REGS_FOR_GETREGS
-	/* already done by get_regs */
-#else
-# include "get_syscall_result.c"
+#ifdef USE_GET_SYSCALL_RESULT_REGS
+	if (get_syscall_result_regs(tcp))
+		return -1;
 #endif
-	get_error(tcp);
+	tcp->u_error = 0;
+	get_error(tcp, !(tcp->s_ent->sys_flags & SYSCALL_NEVER_FAILS));
+
 	return 1;
 }
+
+#include "get_scno.c"
+#include "get_syscall_args.c"
+#ifdef USE_GET_SYSCALL_RESULT_REGS
+# include "get_syscall_result.c"
+#endif
+#include "get_error.c"
+#if defined X86_64 || defined POWERPC
+# include "getregs_old.c"
+#endif

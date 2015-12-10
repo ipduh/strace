@@ -26,7 +26,7 @@
 [ 22] = { 6,	TD,		SEN(epoll_pwait),		"epoll_pwait"		},
 [ 23] = { 1,	TD,		SEN(dup),			"dup"			},
 [ 24] = { 3,	TD,		SEN(dup3),			"dup3"			},
-[ 25] = { 3,	TD,		SEN(fcntl),			"fcntl64"		},
+[ 25] = { 3,	TD,		SEN(fcntl64),			"fcntl64"		},
 [ 26] = { 1,	TD,		SEN(inotify_init1),		"inotify_init1"		},
 [ 27] = { 3,	TD,		SEN(inotify_add_watch),		"inotify_add_watch"	},
 [ 28] = { 2,	TD,		SEN(inotify_rm_watch),		"inotify_rm_watch"	},
@@ -272,6 +272,9 @@
 [279] = { 2,	TD,		SEN(memfd_create),		"memfd_create",		},
 [280] = { 3,	TD,		SEN(bpf),			"bpf",			},
 [281] = { 5,	TD|TF|TP|SE|SI,	SEN(execveat),			"execveat",		},
+[282] = { 1,	TD,		SEN(userfaultfd),		"userfaultfd",		},
+[283] = { 2,	0,		SEN(membarrier),		"membarrier",		},
+[284] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
 
 #undef ARCH_mmap
 #undef ARCH_WANT_SYNC_FILE_RANGE2

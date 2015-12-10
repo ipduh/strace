@@ -30,205 +30,11 @@
  * IA-32 syscalls that have pointer arguments which are incompatible
  * with 64-bit layout get redirected to printargs.
  */
-#define sys_getrlimit		printargs
-#define sys_afs_syscall		printargs
-#define sys_getpmsg		printargs
-#define sys_putpmsg		printargs
-#define sys_ugetrlimit		printargs
-#define sys_waitpid		printargs
-#define sys_time		printargs
-#define sys_break		printargs
-#define sys_oldstat		printargs
-#define sys_lseek		printargs
-#undef sys_stime
-#define sys_stime		printargs
-#define sys_ptrace		printargs
-#define sys_oldfstat		printargs
-#define sys_pause		printargs
-#define sys_utime		printargs
-#define sys_stty		printargs
-#define sys_gtty		printargs
-#define sys_ftime		printargs
-#define sys_pipe		printargs
-#define sys_times		printargs
-#define sys_prof		printargs
-#define sys_signal		printargs
-#define sys_lock		printargs
-#define sys_ioctl		printargs
-#define sys_fcntl		printargs
-#define sys_mpx			printargs
-#define sys_ulimit		printargs
-#define sys_oldolduname		printargs
-#define sys_sigaction		printargs
-#define sys_siggetmask		printargs
-#define sys_sigsetmask		printargs
-#define sys_sigsuspend		printargs
-#define sys_sigpending		printargs
-#define sys_setrlimit		printargs
-#define sys_getrusage		printargs
-#define sys_gettimeofday	printargs
-#define sys_settimeofday	printargs
-#define sys_getgroups		printargs
-#define sys_setgroups		printargs
-#define sys_select		printargs
-#undef sys_oldlstat
-#define sys_oldlstat		printargs
-#define sys_readdir		printargs
-#define sys_profil		printargs
-#define sys_statfs		printargs
-#define sys_fstatfs		printargs
-#define sys_ioperm		printargs
-#define sys_setitimer		printargs
-#define sys_getitimer		printargs
-#define sys_stat		printargs
-#undef sys_lstat
-#define sys_lstat		printargs
-#define sys_fstat		printargs
-#define sys_olduname		printargs
-#define sys_iopl		printargs
-#define sys_idle		printargs
-#define sys_vm86old		printargs
-#define sys_wait4		printargs
-#define sys_sysinfo		printargs
-#define sys_sigreturn		printargs
-#define sys_uname		printargs
-#define sys_modify_ldt		printargs
-#define sys_adjtimex		printargs
-#define sys_sigprocmask		printargs
-#define sys_create_module	printargs
-#define sys_init_module		printargs
-#define sys_get_kernel_syms	printargs
-#define sys_quotactl		printargs
-#define sys_bdflush		printargs
-#define sys_personality		printargs
-#define sys_getdents		printargs
-#define sys__newselect		printargs
-#define sys_msync		printargs
-#define sys_readv		printargs
-#define sys_writev		printargs
-#define sys__sysctl		printargs
-#define sys_sched_rr_get_interval printargs
-#define sys_getresuid		printargs
-#define sys_vm86		printargs
-#define sys_query_module	printargs
-#define sys_nfsservctl		printargs
-#define sys_rt_sigreturn	printargs
-#define sys_rt_sigaction	printargs
-#define sys_rt_sigprocmask	printargs
-#define sys_rt_sigtimedwait	printargs
-#define sys_rt_sigqueueinfo	printargs
-#define sys_rt_sigsuspend	printargs
-#define sys_pread		printargs
-#define sys_pwrite		printargs
-#define sys_sigaltstack		printargs
-#define sys_sendfile		printargs
-#define sys_truncate64		printargs
-#define sys_ftruncate64		printargs
-#define sys_stat64		printargs
-#undef sys_lstat64
-#define sys_lstat64		printargs
-#define sys_fstat64		printargs
-#define sys_fcntl64		printargs
-
+#undef SYS_FUNC_NAME
+#define SYS_FUNC_NAME(syscall_name) printargs
 #include "../i386/syscallent.h"
-
-#undef sys_getrlimit
-#undef sys_afs_syscall
-#undef sys_getpmsg
-#undef sys_putpmsg
-#undef sys_ugetrlimit
-#undef sys_waitpid
-#undef sys_time
-#undef sys_break
-#undef sys_oldstat
-#undef sys_lseek
-#undef sys_stime
-#undef sys_ptrace
-#undef sys_oldfstat
-#undef sys_pause
-#undef sys_utime
-#undef sys_stty
-#undef sys_gtty
-#undef sys_ftime
-#undef sys_pipe
-#undef sys_times
-#undef sys_prof
-#undef sys_signal
-#undef sys_lock
-#undef sys_ioctl
-#undef sys_fcntl
-#undef sys_mpx
-#undef sys_ulimit
-#undef sys_oldolduname
-#undef sys_sigaction
-#undef sys_siggetmask
-#undef sys_sigsetmask
-#undef sys_sigsuspend
-#undef sys_sigpending
-#undef sys_setrlimit
-#undef sys_getrusage
-#undef sys_gettimeofday
-#undef sys_settimeofday
-#undef sys_getgroups
-#undef sys_setgroups
-#undef sys_select
-#undef sys_oldlstat
-#undef sys_readdir
-#undef sys_profil
-#undef sys_statfs
-#undef sys_fstatfs
-#undef sys_ioperm
-#undef sys_setitimer
-#undef sys_getitimer
-#undef sys_stat
-#undef sys_lstat
-#undef sys_fstat
-#undef sys_olduname
-#undef sys_iopl
-#undef sys_idle
-#undef sys_vm86old
-#undef sys_wait4
-#undef sys_sysinfo
-#undef sys_sigreturn
-#undef sys_uname
-#undef sys_modify_ldt
-#undef sys_adjtimex
-#undef sys_sigprocmask
-#undef sys_create_module
-#undef sys_init_module
-#undef sys_get_kernel_syms
-#undef sys_quotactl
-#undef sys_bdflush
-#undef sys_personality
-#undef sys_getdents
-#undef sys__newselect
-#undef sys_msync
-#undef sys_readv
-#undef sys_writev
-#undef sys__sysctl
-#undef sys_sched_rr_get_interval
-#undef sys_getresuid
-#undef sys_vm86
-#undef sys_query_module
-#undef sys_nfsservctl
-#undef sys_rt_sigreturn
-#undef sys_rt_sigaction
-#undef sys_rt_sigprocmask
-#undef sys_rt_sigtimedwait
-#undef sys_rt_sigqueueinfo
-#undef sys_rt_sigsuspend
-#undef sys_pread
-#undef sys_pwrite
-#undef sys_sigaltstack
-#undef sys_sendfile
-#undef sys_truncate64
-#undef sys_ftruncate64
-#undef sys_stat64
-#undef sys_lstat64
-#undef sys_fstat64
-#undef sys_fcntl64
-
-#include "../dummy.h"
+#undef SYS_FUNC_NAME
+#define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(sys_ ## syscall_name)
 
 /* You must be careful to check ../i386/syscallent.h so that this table
    starts where that one leaves off.
@@ -335,7 +141,7 @@
 [1122] = { 2,	TD,		SEN(fstat),			"fstat"			},
 [1123] = { 0,	0,		SEN(vhangup),			"vhangup"		},
 [1124] = { 3,	TF,		SEN(chown),			"lchown"		},
-[1125] = { 5,	0,		SEN(vm86),			"vm86"			},
+[1125] = { 5,	TM|SI,		SEN(remap_file_pages),		"remap_file_pages"	},
 [1126] = { 4,	TP,		SEN(wait4),			"wait4"			},
 [1127] = { 1,	0,		SEN(sysinfo),			"sysinfo"		},
 [1128] = { 5,	TP,		SEN(clone),			"clone"			},
@@ -348,7 +154,7 @@
 [1135] = { 1,	0,		SEN(get_kernel_syms),		"get_kernel_syms"	},
 [1136] = { 5,	0,		SEN(query_module),		"query_module"		},
 [1137] = { 4,	TF,		SEN(quotactl),			"quotactl"		},
-[1138] = { 0,	0,		SEN(bdflush),			"bdflush"		},
+[1138] = { 2,	0,		SEN(bdflush),			"bdflush"		},
 [1139] = { 3,	0,		SEN(sysfs),			"sysfs"			},
 [1140] = { 1,	0,		SEN(personality),		"personality"		},
 [1141] = { 5,	0,		SEN(afs_syscall),		"afs_syscall"		},
@@ -358,8 +164,8 @@
 [1145] = { 2,	TD,		SEN(flock),			"flock"			},
 [1146] = { 5,	TD,		SEN(readv),			"readv"			},
 [1147] = { 5,	TD,		SEN(writev),			"writev"		},
-[1148] = { 4,	TD,		SEN(pread),			"pread"			},
-[1149] = { 4,	TD,		SEN(pwrite),			"pwrite"		},
+[1148] = { 4,	TD,		SEN(pread),			"pread64"		},
+[1149] = { 4,	TD,		SEN(pwrite),			"pwrite64"		},
 [1150] = { 1,	0,		SEN(printargs),			"_sysctl"		},
 [1151] = { 6,	TD|TM|SI,	SEN(mmap),			"mmap"			},
 [1152] = { 2,	TM|SI,		SEN(munmap),			"munmap"		},
@@ -398,8 +204,8 @@
 [1185] = { 2,	0,		SEN(capget),			"capget"		},
 [1186] = { 2,	0,		SEN(capset),			"capset"		},
 [1187] = { 4,	TD|TN,		SEN(sendfile),			"sendfile"		},
-[1188] = { 5,	TN,		SEN(printargs),			"getpmsg"		},
-[1189] = { 5,	TN,		SEN(printargs),			"putpmsg"		},
+[1188] = { 5,	TN,		SEN(getpmsg),			"getpmsg"		},
+[1189] = { 5,	TN,		SEN(putpmsg),			"putpmsg"		},
 [1190] = { 3,	TN,		SEN(socket),			"socket"		},
 [1191] = { 3,	TN,		SEN(bind),			"bind"			},
 [1192] = { 3,	TN,		SEN(connect),			"connect"		},
@@ -507,9 +313,9 @@
 [1294] = { 6,	TD,		SEN(pselect6),			"pselect6"		},
 [1295] = { 5,	TD,		SEN(ppoll),			"ppoll"			},
 [1296] = { 1,	TP,		SEN(unshare),			"unshare"		},
-[1297] = { 2,	0,		SEN(set_robust_list),		"set_robust_list"	},
-[1298] = { 3,	0,		SEN(get_robust_list),		"get_robust_list"	},
-[1299] = { 6,	TD,		SEN(splice),			"splice"		},
+[1297] = { 6,	TD,		SEN(splice),			"splice"		},
+[1298] = { 2,	0,		SEN(set_robust_list),		"set_robust_list"	},
+[1299] = { 3,	0,		SEN(get_robust_list),		"get_robust_list"	},
 [1300] = { 4,	TD,		SEN(sync_file_range),		"sync_file_range"	},
 [1301] = { 4,	TD,		SEN(tee),			"tee"			},
 [1302] = { 4,	TD,		SEN(vmsplice),			"vmsplice"		},
@@ -553,3 +359,6 @@
 [1340] = { 2,	TD,		SEN(memfd_create),		"memfd_create",		},
 [1341] = { 3,	TD,		SEN(bpf),			"bpf",			},
 [1342] = { 5,	TD|TF|TP|SE|SI,	SEN(execveat),			"execveat",		},
+[1343] = { 1,	TD,		SEN(userfaultfd),		"userfaultfd",		},
+[1344] = { 2,	0,		SEN(membarrier),		"membarrier",		},
+[1345] = { 5,	0,		SEN(kcmp),			"kcmp"			},

@@ -3,11 +3,12 @@
 #include <sys/prctl.h>
 
 #include "xlat/prctl_options.h"
-#include "xlat/pr_unalign_flags.h"
+#include "xlat/pr_cap_ambient.h"
 #include "xlat/pr_mce_kill.h"
 #include "xlat/pr_mce_kill_policy.h"
 #include "xlat/pr_set_mm.h"
 #include "xlat/pr_tsc.h"
+#include "xlat/pr_unalign_flags.h"
 
 #ifndef TASK_COMM_LEN
 # define TASK_COMM_LEN 16
@@ -53,9 +54,7 @@ SYS_FUNC(prctl)
 	case PR_GET_SECCOMP:
 	case PR_GET_TIMERSLACK:
 	case PR_GET_TIMING:
-		if (entering(tcp))
-			break;
-		return syserror(tcp) ? 0 : RVAL_UDECIMAL;
+		return RVAL_DECODED;
 
 	case PR_GET_CHILD_SUBREAPER:
 	case PR_GET_ENDIAN:
@@ -100,7 +99,7 @@ SYS_FUNC(prctl)
 		if (entering(tcp))
 			tprints(", ");
 		else
-			printnum_long(tcp, tcp->u_arg[1], "%#lx");
+			printnum_ptr(tcp, tcp->u_arg[1]);
 		break;
 
 	case PR_GET_TSC:
@@ -139,17 +138,27 @@ SYS_FUNC(prctl)
 		return RVAL_DECODED;
 
 	case PR_CAPBSET_DROP:
+	case PR_CAPBSET_READ:
 		tprints(", ");
 		printxval(cap, tcp->u_arg[1], "CAP_???");
 		return RVAL_DECODED;
 
-	case PR_CAPBSET_READ:
-		if (entering(tcp)) {
+	case PR_CAP_AMBIENT:
+		tprints(", ");
+		printxval(pr_cap_ambient, tcp->u_arg[1], "PR_CAP_AMBIENT_???");
+		switch (tcp->u_arg[1]) {
+		case PR_CAP_AMBIENT_RAISE:
+		case PR_CAP_AMBIENT_LOWER:
+		case PR_CAP_AMBIENT_IS_SET:
 			tprints(", ");
-			printxval(cap, tcp->u_arg[1], "CAP_???");
+			printxval(cap, tcp->u_arg[2], "CAP_???");
+			print_prctl_args(tcp, 3);
+			break;
+		default:
+			print_prctl_args(tcp, 2);
 			break;
 		}
-		return syserror(tcp) ? 0 : RVAL_UDECIMAL;
+		return RVAL_DECODED;
 
 	case PR_MCE_KILL:
 		tprints(", ");
@@ -250,14 +259,6 @@ SYS_FUNC(prctl)
 		print_prctl_args(tcp, 2);
 		return RVAL_DECODED;
 
-	case PR_GET_NO_NEW_PRIVS:
-	case PR_GET_THP_DISABLE:
-		if (entering(tcp)) {
-			print_prctl_args(tcp, 1);
-			return 0;
-		}
-		return syserror(tcp) ? 0 : RVAL_UDECIMAL;
-
 	case PR_MCE_KILL_GET:
 		if (entering(tcp)) {
 			print_prctl_args(tcp, 1);
@@ -268,6 +269,8 @@ SYS_FUNC(prctl)
 		tcp->auxstr = xlookup(pr_mce_kill_policy, tcp->u_rval);
 		return tcp->auxstr ? RVAL_STR : RVAL_UDECIMAL;
 
+	case PR_GET_NO_NEW_PRIVS:
+	case PR_GET_THP_DISABLE:
 	case PR_MPX_DISABLE_MANAGEMENT:
 	case PR_MPX_ENABLE_MANAGEMENT:
 	default:
@@ -292,7 +295,7 @@ SYS_FUNC(arch_prctl)
 		if (entering(tcp))
 			tprints(", ");
 		else
-			printnum_long(tcp, tcp->u_arg[1], "%#lx");
+			printnum_ptr(tcp, tcp->u_arg[1]);
 		return 0;
 	}
 

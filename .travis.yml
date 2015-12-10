@@ -1,0 +1,25 @@
+language: c
+
+dist: trusty
+
+script: ./travis-ci.sh
+
+sudo: required
+
+addons:
+  apt:
+    packages:
+    - gcc-multilib
+    - libacl1-dev
+
+env:
+  global:
+    - ENABLE_GCC_WERROR="--enable-gcc-Werror"
+    - SLEEP_A_BIT="sleep 0.1"
+    - VERBOSE="1"
+
+matrix:
+  include:
+    - env: TARGET=x86_64
+    - env: TARGET=x32
+    - env: TARGET=x86

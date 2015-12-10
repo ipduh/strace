@@ -1,9 +1,12 @@
 #include "defs.h"
+#include DEF_MPERS_TYPE(sysinfo_t)
 #include <sys/sysinfo.h>
+typedef struct sysinfo sysinfo_t;
+#include MPERS_DEFS
 
 SYS_FUNC(sysinfo)
 {
-	struct sysinfo si;
+	sysinfo_t si;
 
 	if (entering(tcp))
 		return 0;
@@ -18,15 +21,9 @@ SYS_FUNC(sysinfo)
 			", totalswap=%llu"
 			", freeswap=%llu"
 			", procs=%u"
-#ifdef HAVE_STRUCT_SYSINFO_TOTALHIGH
 			", totalhigh=%llu"
-#endif
-#ifdef HAVE_STRUCT_SYSINFO_FREEHIGH
 			", freehigh=%llu"
-#endif
-#ifdef HAVE_STRUCT_SYSINFO_MEM_UNIT
 			", mem_unit=%u"
-#endif
 			"}",
 			(unsigned long long) si.uptime
 			, (unsigned long long) si.loads[0]
@@ -39,15 +36,9 @@ SYS_FUNC(sysinfo)
 			, (unsigned long long) si.totalswap
 			, (unsigned long long) si.freeswap
 			, (unsigned) si.procs
-#ifdef HAVE_STRUCT_SYSINFO_TOTALHIGH
 			, (unsigned long long) si.totalhigh
-#endif
-#ifdef HAVE_STRUCT_SYSINFO_FREEHIGH
 			, (unsigned long long) si.freehigh
-#endif
-#ifdef HAVE_STRUCT_SYSINFO_MEM_UNIT
 			, si.mem_unit
-#endif
 			);
 	}
 

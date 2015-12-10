@@ -4,14 +4,12 @@
 
 . "${srcdir=.}/init.sh"
 
-syscall=
-$STRACE -epselect6 -h > /dev/null && syscall=$syscall,pselect6
-$STRACE -eselect -h > /dev/null && syscall=$syscall,select
-test -n "$syscall" ||
-	fail_ 'neither select not pselect6 syscall is supported on this architecture'
+run_prog > /dev/null
+syscall=${ME_%.test}
+OUT="$LOG.out"
+run_strace -a36 -e$syscall $args > "$OUT"
+match_diff "$LOG" "$OUT"
 
-run_prog
-run_strace -e$syscall $args
-match_awk
+rm -f "$OUT"
 
 exit 0

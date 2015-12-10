@@ -1,9 +1,17 @@
 #include "defs.h"
 
+#include DEF_MPERS_TYPE(siginfo_t)
+
 #include <signal.h>
+#include <linux/audit.h>
 
+#include MPERS_DEFS
+
+#ifndef IN_MPERS
 #include "printsiginfo.h"
+#endif
 
+#include "xlat/audit_arch.h"
 #include "xlat/sigbus_codes.h"
 #include "xlat/sigchld_codes.h"
 #include "xlat/sigfpe_codes.h"
@@ -26,9 +34,9 @@
 static void
 printsigsource(const siginfo_t *sip)
 {
-	tprintf(", si_pid=%lu, si_uid=%lu",
-		(unsigned long) sip->si_pid,
-		(unsigned long) sip->si_uid);
+	tprintf(", si_pid=%u, si_uid=%u",
+		(unsigned int) sip->si_pid,
+		(unsigned int) sip->si_uid);
 }
 
 static void
@@ -37,7 +45,7 @@ printsigval(const siginfo_t *sip, bool verbose)
 	if (!verbose)
 		tprints(", ...");
 	else
-		tprintf(", si_value={int=%u, ptr=%#lx}",
+		tprintf(", si_value={int=%d, ptr=%#lx}",
 			sip->si_int,
 			(unsigned long) sip->si_ptr);
 }
@@ -154,9 +162,10 @@ print_si_info(const siginfo_t *sip, bool verbose)
 			break;
 #ifdef HAVE_SIGINFO_T_SI_SYSCALL
 		case SIGSYS:
-			tprintf(", si_call_addr=%#lx, si_syscall=%d, si_arch=%u",
+			tprintf(", si_call_addr=%#lx, si_syscall=__NR_%s, si_arch=",
 				(unsigned long) sip->si_call_addr,
-				sip->si_syscall, sip->si_arch);
+				syscall_name(sip->si_syscall));
+			printxval(audit_arch, sip->si_arch, "AUDIT_ARCH_???");
 			break;
 #endif
 		default:
@@ -168,6 +177,9 @@ print_si_info(const siginfo_t *sip, bool verbose)
 	}
 }
 
+#ifdef IN_MPERS
+static
+#endif
 void
 printsiginfo(const siginfo_t *sip, bool verbose)
 {
@@ -189,8 +201,7 @@ printsiginfo(const siginfo_t *sip, bool verbose)
 	tprints("}");
 }
 
-void
-printsiginfo_at(struct tcb *tcp, long addr)
+MPERS_PRINTER_DECL(void, printsiginfo_at)(struct tcb *tcp, long addr)
 {
 	siginfo_t si;
 

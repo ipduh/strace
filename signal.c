@@ -673,7 +673,16 @@ SYS_FUNC(rt_sigtimedwait)
 		/* syscall exit, and u_arg[1] was NULL */
 		return 0;
 	}
+
+	/*
+	 * Since the timeout parameter is read by the kernel
+	 * on entering syscall, it has to be decoded the same way
+	 * whether the syscall has failed or not.
+	 */
+	temporarily_clear_syserror(tcp);
 	print_timespec(tcp, tcp->u_arg[2]);
+	restore_cleared_syserror(tcp);
+
 	tprintf(", %lu", tcp->u_arg[3]);
 	return 0;
 };
@@ -684,30 +693,4 @@ SYS_FUNC(restart_syscall)
 		tcp->s_prev_ent ? tcp->s_prev_ent->sys_name : "system call");
 
 	return RVAL_DECODED;
-}
-
-static int
-do_signalfd(struct tcb *tcp, int flags_arg)
-{
-	/* NB: kernel requires arg[2] == NSIG / 8 */
-	printfd(tcp, tcp->u_arg[0]);
-	tprints(", ");
-	print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu", tcp->u_arg[2]);
-	if (flags_arg >= 0) {
-		tprints(", ");
-		printflags(open_mode_flags, tcp->u_arg[flags_arg], "O_???");
-	}
-
-	return RVAL_DECODED;
-}
-
-SYS_FUNC(signalfd)
-{
-	return do_signalfd(tcp, -1);
-}
-
-SYS_FUNC(signalfd4)
-{
-	return do_signalfd(tcp, 3);
 }
