@@ -59,13 +59,21 @@ LOCAL_SRC_FILES := \
     count.c \
     desc.c \
     dirent.c \
+    dirent64.c \
+    epoll.c \
+    eventfd.c \
     execve.c \
     exit.c \
     fadvise.c \
     fallocate.c \
     fanotify.c \
     fchownat.c \
+    fcntl.c \
+    fetch_seccomp_fprog.c \
+    fetch_struct_flock.c \
     file.c \
+    file_handle.c \
+    flock.c \
     futex.c \
     getcpu.c \
     getcwd.c \
@@ -75,24 +83,41 @@ LOCAL_SRC_FILES := \
     inotify.c \
     io.c \
     ioctl.c \
+    ioperm.c \
+    iopl.c \
     ioprio.c \
-    ipc.c \
+    ipc_msg.c \
+    ipc_msgctl.c \
+    ipc_sem.c \
+    ipc_shm.c \
+    ipc_shmctl.c \
+    kcmp.c \
     kexec.c \
     keyctl.c \
     ldt.c \
     link.c \
+    lookup_dcookie.c \
     loop.c \
     lseek.c \
     mem.c \
+    membarrier.c \
     memfd_create.c \
     mknod.c \
     mount.c \
+    mq.c \
     mtd.c \
     net.c \
     open.c \
     pathtrace.c \
+    perf.c \
     personality.c \
+    poll.c \
     prctl.c \
+    print_mq_attr.c \
+    print_msgbuf.c \
+    print_sigevent.c \
+    print_time.c \
+    print_timex.c \
     printmode.c \
     printrusage.c \
     printsiginfo.c \
@@ -109,15 +134,16 @@ LOCAL_SRC_FILES := \
     sched.c \
     scsi.c \
     seccomp.c \
+    sendfile.c \
     sigaltstack.c \
     signal.c \
+    signalfd.c \
     sigreturn.c \
     sock.c \
     socketutils.c \
     sram_alloc.c \
     statfs.c \
     strace.c \
-    stream.c \
     swapon.c \
     sync_file_range.c \
     syscall.c \
@@ -127,12 +153,14 @@ LOCAL_SRC_FILES := \
     sysmips.c \
     term.c \
     time.c \
+    times.c \
     truncate.c \
     uid16.c \
     uid.c \
     umask.c \
     umount.c \
     uname.c \
+    userfaultfd.c \
     util.c \
     utime.c \
     utimes.c \
@@ -179,10 +207,13 @@ LOCAL_CFLAGS := \
     -DHAVE_LINUX_ICMP_H=1 \
     -DHAVE_LINUX_IF_PACKET_H=1 \
     -DHAVE_LINUX_IN6_H=1 \
+    -DHAVE_LINUX_IPC_H=1 \
     -DHAVE_LINUX_MQUEUE=1 \
+    -DHAVE_LINUX_MSG_H=1 \
     -DHAVE_LINUX_NETLINK_H=1 \
     -DHAVE_LINUX_PERF_EVENT_H=1 \
     -DHAVE_LINUX_SEM_H=1 \
+    -DHAVE_LINUX_SHM_H=1 \
     -DHAVE_LITTLE_ENDIAN_LONG_LONG=1 \
     -DHAVE_LONG_LONG=1 \
     -DHAVE_NETINET_TCP_H=1 \
@@ -201,6 +232,7 @@ LOCAL_CFLAGS := \
     -DHAVE_STATFS64=1 \
     -DHAVE_STDBOOL_H=1 \
     -DHAVE_STRERROR=1 \
+    -DHAVE_STRUCT_FLOCK=1 \
     -DHAVE_STRUCT_FLOCK64=1 \
     -DHAVE_STRUCT_MMSGHDR=1 \
     -DHAVE_STRUCT_MSGHDR_MSG_CONTROL=1 \
