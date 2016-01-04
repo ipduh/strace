@@ -1,3 +1,31 @@
+/*
+ * Copyright (c) 2015 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. The name of the author may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 /**
  * @file
  * This test burns some CPU cycles in user space and kernel space in order to
@@ -69,9 +97,29 @@ main (void)
 	 * prefer direct times syscall over libc's times function because
 	 * the latter is more prone to return value truncation.
 	 */
-#if !defined __NR_times \
- || defined LINUX_MIPSN32 \
- || defined __x86_64__ && defined __ILP32__
+#undef USE_LIBC_SYSCALL
+#if defined __NR_times && \
+   !defined(LINUX_MIPSN32) && \
+   !(defined __x86_64__ && defined __ILP32__)
+# define USE_LIBC_SYSCALL 1
+#endif
+
+#if defined USE_LIBC_SYSCALL
+	long res = syscall(__NR_times, &tbuf);
+
+	if (-1L == res)
+		return 77;
+	else
+		llres = (unsigned long) res;
+#elif defined __NR_times && defined __x86_64__ && defined __ILP32__
+	register long arg asm("rdi") = (long) &tbuf;
+	asm volatile("syscall\n\t"
+		     : "=a"(llres)
+		     : "0"(__NR_times), "r"(arg)
+		     : "memory", "cc", "r11", "cx");
+	if (llres > 0xfffffffffffff000)
+		return 77;
+#else
 	clock_t res = times(&tbuf);
 
 	if ((clock_t) -1 == res)
@@ -80,13 +128,6 @@ main (void)
 		llres = (unsigned long) res;
 	else
 		llres = res;
-#else
-	long res = syscall(__NR_times, &tbuf);
-
-	if (-1L == res)
-		return 77;
-	else
-		llres = (unsigned long) res;
 #endif
 
 	printf("times({tms_utime=%llu, tms_stime=%llu, ",

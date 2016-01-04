@@ -1,4 +1,29 @@
 # Automake input for strace tests.
+#
+# Copyright (c) 2011-2015 Dmitry V. Levin <ldv@altlinux.org>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. The name of the author may not be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 OS = linux
 ARCH = @arch@
@@ -31,6 +56,7 @@ check_PROGRAMS = \
 	fcntl64 \
 	file_handle \
 	filter-unavailable \
+	fork-f \
 	fstat \
 	fstat64 \
 	fstatat64 \
@@ -66,6 +92,7 @@ check_PROGRAMS = \
 	newfstatat \
 	oldselect \
 	pc \
+	personality \
 	pipe \
 	ppoll \
 	pselect6 \
@@ -110,6 +137,7 @@ check_PROGRAMS = \
 	userfaultfd \
 	utime \
 	utimensat \
+	vfork-f \
 	wait \
 	xattr \
 	xet_robust_list \
@@ -158,6 +186,7 @@ TESTS = \
 	fcntl64.test \
 	file_handle.test \
 	filter-unavailable.test \
+	fork-f.test \
 	fstat.test \
 	fstat64.test \
 	fstatat64.test \
@@ -191,6 +220,7 @@ TESTS = \
 	newfstatat.test \
 	oldselect.test \
 	pc.test \
+	personality.test \
 	pipe.test \
 	ppoll.test \
 	pselect6.test \
@@ -233,6 +263,7 @@ TESTS = \
 	userfaultfd.test \
 	utime.test \
 	utimensat.test \
+	vfork-f.test \
 	wait.test \
 	xattr.test \
 	xet_robust_list.test \

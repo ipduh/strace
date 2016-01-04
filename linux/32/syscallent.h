@@ -1,5 +1,5 @@
-#ifndef ARCH_mmap
-# define ARCH_mmap mmap
+#ifndef sys_ARCH_mmap
+# define sys_ARCH_mmap sys_mmap
 #endif
 [  0] = { 2,	0,		SEN(io_setup),			"io_setup"		},
 [  1] = { 1,	0,		SEN(io_destroy),		"io_destroy"		},
@@ -97,7 +97,7 @@
 [ 89] = { 1,	TF,		SEN(acct),			"acct"			},
 [ 90] = { 2,	0,		SEN(capget),			"capget"		},
 [ 91] = { 2,	0,		SEN(capset),			"capset"		},
-[ 92] = { 1,	0,		SEN(personality),		"personality"		},
+[ 92] = { 1,	NF,		SEN(personality),		"personality"		},
 [ 93] = { 1,	TP|SE,		SEN(exit),			"exit"			},
 [ 94] = { 1,	TP|SE,		SEN(exit),			"exit_group"		},
 [ 95] = { 5,	TP,		SEN(waitid),			"waitid"		},
@@ -171,19 +171,19 @@
 [163] = { 2,	0,		SEN(getrlimit),			"getrlimit"		},
 [164] = { 2,	0,		SEN(setrlimit),			"setrlimit"		},
 [165] = { 2,	0,		SEN(getrusage),			"getrusage"		},
-[166] = { 1,	0,		SEN(umask),			"umask"			},
+[166] = { 1,	NF,		SEN(umask),			"umask"			},
 [167] = { 5,	0,		SEN(prctl),			"prctl"			},
 [168] = { 3,	0,		SEN(getcpu),			"getcpu"		},
 [169] = { 2,	0,		SEN(gettimeofday),		"gettimeofday"		},
 [170] = { 2,	0,		SEN(settimeofday),		"settimeofday"		},
 [171] = { 1,	0,		SEN(adjtimex),			"adjtimex"		},
-[172] = { 0,	0,		SEN(getpid),			"getpid"		},
-[173] = { 0,	0,		SEN(getppid),			"getppid"		},
+[172] = { 0,	NF,		SEN(getpid),			"getpid"		},
+[173] = { 0,	NF,		SEN(getppid),			"getppid"		},
 [174] = { 0,	NF,		SEN(getuid),			"getuid"		},
 [175] = { 0,	NF,		SEN(geteuid),			"geteuid"		},
 [176] = { 0,	NF,		SEN(getgid),			"getgid"		},
 [177] = { 0,	NF,		SEN(getegid),			"getegid"		},
-[178] = { 0,	0,		SEN(gettid),			"gettid"		},
+[178] = { 0,	NF,		SEN(gettid),			"gettid"		},
 [179] = { 1,	0,		SEN(sysinfo),			"sysinfo"		},
 [180] = { 4,	0,		SEN(mq_open),			"mq_open"		},
 [181] = { 1,	0,		SEN(mq_unlink),			"mq_unlink"		},
@@ -276,5 +276,5 @@
 [283] = { 2,	0,		SEN(membarrier),		"membarrier",		},
 [284] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
 
-#undef ARCH_mmap
+#undef sys_ARCH_mmap
 #undef ARCH_WANT_SYNC_FILE_RANGE2

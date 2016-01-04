@@ -55,6 +55,7 @@
 #include <sys/syscall.h>
 
 #include "mpers_type.h"
+#include "gcc_compat.h"
 
 #ifndef HAVE_STRERROR
 const char *strerror(int);
@@ -66,48 +67,6 @@ const char *strerror(int);
 #undef stpcpy
 #define stpcpy strace_stpcpy
 extern char *stpcpy(char *dst, const char *src);
-#endif
-
-#if defined __GNUC__ && defined __GNUC_MINOR__
-# define GNUC_PREREQ(maj, min)	\
-	((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#else
-# define __attribute__(x)	/* empty */
-# define GNUC_PREREQ(maj, min)	0
-#endif
-
-#if GNUC_PREREQ(2, 5)
-# define ATTRIBUTE_NORETURN	__attribute__((__noreturn__))
-#else
-# define ATTRIBUTE_NORETURN	/* empty */
-#endif
-
-#if GNUC_PREREQ(2, 7)
-# define ATTRIBUTE_FORMAT(args)	__attribute__((__format__ args))
-# define ATTRIBUTE_ALIGNED(arg)	__attribute__((__aligned__(arg)))
-# define ATTRIBUTE_PACKED	__attribute__((__packed__))
-#else
-# define ATTRIBUTE_FORMAT(args)	/* empty */
-# define ATTRIBUTE_ALIGNED(arg)	/* empty */
-# define ATTRIBUTE_PACKED	/* empty */
-#endif
-
-#if GNUC_PREREQ(3, 0)
-# define ATTRIBUTE_MALLOC	__attribute__((__malloc__))
-#else
-# define ATTRIBUTE_MALLOC	/* empty */
-#endif
-
-#if GNUC_PREREQ(3, 1)
-# define ATTRIBUTE_NOINLINE	__attribute__((__noinline__))
-#else
-# define ATTRIBUTE_NOINLINE	/* empty */
-#endif
-
-#if GNUC_PREREQ(4, 3)
-# define ATTRIBUTE_ALLOC_SIZE(args)	__attribute__((__alloc_size__ args))
-#else
-# define ATTRIBUTE_ALLOC_SIZE(args)	/* empty */
 #endif
 
 #ifndef offsetof
@@ -582,12 +541,12 @@ extern int print_quoted_string(const char *, unsigned int, unsigned int);
 /* a refers to the lower numbered u_arg,
  * b refers to the higher numbered u_arg
  */
-#ifdef HAVE_LITTLE_ENDIAN_LONG_LONG
-# define LONG_LONG(a,b) \
-	((long long)((unsigned long long)(unsigned)(a) | ((unsigned long long)(b)<<32)))
-#else
+#ifdef WORDS_BIGENDIAN
 # define LONG_LONG(a,b) \
 	((long long)((unsigned long long)(unsigned)(b) | ((unsigned long long)(a)<<32)))
+#else
+# define LONG_LONG(a,b) \
+	((long long)((unsigned long long)(unsigned)(a) | ((unsigned long long)(b)<<32)))
 #endif
 extern int getllval(struct tcb *, unsigned long long *, int);
 extern int printllval(struct tcb *, const char *, int)
@@ -800,8 +759,8 @@ extern unsigned num_quals;
 #define MPERS_FUNC_NAME_(prefix, name) MPERS_FUNC_NAME__(prefix, name)
 #define MPERS_FUNC_NAME(name) MPERS_FUNC_NAME_(MPERS_PREFIX, name)
 
-#define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(sys_ ## syscall_name)
+#define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
 
-#define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(syscall_name)(struct tcb *tcp)
+#define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
 
 #define MPERS_PRINTER_DECL(type, name) type MPERS_FUNC_NAME(name)

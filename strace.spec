@@ -1,14 +1,16 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 4.10
-Release: 1%{?dist}
+Version: 4.11
+Release: 2%{?dist}
 License: BSD
 Group: Development/Debuggers
 URL: http://sourceforge.net/projects/strace/
 Source: http://downloads.sourceforge.net/strace/%{name}-%{version}.tar.xz
-
-BuildRequires: libacl-devel, time
-
+BuildRequires: time
+%ifarch x86_64
+# for experimental -k option
+BuildRequires: libunwind-devel
+%endif
 %define strace64_arches ppc64 sparc64
 
 %description
@@ -79,6 +81,19 @@ make -k check VERBOSE=1
 %endif
 
 %changelog
+* Wed Dec 23 2015 Dmitry V. Levin <ldv@altlinux.org> - 4.11-2
+- Enabled experimental -k option on x86_64 (#1170296).
+
+* Mon Dec 21 2015 Dmitry V. Levin <ldv@altlinux.org> - 4.11-1
+- New upstream release:
+  + print nanoseconds along with seconds in stat family syscalls (#1251176).
+
+* Fri Jun 19 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 4.10-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
+
+* Mon May 11 2015 Marcin Juszkiewicz <mjuszkiewicz@redhat.com> - 4.10-2
+- Backport set of upstream patches to get it buildable on AArch64
+
 * Fri Mar 06 2015 Dmitry V. Levin <ldv@altlinux.org> - 4.10-1
 - New upstream release:
   + enhanced ioctl decoding (#902788).

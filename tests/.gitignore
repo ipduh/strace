@@ -21,6 +21,7 @@ fcntl
 fcntl64
 file_handle
 filter-unavailable
+fork-f
 fstat
 fstat64
 fstatat64
@@ -38,6 +39,7 @@ ipc_msgbuf
 ipc_sem
 ipc_shm
 ksysent
+ksysent.h
 llseek
 lseek
 lstat
@@ -56,6 +58,7 @@ netlink_unix_diag
 newfstatat
 oldselect
 pc
+personality
 pipe
 ppoll
 pselect6
@@ -100,6 +103,7 @@ unix-pair-send-recv
 userfaultfd
 utime
 utimensat
+vfork-f
 wait
 xattr
 xet_robust_list

@@ -34,7 +34,7 @@
 #define SYS_FUNC_NAME(syscall_name) printargs
 #include "../i386/syscallent.h"
 #undef SYS_FUNC_NAME
-#define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(sys_ ## syscall_name)
+#define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
 
 /* You must be careful to check ../i386/syscallent.h so that this table
    starts where that one leaves off.
@@ -57,8 +57,8 @@
 [1038] = { 2,	TF,		SEN(chmod),			"chmod"			},
 [1039] = { 3,	TF,		SEN(chown),			"chown"			},
 [1040] = { 3,	TD,		SEN(lseek),			"lseek"			},
-[1041] = { 0,	0,		SEN(getpid),			"getpid"		},
-[1042] = { 0,	0,		SEN(getppid),			"getppid"		},
+[1041] = { 0,	NF,		SEN(getpid),			"getpid"		},
+[1042] = { 0,	NF,		SEN(getppid),			"getppid"		},
 [1043] = { 5,	TF,		SEN(mount),			"mount"			},
 [1044] = { 2,	TF,		SEN(umount2),			"umount"		},
 [1045] = { 1,	0,		SEN(setuid),			"setuid"		},
@@ -83,7 +83,7 @@
 [1064] = { 1,	TF,		SEN(acct),			"acct"			},
 [1065] = { 3,	TD,		SEN(ioctl),			"ioctl"			},
 [1066] = { 3,	TD,		SEN(fcntl),			"fcntl"			},
-[1067] = { 1,	0,		SEN(umask),			"umask"			},
+[1067] = { 1,	NF,		SEN(umask),			"umask"			},
 [1068] = { 1,	TF,		SEN(chroot),			"chroot"		},
 [1069] = { 2,	0,		SEN(ustat),			"ustat"			},
 [1070] = { 2,	TD,		SEN(dup2),			"dup2"			},
@@ -121,7 +121,7 @@
 [1102] = { 3,	0,		SEN(setpriority),		"setpriority"		},
 [1103] = { 2,	TF,		SEN(statfs),			"statfs"		},
 [1104] = { 2,	TD,		SEN(fstatfs),			"fstatfs"		},
-[1105] = { 3,	0,		SEN(gettid),			"gettid"		},
+[1105] = { 0,	NF,		SEN(gettid),			"gettid"		},
 [1106] = { 3,	TI,		SEN(semget),			"semget"		},
 [1107] = { 3,	TI,		SEN(semop),			"semop"			},
 [1108] = { 4,	TI,		SEN(semctl),			"semctl"		},
@@ -156,7 +156,7 @@
 [1137] = { 4,	TF,		SEN(quotactl),			"quotactl"		},
 [1138] = { 2,	0,		SEN(bdflush),			"bdflush"		},
 [1139] = { 3,	0,		SEN(sysfs),			"sysfs"			},
-[1140] = { 1,	0,		SEN(personality),		"personality"		},
+[1140] = { 1,	NF,		SEN(personality),		"personality"		},
 [1141] = { 5,	0,		SEN(afs_syscall),		"afs_syscall"		},
 [1142] = { 1,	NF,		SEN(setfsuid),			"setfsuid"		},
 [1143] = { 1,	NF,		SEN(setfsgid),			"setfsgid"		},
@@ -362,3 +362,4 @@
 [1343] = { 1,	TD,		SEN(userfaultfd),		"userfaultfd",		},
 [1344] = { 2,	0,		SEN(membarrier),		"membarrier",		},
 [1345] = { 5,	0,		SEN(kcmp),			"kcmp"			},
+[1346] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
