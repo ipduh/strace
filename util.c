@@ -512,16 +512,14 @@ printfd(struct tcb *tcp, int fd)
 		if (show_fd_path > 1 &&
 		    strncmp(path, socket_prefix, socket_prefix_len) == 0 &&
 		    path[path_len - 1] == ']') {
-			unsigned long inodenr;
-#define PROTO_NAME_LEN 32
-			char proto_buf[PROTO_NAME_LEN];
-			const char *proto =
-				getfdproto(tcp, fd, proto_buf, PROTO_NAME_LEN);
-			inodenr = strtoul(path + socket_prefix_len, NULL, 10);
-			if (!print_sockaddr_by_inode(inodenr, proto)) {
-				if (proto)
-					tprintf("%s:[%lu]", proto, inodenr);
-				else
+			unsigned long inode =
+				strtoul(path + socket_prefix_len, NULL, 10);
+
+			if (!print_sockaddr_by_inode_cached(inode)) {
+				char buf[256];
+				const char *proto =
+					getfdproto(tcp, fd, buf, sizeof(buf));
+				if (!print_sockaddr_by_inode(inode, proto))
 					tprints(path);
 			}
 		} else {
@@ -547,7 +545,7 @@ printfd(struct tcb *tcp, int fd)
  * Returns 0 if QUOTE_0_TERMINATED is set and NUL was seen, 1 otherwise.
  * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
  */
-static int
+int
 string_quote(const char *instr, char *outstr, const unsigned int size,
 	     const unsigned int style)
 {
@@ -841,12 +839,12 @@ printstr(struct tcb *tcp, long addr, long len)
 }
 
 void
-dumpiov(struct tcb *tcp, int len, long addr)
+dumpiov_upto(struct tcb *tcp, int len, long addr, unsigned long data_size)
 {
 #if SUPPORTED_PERSONALITIES > 1
 	union {
-		struct { u_int32_t base; u_int32_t len; } *iov32;
-		struct { u_int64_t base; u_int64_t len; } *iov64;
+		struct { uint32_t base; uint32_t len; } *iov32;
+		struct { uint64_t base; uint64_t len; } *iov64;
 	} iovu;
 #define iov iovu.iov64
 #define sizeof_iov \
@@ -873,12 +871,16 @@ dumpiov(struct tcb *tcp, int len, long addr)
 	}
 	if (umoven(tcp, addr, size, iov) >= 0) {
 		for (i = 0; i < len; i++) {
+			unsigned long iov_len = iov_iov_len(i);
+			if (iov_len > data_size)
+				iov_len = data_size;
+			if (!iov_len)
+				break;
+			data_size -= iov_len;
 			/* include the buffer number to make it easy to
 			 * match up the trace with the source */
-			tprintf(" * %lu bytes in buffer %d\n",
-				(unsigned long)iov_iov_len(i), i);
-			dumpstr(tcp, (long) iov_iov_base(i),
-				iov_iov_len(i));
+			tprintf(" * %lu bytes in buffer %d\n", iov_len, i);
+			dumpstr(tcp, (long) iov_iov_base(i), iov_len);
 		}
 	}
 	free(iov);
@@ -1331,22 +1333,5 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 		nread += m;
 		len -= m;
 	}
-	return 0;
-}
-
-int
-upeek(int pid, long off, long *res)
-{
-	long val;
-
-	errno = 0;
-	val = ptrace(PTRACE_PEEKUSER, (pid_t)pid, (char *) off, 0);
-	if (val == -1 && errno) {
-		if (errno != ESRCH) {
-			perror_msg("upeek: PTRACE_PEEKUSER pid:%d @0x%lx)", pid, off);
-		}
-		return -1;
-	}
-	*res = val;
 	return 0;
 }

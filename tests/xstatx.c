@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,9 +25,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if defined TEST_SYSCALL_NAME \
- && defined HAVE_FTRUNCATE && defined HAVE_FUTIMENS
+#if defined HAVE_FTRUNCATE && defined HAVE_FUTIMENS
 
+# ifndef TEST_SYSCALL_STR
+#  error TEST_SYSCALL_STR must be defined
+# endif
 # ifndef TEST_SYSCALL_INVOKE
 #  error TEST_SYSCALL_INVOKE must be defined
 # endif
@@ -131,6 +133,7 @@ typedef off_t libc_off_t;
 
 # ifndef STRUCT_STAT
 #  define STRUCT_STAT struct stat
+#  define STRUCT_STAT_STR "struct stat"
 # endif
 # ifndef SAMPLE_SIZE
 #  define SAMPLE_SIZE 43147718418
@@ -228,11 +231,6 @@ create_sample(const char *fname, const libc_off_t size)
 	return 0;
 }
 
-# define stringify_(arg) #arg
-# define stringify(arg) stringify_(arg)
-# define TEST_SYSCALL_STR stringify(TEST_SYSCALL_NAME)
-# define STRUCT_STAT_STR stringify(STRUCT_STAT)
-
 int
 main(void)
 {
@@ -314,10 +312,6 @@ main(void)
 
 #else
 
-int
-main(void)
-{
-	return 77;
-}
+SKIP_MAIN_UNDEFINED("HAVE_FTRUNCATE && HAVE_FUTIMENS")
 
 #endif

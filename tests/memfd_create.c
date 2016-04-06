@@ -1,7 +1,4 @@
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
+#include "tests.h"
 #include <unistd.h>
 #include <sys/syscall.h>
 
@@ -16,10 +13,6 @@ main(void)
 
 #else
 
-int
-main(void)
-{
-	return 77;
-}
+SKIP_MAIN_UNDEFINED("__NR_memfd_create")
 
 #endif

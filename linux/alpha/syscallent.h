@@ -46,11 +46,11 @@
 [ 17] = { 1,	TM|SI,		SEN(brk),			"brk"			},
 [ 18] = { 5,	0,		SEN(printargs),			"osf_getfsstat"		}, /*not implemented */
 [ 19] = { 3,	TD,		SEN(lseek),			"lseek"			},
-[ 20] = { 0,	NF,		SEN(getpid),			"getxpid"		},
+[ 20] = { 0,	NF,		SEN(getxpid),			"getxpid"		},
 [ 21] = { 4,	0,		SEN(printargs),			"osf_mount"		},
 [ 22] = { 2,	TF,		SEN(umount2),			"umount"		},
 [ 23] = { 1,	0,		SEN(setuid),			"setuid"		},
-[ 24] = { 0,	NF,		SEN(getuid),			"getxuid"		},
+[ 24] = { 0,	NF,		SEN(getxuid),			"getxuid"		},
 [ 25] = { 5,	0,		SEN(printargs),			"exec_with_loader"	}, /*not implemented */
 [ 26] = { 4,	0,		SEN(ptrace),			"ptrace"		},
 [ 27] = { 5,	0,		SEN(printargs),			"osf_nrecvmsg"		}, /*not implemented */
@@ -68,12 +68,12 @@
 [ 39] = { 2,	0,		SEN(setpgid),			"setpgid"		},
 [ 40] = { 5,	0,		SEN(printargs),			"osf_old_lstat"		}, /*not implemented */
 [ 41] = { 1,	TD,		SEN(dup),			"dup"			},
-[ 42] = { 1,	TD,		SEN(pipe),			"pipe"			},
+[ 42] = { 0,	TD,		SEN(pipe),			"pipe"			},
 [ 43] = { 4,	0,		SEN(printargs),			"osf_set_program_attributes"	},
 [ 44] = { 5,	0,		SEN(printargs),			"osf_profil"		}, /*not implemented */
 [ 45] = { 3,	TD|TF,		SEN(open),			"open"			},
 [ 46] = { 5,	0,		SEN(printargs),			"osf_old_sigaction"	}, /*not implemented */
-[ 47] = { 1,	NF,		SEN(getgid),			"getxgid"		},
+[ 47] = { 1,	NF,		SEN(getxgid),			"getxgid"		},
 [ 48] = { 2,	TS,		SEN(sigprocmask),		"osf_sigprocmask"	},
 [ 49] = { 5,	0,		SEN(printargs),			"osf_getlogin"		}, /*not implemented */
 [ 50] = { 5,	0,		SEN(printargs),			"osf_setlogin"		}, /*not implemented */
@@ -235,7 +235,7 @@
 [229 ... 232] = { },
 [233] = { 1,	0,		SEN(getpgid),			"getpgid"		},
 [234] = { 1,	0,		SEN(getsid),			"getsid"		},
-[235] = { 5,	TS,		SEN(sigaltstack),		"sigaltstack"		},
+[235] = { 2,	TS,		SEN(sigaltstack),		"sigaltstack"		},
 [236] = { 5,	0,		SEN(printargs),			"osf_waitid"		}, /*not implemented */
 [237] = { 5,	0,		SEN(printargs),			"osf_priocntlset"	}, /*not implemented */
 [238] = { 5,	0,		SEN(printargs),			"osf_sigsendset"	}, /*not implemented */
@@ -270,7 +270,7 @@
 [304] = { 1,	TF,		SEN(swapoff),			"swapoff"		},
 [305] = { 3,	TD,		SEN(getdents),			"getdents"		},
 [306] = { 2,	0,		SEN(create_module),		"create_module"		},
-[307] = { 4,	0,		SEN(init_module),		"init_module"		},
+[307] = { 3,	0,		SEN(init_module),		"init_module"		},
 [308] = { 2,	0,		SEN(delete_module),		"delete_module"		},
 [309] = { 1,	0,		SEN(get_kernel_syms),		"get_kernel_syms"	},
 [310] = { 3,	0,		SEN(syslog),			"syslog"		},
@@ -296,7 +296,7 @@
 [330] = { 2,	0,		SEN(sched_setparam),		"sched_setparam"	},
 [331] = { 2,	0,		SEN(sched_getparam),		"sched_getparam"	},
 [332] = { 3,	0,		SEN(sched_setscheduler),	"sched_setscheduler"	},
-[333] = { 2,	0,		SEN(sched_getscheduler),	"sched_getscheduler"	},
+[333] = { 1,	0,		SEN(sched_getscheduler),	"sched_getscheduler"	},
 [334] = { 0,	0,		SEN(sched_yield),		"sched_yield"		},
 [335] = { 1,	0,		SEN(sched_get_priority_max),	"sched_get_priority_max"},
 [336] = { 1,	0,		SEN(sched_get_priority_min),	"sched_get_priority_min"},
@@ -323,7 +323,7 @@
 [357] = { 2,	TS,		SEN(rt_sigsuspend),		"rt_sigsuspend"		},
 [358] = { 5,	TD,		SEN(select),			"select"		},
 [359] = { 2,	0,		SEN(gettimeofday),		"gettimeofday"		},
-[360] = { 3,	0,		SEN(settimeofday),		"settimeofday"		},
+[360] = { 2,	0,		SEN(settimeofday),		"settimeofday"		},
 [361] = { 2,	0,		SEN(getitimer),			"getitimer"		},
 [362] = { 3,	0,		SEN(setitimer),			"setitimer"		},
 [363] = { 2,	TF,		SEN(utimes),			"utimes"		},

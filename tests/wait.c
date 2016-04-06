@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,10 +25,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
+#include "tests.h"
 #include <assert.h>
 #include <signal.h>
 #include <unistd.h>
@@ -46,10 +43,13 @@ main(void)
 
 	(void) close(0);
 	(void) close(1);
-	assert(!pipe(fds) && fds[0] == 0 && fds[1] == 1);
+	if (pipe(fds))
+		perror_msg_and_fail("pipe");
 
 	pid = fork();
-	assert(pid >= 0);
+	if (pid < 0)
+		perror_msg_and_fail("fork");
+
 	if (!pid) {
 		char c;
 		(void) close(1);
@@ -67,16 +67,20 @@ main(void)
 	assert(WIFEXITED(s) && WEXITSTATUS(s) == 42);
 
 	pid = fork();
-	assert(pid >= 0);
+	if (pid < 0)
+		perror_msg_and_fail("fork");
+
 	if (!pid) {
 		(void) raise(SIGUSR1);
-		return 77;
+		return 1;
 	}
 	assert(wait4(pid, &s, __WALL, NULL) == pid);
 	assert(WIFSIGNALED(s) && WTERMSIG(s) == SIGUSR1);
 
 	pid = fork();
-	assert(pid >= 0);
+	if (pid < 0)
+		perror_msg_and_fail("fork");
+
 	if (!pid) {
 		raise(SIGSTOP);
 		return 0;

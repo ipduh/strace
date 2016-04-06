@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * This file is part of utime strace test.
+ *
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,13 +27,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tests.h"
+#include <assert.h>
 #include <time.h>
 #include <utime.h>
 #include <errno.h>
 #include <stdio.h>
 
 static void
-print_tm(struct tm *p)
+print_tm(const struct tm * const p)
 {
 	printf("%02d/%02d/%02d-%02d:%02d:%02d",
 	       p->tm_year + 1900, p->tm_mon + 1, p->tm_mday,
@@ -41,16 +45,23 @@ print_tm(struct tm *p)
 int
 main(void)
 {
-	time_t t = time(NULL);
-	struct utimbuf u = { .actime = t, .modtime = t };
-	struct tm *p = localtime(&t);
+	utime("", NULL);
+	printf("utime(\"\", NULL) = -1 ENOENT (%m)\n");
+
+	const time_t t = time(NULL);
+	const struct tm * const p = localtime(&t);
+	const struct utimbuf u = { .actime = t, .modtime = t };
+	const struct utimbuf const *tail_u = tail_memdup(&u, sizeof(u));
 
 	printf("utime(\"utime\\nfilename\", [");
 	print_tm(p);
 	printf(", ");
 	print_tm(p);
-	puts("]) = -1 ENOENT (No such file or directory)");
+	printf("]) = -1 ENOENT ");
+	assert(utime("utime\nfilename", tail_u) == -1);
+	if (ENOENT != errno)
+		perror_msg_and_skip("utime");
+	printf("(%m)\n");
 	puts("+++ exited with 0 +++");
-
-	return utime("utime\nfilename", &u) == -1 && errno == ENOENT ? 0 : 77;
+	return 0;
 }
