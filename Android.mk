@@ -56,6 +56,7 @@ LOCAL_SRC_FILES := \
     chdir.c \
     chmod.c \
     clone.c \
+    copy_file_range.c \
     count.c \
     desc.c \
     dirent.c \
@@ -160,6 +161,7 @@ LOCAL_SRC_FILES := \
     umask.c \
     umount.c \
     uname.c \
+    upeek.c \
     userfaultfd.c \
     util.c \
     utime.c \
