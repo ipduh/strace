@@ -8,6 +8,9 @@
 #if !(defined(SEGV_BNDERR) || (defined(HAVE_DECL_SEGV_BNDERR) && HAVE_DECL_SEGV_BNDERR))
 # define SEGV_BNDERR 3
 #endif
+#if !(defined(SEGV_PKUERR) || (defined(HAVE_DECL_SEGV_PKUERR) && HAVE_DECL_SEGV_PKUERR))
+# define SEGV_PKUERR 4
+#endif
 
 #ifdef IN_MPERS
 
@@ -22,6 +25,7 @@ const struct xlat sigsegv_codes[] = {
  XLAT(SEGV_MAPERR),
  XLAT(SEGV_ACCERR),
  XLAT(SEGV_BNDERR),
+ XLAT(SEGV_PKUERR),
  XLAT_END
 };
 

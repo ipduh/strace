@@ -23,6 +23,9 @@ const struct xlat madvise_cmds[] = {
 #if defined(MADV_DONTNEED) || (defined(HAVE_DECL_MADV_DONTNEED) && HAVE_DECL_MADV_DONTNEED)
   XLAT(MADV_DONTNEED),
 #endif
+#if defined(MADV_FREE) || (defined(HAVE_DECL_MADV_FREE) && HAVE_DECL_MADV_FREE)
+  XLAT(MADV_FREE),
+#endif
 #if defined(MADV_REMOVE) || (defined(HAVE_DECL_MADV_REMOVE) && HAVE_DECL_MADV_REMOVE)
   XLAT(MADV_REMOVE),
 #endif
