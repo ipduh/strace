@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2014-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * This file is part of inet-yy strace test.
+ *
+ * Copyright (c) 2014-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +27,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tests.h"
 #include <assert.h>
+#include <errno.h>
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -33,7 +37,7 @@
 #include <linux/sock_diag.h>
 #include <linux/inet_diag.h>
 
-static int
+static void
 send_query(const int fd, const int family, const int proto)
 {
 	struct sockaddr_nl nladdr = {
@@ -59,19 +63,20 @@ send_query(const int fd, const int family, const int proto)
 		.iov_len = sizeof(req)
 	};
 	struct msghdr msg = {
-		.msg_name = (void*)&nladdr,
+		.msg_name = (void *) &nladdr,
 		.msg_namelen = sizeof(nladdr),
 		.msg_iov = &iov,
 		.msg_iovlen = 1
 	};
 
-	return sendmsg(fd, &msg, 0) > 0;
+	if (sendmsg(fd, &msg, 0) <= 0)
+		perror_msg_and_skip("sendmsg");
 }
 
-static int
+static void
 check_responses(const int fd)
 {
-	static char buf[8192];
+	static long buf[8192 / sizeof(long)];
 	struct sockaddr_nl nladdr = {
 		.nl_family = AF_NETLINK
 	};
@@ -80,7 +85,7 @@ check_responses(const int fd)
 		.iov_len = sizeof(buf)
 	};
 	struct msghdr msg = {
-		.msg_name = (void*)&nladdr,
+		.msg_name = (void *) &nladdr,
 		.msg_namelen = sizeof(nladdr),
 		.msg_iov = &iov,
 		.msg_iovlen = 1
@@ -88,12 +93,25 @@ check_responses(const int fd)
 
 	ssize_t ret = recvmsg(fd, &msg, 0);
 	if (ret <= 0)
-		return 0;
+		perror_msg_and_skip("recvmsg");
 
-	struct nlmsghdr *h = (struct nlmsghdr*)buf;
-	return (NLMSG_OK(h, ret) &&
-		h->nlmsg_type != NLMSG_ERROR &&
-		h->nlmsg_type != NLMSG_DONE) ? 1 : 0;
+	struct nlmsghdr *h = (struct nlmsghdr *) buf;
+	if (!NLMSG_OK(h, ret))
+		error_msg_and_skip("!NLMSG_OK");
+	if (h->nlmsg_type == NLMSG_ERROR) {
+		const struct nlmsgerr *err = NLMSG_DATA(h);
+		if (h->nlmsg_len < NLMSG_LENGTH(sizeof(*err)))
+			error_msg_and_skip("NLMSG_ERROR");
+		errno = -err->error;
+		perror_msg_and_skip("NLMSG_ERROR");
+	}
+	if (h->nlmsg_type != SOCK_DIAG_BY_FAMILY)
+		error_msg_and_skip("unexpected nlmsg_type %u",
+				   (unsigned) h->nlmsg_type);
+
+	const struct inet_diag_msg *diag = NLMSG_DATA(h);
+	if (h->nlmsg_len < NLMSG_LENGTH(sizeof(*diag)))
+		error_msg_and_skip("short response");
 }
 
 int main(void)
@@ -108,12 +126,16 @@ int main(void)
 	close(0);
 	close(1);
 
-	if (socket(PF_INET, SOCK_STREAM, 0) ||
-	    bind(0, (struct sockaddr *) &addr, len) ||
-	    listen(0, 5) ||
-	    socket(AF_NETLINK, SOCK_RAW, NETLINK_INET_DIAG) != 1)
-		return 77;
+	if (socket(AF_INET, SOCK_STREAM, 0))
+		perror_msg_and_skip("socket AF_INET");
+	if (bind(0, (struct sockaddr *) &addr, len))
+		perror_msg_and_skip("bind");
+	if (listen(0, 5))
+		perror_msg_and_skip("listen");
+	if (socket(AF_NETLINK, SOCK_RAW, NETLINK_INET_DIAG) != 1)
+		perror_msg_and_skip("socket AF_NETLINK");
 
-	return (send_query(1, AF_INET, IPPROTO_TCP) &&
-		check_responses(1)) ? 0 : 77;
+	send_query(1, AF_INET, IPPROTO_TCP);
+	check_responses(1);
+	return 0;
 }

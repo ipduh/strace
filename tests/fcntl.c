@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,18 +25,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
+#include "tests.h"
 #include <sys/syscall.h>
 
 #ifdef __NR_fcntl
 
-# define TEST_SYSCALL_NAME fcntl
+# define TEST_SYSCALL_NR __NR_fcntl
+# define TEST_SYSCALL_STR "fcntl"
 # include "struct_flock.c"
 
-#define TEST_FLOCK64_EINVAL(cmd) test_flock64_einval(cmd, #cmd)
+# define TEST_FLOCK64_EINVAL(cmd) test_flock64_einval(cmd, #cmd)
 
 static void
 test_flock64_einval(const int cmd, const char *name)
@@ -70,9 +68,7 @@ test_flock64(void)
 int
 main(void)
 {
-	if (create_sample())
-		return 77;
-
+	create_sample();
 	test_flock();
 	test_flock64();
 
@@ -82,10 +78,6 @@ main(void)
 
 #else
 
-int
-main(void)
-{
-	return 77;
-}
+SKIP_MAIN_UNDEFINED("__NR_fcntl")
 
 #endif

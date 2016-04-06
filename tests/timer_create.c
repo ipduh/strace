@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * This file is part of timer_create strace test.
+ *
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,34 +27,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
-#include <stdio.h>
-#include <signal.h>
-#include <time.h>
-#include <unistd.h>
+#include "tests.h"
 #include <sys/syscall.h>
 
 #ifdef __NR_timer_create
 
+# include <stdio.h>
+# include <signal.h>
+# include <time.h>
+# include <unistd.h>
+# include "sigevent.h"
+
 int
 main(void)
 {
+	syscall(__NR_timer_create, CLOCK_REALTIME, NULL, NULL);
+	printf("timer_create(CLOCK_REALTIME, NULL, NULL) = -1 EFAULT (%m)\n");
+
 	int tid[4] = {};
-	struct sigevent sev = {
-		.sigev_notify = SIGEV_NONE,
+	struct_sigevent sev = {
+		.sigev_notify = 0xdefaced,
 		.sigev_signo = 0xfacefeed,
-		.sigev_value.sival_ptr =
-			(void *) (unsigned long) 0xdeadbeefbadc0ded
+		.sigev_value.sival_ptr = (unsigned long) 0xdeadbeefbadc0ded
 	};
 
+	syscall(__NR_timer_create, CLOCK_REALTIME, &sev, NULL);
+	printf("timer_create(CLOCK_REALTIME, {sigev_value={int=%d, ptr=%#lx}"
+	       ", sigev_signo=%u, sigev_notify=%#x /* SIGEV_??? */}"
+	       ", NULL) = -1 EINVAL (%m)\n",
+	       sev.sigev_value.sival_int,
+	       sev.sigev_value.sival_ptr,
+	       sev.sigev_signo, sev.sigev_notify);
+
+	sev.sigev_notify = SIGEV_NONE;
 	if (syscall(__NR_timer_create, CLOCK_REALTIME, &sev, &tid[0]))
-		return 77;
-	printf("timer_create(CLOCK_REALTIME, {sigev_value={int=%d, ptr=%p}"
-	       ", sigev_signo=%u, sigev_notify=SIGEV_NONE}"
-	       ", [%d]) = 0\n",
+		perror_msg_and_skip("timer_create CLOCK_REALTIME");
+	printf("timer_create(CLOCK_REALTIME, {sigev_value={int=%d, ptr=%#lx}"
+	       ", sigev_signo=%u, sigev_notify=SIGEV_NONE}, [%d]) = 0\n",
 	       sev.sigev_value.sival_int,
 	       sev.sigev_value.sival_ptr,
 	       sev.sigev_signo, tid[0]);
@@ -60,55 +71,43 @@ main(void)
 	sev.sigev_notify = SIGEV_SIGNAL;
 	sev.sigev_signo = SIGALRM;
 	if (syscall(__NR_timer_create, CLOCK_MONOTONIC, &sev, &tid[1]))
-		return 77;
-	printf("timer_create(CLOCK_MONOTONIC, {sigev_value={int=%d, ptr=%p}"
+		perror_msg_and_skip("timer_create CLOCK_MONOTONIC");
+	printf("timer_create(CLOCK_MONOTONIC, {sigev_value={int=%d, ptr=%#lx}"
 	       ", sigev_signo=SIGALRM, sigev_notify=SIGEV_SIGNAL}"
 	       ", [%d]) = 0\n",
 	       sev.sigev_value.sival_int,
 	       sev.sigev_value.sival_ptr, tid[1]);
 
 	sev.sigev_notify = SIGEV_THREAD;
-	sev.sigev_notify_function =
-		(void *) (unsigned long) 0xdeadbeefbadc0ded;
-	sev.sigev_notify_attributes =
-		(void *) (unsigned long) 0xcafef00dfacefeed;
+	sev.sigev_un.sigev_thread.function = (unsigned long) 0xdeadbeefbadc0ded;
+	sev.sigev_un.sigev_thread.attribute = (unsigned long) 0xcafef00dfacefeed;
 	if (syscall(__NR_timer_create, CLOCK_REALTIME, &sev, &tid[2]))
-		return 77;
-	printf("timer_create(CLOCK_REALTIME, {sigev_value={int=%d, ptr=%p}"
+		perror_msg_and_skip("timer_create CLOCK_REALTIME");
+	printf("timer_create(CLOCK_REALTIME, {sigev_value={int=%d, ptr=%#lx}"
 	       ", sigev_signo=SIGALRM, sigev_notify=SIGEV_THREAD"
-	       ", sigev_notify_function=%p, sigev_notify_attributes=%p}"
+	       ", sigev_notify_function=%#lx, sigev_notify_attributes=%#lx}"
 	       ", [%d]) = 0\n",
 	       sev.sigev_value.sival_int,
 	       sev.sigev_value.sival_ptr,
-	       sev.sigev_notify_function,
-	       sev.sigev_notify_attributes,
+	       sev.sigev_un.sigev_thread.function,
+	       sev.sigev_un.sigev_thread.attribute,
 	       tid[2]);
 
-#ifndef sigev_notify_thread_id
-# if defined HAVE_STRUCT_SIGEVENT__SIGEV_UN__PAD
-#  define sigev_notify_thread_id _sigev_un._pad[0]
-# elif defined HAVE_STRUCT_SIGEVENT___PAD
-#  define sigev_notify_thread_id __pad[0]
-# endif
-#endif /* !sigev_notify_thread_id */
-
-#ifdef sigev_notify_thread_id
-# ifndef SIGEV_THREAD_ID
-#  define SIGEV_THREAD_ID 4
-# endif
+#ifndef SIGEV_THREAD_ID
+# define SIGEV_THREAD_ID 4
+#endif
 	sev.sigev_notify = SIGEV_THREAD_ID;
-	sev.sigev_notify_thread_id = getpid();
+	sev.sigev_un.tid = getpid();
 	if (syscall(__NR_timer_create, CLOCK_MONOTONIC, &sev, &tid[3]))
-		return 77;
-	printf("timer_create(CLOCK_MONOTONIC, {sigev_value={int=%d, ptr=%p}"
+		perror_msg_and_skip("timer_create CLOCK_MONOTONIC");
+	printf("timer_create(CLOCK_MONOTONIC, {sigev_value={int=%d, ptr=%#lx}"
 	       ", sigev_signo=SIGALRM, sigev_notify=SIGEV_THREAD_ID"
 	       ", sigev_notify_thread_id=%d}"
 	       ", [%d]) = 0\n",
 	       sev.sigev_value.sival_int,
 	       sev.sigev_value.sival_ptr,
-	       sev.sigev_notify_thread_id,
+	       sev.sigev_un.tid,
 	       tid[3]);
-#endif /* sigev_notify_thread_id */
 
 	puts("+++ exited with 0 +++");
 	return 0;
@@ -116,10 +115,6 @@ main(void)
 
 #else
 
-int
-main(void)
-{
-	return 77;
-}
+SKIP_MAIN_UNDEFINED("__NR_timer_create")
 
 #endif

@@ -124,7 +124,7 @@ signame(const int sig)
 		if (s < nsignals)
 			return signalent[s];
 #ifdef ASM_SIGRTMAX
-		if (s >= ASM_SIGRTMIN && s <= ASM_SIGRTMAX) {
+		if (s >= ASM_SIGRTMIN && s <= (unsigned int) ASM_SIGRTMAX) {
 			sprintf(buf, "SIGRT_%u", s - ASM_SIGRTMIN);
 			return buf;
 		}
@@ -223,26 +223,27 @@ printsignal(int nr)
 	tprints(signame(nr));
 }
 
-void
-print_sigset_addr_len(struct tcb *tcp, long addr, long len)
+static void
+print_sigset_addr_len_limit(struct tcb *tcp, long addr, long len, long min_len)
 {
-	char mask[NSIG / 8];
-
-	/* Here len is usually equals NSIG / 8 or current_wordsize.
+	/*
+	 * Here len is usually equal to NSIG / 8 or current_wordsize.
 	 * But we code this defensively:
 	 */
-	if (len < 0) {
+	if (len < min_len || len > NSIG / 8) {
 		printaddr(addr);
 		return;
 	}
-	if (len >= NSIG / 8)
-		len = NSIG / 8;
-	else
-		len = (len + 3) & ~3;
-
+	int mask[NSIG / 8 / sizeof(int)] = {};
 	if (umoven_or_printaddr(tcp, addr, len, mask))
 		return;
 	tprints(sprintsigmask_n("", mask, len));
+}
+
+void
+print_sigset_addr_len(struct tcb *tcp, long addr, long len)
+{
+	print_sigset_addr_len_limit(tcp, addr, len, current_wordsize);
 }
 
 SYS_FUNC(sigsetmask)
@@ -613,7 +614,8 @@ SYS_FUNC(rt_sigpending)
 		 * This allows non-rt sigpending() syscall
 		 * to reuse rt_sigpending() code in kernel.
 		 */
-		print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[1]);
+		print_sigset_addr_len_limit(tcp, tcp->u_arg[0],
+					    tcp->u_arg[1], 1);
 		tprintf(", %lu", tcp->u_arg[1]);
 	}
 	return 0;
@@ -638,7 +640,7 @@ print_sigqueueinfo(struct tcb *tcp, int sig, unsigned long uinfo)
 
 SYS_FUNC(rt_sigqueueinfo)
 {
-	tprintf("%lu, ", tcp->u_arg[0]);
+	tprintf("%d, ", (int) tcp->u_arg[0]);
 	print_sigqueueinfo(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 
 	return RVAL_DECODED;
@@ -646,7 +648,7 @@ SYS_FUNC(rt_sigqueueinfo)
 
 SYS_FUNC(rt_tgsigqueueinfo)
 {
-	tprintf("%lu, %lu, ", tcp->u_arg[0], tcp->u_arg[1]);
+	tprintf("%d, %d, ", (int) tcp->u_arg[0], (int) tcp->u_arg[1]);
 	print_sigqueueinfo(tcp, tcp->u_arg[2], tcp->u_arg[3]);
 
 	return RVAL_DECODED;
@@ -658,32 +660,30 @@ SYS_FUNC(rt_sigtimedwait)
 	if (entering(tcp)) {
 		print_sigset_addr_len(tcp, tcp->u_arg[0], tcp->u_arg[3]);
 		tprints(", ");
-		/* This is the only "return" parameter, */
-		if (tcp->u_arg[1] != 0)
-			return 0;
-		/* ... if it's NULL, can decode all on entry */
-		tprints("NULL, ");
-	}
-	else if (tcp->u_arg[1] != 0) {
-		/* syscall exit, and u_arg[1] wasn't NULL */
-		printsiginfo_at(tcp, tcp->u_arg[1]);
-		tprints(", ");
-	}
-	else {
-		/* syscall exit, and u_arg[1] was NULL */
-		return 0;
-	}
+		if (!tcp->u_arg[1]) {
+			/*
+			 * This is the only "return" parameter,
+			 * if it's NULL, decode all parameters on entry.
+			 */
+			tprints("NULL, ");
+			print_timespec(tcp, tcp->u_arg[2]);
+			tprintf(", %lu", tcp->u_arg[3]);
+			tcp->auxstr = NULL;
+		} else {
+			tcp->auxstr = sprint_timespec(tcp, tcp->u_arg[2]);
+		}
+	} else {
+		if (tcp->auxstr) {
+			printsiginfo_at(tcp, tcp->u_arg[1]);
+			tprintf(", %s, %lu", tcp->auxstr, tcp->u_arg[3]);
+			tcp->auxstr = NULL;
+		}
 
-	/*
-	 * Since the timeout parameter is read by the kernel
-	 * on entering syscall, it has to be decoded the same way
-	 * whether the syscall has failed or not.
-	 */
-	temporarily_clear_syserror(tcp);
-	print_timespec(tcp, tcp->u_arg[2]);
-	restore_cleared_syserror(tcp);
-
-	tprintf(", %lu", tcp->u_arg[3]);
+		if (!syserror(tcp) && tcp->u_rval) {
+			tcp->auxstr = signame(tcp->u_rval);
+			return RVAL_STR;
+		}
+	}
 	return 0;
 };
 

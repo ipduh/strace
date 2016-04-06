@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,23 +35,21 @@
 #define FILE_LEN 4096
 #define EINVAL_STR "-1 EINVAL (Invalid argument)"
 
-# define TEST_SYSCALL_STR stringify(TEST_SYSCALL_NAME)
-# define stringify(arg) stringify_(arg)
-# define stringify_(arg) #arg
-
-#define TEST_SYSCALL_NR nrify(TEST_SYSCALL_NAME)
-#define nrify(arg) nrify_(arg)
-#define nrify_(arg) __NR_ ## arg
-
 #define TEST_FLOCK_EINVAL(cmd) test_flock_einval(cmd, #cmd)
+
+#ifdef HAVE_TYPEOF
+# define TYPEOF_FLOCK_OFF_T typeof(((struct_kernel_flock *) NULL)->l_len)
+#else
+# define TYPEOF_FLOCK_OFF_T off_t
+#endif
 
 static void
 test_flock_einval(const int cmd, const char *name)
 {
 	struct_kernel_flock fl = {
 		.l_type = F_RDLCK,
-		.l_start = (off_t) 0xdefaced1facefeed,
-		.l_len = (off_t) 0xdefaced2cafef00d
+		.l_start = (TYPEOF_FLOCK_OFF_T) 0xdefaced1facefeed,
+		.l_len = (TYPEOF_FLOCK_OFF_T) 0xdefaced2cafef00d
 	};
 	syscall(TEST_SYSCALL_NR, 0, cmd, &fl);
 	printf("%s(0, %s, {l_type=F_RDLCK, l_whence=SEEK_SET"
@@ -87,11 +85,16 @@ test_flock(void)
 	       TEST_SYSCALL_STR, FILE_LEN);
 }
 
-static int
+static void
 create_sample(void)
 {
 	char fname[] = TEST_SYSCALL_STR "_XXXXXX";
 
 	(void) close(0);
-	return mkstemp(fname) || unlink(fname) || ftruncate(0, FILE_LEN) ? 77 : 0;
+	if (mkstemp(fname))
+		perror_msg_and_fail("mkstemp: %s", fname);
+	if (unlink(fname))
+		perror_msg_and_fail("unlink: %s", fname);
+	if (ftruncate(0, FILE_LEN))
+		perror_msg_and_fail("ftruncate");
 }

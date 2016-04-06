@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2011-2015 Dmitry V. Levin <ldv@altlinux.org>
+# Copyright (c) 2011-2016 Dmitry V. Levin <ldv@altlinux.org>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ME_="${0##*/}"
+LOG="$ME_.tmp"
+OUT="$LOG.out"
+EXP="$LOG.exp"
+NAME="${ME_%.test}"
 
 warn_() { printf >&2 '%s\n' "$*"; }
 fail_() { warn_ "$ME_: failed test: $*"; exit 1; }
@@ -48,7 +52,7 @@ dump_log_and_fail_with()
 run_prog()
 {
 	if [ $# -eq 0 ]; then
-		set -- "./${ME_%.test}"
+		set -- "./$NAME"
 	fi
 	args="$*"
 	"$@" || {
@@ -108,7 +112,7 @@ match_awk()
 		output="$1"; shift
 	fi
 	if [ $# -eq 0 ]; then
-		program="$srcdir/${ME_%.test}.awk"
+		program="$srcdir/$NAME.awk"
 	else
 		program="$1"; shift
 	fi
@@ -138,7 +142,7 @@ match_diff()
 		output="$1"; shift
 	fi
 	if [ $# -eq 0 ]; then
-		expected="$srcdir/${ME_%.test}.expected"
+		expected="$srcdir/$NAME.expected"
 	else
 		expected="$1"; shift
 	fi
@@ -168,7 +172,7 @@ match_grep()
 		output="$1"; shift
 	fi
 	if [ $# -eq 0 ]; then
-		patterns="$srcdir/${ME_%.test}.expected"
+		patterns="$srcdir/$NAME.expected"
 	else
 		patterns="$1"; shift
 	fi
@@ -197,10 +201,21 @@ match_grep()
 	}
 }
 
+# Usage: run_strace_match_diff [args to run_strace]
+run_strace_match_diff()
+{
+	args="$*"
+	[ -n "$args" -a -z "${args##*-e trace=*}" ] ||
+		set -- -e trace="$NAME" "$@"
+	run_prog > /dev/null
+	run_strace "$@" $args > "$EXP"
+	match_diff "$LOG" "$EXP"
+	rm -f "$EXP"
+}
+
 check_prog cat
 check_prog rm
 
-LOG="$ME_.tmp"
 rm -f "$LOG"
 
 : "${STRACE:=../strace}"

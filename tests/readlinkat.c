@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 Gleb Fotengauer-Malinovskiy <glebfm@altlinux.org>
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
-#include <stdio.h>
-#include <unistd.h>
+#include "tests.h"
 #include <sys/syscall.h>
+
+#ifdef __NR_readlinkat
+
+# include <stdio.h>
+# include <unistd.h>
+
+# define PREFIX "test.readlinkat"
+# define TARGET (PREFIX ".target")
+# define LINKPATH (PREFIX ".link")
 
 int
 main(void)
 {
-#ifdef __NR_readlinkat
-	static const char fname[] = "readlinkat.link";
-	unsigned char buf[31];
-	long rc;
-	unsigned int i;
+	const char * const fname = tail_memdup(LINKPATH, sizeof(LINKPATH));
+	const char * const hex_fname =
+		hexquote_strndup(fname, sizeof(LINKPATH) - 1);
 
-	rc = syscall(__NR_readlinkat, -100, fname, buf, sizeof(buf));
-	if (rc < 0)
+	const unsigned int size = sizeof(TARGET) - 1;
+	char * const buf = tail_alloc(size);
+
+	(void) unlink(fname);
+
+	long rc = syscall(__NR_readlinkat, -100, fname, buf, size);
+	printf("readlinkat(AT_FDCWD, \"%s\", %p, %u) = -1 ENOENT (%m)\n",
+	       hex_fname, buf, size);
+
+	if (symlink(TARGET, fname))
+		perror_msg_and_fail("symlink");
+
+	rc = syscall(__NR_readlinkat, -100, fname, buf, size);
+	if (rc < 0) {
+		perror("readlinkat");
+		(void) unlink(fname);
 		return 77;
+	}
+	const char * const hex_buf = hexquote_strndup(buf, size);
+	printf("readlinkat(AT_FDCWD, \"%s\", \"%s\", %u) = %u\n",
+	       hex_fname, hex_buf, size, size);
 
-	printf("readlinkat(AT_FDCWD, \"");
-	for (i = 0; fname[i]; ++i)
-		printf("\\x%02x", (int) (unsigned char) fname[i]);
-	printf("\", \"");
-	for (i = 0; i < 3; ++i)
-		printf("\\x%02x", (int) buf[i]);
-	printf("\"..., %zu) = %ld\n", sizeof(buf), rc);
+	if (unlink(fname))
+		perror_msg_and_fail("unlink");
 
 	puts("+++ exited with 0 +++");
 	return 0;
-#else
-	return 77;
-#endif
 }
+
+#else
+
+SKIP_MAIN_UNDEFINED("__NR_readlink")
+
+#endif
