@@ -45,7 +45,7 @@
 [ 44] = { 6,	TN,		SEN(sendto),			"sendto"		},
 [ 45] = { 6,	TN,		SEN(printargs),			"64:recvfrom"		},
 [ 46] = { 3,	TN,		SEN(printargs),			"64:sendmsg"		},
-[ 47] = { 5,	TN,		SEN(printargs),			"64:recvmsg"		},
+[ 47] = { 3,	TN,		SEN(printargs),			"64:recvmsg"		},
 [ 48] = { 2,	TN,		SEN(shutdown),			"shutdown"		},
 [ 49] = { 3,	TN,		SEN(bind),			"bind"			},
 [ 50] = { 2,	TN,		SEN(listen),			"listen"		},
@@ -324,7 +324,8 @@
 [323] = { 1,	TD,		SEN(userfaultfd),		"userfaultfd",		},
 [324] = { 2,	0,		SEN(membarrier),		"membarrier",		},
 [325] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
-[326 ... 511] = { },
+[326] = { 6,	TD,		SEN(copy_file_range),		"copy_file_range"	},
+[327 ... 511] = { },
 /*
  * x32-specific system call numbers start at 512 to avoid cache impact
  * for native 64-bit operation.

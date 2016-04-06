@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,17 +25,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
-#include <unistd.h>
-#include <sys/select.h>
+#include "tests.h"
 #include <sys/syscall.h>
 
 #if defined __NR_select && defined __NR__newselect \
  && __NR_select != __NR__newselect \
  && !defined SPARC
+
+# include <unistd.h>
+# include <sys/select.h>
 
 int
 main(void)
@@ -51,22 +49,18 @@ main(void)
 	(void) close(0);
 	(void) close(1);
 	if (pipe(fds))
-		return 77;
+		perror_msg_and_fail("pipe");
 
 	FD_SET(0, &w);
 	FD_SET(1, &r);
 	if (syscall(__NR_select, args))
-		return 77;
+		perror_msg_and_skip("select");
 
 	return 0;
 }
 
 #else
 
-int
-main(void)
-{
-	return 77;
-}
+SKIP_MAIN_UNDEFINED("__NR_select && __NR__newselect")
 
 #endif

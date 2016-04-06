@@ -86,17 +86,23 @@ tprint_iov_upto(struct tcb *tcp, unsigned long len, unsigned long addr, int deco
 	} else {
 		abbrev_end = end;
 	}
-	tprints("[");
+	if (addr >= abbrev_end) {
+		tprints("[...]");
+		return;
+	}
 	for (cur = addr; cur < end; cur += sizeof_iov) {
-		if (cur > addr)
+		if (cur > addr) {
 			tprints(", ");
-		if (cur >= abbrev_end) {
-			tprints("...");
-			break;
+			if (cur >= abbrev_end) {
+				tprints("...");
+				break;
+			}
 		}
 		if (umove_ulong_array_or_printaddr(tcp, cur, iov,
 						   ARRAY_SIZE(iov)))
 			break;
+		if (cur <= addr)
+			tprints("[");
 		tprints("{");
 		if (decode_iov) {
 			unsigned long len = iov[1];
@@ -108,7 +114,8 @@ tprint_iov_upto(struct tcb *tcp, unsigned long len, unsigned long addr, int deco
 			printaddr(iov[0]);
 		tprintf(", %lu}", iov[1]);
 	}
-	tprints("]");
+	if (cur > addr)
+		tprints("]");
 }
 
 void
@@ -123,7 +130,8 @@ SYS_FUNC(readv)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 	} else {
-		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+		tprint_iov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1], 1,
+				tcp->u_rval);
 		tprintf(", %lu", tcp->u_arg[2]);
 	}
 	return 0;
@@ -161,7 +169,7 @@ SYS_FUNC(pread)
 		else
 			printstr(tcp, tcp->u_arg[1], tcp->u_rval);
 		tprintf(", %lu, ", tcp->u_arg[2]);
-		printllval(tcp, "%llu", PREAD_OFFSET_ARG);
+		printllval(tcp, "%lld", PREAD_OFFSET_ARG);
 	}
 	return 0;
 }
@@ -172,13 +180,13 @@ SYS_FUNC(pwrite)
 	tprints(", ");
 	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 	tprintf(", %lu, ", tcp->u_arg[2]);
-	printllval(tcp, "%llu", PREAD_OFFSET_ARG);
+	printllval(tcp, "%lld", PREAD_OFFSET_ARG);
 
 	return RVAL_DECODED;
 }
 
 static void
-print_llu_from_low_high_val(struct tcb *tcp, int arg)
+print_lld_from_low_high_val(struct tcb *tcp, int arg)
 {
 #if SIZEOF_LONG == SIZEOF_LONG_LONG
 # if SUPPORTED_PERSONALITIES > 1
@@ -188,20 +196,20 @@ print_llu_from_low_high_val(struct tcb *tcp, int arg)
 	if (current_wordsize == sizeof(long))
 #  endif
 # endif
-		tprintf("%lu", (unsigned long) tcp->u_arg[arg]);
+		tprintf("%ld", tcp->u_arg[arg]);
 # if SUPPORTED_PERSONALITIES > 1
 	else
-		tprintf("%lu",
+		tprintf("%ld",
 			((unsigned long) tcp->u_arg[arg + 1] << current_wordsize * 8)
 			| (unsigned long) tcp->u_arg[arg]);
 # endif
 #else
 # ifdef X32
 	if (current_personality == 0)
-		tprintf("%llu", (unsigned long long) tcp->ext_arg[arg]);
+		tprintf("%lld", tcp->ext_arg[arg]);
 	else
 # endif
-	tprintf("%llu",
+	tprintf("%lld",
 		((unsigned long long) (unsigned long) tcp->u_arg[arg + 1] << sizeof(long) * 8)
 		| (unsigned long long) (unsigned long) tcp->u_arg[arg]);
 #endif
@@ -213,9 +221,10 @@ SYS_FUNC(preadv)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 	} else {
-		tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+		tprint_iov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1], 1,
+				tcp->u_rval);
 		tprintf(", %lu, ", tcp->u_arg[2]);
-		print_llu_from_low_high_val(tcp, 3);
+		print_lld_from_low_high_val(tcp, 3);
 	}
 	return 0;
 }
@@ -226,7 +235,7 @@ SYS_FUNC(pwritev)
 	tprints(", ");
 	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
 	tprintf(", %lu, ", tcp->u_arg[2]);
-	print_llu_from_low_high_val(tcp, 3);
+	print_lld_from_low_high_val(tcp, 3);
 
 	return RVAL_DECODED;
 }
@@ -255,13 +264,13 @@ SYS_FUNC(splice)
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
 	/* loff_t *off_in */
-	printnum_int64(tcp, tcp->u_arg[1], "%" PRIu64);
+	printnum_int64(tcp, tcp->u_arg[1], "%" PRId64);
 	tprints(", ");
 	/* int fd_out */
 	printfd(tcp, tcp->u_arg[2]);
 	tprints(", ");
 	/* loff_t *off_out */
-	printnum_int64(tcp, tcp->u_arg[3], "%" PRIu64);
+	printnum_int64(tcp, tcp->u_arg[3], "%" PRId64);
 	tprints(", ");
 	/* size_t len */
 	tprintf("%lu, ", tcp->u_arg[4]);

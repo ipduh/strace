@@ -57,24 +57,24 @@ SYS_FUNC(brk)
 static void
 print_mmap(struct tcb *tcp, long *u_arg, unsigned long long offset)
 {
-	/* addr */
-	printaddr(u_arg[0]);
-	/* len */
-	tprintf(", %lu, ", u_arg[1]);
-	/* prot */
-	printflags(mmap_prot, u_arg[2], "PROT_???");
+	const unsigned long addr = u_arg[0];
+	const unsigned long len = u_arg[1];
+	const unsigned long prot = u_arg[2];
+	const unsigned long flags = u_arg[3];
+	const int fd = u_arg[4];
+
+	printaddr(addr);
+	tprintf(", %lu, ", len);
+	printflags(mmap_prot, prot, "PROT_???");
 	tprints(", ");
-	/* flags */
 #ifdef MAP_TYPE
-	printxval(mmap_flags, u_arg[3] & MAP_TYPE, "MAP_???");
-	addflags(mmap_flags, u_arg[3] & ~MAP_TYPE);
+	printxval(mmap_flags, flags & MAP_TYPE, "MAP_???");
+	addflags(mmap_flags, flags & ~MAP_TYPE);
 #else
-	printflags(mmap_flags, u_arg[3], "MAP_???");
+	printflags(mmap_flags, flags, "MAP_???");
 #endif
 	tprints(", ");
-	/* fd */
-	printfd(tcp, u_arg[4]);
-	/* offset */
+	printfd(tcp, fd);
 	tprintf(", %#llx", offset);
 }
 
@@ -264,15 +264,18 @@ SYS_FUNC(mincore)
 		printaddr(tcp->u_arg[0]);
 		tprintf(", %lu, ", tcp->u_arg[1]);
 	} else {
-		unsigned long i, len;
-		char *vec = NULL;
+		const unsigned long page_size = get_pagesize();
+		const unsigned long page_mask = page_size - 1;
+		unsigned long len = tcp->u_arg[1];
+		unsigned char *vec = NULL;
 
-		len = tcp->u_arg[1];
+		len = len / page_size + (len & page_mask ? 1 : 0);
 		if (syserror(tcp) || !verbose(tcp) ||
 		    !tcp->u_arg[2] || !(vec = malloc(len)) ||
 		    umoven(tcp, tcp->u_arg[2], len, vec) < 0)
 			printaddr(tcp->u_arg[2]);
 		else {
+			unsigned long i;
 			tprints("[");
 			for (i = 0; i < len; i++) {
 				if (abbrev(tcp) && i >= max_strlen) {
@@ -292,23 +295,27 @@ SYS_FUNC(mincore)
  || defined SPARC || defined SPARC64
 SYS_FUNC(getpagesize)
 {
-	if (exiting(tcp))
-		return RVAL_HEX;
-	return 0;
+	return RVAL_DECODED | RVAL_HEX;
 }
 #endif
 
 SYS_FUNC(remap_file_pages)
 {
-	printaddr(tcp->u_arg[0]);
-	tprintf(", %lu, ", tcp->u_arg[1]);
-	printflags(mmap_prot, tcp->u_arg[2], "PROT_???");
-	tprintf(", %lu, ", tcp->u_arg[3]);
+	const unsigned long addr = tcp->u_arg[0];
+	const unsigned long size = tcp->u_arg[1];
+	const unsigned long prot = tcp->u_arg[2];
+	const unsigned long pgoff = tcp->u_arg[3];
+	const unsigned long flags = tcp->u_arg[4];
+
+	printaddr(addr);
+	tprintf(", %lu, ", size);
+	printflags(mmap_prot, prot, "PROT_???");
+	tprintf(", %lu, ", pgoff);
 #ifdef MAP_TYPE
-	printxval(mmap_flags, tcp->u_arg[4] & MAP_TYPE, "MAP_???");
-	addflags(mmap_flags, tcp->u_arg[4] & ~MAP_TYPE);
+	printxval(mmap_flags, flags & MAP_TYPE, "MAP_???");
+	addflags(mmap_flags, flags & ~MAP_TYPE);
 #else
-	printflags(mmap_flags, tcp->u_arg[4], "MAP_???");
+	printflags(mmap_flags, flags, "MAP_???");
 #endif
 
 	return RVAL_DECODED;

@@ -5,8 +5,7 @@
 . "${srcdir=.}/init.sh"
 
 run_prog > /dev/null
-OUT="$LOG.out"
-run_strace -e adjtimex $args > "$OUT"
+run_strace -a 15 -e adjtimex $args > "$OUT"
 match_grep "$LOG" "$OUT"
 rm -f "$OUT"
 

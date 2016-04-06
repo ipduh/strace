@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,10 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
+#include "tests.h"
+#include <assert.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,41 +34,46 @@
 #include <sys/wait.h>
 
 static inline int
-logit(const char *const str)
+logit_(const char *const str)
 {
-	return pwrite(-1, str, strlen(str), 0) >= 0;
+	return !chdir(str);
 }
 
-int main(int ac, char **av, char **ep)
+#define prefix "vfork-f."
+#define logit(arg) logit_(prefix arg)
+
+int main(int ac, char **av)
 {
 	if (ac < 1)
 		return 1;
 	if (ac > 1) {
 		if (read(0, &ac, sizeof(int)))
 			return 2;
-		return logit(av[1]);
+		return logit("exec");
 	}
 
 	logit("start");
 
-	int fds[2];
+	int child_wait_fds[2];
 	(void) close(0);
-	if (pipe(fds)) {
-		perror("pipe");
-		return 77;
-	}
-	if (fcntl(fds[1], F_SETFD, FD_CLOEXEC)) {
-		perror("fcntl");
-		return 77;
-	}
+	if (pipe(child_wait_fds))
+		perror_msg_and_fail("pipe");
+	if (fcntl(child_wait_fds[1], F_SETFD, FD_CLOEXEC))
+		perror_msg_and_fail("fcntl");
 
-	char *const args[] = { av[0], (char *) "exec", NULL };
+	int parent_wait_fds[2];
+	if (pipe(parent_wait_fds))
+		perror_msg_and_fail("pipe");
+	if (fcntl(parent_wait_fds[0], F_SETFD, FD_CLOEXEC))
+		perror_msg_and_fail("fcntl");
+	if (fcntl(parent_wait_fds[1], F_SETFD, FD_CLOEXEC))
+		perror_msg_and_fail("fcntl");
+
+	char *const args[] = { av[0], (char *) "", NULL };
 	pid_t pid = vfork();
 
-	if (pid < 0) {
-		perror("vfork");
-		return 77;
-	}
+	if (pid < 0)
+		perror_msg_and_fail("vfork");
 
 	if (!pid) {
 		if (logit("child") || execve(args[0], args, args + 1))
@@ -78,29 +81,29 @@ int main(int ac, char **av, char **ep)
 	}
 
 	close(0);
+	close(parent_wait_fds[1]);
 
+	if (read(parent_wait_fds[0], &parent_wait_fds[1], sizeof(int)))
+		perror_msg_and_fail("read");
 	logit("parent");
-	close(fds[1]);
+	close(child_wait_fds[1]);
 
 	int status;
-	if (wait(&status) != pid) {
-		perror("wait");
-		return 77;
-	}
-	if (status) {
-		fprintf(stderr, "status = %d\n", status);
-		return 77;
-	}
-
-	logit("finish");
+	assert(wait(&status) == pid);
+	assert(status == 0);
 
 	pid_t ppid = getpid();
-	close(-1);
-	printf("%-5d pwrite64(-1, \"start\", 5, 0) = -1 EBADF (%m)\n"
-	       "%-5d pwrite64(-1, \"child\", 5, 0) = -1 EBADF (%m)\n"
-	       "%-5d pwrite64(-1, \"parent\", 6, 0) = -1 EBADF (%m)\n"
-	       "%-5d pwrite64(-1, \"exec\", 4, 0) = -1 EBADF (%m)\n"
-	       "%-5d pwrite64(-1, \"finish\", 6, 0) = -1 EBADF (%m)\n",
-	       ppid, pid, ppid, pid, ppid);
+	logit("finish");
+
+	printf("%-5d chdir(\"%sstart\") = -1 ENOENT (%m)\n"
+	       "%-5d chdir(\"%schild\") = -1 ENOENT (%m)\n"
+	       "%-5d chdir(\"%sparent\") = -1 ENOENT (%m)\n"
+	       "%-5d chdir(\"%sexec\") = -1 ENOENT (%m)\n"
+	       "%-5d chdir(\"%sfinish\") = -1 ENOENT (%m)\n",
+	       ppid, prefix,
+	       pid, prefix,
+	       ppid, prefix,
+	       pid, prefix,
+	       ppid, prefix);
 	return 0;
 }

@@ -536,6 +536,7 @@ extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_b
 #define QUOTE_0_TERMINATED			0x01
 #define QUOTE_OMIT_LEADING_TRAILING_QUOTES	0x02
 
+extern int string_quote(const char *, char *, unsigned int, unsigned int);
 extern int print_quoted_string(const char *, unsigned int, unsigned int);
 
 /* a refers to the lower numbered u_arg,
@@ -553,19 +554,23 @@ extern int printllval(struct tcb *, const char *, int)
 	ATTRIBUTE_FORMAT((printf, 2, 0));
 
 extern void printaddr(long);
-extern void printxvals(const unsigned int, const char *, const struct xlat *, ...);
+extern void printxvals(const unsigned int, const char *, const struct xlat *, ...)
+	ATTRIBUTE_SENTINEL;
 #define printxval(xlat, val, dflt) printxvals(val, dflt, xlat, NULL)
 extern int printargs(struct tcb *);
-extern int printargs_lu(struct tcb *);
-extern int printargs_ld(struct tcb *);
+extern int printargs_u(struct tcb *);
+extern int printargs_d(struct tcb *);
+
 extern void addflags(const struct xlat *, int);
 extern int printflags(const struct xlat *, int, const char *);
 extern const char *sprintflags(const char *, const struct xlat *, int);
 extern const char *sprintmode(int);
 extern const char *sprinttime(time_t);
-extern void dumpiov_in_msghdr(struct tcb *, long);
+extern void dumpiov_in_msghdr(struct tcb *, long, unsigned long);
 extern void dumpiov_in_mmsghdr(struct tcb *, long);
-extern void dumpiov(struct tcb *, int, long);
+extern void dumpiov_upto(struct tcb *, int, long, unsigned long);
+#define dumpiov(tcp, len, addr) \
+	dumpiov_upto((tcp), (len), (addr), (unsigned long) -1L)
 extern void dumpstr(struct tcb *, long, int);
 extern void printstr(struct tcb *, long, long);
 extern bool printnum_short(struct tcb *, long, const char *)
@@ -611,6 +616,7 @@ extern void printpathn(struct tcb *, long, unsigned int);
 		(sizeof(intmax_t)*3 * 2 + sizeof("{tv_sec=%jd, tv_nsec=%jd}"))
 extern void printfd(struct tcb *, int);
 extern bool print_sockaddr_by_inode(const unsigned long, const char *);
+extern bool print_sockaddr_by_inode_cached(const unsigned long);
 extern void print_dirfd(struct tcb *, int);
 extern void printsock(struct tcb *, long, int);
 extern void print_sock_optmgmt(struct tcb *, long, int);
@@ -764,3 +770,23 @@ extern unsigned num_quals;
 #define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
 
 #define MPERS_PRINTER_DECL(type, name) type MPERS_FUNC_NAME(name)
+
+/*
+ * The kernel used to define 64-bit types on 64-bit systems on a per-arch
+ * basis.  Some architectures would use unsigned long and others would use
+ * unsigned long long.  These types were exported as part of the
+ * kernel-userspace ABI and now must be maintained forever.  This matches
+ * what the kernel exports for each architecture so we don't need to cast
+ * every printing of __u64 or __s64 to stdint types.
+ */
+#if SIZEOF_LONG == 4
+# define PRI__64 "ll"
+#elif defined ALPHA || defined IA64 || defined MIPS || defined POWERPC
+# define PRI__64 "l"
+#else
+# define PRI__64 "ll"
+#endif
+
+#define PRI__s64 PRI__64"d"
+#define PRI__u64 PRI__64"u"
+#define PRI__x64 PRI__64"x"
