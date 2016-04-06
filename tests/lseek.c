@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,36 +25,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
+#include "tests.h"
 #include <sys/syscall.h>
 
 #ifdef __NR_lseek
 
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
-
-#include "kernel_types.h"
+# include <assert.h>
+# include <errno.h>
+# include <stdio.h>
+# include <unistd.h>
+# include "kernel_types.h"
 
 int
 main(void)
 {
-	const kernel_ulong_t offset = (kernel_ulong_t) 0xdefaced0badc0deULL;
-	int rc;
+	const kernel_ulong_t offset = (kernel_ulong_t) 0xfacefeeddeadbeefULL;
 
 	if (sizeof(offset) > sizeof(long))
-		rc = lseek(-1, offset, SEEK_SET);
+		assert(lseek(-1, offset, SEEK_SET) == -1);
 	else
-		rc = syscall(__NR_lseek, -1L, offset, SEEK_SET);
+		assert(syscall(__NR_lseek, -1L, offset, SEEK_SET) == -1);
 
-	if (rc != -1 || EBADF != errno)
-		return 77;
+	if (EBADF != errno)
+		perror_msg_and_skip("lseek");
 
-	printf("lseek(-1, %llu, SEEK_SET) = -1 EBADF (Bad file descriptor)\n",
-	       (unsigned long long) offset);
+	if (sizeof(offset) > sizeof(long))
+		printf("lseek(-1, %lld, SEEK_SET) = -1 EBADF (%m)\n",
+		       (long long) offset);
+	else
+		printf("lseek(-1, %ld, SEEK_SET) = -1 EBADF (%m)\n",
+		       (long) offset);
 
 	puts("+++ exited with 0 +++");
 	return 0;
@@ -62,10 +62,6 @@ main(void)
 
 #else
 
-int
-main(void)
-{
-	return 77;
-}
+SKIP_MAIN_UNDEFINED("__NR_lseek")
 
 #endif

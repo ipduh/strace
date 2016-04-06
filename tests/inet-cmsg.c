@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "tests.h"
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -94,22 +95,18 @@ main(void)
 	assert(!close(0));
 	assert(!close(3));
 
-	if (socket(PF_INET, SOCK_DGRAM, 0)) {
-		perror("socket");
-		return 77;
-	}
+	if (socket(AF_INET, SOCK_DGRAM, 0))
+		perror_msg_and_skip("socket");
 	struct sockaddr_in addr = {
 		.sin_family = AF_INET,
 		.sin_addr.s_addr = htonl(INADDR_LOOPBACK)
 	};
 	socklen_t len = sizeof(addr);
-	if (bind(0, (struct sockaddr *) &addr, len)) {
-		perror("bind");
-		return 77;
-	}
+	if (bind(0, (struct sockaddr *) &addr, len))
+		perror_msg_and_skip("bind");
 	assert(!getsockname(0, (struct sockaddr *) &addr, &len));
 
-	assert(socket(PF_INET, SOCK_DGRAM, 0) == 3);
+	assert(socket(AF_INET, SOCK_DGRAM, 0) == 3);
 	assert(!connect(3, (struct sockaddr *) &addr, len));
 
 	const int opt_1 = htonl(0x01000000);
@@ -149,9 +146,9 @@ main(void)
 
 	printf("recvmsg(0, {msg_name(%u)={sa_family=AF_INET, sin_port=htons(%u)"
 	       ", sin_addr=inet_addr(\"127.0.0.1\")}, msg_iov(1)=[{\"%s\", %zu}]"
-	       ", msg_controllen=%zu, [",
+	       ", msg_controllen=%lu, [",
 	       (unsigned) mh.msg_namelen, ntohs(addr.sin_port),
-	       data, size, mh.msg_controllen);
+	       data, size, (unsigned long) mh.msg_controllen);
 
 	struct cmsghdr *c;
 	for (c = CMSG_FIRSTHDR(&mh); c; c = CMSG_NXTHDR(&mh, c)) {
@@ -159,8 +156,8 @@ main(void)
 			continue;
 		if (c != control)
 			printf(", ");
-		printf("{cmsg_len=%zu, cmsg_level=SOL_IP, cmsg_type=",
-		       c->cmsg_len);
+		printf("{cmsg_len=%lu, cmsg_level=SOL_IP, cmsg_type=",
+		       (unsigned long) c->cmsg_len);
 		switch (c->cmsg_type) {
 			case IP_PKTINFO:
 				print_pktinfo(c);

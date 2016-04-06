@@ -2,10 +2,30 @@ Noteworthy changes in release ?.?? (????-??-??)
 ===============================================
 
 * Improvements
-  * Enhanced decoding of personality syscall.
+  * Implemented simultaneous use of -p option and tracing of a command.
+    (addresses Debian bug #549942).
+  * Enhanced decoding of personality, sched_getaffinity,
+    and sched_setaffinity syscalls.
+  * Enhanced decoding of getxpid, getxuid, and getxgid syscalls on alpha.
+  * Added decoding of bind, listen, and setsockopt direct syscalls on sparc.
+  * Implemented caching of netlink conversations to reduce amount of time
+    spent in decoding socket details in -yy mode.
+  * Implemented decoding of copy_file_range syscall.
+  * Implemented dumping of preadv, pwritev, and vmsplice syscalls.
+  * Updated lists of ioctl commands from Linux 4.5.
 
 * Bug fixes
   * Fixed build on arc, metag, nios2, or1k, and tile architectures.
+  * Fixed decoding of 32-bit times syscall return value on 64-bit architectures.
+  * Fixed decoding of mlock2 syscall on sparc.
+  * Fixed decoding of syscalls unknown to the kernel on s390/s390x.
+    (addresses Debian bug #485979 and Fedora bug #1298294).
+  * Fixed decoding of preadv syscall in case of short read.
+  * Fixed decoding and dumping of readv syscall in case of short read.
+  * Fixed dumping of recvmsg and recvmmsg syscalls in case of short read.
+  * Fixed decoding of mincore syscall's last argument.
+  * Fixed remaining errors in mapping between syscall numbers and numbers
+    of syscall arguments.
 
 Noteworthy changes in release 4.11 (2015-12-21)
 ===============================================

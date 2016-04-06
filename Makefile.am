@@ -1,7 +1,7 @@
 # Automake input for strace.
 #
 # Copyright (c) 2002-2009 Roland McGrath <roland@redhat.com>
-# Copyright (c) 2006-2015 Dmitry V. Levin <ldv@altlinux.org>
+# Copyright (c) 2006-2016 Dmitry V. Levin <ldv@altlinux.org>
 # Copyright (c) 2008-2015 Mike Frysinger <vapier@gentoo.org>
 # Copyright (c) 2015 Elvira Khabirova <lineprinter0@gmail.com>
 # All rights reserved.
@@ -56,14 +56,22 @@ AM_CPPFLAGS = -I$(builddir)/$(OS)/$(ARCH) \
 include xlat/Makemodule.am
 
 strace_CPPFLAGS = $(AM_CPPFLAGS)
+strace_CFLAGS = $(AM_CFLAGS)
 strace_LDFLAGS =
-strace_LDADD =
-noinst_LIBRARIES =
+strace_LDADD = libstrace.a
+noinst_LIBRARIES = libstrace.a
+
+libstrace_a_CPPFLAGS = $(strace_CPPFLAGS)
+libstrace_a_CFLAGS = $(strace_CFLAGS)
+libstrace_a_SOURCES =	\
+	upeek.c		\
+	# end of libstrace_a_SOURCES
 
 strace_SOURCES =	\
 	access.c	\
 	affinity.c	\
 	aio.c		\
+	alpha.c		\
 	bjm.c		\
 	block.c		\
 	bpf.c		\
@@ -74,6 +82,7 @@ strace_SOURCES =	\
 	chdir.c		\
 	chmod.c		\
 	clone.c		\
+	copy_file_range.c \
 	count.c		\
 	defs.h		\
 	desc.c		\
@@ -171,6 +180,7 @@ strace_SOURCES =	\
 	seccomp_fprog.h \
 	sendfile.c	\
 	sigaltstack.c	\
+	sigevent.h	\
 	signal.c	\
 	signalfd.c	\
 	sigreturn.c	\
@@ -213,8 +223,17 @@ strace_LDFLAGS += $(libunwind_LDFLAGS)
 strace_LDADD += $(libunwind_LIBS)
 endif
 
+@CODE_COVERAGE_RULES@
+CODE_COVERAGE_LCOV_OPTIONS = \
+	$(CODE_COVERAGE_LCOV_OPTIONS_DEFAULT) --rc lcov_branch_coverage=1
+CODE_COVERAGE_GENHTML_OPTIONS = --rc lcov_branch_coverage=1
+CODE_COVERAGE_IGNORE_PATTERN = '/usr/include/*'
+strace_CPPFLAGS += $(CODE_COVERAGE_CPPFLAGS)
+strace_CFLAGS += $(CODE_COVERAGE_CFLAGS)
+strace_LDADD += $(CODE_COVERAGE_LDFLAGS)
+
 # Enable this to get link map generated
-#strace_CFLAGS = $(AM_CFLAGS) -Wl,-Map=strace.mapfile
+#strace_LDFLAGS += -Wl,-Map=strace.mapfile
 
 EXTRA_DIST =				\
 	$(man_MANS)			\
@@ -690,7 +709,8 @@ mpers_DEFS = $(DEFS)
 mpers_INCLUDES = $(DEFAULT_INCLUDES) $(INCLUDES)
 mpers_CPPFLAGS = $(strace_CPPFLAGS) $(CPPFLAGS)
 mpers_sh_opts = $(mpers_DEFS) $(mpers_INCLUDES) $(mpers_CPPFLAGS)
-libmpers_CPPFLAGS = $(AM_CPPFLAGS) -DIN_MPERS
+libmpers_CPPFLAGS = $(strace_CPPFLAGS) -DIN_MPERS
+libmpers_CFLAGS = $(strace_CFLAGS)
 
 # mpers targets
 
@@ -753,6 +773,7 @@ strace_LDADD += libmpers-m32.a
 noinst_LIBRARIES += libmpers-m32.a
 libmpers_m32_a_SOURCES = $(mpers_source_files)
 libmpers_m32_a_CPPFLAGS = $(libmpers_CPPFLAGS) -DMPERS_IS_m32 -I$(builddir)/mpers-m32
+libmpers_m32_a_CFLAGS = $(libmpers_CFLAGS)
 mpers_m32_targets = mpers-m32.stamp m32_type_defs.h m32_funcs.h m32_printer_decls.h m32_printer_defs.h
 
 BUILT_SOURCES += $(mpers_m32_targets)
@@ -768,6 +789,7 @@ strace_LDADD += libmpers-mx32.a
 noinst_LIBRARIES += libmpers-mx32.a
 libmpers_mx32_a_SOURCES = $(mpers_source_files)
 libmpers_mx32_a_CPPFLAGS = $(libmpers_CPPFLAGS) -DMPERS_IS_mx32 -I$(builddir)/mpers-mx32
+libmpers_mx32_a_CFLAGS = $(libmpers_CFLAGS)
 mpers_mx32_targets = mpers-mx32.stamp mx32_type_defs.h mx32_funcs.h mx32_printer_decls.h mx32_printer_defs.h
 
 BUILT_SOURCES += $(mpers_mx32_targets)

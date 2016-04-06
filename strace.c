@@ -691,19 +691,25 @@ newoutf(struct tcb *tcp)
 static void
 expand_tcbtab(void)
 {
-	/* Allocate some more TCBs and expand the table.
+	/* Allocate some (more) TCBs (and expand the table).
 	   We don't want to relocate the TCBs because our
 	   callers have pointers and it would be a pain.
 	   So tcbtab is a table of pointers.  Since we never
 	   free the TCBs, we allocate a single chunk of many.  */
-	unsigned int i = tcbtabsize;
-	struct tcb *newtcbs = xcalloc(tcbtabsize, sizeof(newtcbs[0]));
-	struct tcb **newtab = xreallocarray(tcbtab, tcbtabsize * 2,
-					    sizeof(tcbtab[0]));
-	tcbtabsize *= 2;
-	tcbtab = newtab;
-	while (i < tcbtabsize)
-		tcbtab[i++] = newtcbs++;
+	unsigned int new_tcbtabsize, alloc_tcbtabsize;
+	struct tcb *newtcbs;
+
+	if (tcbtabsize) {
+		alloc_tcbtabsize = tcbtabsize;
+		new_tcbtabsize = tcbtabsize * 2;
+	} else {
+		new_tcbtabsize = alloc_tcbtabsize = 1;
+	}
+
+	newtcbs = xcalloc(alloc_tcbtabsize, sizeof(newtcbs[0]));
+	tcbtab = xreallocarray(tcbtab, new_tcbtabsize, sizeof(tcbtab[0]));
+	while (tcbtabsize < new_tcbtabsize)
+		tcbtab[tcbtabsize++] = newtcbs++;
 }
 
 static struct tcb *
@@ -973,6 +979,7 @@ process_opt_p_list(char *opt)
 static void
 startup_attach(void)
 {
+	pid_t parent_pid = strace_tracer_pid;
 	unsigned int tcbi;
 	struct tcb *tcp;
 
@@ -1015,7 +1022,13 @@ startup_attach(void)
 		if (tcp->flags & TCB_ATTACHED)
 			continue; /* no, we already attached it */
 
-		if (followfork && !daemonized_tracer) {
+		if (tcp->pid == parent_pid || tcp->pid == strace_tracer_pid) {
+			errno = EPERM;
+			perror_msg("attach: %d", tcp->pid);
+			droptcb(tcp);
+			continue;
+		}
+		if (followfork && tcp->pid != strace_child) {
 			char procdir[sizeof("/proc/%d/task") + sizeof(int) * 3];
 			DIR *dir;
 
@@ -1092,17 +1105,18 @@ startup_attach(void)
 		if (debug_flag)
 			error_msg("attach to pid %d (main) succeeded", tcp->pid);
 
-		if (daemonized_tracer) {
-			/*
-			 * Make parent go away.
-			 * Also makes grandparent's wait() unblock.
-			 */
-			kill(getppid(), SIGKILL);
-		}
-
 		if (!qflag)
 			error_msg("Process %u attached", tcp->pid);
 	} /* for each tcbtab[] */
+
+	if (daemonized_tracer) {
+		/*
+		 * Make parent go away.
+		 * Also makes grandparent's wait() unblock.
+		 */
+		kill(parent_pid, SIGKILL);
+		strace_child = 0;
+	}
 
  ret:
 	if (interactive)
@@ -1174,6 +1188,17 @@ exec_or_die(void)
 
 	execv(params->pathname, params->argv);
 	perror_msg_and_die("exec");
+}
+
+static int
+open_dummy_desc(void)
+{
+	int fds[2];
+
+	if (pipe(fds))
+		perror_msg_and_die("pipe");
+	close(fds[1]);
+	return fds[0];
 }
 
 static void
@@ -1317,11 +1342,10 @@ startup_child(char **argv)
 		newoutf(tcp);
 	}
 	else {
-		/* With -D, we are *child* here, IOW: different pid. Fetch it: */
+		/* With -D, we are *child* here, the tracee is our parent. */
+		strace_child = strace_tracer_pid;
 		strace_tracer_pid = getpid();
-		/* The tracee is our parent: */
-		pid = getppid();
-		alloctcb(pid);
+		alloctcb(strace_child);
 		/* attaching will be done later, by startup_attach */
 		/* note: we don't do newoutf(tcp) here either! */
 
@@ -1346,6 +1370,25 @@ startup_child(char **argv)
 		 * to create a genuine separate stack and execute on it.
 		 */
 	}
+	/*
+	 * A case where straced process is part of a pipe:
+	 * { sleep 1; yes | head -n99999; } | strace -o/dev/null sh -c 'exec <&-; sleep 9'
+	 * If strace won't close its fd#0, closing it in tracee is not enough:
+	 * the pipe is still open, it has a reader. Thus, "head" will not get its
+	 * SIGPIPE at once, on the first write.
+	 *
+	 * Preventing it by closing strace's stdin/out.
+	 * (Don't leave fds 0 and 1 closed, this is bad practice: future opens
+	 * will reuse them, unexpectedly making a newly opened object "stdin").
+	 */
+	close(0);
+	open_dummy_desc(); /* opens to fd#0 */
+	dup2(0, 1);
+#if 0
+	/* A good idea too, but we sometimes need to print error messages */
+	if (shared_log != stderr)
+		dup2(0, 2);
+#endif
 }
 
 #if USE_SEIZE
@@ -1447,10 +1490,8 @@ get_os_release(void)
 static void ATTRIBUTE_NOINLINE
 init(int argc, char *argv[])
 {
-	struct tcb *tcp;
 	int c, i;
 	int optF = 0;
-	unsigned int tcbi;
 	struct sigaction sa;
 
 	progname = argv[0] ? argv[0] : "strace";
@@ -1465,13 +1506,6 @@ init(int argc, char *argv[])
 	strace_tracer_pid = getpid();
 
 	os_release = get_os_release();
-
-	/* Allocate the initial tcbtab.  */
-	tcbtabsize = argc;	/* Surely enough for all -p args.  */
-	tcbtab = xcalloc(tcbtabsize, sizeof(tcbtab[0]));
-	tcp = xcalloc(tcbtabsize, sizeof(*tcp));
-	for (tcbi = 0; tcbi < tcbtabsize; tcbi++)
-		tcbtab[tcbi] = tcp++;
 
 	shared_log = stderr;
 	set_sortby(DEFAULT_SORTBY);
@@ -1619,13 +1653,12 @@ init(int argc, char *argv[])
 	memset(acolumn_spaces, ' ', acolumn);
 	acolumn_spaces[acolumn] = '\0';
 
-	/* Must have PROG [ARGS], or -p PID. Not both. */
-	if (!argv[0] == !nprocs) {
+	if (!argv[0] && !nprocs) {
 		error_msg_and_help("must have PROG [ARGS] or -p PID");
 	}
 
-	if (nprocs != 0 && daemonized_tracer) {
-		error_msg_and_help("-D and -p are mutually exclusive");
+	if (!argv[0] && daemonized_tracer) {
+		error_msg_and_help("PROG [ARGS] must be specified with -D");
 	}
 
 	if (!followfork)
@@ -1688,6 +1721,25 @@ init(int argc, char *argv[])
 		error_msg("ptrace_setoptions = %#x", ptrace_setoptions);
 	test_ptrace_seize();
 
+	if (fcntl(0, F_GETFD) == -1 || fcntl(1, F_GETFD) == -1) {
+		/*
+		 * Something weird with our stdin and/or stdout -
+		 * for example, may be not open? In this case,
+		 * ensure that none of the future opens uses them.
+		 *
+		 * This was seen in the wild when /proc/sys/kernel/core_pattern
+		 * was set to "|/bin/strace -o/tmp/LOG PROG":
+		 * kernel runs coredump helper with fd#0 open but fd#1 closed (!),
+		 * therefore LOG gets opened to fd#1, and fd#1 is closed by
+		 * "don't hold up stdin/out open" code soon after.
+		 */
+		int fd = open_dummy_desc();
+		while (fd >= 0 && fd < 2)
+			fd = dup(fd);
+		if (fd > 2)
+			close(fd);
+	}
+
 	/* Check if they want to redirect the output. */
 	if (outfname) {
 		/* See if they want to pipe the output. */
@@ -1722,9 +1774,9 @@ init(int argc, char *argv[])
 		opt_intr = INTR_WHILE_WAIT;
 
 	/* argv[0]	-pPID	-oFILE	Default interactive setting
-	 * yes		0	0	INTR_WHILE_WAIT
+	 * yes		*	0	INTR_WHILE_WAIT
 	 * no		1	0	INTR_WHILE_WAIT
-	 * yes		0	1	INTR_NEVER
+	 * yes		*	1	INTR_NEVER
 	 * no		1	1	INTR_WHILE_WAIT
 	 */
 

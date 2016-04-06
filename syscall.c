@@ -34,6 +34,7 @@
 #include "defs.h"
 #include "native_defs.h"
 #include <sys/param.h>
+#include <signal.h>
 
 /* for struct iovec */
 #include <sys/uio.h>
@@ -627,11 +628,6 @@ decode_mips_subcall(struct tcb *tcp)
 	 * see linux/mips/get_syscall_args.c
 	 */
 }
-
-SYS_FUNC(syscall)
-{
-	return printargs(tcp);
-}
 #endif
 
 int
@@ -647,27 +643,25 @@ printargs(struct tcb *tcp)
 }
 
 int
-printargs_lu(struct tcb *tcp)
+printargs_u(struct tcb *tcp)
 {
-	if (entering(tcp)) {
-		int i;
-		int n = tcp->s_ent->nargs;
-		for (i = 0; i < n; i++)
-			tprintf("%s%lu", i ? ", " : "", tcp->u_arg[i]);
-	}
-	return 0;
+	const int n = tcp->s_ent->nargs;
+	int i;
+	for (i = 0; i < n; ++i)
+		tprintf("%s%u", i ? ", " : "",
+			(unsigned int) tcp->u_arg[i]);
+	return RVAL_DECODED;
 }
 
 int
-printargs_ld(struct tcb *tcp)
+printargs_d(struct tcb *tcp)
 {
-	if (entering(tcp)) {
-		int i;
-		int n = tcp->s_ent->nargs;
-		for (i = 0; i < n; i++)
-			tprintf("%s%ld", i ? ", " : "", tcp->u_arg[i]);
-	}
-	return 0;
+	const int n = tcp->s_ent->nargs;
+	int i;
+	for (i = 0; i < n; ++i)
+		tprintf("%s%d", i ? ", " : "",
+			(int) tcp->u_arg[i]);
+	return RVAL_DECODED;
 }
 
 static void
@@ -691,10 +685,12 @@ dumpio(struct tcb *tcp)
 			dumpstr(tcp, tcp->u_arg[1], tcp->u_rval);
 			return;
 		case SEN_readv:
-			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
+		case SEN_preadv:
+			dumpiov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1],
+				     tcp->u_rval);
 			return;
 		case SEN_recvmsg:
-			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
+			dumpiov_in_msghdr(tcp, tcp->u_arg[1], tcp->u_rval);
 			return;
 		case SEN_recvmmsg:
 			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
@@ -710,10 +706,13 @@ dumpio(struct tcb *tcp)
 			dumpstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
 			break;
 		case SEN_writev:
+		case SEN_pwritev:
+		case SEN_vmsplice:
 			dumpiov(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 			break;
 		case SEN_sendmsg:
-			dumpiov_in_msghdr(tcp, tcp->u_arg[1]);
+			dumpiov_in_msghdr(tcp, tcp->u_arg[1],
+					  (unsigned long) -1L);
 			break;
 		case SEN_sendmmsg:
 			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
@@ -1064,7 +1063,13 @@ trace_syscall_exiting(struct tcb *tcp)
 				tprintf("= %#lo", tcp->u_rval);
 				break;
 			case RVAL_UDECIMAL:
-				tprintf("= %lu", tcp->u_rval);
+#if SUPPORTED_PERSONALITIES > 1
+				if (current_wordsize < sizeof(long))
+					tprintf("= %u",
+						(unsigned int) tcp->u_rval);
+				else
+#endif
+					tprintf("= %lu", tcp->u_rval);
 				break;
 			case RVAL_DECIMAL:
 				tprintf("= %ld", tcp->u_rval);

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2003, 2004 Ulrich Drepper <drepper@redhat.com>
- * Copyright (c) 2005-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,10 @@
 #include "defs.h"
 
 #include DEF_MPERS_TYPE(struct_sigevent)
-
-#include <signal.h>
-typedef struct sigevent struct_sigevent;
-
+#include "sigevent.h"
 #include MPERS_DEFS
 
+#include <signal.h>
 #include "xlat/sigev_value.h"
 
 MPERS_PRINTER_DECL(void, print_sigevent)(struct tcb *tcp, const long addr)
@@ -66,30 +64,13 @@ MPERS_PRINTER_DECL(void, print_sigevent)(struct tcb *tcp, const long addr)
 
 	switch (sev.sigev_notify) {
 	case SIGEV_THREAD_ID:
-#ifndef sigev_notify_thread_id
-		/*
-		 * _pad[0] is the _tid field which might not be
-		 * present in the userlevel definition of the struct.
-		 */
-# if defined HAVE_STRUCT_SIGEVENT__SIGEV_UN__PAD
-#  define sigev_notify_thread_id _sigev_un._pad[0]
-# elif defined HAVE_STRUCT_SIGEVENT___PAD
-#  define sigev_notify_thread_id __pad[0]
-# endif
-#endif
-
-#ifdef sigev_notify_thread_id
-		tprintf(", sigev_notify_thread_id=%d",
-			sev.sigev_notify_thread_id);
-#else
-# warning unfamiliar struct sigevent => incomplete SIGEV_THREAD_ID decoding
-#endif
+		tprintf(", sigev_notify_thread_id=%d", sev.sigev_un.tid);
 		break;
 	case SIGEV_THREAD:
 		tprints(", sigev_notify_function=");
-		printaddr((unsigned long) sev.sigev_notify_function);
+		printaddr(sev.sigev_un.sigev_thread.function);
 		tprints(", sigev_notify_attributes=");
-		printaddr((unsigned long) sev.sigev_notify_attributes);
+		printaddr(sev.sigev_un.sigev_thread.attribute);
 		break;
 	}
 	tprints("}");
