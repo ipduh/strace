@@ -114,6 +114,7 @@ check_PROGRAMS = \
 	ipc_sem \
 	ipc_shm \
 	ksysent \
+	linkat \
 	llseek \
 	lseek \
 	lstat \
@@ -121,6 +122,7 @@ check_PROGRAMS = \
 	membarrier \
 	memfd_create \
 	mincore \
+	mkdirat \
 	mknod \
 	mlock2 \
 	mmap \
@@ -185,6 +187,7 @@ check_PROGRAMS = \
 	stat \
 	stat64 \
 	statfs \
+	swap \
 	sync_file_range \
 	sync_file_range2 \
 	sysinfo \
@@ -208,6 +211,7 @@ check_PROGRAMS = \
 	umovestr \
 	umovestr2 \
 	uname \
+	unlinkat \
 	unix-pair-send-recv \
 	userfaultfd \
 	utime \
@@ -306,6 +310,7 @@ DECODER_TESTS = \
 	ipc_msgbuf.test \
 	ipc_sem.test \
 	ipc_shm.test \
+	linkat.test \
 	llseek.test \
 	lseek.test \
 	lstat.test \
@@ -313,6 +318,7 @@ DECODER_TESTS = \
 	membarrier.test \
 	memfd_create.test \
 	mincore.test \
+	mkdirat.test \
 	mknod.test \
 	mlock2.test \
 	mmap.test \
@@ -371,6 +377,7 @@ DECODER_TESTS = \
 	stat64.test \
 	statfs.test \
 	sun_path.test \
+	swap.test \
 	sync_file_range.test \
 	sync_file_range2.test \
 	sysinfo.test \
@@ -394,6 +401,7 @@ DECODER_TESTS = \
 	umovestr.test \
 	umovestr2.test \
 	uname.test \
+	unlinkat.test \
 	userfaultfd.test \
 	utime.test \
 	utimensat.test \
