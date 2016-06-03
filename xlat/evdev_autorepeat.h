@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat evdev_autorepeat in mpers mode
+extern const struct xlat evdev_autorepeat[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat evdev_autorepeat[] = {
 #if defined(REP_DELAY) || (defined(HAVE_DECL_REP_DELAY) && HAVE_DECL_REP_DELAY)
   XLAT(REP_DELAY),

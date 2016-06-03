@@ -11,11 +11,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat blkpg_ops in mpers mode
+extern const struct xlat blkpg_ops[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat blkpg_ops[] = {
  XLAT(BLKPG_ADD_PARTITION),
  XLAT(BLKPG_DEL_PARTITION),

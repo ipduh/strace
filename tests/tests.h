@@ -78,13 +78,53 @@ const char *hexquote_strndup(const char *, size_t);
 /* Return inode number of socket descriptor. */
 unsigned long inode_of_sockfd(int);
 
-/* Print string in quoted form. */
-void print_quoted_string(const char *str);
+/* Print string in a quoted form. */
+void print_quoted_string(const char *);
+
+/* Print memory in a quoted form. */
+void print_quoted_memory(const char *, size_t);
+
+/* Check whether given uid matches kernel overflowuid. */
+void check_overflowuid(const int);
+
+/* Check whether given gid matches kernel overflowgid. */
+void check_overflowgid(const int);
+
+/* Translate errno to its name. */
+const char *errno2name(void);
+
+struct xlat;
+
+/* Print flags in symbolic form according to xlat table. */
+int printflags(const struct xlat *, const unsigned long long, const char *);
+
+/* Print constant in symbolic form according to xlat table. */
+int printxval(const struct xlat *, const unsigned long long, const char *);
 
 # define ARRAY_SIZE(arg) ((unsigned int) (sizeof(arg) / sizeof((arg)[0])))
 # define LENGTH_OF(arg) ((unsigned int) sizeof(arg) - 1)
 
 # define SKIP_MAIN_UNDEFINED(arg) \
 	int main(void) { error_msg_and_skip("undefined: %s", arg); }
+
+/*
+ * The kernel used to define 64-bit types on 64-bit systems on a per-arch
+ * basis.  Some architectures would use unsigned long and others would use
+ * unsigned long long.  These types were exported as part of the
+ * kernel-userspace ABI and now must be maintained forever.  This matches
+ * what the kernel exports for each architecture so we don't need to cast
+ * every printing of __u64 or __s64 to stdint types.
+ */
+# if SIZEOF_LONG == 4
+#  define PRI__64 "ll"
+# elif defined ALPHA || defined IA64 || defined MIPS || defined POWERPC
+#  define PRI__64 "l"
+# else
+#  define PRI__64 "ll"
+# endif
+
+# define PRI__d64 PRI__64"d"
+# define PRI__u64 PRI__64"u"
+# define PRI__x64 PRI__64"x"
 
 #endif

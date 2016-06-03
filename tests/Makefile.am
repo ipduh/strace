@@ -41,12 +41,16 @@ AM_CPPFLAGS = $(ARCH_MFLAGS) \
 AM_LDFLAGS = $(ARCH_MFLAGS)
 
 libtests_a_SOURCES = \
+	errno2name.c \
 	error_msg.c \
 	get_page_size.c \
 	hexdump_strdup.c \
 	hexquote_strndup.c \
 	inode_of_sockfd.c \
+	overflowuid.c \
 	print_quoted_string.c \
+	printflags.c \
+	printxval.c \
 	tail_alloc.c \
 	tests.h \
 	tprintf.c \
@@ -57,6 +61,7 @@ LDADD = libtests.a
 
 check_PROGRAMS = \
 	_newselect \
+	access \
 	acct \
 	adjtimex \
 	aio \
@@ -65,9 +70,14 @@ check_PROGRAMS = \
 	attach-p-cmd-cmd \
 	attach-p-cmd-p \
 	bpf \
+	brk \
+	btrfs \
 	caps \
 	chmod \
+	chown \
+	chown32 \
 	chroot \
+	clock_adjtime \
 	clock_nanosleep \
 	clock_xettime \
 	copy_file_range \
@@ -76,7 +86,11 @@ check_PROGRAMS = \
 	dup \
 	dup2 \
 	dup3 \
+	epoll_create \
 	epoll_create1 \
+	epoll_ctl \
+	epoll_pwait \
+	epoll_wait \
 	eventfd \
 	execve \
 	execve-v \
@@ -84,81 +98,142 @@ check_PROGRAMS = \
 	execveat-v \
 	faccessat \
 	fanotify_mark \
+	fchdir \
 	fchmod \
 	fchmodat \
+	fchown \
+	fchown32 \
 	fchownat \
 	fcntl \
 	fcntl64 \
 	fdatasync \
 	file_handle \
+	file_ioctl \
 	filter-unavailable \
 	flock \
 	fork-f \
 	fstat \
 	fstat64 \
 	fstatat64 \
+	fstatfs \
+	fstatfs64 \
 	fsync \
 	ftruncate \
 	ftruncate64 \
+	futimesat \
+	get_mempolicy \
 	getcwd \
 	getdents \
 	getdents64 \
+	getegid \
+	getegid32 \
+	geteuid \
+	geteuid32 \
+	getgid \
+	getgid32 \
+	getgroups \
+	getgroups32 \
+	getpgrp \
 	getrandom \
+	getresgid \
+	getresgid32 \
+	getresuid \
+	getresuid32 \
 	getrusage \
+	getsid \
+	getuid \
+	getuid32 \
 	getxxid \
 	inet-cmsg \
 	ioctl \
+	ioctl_block \
+	ioctl_evdev \
+	ioctl_evdev-v \
+	ioctl_mtd \
+	ioctl_rtc \
+	ioctl_rtc-v \
+	ioctl_uffdio \
+	ioctl_v4l2 \
+	ioperm \
+	iopl \
 	ip_mreq \
 	ipc_msg \
 	ipc_msgbuf \
 	ipc_sem \
 	ipc_shm \
+	kill \
 	ksysent \
+	lchown \
+	lchown32 \
+	link \
 	linkat \
 	llseek \
 	lseek \
 	lstat \
 	lstat64 \
+	mbind \
 	membarrier \
 	memfd_create \
+	migrate_pages \
 	mincore \
+	mkdir \
 	mkdirat \
 	mknod \
+	mknodat \
+	mlock \
 	mlock2 \
+	mlockall \
 	mmap \
 	mmap64 \
 	mmsg \
+	mount \
+	move_pages \
 	mq \
+	munlockall \
 	nanosleep \
 	net-accept-connect \
+	net-icmp_filter \
 	net-y-unix \
 	net-yy-inet \
+	net-yy-netlink \
 	net-yy-unix \
 	netlink_inet_diag \
+	netlink_netlink_diag \
 	netlink_unix_diag \
 	newfstatat \
+	nsyscalls \
+	old_mmap \
 	oldselect \
 	open \
 	openat \
+	pause \
 	pc \
 	personality \
 	pipe \
 	poll \
 	ppoll \
+	prctl-seccomp-filter-v \
+	prctl-seccomp-strict \
 	pread64-pwrite64 \
 	preadv \
 	preadv-pwritev \
+	preadv2-pwritev2 \
 	pselect6 \
+	ptrace \
 	pwritev \
 	read-write \
 	readdir \
 	readlink \
 	readlinkat \
 	readv \
+	reboot \
 	recvmsg \
+	remap_file_pages \
 	rename \
-	renameat\
+	renameat \
+	renameat2 \
 	restart_syscall \
+	rmdir \
 	rt_sigpending \
 	rt_sigprocmask \
 	rt_sigqueueinfo \
@@ -166,28 +241,58 @@ check_PROGRAMS = \
 	rt_sigtimedwait \
 	rt_tgsigqueueinfo \
 	sched_get_priority_mxx \
+	sched_rr_get_interval \
 	sched_xetaffinity \
 	sched_xetattr \
 	sched_xetparam \
 	sched_xetscheduler \
+	sched_yield \
 	scm_rights \
-	seccomp \
+	seccomp-filter \
+	seccomp-filter-v \
+	seccomp-strict \
 	select \
+	semop \
 	sendfile \
 	sendfile64 \
+	set_mempolicy \
 	set_ptracer_any \
+	setdomainname \
+	setfsgid \
+	setfsgid32 \
+	setfsuid \
+	setfsuid32 \
+	setgid \
+	setgid32 \
+	setgroups \
+	setgroups32 \
 	sethostname \
+	setregid \
+	setregid32 \
+	setresgid \
+	setresgid32 \
+	setresuid \
+	setresuid32 \
+	setreuid \
+	setreuid32 \
+	setuid \
+	setuid32 \
+	shmxt \
 	sigaction \
 	sigaltstack \
 	signalfd \
 	sigreturn \
+	sleep \
 	splice \
 	stack-fcall \
-	sleep \
 	stat \
 	stat64 \
 	statfs \
+	statfs64 \
 	swap \
+	symlink \
+	symlinkat \
+	sync \
 	sync_file_range \
 	sync_file_range2 \
 	sysinfo \
@@ -201,22 +306,23 @@ check_PROGRAMS = \
 	times-fail \
 	truncate \
 	truncate64 \
-	uid \
-	uid16 \
-	uid32 \
 	uio \
 	umask \
 	umount \
 	umount2 \
 	umovestr \
 	umovestr2 \
+	umovestr3 \
 	uname \
-	unlinkat \
 	unix-pair-send-recv \
+	unlink \
+	unlinkat \
 	userfaultfd \
 	utime \
 	utimensat \
+	utimes \
 	vfork-f \
+	vhangup \
 	vmsplice \
 	wait \
 	xattr \
@@ -260,14 +366,23 @@ endif
 
 DECODER_TESTS = \
 	_newselect.test \
+	access.test \
 	acct.test \
 	adjtimex.test \
 	aio.test \
 	alarm.test \
 	bpf.test \
+	brk.test \
+	btrfs.test \
+	btrfs-v.test \
+	btrfs-w.test \
+	btrfs-vw.test \
 	caps.test \
 	chmod.test \
+	chown.test \
+	chown32.test \
 	chroot.test \
+	clock_adjtime.test \
 	clock_nanosleep.test \
 	clock_xettime.test \
 	copy_file_range.test \
@@ -275,82 +390,146 @@ DECODER_TESTS = \
 	dup.test \
 	dup2.test \
 	dup3.test \
+	epoll_create.test \
 	epoll_create1.test \
+	epoll_ctl.test \
+	epoll_pwait.test \
+	epoll_wait.test \
 	eventfd.test \
-	execve.test \
 	execve-v.test \
-	execveat.test \
+	execve.test \
 	execveat-v.test \
+	execveat.test \
 	faccessat.test \
 	fanotify_mark.test \
+	fchdir.test \
 	fchmod.test \
 	fchmodat.test \
+	fchown.test \
+	fchown32.test \
 	fchownat.test \
 	fcntl.test \
 	fcntl64.test \
 	fdatasync.test \
 	file_handle.test \
+	file_ioctl.test \
 	flock.test \
 	fstat.test \
 	fstat64.test \
 	fstatat64.test \
+	fstatfs.test \
+	fstatfs64.test \
 	fsync.test \
 	ftruncate.test \
 	ftruncate64.test \
+	futimesat.test \
+	get_mempolicy.test \
 	getcwd.test \
 	getdents.test \
 	getdents64.test \
+	getegid.test \
+	getegid32.test \
+	geteuid.test \
+	geteuid32.test \
+	getgid.test \
+	getgid32.test \
+	getgroups.test \
+	getgroups32.test \
+	getpgrp.test \
 	getrandom.test \
+	getresgid.test \
+	getresgid32.test \
+	getresuid.test \
+	getresuid32.test \
 	getrusage.test \
+	getsid.test \
+	getuid.test \
+	getuid32.test \
 	getxxid.test \
 	inet-cmsg.test \
 	ioctl.test \
+	ioctl_block.test \
+	ioctl_evdev.test \
+	ioctl_evdev-v.test \
+	ioctl_mtd.test \
+	ioctl_rtc.test \
+	ioctl_rtc-v.test \
+	ioctl_uffdio.test \
+	ioctl_v4l2.test \
+	ioperm.test \
+	iopl.test \
 	ip_mreq.test \
 	ipc_msg.test \
 	ipc_msgbuf.test \
 	ipc_sem.test \
 	ipc_shm.test \
+	kill.test \
+	lchown.test \
+	lchown32.test \
+	link.test \
 	linkat.test \
 	llseek.test \
 	lseek.test \
 	lstat.test \
 	lstat64.test \
+	mbind.test \
 	membarrier.test \
 	memfd_create.test \
+	migrate_pages.test \
 	mincore.test \
+	mkdir.test \
 	mkdirat.test \
 	mknod.test \
+	mknodat.test \
+	mlock.test \
 	mlock2.test \
+	mlockall.test \
 	mmap.test \
 	mmap64.test \
 	mmsg.test \
+	mount.test \
+	move_pages.test \
 	mq.test \
+	munlockall.test \
 	nanosleep.test \
+	net-icmp_filter.test \
 	net-y-unix.test \
 	net-yy-inet.test \
+	net-yy-netlink.test \
 	net-yy-unix.test \
 	net.test \
 	newfstatat.test \
+	nsyscalls.test \
+	old_mmap.test \
 	oldselect.test \
 	open.test \
 	openat.test \
+	pause.test \
 	personality.test \
 	pipe.test \
 	poll.test \
 	ppoll.test \
+	prctl-seccomp-filter-v.test \
+	prctl-seccomp-strict.test \
 	pread64-pwrite64.test \
-	preadv.test \
 	preadv-pwritev.test \
+	preadv2-pwritev2.test \
+	preadv.test \
 	pselect6.test \
+	ptrace.test \
 	pwritev.test \
 	read-write.test \
 	readdir.test \
 	readlink.test \
 	readlinkat.test \
 	readv.test \
+	reboot.test \
 	recvmsg.test \
+	remap_file_pages.test \
 	rename.test \
 	renameat.test \
+	renameat2.test \
+	rmdir.test \
 	rt_sigpending.test \
 	rt_sigprocmask.test \
 	rt_sigqueueinfo.test \
@@ -358,16 +537,42 @@ DECODER_TESTS = \
 	rt_sigtimedwait.test \
 	rt_tgsigqueueinfo.test \
 	sched_get_priority_mxx.test \
+	sched_rr_get_interval.test \
 	sched_xetaffinity.test \
 	sched_xetattr.test \
 	sched_xetparam.test \
 	sched_xetscheduler.test \
+	sched_yield.test \
 	scm_rights-fd.test \
-	seccomp.test \
+	seccomp-filter-v.test \
+	seccomp-filter.test \
+	seccomp-strict.test \
 	select.test \
+	semop.test \
 	sendfile.test \
 	sendfile64.test \
+	set_mempolicy.test \
+	setdomainname.test \
+	setfsgid.test \
+	setfsgid32.test \
+	setfsuid.test \
+	setfsuid32.test \
+	setgid.test \
+	setgid32.test \
+	setgroups.test \
+	setgroups32.test \
 	sethostname.test \
+	setregid.test \
+	setregid32.test \
+	setresgid.test \
+	setresgid32.test \
+	setresuid.test \
+	setresuid32.test \
+	setreuid.test \
+	setreuid32.test \
+	setuid.test \
+	setuid32.test \
+	shmxt.test \
 	sigaction.test \
 	sigaltstack.test \
 	signalfd.test \
@@ -376,8 +581,12 @@ DECODER_TESTS = \
 	stat.test \
 	stat64.test \
 	statfs.test \
+	statfs64.test \
 	sun_path.test \
 	swap.test \
+	symlink.test \
+	symlinkat.test \
+	sync.test \
 	sync_file_range.test \
 	sync_file_range2.test \
 	sysinfo.test \
@@ -391,20 +600,21 @@ DECODER_TESTS = \
 	times.test \
 	truncate.test \
 	truncate64.test \
-	uid.test \
-	uid16.test \
-	uid32.test \
 	uio.test \
 	umask.test \
 	umount.test \
 	umount2.test \
 	umovestr.test \
 	umovestr2.test \
+	umovestr3.test \
 	uname.test \
+	unlink.test \
 	unlinkat.test \
 	userfaultfd.test \
 	utime.test \
 	utimensat.test \
+	utimes.test \
+	vhangup.test \
 	vmsplice.test \
 	wait.test \
 	xattr.test \
@@ -433,8 +643,11 @@ MISC_TESTS = \
 	qual_syscall.test \
 	redirect.test \
 	restart_syscall.test \
+	strace-S.test \
 	strace-T.test \
+	strace-V.test \
 	strace-f.test \
+	strace-ff.test \
 	strace-r.test \
 	strace-t.test \
 	strace-tt.test \
@@ -461,6 +674,7 @@ EXTRA_DIST = init.sh run.sh match.awk \
 	     filter-unavailable.expected \
 	     fstatat.c \
 	     fstatx.c \
+	     getresugid.c \
 	     ip_mreq.expected \
 	     ipc.sh \
 	     ipc_msgbuf.expected \
@@ -473,21 +687,28 @@ EXTRA_DIST = init.sh run.sh match.awk \
 	     pipe.expected \
 	     ppoll.expected \
 	     ppoll-v.expected \
+	     setfsugid.c \
+	     setreugid.c \
+	     setresugid.c \
+	     setugid.c \
 	     sigaction.awk \
 	     sigaltstack.expected \
 	     signalfd.expected \
 	     statfs.expected \
 	     statx.sh \
 	     strace-T.expected \
+	     strace-ff.expected \
 	     strace-r.expected \
 	     struct_flock.c \
 	     sun_path.expected \
-	     uid.awk \
 	     uio.expected \
 	     umovestr.expected \
 	     wait.expected \
-	     xattr.expected \
+	     xchownx.c \
 	     xselect.c \
+	     xstatfs.c \
+	     xstatfs64.c \
+	     xstatfsx.c \
 	     xstatx.c \
 	     $(TESTS)
 

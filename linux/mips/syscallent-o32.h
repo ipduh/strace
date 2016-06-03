@@ -110,7 +110,7 @@
 [4107] = { 2,	TF,		SEN(lstat),			"lstat"			},
 [4108] = { 2,	TD,		SEN(fstat),			"fstat"			},
 [4109] = { 1,	0,		SEN(olduname),			"olduname"		},
-[4110] = { 0,	0,		SEN(iopl),			"iopl"			},
+[4110] = { 1,	0,		SEN(iopl),			"iopl"			},
 [4111] = { 0,	0,		SEN(vhangup),			"vhangup"		},
 [4112] = { 0,	0,		SEN(idle),			"idle"			},
 [4113] = { 5,	0,		SEN(vm86old),			"vm86"			},
@@ -361,16 +361,14 @@
 [4358] = { 2,	0,		SEN(membarrier),		"membarrier",		},
 [4359] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
 [4360] = { 6,	TD,		SEN(copy_file_range),		"copy_file_range"	},
-[4361 ... 4399] = { },
+[4361] = { 6,	TD,		SEN(preadv2),			"preadv2"		},
+[4362] = { 6,	TD,		SEN(pwritev2),			"pwritev2"		},
 
 # define SYS_socket_subcall      4400
 # include "subcall.h"
 
-/* end of Linux o32 */ [SYS_socket_subcall + SYS_socket_nsubcalls + SYS_ipc_nsubcalls ... 4999] = { },
-
 #else
 
 # include "syscallent-o32-stub.h"
-/* end of Linux o32 */ [4400 ... 4999] = { },
 
 #endif

@@ -91,7 +91,7 @@ evdev_decode_number(const unsigned int code)
 	if (_IOC_DIR(code) == _IOC_WRITE) {
 		if (nr >= 0xc0 && nr <= 0xc0 + 0x3f) {
 			tprints("EVIOCSABS(");
-			printxval(evdev_abs, nr - 0xc0, "EV_???");
+			printxval(evdev_abs, nr - 0xc0, "ABS_???");
 			tprints(")");
 			return 1;
 		}
@@ -231,8 +231,17 @@ ioctl_decode(struct tcb *tcp)
 
 	switch (_IOC_TYPE(code)) {
 #if defined(ALPHA) || defined(POWERPC)
-	case 'f': case 't': case 'T':
+	case 'f': {
+		int ret = file_ioctl(tcp, code, arg);
+		if (ret != RVAL_DECODED)
+			return ret;
+	}
+	case 't':
+	case 'T':
+		return term_ioctl(tcp, code, arg);
 #else /* !ALPHA */
+	case 'f':
+		return file_ioctl(tcp, code, arg);
 	case 0x54:
 #endif /* !ALPHA */
 		return term_ioctl(tcp, code, arg);
@@ -241,9 +250,11 @@ ioctl_decode(struct tcb *tcp)
 	case 'p':
 		return rtc_ioctl(tcp, code, arg);
 	case 0x03:
+		return hdio_ioctl(tcp, code, arg);
 	case 0x12:
-	case 'X':
 		return block_ioctl(tcp, code, arg);
+	case 'X':
+		return fs_x_ioctl(tcp, code, arg);
 #ifdef HAVE_SCSI_SG_H
 	case 0x22:
 		return scsi_ioctl(tcp, code, arg);
@@ -262,6 +273,14 @@ ioctl_decode(struct tcb *tcp)
 #ifdef HAVE_LINUX_INPUT_H
 	case 'E':
 		return evdev_ioctl(tcp, code, arg);
+#endif
+#ifdef HAVE_LINUX_USERFAULTFD_H
+	case 0xaa:
+		return uffdio_ioctl(tcp, code, arg);
+#endif
+#ifdef HAVE_LINUX_BTRFS_H
+	case 0x94:
+		return btrfs_ioctl(tcp, code, arg);
 #endif
 	default:
 		break;

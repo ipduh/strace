@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat evdev_ff_status in mpers mode
+extern const struct xlat evdev_ff_status[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat evdev_ff_status[] = {
 #if defined(FF_STATUS_STOPPED) || (defined(HAVE_DECL_FF_STATUS_STOPPED) && HAVE_DECL_FF_STATUS_STOPPED)
   XLAT(FF_STATUS_STOPPED),

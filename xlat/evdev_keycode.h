@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat evdev_keycode in mpers mode
+extern const struct xlat evdev_keycode[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat evdev_keycode[] = {
 #if defined(KEY_RESERVED) || (defined(HAVE_DECL_KEY_RESERVED) && HAVE_DECL_KEY_RESERVED)
   XLAT(KEY_RESERVED),
