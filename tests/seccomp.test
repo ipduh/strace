@@ -1,6 +1,0 @@
-#!/bin/sh
-
-# Check how SECCOMP_MODE_FILTER is decoded.
-
-. "${srcdir=.}/init.sh"
-run_strace_match_diff -v -e trace=prctl

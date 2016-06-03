@@ -136,7 +136,7 @@
 [107] = { 2,	TF,		SEN(lstat),			"lstat"			},
 [108] = { 2,	TD,		SEN(fstat),			"fstat"			},
 [109] = { 1,	0,		SEN(olduname),			"olduname"		},
-[110] = { 5,	0,		SEN(printargs),			"iopl"			},
+[110] = { 1,	0,		SEN(iopl),			"iopl"			},
 [111] = { 0,	0,		SEN(vhangup),			"vhangup"		},
 [112] = { 0,	0,		SEN(idle),			"idle"			},
 [113] = { 5,	0,		SEN(vm86),			"vm86"			},
@@ -406,7 +406,8 @@
 [377] = { 3,	TI,		SEN(shmctl),			"shmctl"		},
 [378] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
 [379] = { 6,	TD,		SEN(copy_file_range),		"copy_file_range"	},
-[380 ... 399] = { },
+[380] = { 6,	TD,		SEN(preadv2),			"preadv2"		},
+[381] = { 6,	TD,		SEN(pwritev2),			"pwritev2"		},
 
 #define SYS_socket_subcall	400
 #include "subcall.h"

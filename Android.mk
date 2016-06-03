@@ -36,7 +36,7 @@ LOCAL_PATH := $(call my-dir)
 # We don't currently have a good solution for the 'configure' side of things.
 # You can get a list of the HAVE_* variables in use and manually go through it:
 #
-#   find . -name "*.[ch]" | xargs grep HAVE_ | sed 's/.*\(HAVE_[A-Z0-9_]*\).*/\1/p' | sort | uniq -d
+#   find . -name "*.[ch]" | xargs grep HAVE_ | sed 's/.*\(HAVE_[A-Z0-9_]*\).*/\1/p' | grep -v HAVE_DECL_ | sort | uniq -d
 
 # -------------------------------------------------------------------------
 
@@ -51,6 +51,7 @@ LOCAL_SRC_FILES := \
     bjm.c \
     block.c \
     bpf.c \
+    btrfs.c \
     cacheflush.c \
     capability.c \
     chdir.c \
@@ -62,6 +63,7 @@ LOCAL_SRC_FILES := \
     dirent.c \
     dirent64.c \
     epoll.c \
+    evdev.c \
     eventfd.c \
     execve.c \
     exit.c \
@@ -72,14 +74,20 @@ LOCAL_SRC_FILES := \
     fcntl.c \
     fetch_seccomp_fprog.c \
     fetch_struct_flock.c \
+    fetch_struct_statfs.c \
     file.c \
     file_handle.c \
+    file_ioctl.c \
     flock.c \
+    fstatfs.c \
+    fstatfs64.c \
+    fs_x_ioctl.c \
     futex.c \
     getcpu.c \
     getcwd.c \
     getrandom.c \
     get_robust_list.c \
+    hdio.c \
     hostname.c \
     inotify.c \
     io.c \
@@ -108,6 +116,7 @@ LOCAL_SRC_FILES := \
     mq.c \
     mtd.c \
     net.c \
+    numa.c \
     open.c \
     pathtrace.c \
     perf.c \
@@ -117,6 +126,7 @@ LOCAL_SRC_FILES := \
     print_mq_attr.c \
     print_msgbuf.c \
     print_sigevent.c \
+    print_statfs.c \
     print_time.c \
     print_timex.c \
     printmode.c \
@@ -144,9 +154,11 @@ LOCAL_SRC_FILES := \
     socketutils.c \
     sram_alloc.c \
     statfs.c \
+    statfs64.c \
     strace.c \
     swapon.c \
     sync_file_range.c \
+    sync_file_range2.c \
     syscall.c \
     sysctl.c \
     sysinfo.c \
@@ -156,6 +168,7 @@ LOCAL_SRC_FILES := \
     time.c \
     times.c \
     truncate.c \
+    ubi.c \
     uid16.c \
     uid.c \
     umask.c \
@@ -174,10 +187,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_SHARED_LIBRARIES :=
 
-LOCAL_CFLAGS := \
-    -DGETGROUPS_T=gid_t \
-    -DHAVE_ASM_SIGCONTEXT_H=1 \
-    -DHAVE_DECL_PTRACE_EVENT_FORK=1 \
+#    -DHAVE_DECL_PTRACE_EVENT_FORK=1 \
     -DHAVE_DECL_PTRACE_EVENT_VFORK=1 \
     -DHAVE_DECL_PTRACE_EVENT_CLONE=1 \
     -DHAVE_DECL_PTRACE_EVENT_EXEC=1 \
@@ -197,17 +207,36 @@ LOCAL_CFLAGS := \
     -UHAVE_DECL_LO_FLAGS_AUTOCLEAR \
     -UHAVE_DECL_LO_FLAGS_PARTSCAN \
     -DHAVE_DECL_SYS_ERRLIST=1 \
+
+LOCAL_CFLAGS := \
+    -DGETGROUPS_T=gid_t \
+    \
+    -UHAVE_ASM_CACHECTL_H \
+    -DHAVE_ASM_SIGCONTEXT_H=1 \
+    -DHAVE_BLKGETSIZE64=1 \
+    -UHAVE_BLUETOOTH_BLUETOOTH_H \
+    -DHAVE___BUILTIN_POPCOUNT=1 \
+    -DHAVE_DIRENT_H=1 \
+    -DHAVE_DLADDR=1 \
     -DHAVE_ELF_H=1 \
     -DHAVE_FOPEN64=1 \
     -DHAVE_FORK=1 \
+    -DHAVE_FSTATAT=1 \
+    -DHAVE_FTRUNCATE=1 \
+    -DHAVE_FUTIMENS=1 \
     -DHAVE_IF_INDEXTONAME=1 \
     -DHAVE_INET_NTOP=1 \
-    -DHAVE_LINUX_CAPABILITY_H=1 \
+    -DHAVE_INET_PTON=1 \
+    -DHAVE_INTTYPES_H=1 \
+    -DHAVE_LINUX_BPF_H=1 \
+    -DHAVE_LINUX_BSG_H=1 \
+    -DHAVE_LINUX_BTRFS_H=1 \
     -DHAVE_LINUX_FALLOC_H=1 \
     -DHAVE_LINUX_FILTER_H=1 \
     -DHAVE_LINUX_FUTEX_H=1 \
     -DHAVE_LINUX_ICMP_H=1 \
     -DHAVE_LINUX_IF_PACKET_H=1 \
+    -DHAVE_LINUX_INPUT_H=1 \
     -DHAVE_LINUX_IN6_H=1 \
     -DHAVE_LINUX_IPC_H=1 \
     -DHAVE_LINUX_MQUEUE=1 \
@@ -234,6 +263,7 @@ LOCAL_CFLAGS := \
     -DHAVE_STATFS64=1 \
     -DHAVE_STDBOOL_H=1 \
     -DHAVE_STRERROR=1 \
+    -DHAVE_STRUCT_BTRFS_IOCTL_FEATURE_FLAGS_COMPAT_FLAGS=1 \
     -DHAVE_STRUCT_FLOCK=1 \
     -DHAVE_STRUCT_FLOCK64=1 \
     -DHAVE_STRUCT_MMSGHDR=1 \
@@ -260,6 +290,9 @@ LOCAL_CFLAGS := \
     -DHAVE_SYS_REG_H=1 \
     -DHAVE_SYS_VFS_H=1 \
     -DHAVE_SYS_XATTR_H=1 \
+    -DHAVE_UNISTD_H=1 \
+    -DHAVE_UTIMENSAT=1 \
+    \
     -DMAJOR_IN_SYSMACROS \
     -DPACKAGE_NAME='"strace"' \
     -DVERSION='"$(strace_version)"' \

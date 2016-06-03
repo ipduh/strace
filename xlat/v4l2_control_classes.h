@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat v4l2_control_classes in mpers mode
+extern const struct xlat v4l2_control_classes[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat v4l2_control_classes[] = {
 #if defined(V4L2_CTRL_CLASS_USER) || (defined(HAVE_DECL_V4L2_CTRL_CLASS_USER) && HAVE_DECL_V4L2_CTRL_CLASS_USER)
   XLAT(V4L2_CTRL_CLASS_USER),

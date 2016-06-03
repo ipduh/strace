@@ -30,8 +30,6 @@
 
 #ifdef __NR_truncate64
 
-# include <assert.h>
-# include <errno.h>
 # include <stdio.h>
 # include <unistd.h>
 
@@ -42,11 +40,9 @@ main(void)
 	static const char qname[] = "truncate64\\nfilename";
 	const off_t len = 0xdefaceddeadbeef;
 
-	assert(truncate(fname, len) == -1);
-	if (ENOENT != errno)
-		perror_msg_and_skip("truncate");
-	printf("truncate64(\"%s\", %llu) = -1 ENOENT (%m)\n",
-	       qname, (unsigned long long) len);
+	int rc = truncate(fname, len);
+	printf("truncate64(\"%s\", %llu) = %d %s (%m)\n",
+	       qname, (unsigned long long) len, rc, errno2name());
 
 	puts("+++ exited with 0 +++");
 	return 0;

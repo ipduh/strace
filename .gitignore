@@ -39,9 +39,6 @@ Makefile.in
 /ioctls_all[012].h
 /ioctlsort[012]
 
-/sen.h
-/sys_func.h
-
 /strace-*.tar.xz
 
 /tests-m32
@@ -49,17 +46,9 @@ Makefile.in
 
 /libmpers-m32.a
 /libmpers-mx32.a
-/m32_funcs.h
-/m32_printer_decls.h
-/m32_printer_defs.h
-/m32_type_defs.h
 /mpers-m32
 /mpers-m32.stamp
 /mpers-mx32
 /mpers-mx32.stamp
 /mpers.am
-/mpers_xlat.h
-/mx32_funcs.h
-/mx32_printer_decls.h
-/mx32_printer_defs.h
-/mx32_type_defs.h
+/*.mpers.i
