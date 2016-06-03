@@ -26,13 +26,18 @@
  */
 
 #include "tests.h"
-#include <sys/statfs.h>
+#include <sys/syscall.h>
 
-int
-main(void)
-{
-	struct statfs stb;
-	if (statfs("/proc/self/status", &stb))
-		perror_msg_and_fail("statfs");
-	return 0;
-}
+#ifdef __NR_statfs
+
+# define SYSCALL_ARG_FMT		"\"%s\""
+# define SYSCALL_ARG(file, desc)	(file)
+# define SYSCALL_NR			__NR_statfs
+# define SYSCALL_NAME			"statfs"
+# include "xstatfs.c"
+
+#else
+
+SKIP_MAIN_UNDEFINED("__NR_statfs")
+
+#endif

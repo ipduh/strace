@@ -58,9 +58,9 @@ static const char *child[N] = {
 };
 static const int sigs[N] = { SIGALRM, SIGUSR1, SIGUSR2 };
 static const struct itimerspec its[N] = {
-	{ .it_value.tv_nsec = 500000000 },
-	{ .it_value.tv_nsec = 700000000 },
-	{ .it_value.tv_nsec = 900000000 },
+	{ .it_value.tv_sec = 1 },
+	{ .it_value.tv_sec = 2 },
+	{ .it_value.tv_sec = 3 }
 };
 static thread_arg_t args[N] = {
 	{ .no = 0 },
@@ -84,6 +84,7 @@ thread(void *a)
 int
 main(void)
 {
+	static timer_t timerid[N];
 	pthread_t t[N];
 	unsigned int i;
 
@@ -101,11 +102,10 @@ main(void)
 			.sigev_notify = SIGEV_SIGNAL,
 			.sigev_signo = sigs[i]
 		};
-		timer_t timerid;
-		if (timer_create(CLOCK_MONOTONIC, &sev, &timerid))
+		if (timer_create(CLOCK_MONOTONIC, &sev, &timerid[i]))
 			perror_msg_and_skip("timer_create");
 
-		if (timer_settime(timerid, 0, &its[i], NULL))
+		if (timer_settime(timerid[i], 0, &its[i], NULL))
 			perror_msg_and_fail("timer_settime");
 
 		errno = pthread_create(&t[i], NULL, thread, (void *) &args[i]);
@@ -126,6 +126,14 @@ main(void)
 		       "%-5d +++ exited with 0 +++\n",
 		       retval.pid, child[i], retval.pid);
 	}
+
+	/* sleep a bit more to late the tracer catch up */
+	if (timer_settime(timerid[0], 0, &its[0], NULL))
+		perror_msg_and_fail("timer_settime");
+	int signo;
+	errno = sigwait(&args[0].set, &signo);
+	if (errno)
+		perror_msg_and_fail("sigwait");
 
 	pid_t pid = getpid();
 	assert(chdir(text_parent) == -1);

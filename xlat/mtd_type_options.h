@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat mtd_type_options in mpers mode
+extern const struct xlat mtd_type_options[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat mtd_type_options[] = {
 #if defined(MTD_ABSENT) || (defined(HAVE_DECL_MTD_ABSENT) && HAVE_DECL_MTD_ABSENT)
   XLAT(MTD_ABSENT),

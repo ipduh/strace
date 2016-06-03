@@ -64,12 +64,12 @@ print_iovec(const struct iovec *iov, unsigned int cnt, unsigned int size)
 	for (i = 0; i < cnt; ++i) {
 		if (i)
 			fputs(", ", stdout);
-		if (i == LIM) {
-			fputs("...", stdout);
-			break;
-		}
 		if (i == size) {
 			printf("%p", &iov[i]);
+			break;
+		}
+		if (i == LIM) {
+			fputs("...", stdout);
 			break;
 		}
 		print_iov(&iov[i]);
@@ -95,9 +95,9 @@ main(void)
 		iov[i].iov_base = &buf[i];
 		iov[i].iov_len = LEN - i;
 	}
-	tail_alloc(1);
 
 	const off_t offset = 0xdefaceddeadbeefLL;
+	long rc;
 	int written = 0;
 	for (i = 0; i < LEN; ++i) {
 		written += iov[i].iov_len;
@@ -111,32 +111,30 @@ main(void)
 
 	for (i = 0; i <= LEN; ++i) {
 		unsigned int n = LEN + 1 - i;
-		if (pwritev(0, iov + i, n, offset + LEN + i) != -1)
-			perror_msg_and_fail("pwritev");
 		fputs("pwritev(0, ", stdout);
 		print_iovec(iov + i, n, LEN - i);
-		printf(", %u, %lld) = -1 EFAULT (%m)\n",
-		       n, (long long) offset + LEN + i);
+		rc = pwritev(0, iov + i, n, offset + LEN + i);
+		printf(", %u, %lld) = %ld %s (%m)\n",
+		       n, (long long) offset + LEN + i, rc, errno2name());
 	}
 
 	iov->iov_base = iov + LEN * 2;
-	if (pwritev(0, iov, 1, -1) != -1)
-		perror_msg_and_fail("pwritev");
-	printf("pwritev(0, [{%p, %d}], 1, -1) = -1 EINVAL (%m)\n",
-	       iov->iov_base, LEN);
+	rc = pwritev(0, iov, 1, -1);
+	printf("pwritev(0, [{%p, %d}], 1, -1) = %ld %s (%m)\n",
+	       iov->iov_base, LEN, rc, errno2name());
 
 	iov += LEN;
-	if (pwritev(0, iov, 42, -2) != -1)
-		perror_msg_and_fail("pwritev");
-	printf("pwritev(0, %p, 42, -2) = -1 EINVAL (%m)\n", iov);
+	rc = pwritev(0, iov, 42, -2);
+	printf("pwritev(0, %p, 42, -2) = %ld %s (%m)\n",
+	       iov, rc, errno2name());
 
-	if (pwritev(0, NULL, 1, -3) != -1)
-		perror_msg_and_fail("pwritev");
-	printf("pwritev(0, NULL, 1, -3) = -1 EINVAL (%m)\n");
+	rc = pwritev(0, NULL, 1, -3);
+	printf("pwritev(0, NULL, 1, -3) = %ld %s (%m)\n",
+	       rc, errno2name());
 
-	if (pwritev(0, NULL, 0, -4) != -1)
-		perror_msg_and_fail("pwritev");
-	printf("pwritev(0, [], 0, -4) = -1 EINVAL (%m)\n");
+	rc = pwritev(0, iov, 0, -4);
+	printf("pwritev(0, [], 0, -4) = %ld %s (%m)\n",
+	       rc, errno2name());
 
 	puts("+++ exited with 0 +++");
 	return 0;

@@ -3,7 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993-1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
- * Copyright (c) 2003-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2003-2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,8 +75,7 @@ SYS_FUNC(getuid)
 
 SYS_FUNC(setfsuid)
 {
-	if (entering(tcp))
-		tprintf("%u", (uid_t) tcp->u_arg[0]);
+	tprintf("%u", (uid_t) tcp->u_arg[0]);
 
 	return RVAL_UDECIMAL | RVAL_DECODED;
 }
@@ -148,117 +147,52 @@ SYS_FUNC(fchown)
 void
 printuid(const char *text, const unsigned int uid)
 {
-	if ((unsigned int) -1 == uid || (uid_t) -1 == uid)
+	if ((uid_t) -1U == (uid_t) uid)
 		tprintf("%s-1", text);
 	else
-		tprintf("%s%u", text, uid);
+		tprintf("%s%u", text, (uid_t) uid);
+}
+
+static bool
+print_gid(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
+{
+	tprintf("%u", (unsigned int) (* (uid_t *) elem_buf));
+
+	return true;
+}
+
+static void
+print_groups(struct tcb *tcp, const unsigned int len, const unsigned long addr)
+{
+	static unsigned long ngroups_max;
+	if (!ngroups_max)
+		ngroups_max = sysconf(_SC_NGROUPS_MAX);
+
+	if (len > ngroups_max) {
+		printaddr(addr);
+		return;
+	}
+
+	uid_t gid;
+	print_array(tcp, addr, len, &gid, sizeof(gid),
+		    umoven_or_printaddr, print_gid, 0);
 }
 
 SYS_FUNC(setgroups)
 {
-	unsigned long cur, abbrev_end;
-	uid_t gid;
-	int failed = 0;
-	const unsigned long len = tcp->u_arg[0];
-	const unsigned long start = tcp->u_arg[1];
-	const unsigned long size = len * sizeof(gid);
-	const unsigned long end = start + size;
+	const unsigned int len = tcp->u_arg[0];
 
-	tprintf("%lu, ", len);
-	if (len == 0) {
-		tprints("[]");
-		return RVAL_DECODED;
-	}
-	if (!start || !verbose(tcp) ||
-	    size / sizeof(gid) != len || end < start) {
-		printaddr(start);
-		return RVAL_DECODED;
-	}
-	if (abbrev(tcp)) {
-		abbrev_end = start + max_strlen * sizeof(gid);
-		if (abbrev_end < start)
-			abbrev_end = end;
-	} else {
-		abbrev_end = end;
-	}
-	tprints("[");
-	for (cur = start; cur < end; cur += sizeof(gid)) {
-		if (cur > start)
-			tprints(", ");
-		if (cur >= abbrev_end) {
-			tprints("...");
-			break;
-		}
-		if (umoven(tcp, cur, sizeof(gid), &gid) < 0) {
-			tprints("?");
-			failed = 1;
-			break;
-		}
-		tprintf("%u", (unsigned int) gid);
-	}
-	tprints("]");
-	if (failed) {
-		tprints(" ");
-		printaddr(start);
-	}
-
+	tprintf("%u, ", len);
+	print_groups(tcp, len, tcp->u_arg[1]);
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(getgroups)
 {
-	if (entering(tcp)) {
-		tprintf("%lu, ", tcp->u_arg[0]);
-	} else {
-		unsigned long cur, abbrev_end;
-		uid_t gid;
-		int failed = 0;
-		const unsigned long len = tcp->u_rval;
-		const unsigned long size = len * sizeof(gid);
-		const unsigned long start = tcp->u_arg[1];
-		const unsigned long end = start + size;
-
-		if (!start) {
-			printaddr(start);
-			return 0;
-		}
-		if (len == 0) {
-			tprints("[]");
-			return 0;
-		}
-		if (!verbose(tcp) || syserror(tcp) ||
-		    size / sizeof(gid) != len || end < start) {
-			printaddr(start);
-			return 0;
-		}
-		if (abbrev(tcp)) {
-			abbrev_end = start + max_strlen * sizeof(gid);
-			if (abbrev_end < start)
-				abbrev_end = end;
-		} else {
-			abbrev_end = end;
-		}
-		tprints("[");
-		for (cur = start; cur < end; cur += sizeof(gid)) {
-			if (cur > start)
-				tprints(", ");
-			if (cur >= abbrev_end) {
-				tprints("...");
-				break;
-			}
-			if (umoven(tcp, cur, sizeof(gid), &gid) < 0) {
-				tprints("?");
-				failed = 1;
-				break;
-			}
-			tprintf("%u", (unsigned int) gid);
-		}
-		tprints("]");
-		if (failed) {
-			tprints(" ");
-			printaddr(start);
-		}
-	}
+	if (entering(tcp))
+		tprintf("%u, ", (unsigned int) tcp->u_arg[0]);
+	else
+		print_groups(tcp, tcp->u_rval, tcp->u_arg[1]);
 	return 0;
 }
 

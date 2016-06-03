@@ -304,8 +304,6 @@ AC_CHECK_TYPES([struct stat64, struct __old_kernel_stat],,,
 [#include <sys/types.h>
 #include <asm/stat.h>])
 
-AC_CHECK_TYPES([struct statfs64],,, [#include <sys/vfs.h>])
-
 AC_CHECK_TYPES(m4_normalize([
 	struct pt_all_user_regs,
 	struct ia64_fpreg,
@@ -363,9 +361,9 @@ AC_CHECK_HEADERS(m4_normalize([
 	bluetooth/bluetooth.h
 	elf.h
 	inttypes.h
-	ioctls.h
 	linux/bsg.h
 	linux/falloc.h
+	linux/fiemap.h
 	linux/filter.h
 	linux/hiddev.h
 	linux/ip_vs.h
@@ -377,23 +375,21 @@ AC_CHECK_HEADERS(m4_normalize([
 	linux/securebits.h
 	linux/sem.h
 	linux/shm.h
+	linux/userfaultfd.h
 	linux/utsname.h
 	mqueue.h
 	netinet/sctp.h
 	scsi/sg.h
 	stropts.h
 	sys/conf.h
-	sys/epoll.h
 	sys/eventfd.h
 	sys/fanotify.h
-	sys/ioctl.h
 	sys/ipc.h
 	sys/msg.h
 	sys/reg.h
 	sys/sem.h
 	sys/shm.h
 	sys/signalfd.h
-	sys/vfs.h
 	sys/xattr.h
 ]))
 
@@ -433,6 +429,44 @@ AC_CHECK_HEADERS([linux/bpf.h], [
 			  [Define to 1 if union bpf_attr.log_buf initialization works])
 	fi
 ])
+
+AC_CHECK_TYPES([struct statfs], [
+	AC_CHECK_MEMBERS([struct statfs.f_frsize],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+	AC_CHECK_MEMBERS([struct statfs.f_flags],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+	AC_CHECK_MEMBERS([struct statfs.f_fsid.val],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+	AC_CHECK_MEMBERS([struct statfs.f_fsid.__val],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+],, [#include <linux/types.h>
+#include <asm/statfs.h>])
+
+AC_CHECK_TYPES([struct statfs64], [
+	AC_CHECK_MEMBERS([struct statfs64.f_frsize],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+	AC_CHECK_MEMBERS([struct statfs64.f_flags],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+	AC_CHECK_MEMBERS([struct statfs64.f_fsid.val],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+	AC_CHECK_MEMBERS([struct statfs64.f_fsid.__val],,, [#include <linux/types.h>
+#include <asm/statfs.h>])
+],, [#include <linux/types.h>
+#include <asm/statfs.h>])
+
+AC_CHECK_TYPES([struct blk_user_trace_setup],,, [#include <linux/blktrace_api.h>])
+
+AC_CHECK_HEADERS([linux/btrfs.h], [
+	AC_CHECK_MEMBERS(m4_normalize([
+		struct btrfs_ioctl_feature_flags.compat_flags,
+		struct btrfs_ioctl_fs_info_args.nodesize,
+		struct btrfs_ioctl_defrag_range_args.start
+		struct btrfs_ioctl_search_args_v2.buf_size
+		]),,, [ #include <stdio.h>
+#include <linux/btrfs.h>])
+        AC_CHECK_DECLS(m4_normalize([BTRFS_COMPRESS_NONE, BTRFS_COMPRESS_ZLIB,
+	                        BTRFS_COMPRESS_LZO]),,,[ #include <stdio.h>
+#include <linux/btrfs.h>])])
 
 AC_CHECK_DECLS([sys_errlist])
 AC_CHECK_DECLS(m4_normalize([
@@ -818,7 +852,10 @@ AC_CHECK_DECLS(m4_normalize([
 	V4L2_CTRL_TYPE_STRING,
 	V4L2_CTRL_TYPE_BITMASK,
 	V4L2_CTRL_TYPE_INTEGER_MENU
-]),,, [#include <linux/videodev2.h>])
+]),,, [#include <sys/time.h>
+#include <linux/ioctl.h>
+#include <linux/types.h>
+#include <linux/videodev2.h>])
 
 AC_CACHE_CHECK([for BLKGETSIZE64], [ac_cv_have_blkgetsize64],
 	[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([

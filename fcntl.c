@@ -43,9 +43,9 @@ static void
 print_struct_flock64(const struct_kernel_flock64 *fl, const int getlk)
 {
 	tprints("{l_type=");
-	printxval(lockfcmds, fl->l_type, "F_???");
+	printxval(lockfcmds, (unsigned short) fl->l_type, "F_???");
 	tprints(", l_whence=");
-	printxval(whence_codes, fl->l_whence, "SEEK_???");
+	printxval(whence_codes, (unsigned short) fl->l_whence, "SEEK_???");
 	tprintf(", l_start=%lld, l_len=%lld",
 		(long long) fl->l_start, (long long) fl->l_len);
 	if (getlk)
@@ -87,7 +87,9 @@ print_f_owner_ex(struct tcb *tcp, const long addr)
 static int
 print_fcntl(struct tcb *tcp)
 {
-	switch (tcp->u_arg[1]) {
+	const unsigned int cmd = tcp->u_arg[1];
+
+	switch (cmd) {
 	case F_SETFD:
 		tprints(", ");
 		printflags(fdflags, tcp->u_arg[2], "FD_???");
@@ -120,15 +122,15 @@ print_fcntl(struct tcb *tcp)
 		break;
 	case F_NOTIFY:
 		tprints(", ");
-		printflags(notifyflags, tcp->u_arg[2], "DN_???");
+		printflags_long(notifyflags, tcp->u_arg[2], "DN_???");
 		break;
 	case F_SETLEASE:
 		tprints(", ");
-		printxval(lockfcmds, tcp->u_arg[2], "F_???");
+		printxval_long(lockfcmds, tcp->u_arg[2], "F_???");
 		break;
 	case F_ADD_SEALS:
 		tprints(", ");
-		printflags(f_seals, tcp->u_arg[2], "F_SEAL_???");
+		printflags_long(f_seals, tcp->u_arg[2], "F_SEAL_???");
 		break;
 	case F_SETSIG:
 		tprints(", ");
@@ -140,7 +142,8 @@ print_fcntl(struct tcb *tcp)
 	case F_GETFD:
 		if (entering(tcp) || syserror(tcp) || tcp->u_rval == 0)
 			return 0;
-		tcp->auxstr = sprintflags("flags ", fdflags, tcp->u_rval);
+		tcp->auxstr = sprintflags("flags ", fdflags,
+					  (unsigned long) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	case F_GETFL:
 		if (entering(tcp) || syserror(tcp))
@@ -168,12 +171,13 @@ print_fcntl(struct tcb *tcp)
 	case F_GETLEASE:
 		if (entering(tcp) || syserror(tcp))
 			return 0;
-		tcp->auxstr = xlookup(lockfcmds, tcp->u_rval);
+		tcp->auxstr = xlookup(lockfcmds, (unsigned long) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	case F_GET_SEALS:
 		if (entering(tcp) || syserror(tcp) || tcp->u_rval == 0)
 			return 0;
-		tcp->auxstr = sprintflags("seals ", f_seals, tcp->u_rval);
+		tcp->auxstr = sprintflags("seals ", f_seals,
+					  (unsigned long) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	case F_GETSIG:
 		if (entering(tcp) || syserror(tcp) || tcp->u_rval == 0)
@@ -192,7 +196,8 @@ SYS_FUNC(fcntl)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		const char *str = xlookup(fcntlcmds, tcp->u_arg[1]);
+		const unsigned int cmd = tcp->u_arg[1];
+		const char *str = xlookup(fcntlcmds, cmd);
 		if (str) {
 			tprints(str);
 		} else {
@@ -201,7 +206,7 @@ SYS_FUNC(fcntl)
 			 * constants, but we would like to show them
 			 * for better debugging experience.
 			 */
-			printxval(fcntl64cmds, tcp->u_arg[1], "F_???");
+			printxval(fcntl64cmds, cmd, "F_???");
 		}
 	}
 	return print_fcntl(tcp);
@@ -209,17 +214,18 @@ SYS_FUNC(fcntl)
 
 SYS_FUNC(fcntl64)
 {
+	const unsigned int cmd = tcp->u_arg[1];
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		const char *str = xlookup(fcntl64cmds, tcp->u_arg[1]);
+		const char *str = xlookup(fcntl64cmds, cmd);
 		if (str) {
 			tprints(str);
 		} else {
-			printxval(fcntlcmds, tcp->u_arg[1], "F_???");
+			printxval(fcntlcmds, cmd, "F_???");
 		}
 	}
-	switch (tcp->u_arg[1]) {
+	switch (cmd) {
 		case F_SETLK64:
 		case F_SETLKW64:
 			tprints(", ");

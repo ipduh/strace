@@ -31,17 +31,15 @@
 
 #if defined __NR_userfaultfd && defined O_CLOEXEC
 
-# include <assert.h>
-# include <errno.h>
 # include <stdio.h>
 # include <unistd.h>
 
 int
 main(void)
 {
-	assert(syscall(__NR_userfaultfd, 1 | O_NONBLOCK | O_CLOEXEC) == -1);
-	printf("userfaultfd(O_NONBLOCK|O_CLOEXEC|0x1) = -1 %s (%m)\n",
-	       errno == ENOSYS ? "ENOSYS" : "EINVAL");
+	long rc = syscall(__NR_userfaultfd, 1 | O_NONBLOCK | O_CLOEXEC);
+	printf("userfaultfd(O_NONBLOCK|O_CLOEXEC|0x1) = %ld %s (%m)\n",
+	       rc, errno2name());
 	puts("+++ exited with 0 +++");
 	return 0;
 }

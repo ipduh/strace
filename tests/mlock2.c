@@ -30,17 +30,16 @@
 
 #ifdef __NR_mlock2
 
-# include <assert.h>
-# include <errno.h>
 # include <stdio.h>
 # include <unistd.h>
 
 int
 main(void)
 {
-	assert(syscall(__NR_mlock2, 0xdeadbeef, 0xdefaced, 0xffff) == -1);
+	long rc = syscall(__NR_mlock2, 0xdeadbeef, 0xdefaced, 0xffff);
 	printf("mlock2(0xdeadbeef, 233811181, MLOCK_ONFAULT|0xfffe)"
-	       " = -1 %s (%m)\n", errno == ENOSYS ? "ENOSYS" : "EINVAL");
+	       " = %ld %s (%m)\n", rc, errno2name());
+
 	puts("+++ exited with 0 +++");
 	return 0;
 }

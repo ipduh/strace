@@ -57,65 +57,57 @@ SYS_FUNC(write)
 	return RVAL_DECODED;
 }
 
+struct print_iovec_config {
+	int decode_iov;
+	unsigned long data_size;
+};
+
+static bool
+print_iovec(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
+{
+	const unsigned long *iov;
+	unsigned long iov_buf[2];
+	struct print_iovec_config *c = data;
+
+        if (elem_size < sizeof(iov_buf)) {
+		iov_buf[0] = ((unsigned int *) elem_buf)[0];
+		iov_buf[1] = ((unsigned int *) elem_buf)[1];
+		iov = iov_buf;
+	} else {
+		iov = elem_buf;
+	}
+
+	tprints("{");
+
+	if (c->decode_iov) {
+		unsigned long len = iov[1];
+		if (len > c->data_size)
+			len = c->data_size;
+		c->data_size -= len;
+		printstr(tcp, iov[0], len);
+	} else {
+		printaddr(iov[0]);
+	}
+
+	tprintf(", %lu}", iov[1]);
+
+	return true;
+}
+
 /*
  * data_size limits the cumulative size of printed data.
  * Example: recvmsg returing a short read.
  */
 void
-tprint_iov_upto(struct tcb *tcp, unsigned long len, unsigned long addr, int decode_iov, unsigned long data_size)
+tprint_iov_upto(struct tcb *tcp, unsigned long len, unsigned long addr,
+		int decode_iov, unsigned long data_size)
 {
 	unsigned long iov[2];
-	unsigned long size, cur, end, abbrev_end;
-	const unsigned long sizeof_iov = current_wordsize * 2;
+	struct print_iovec_config config =
+		{ .decode_iov = decode_iov, .data_size = data_size };
 
-	if (!len) {
-		tprints("[]");
-		return;
-	}
-	size = len * sizeof_iov;
-	end = addr + size;
-	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
-	    !addr || size / sizeof_iov != len || end < addr) {
-		printaddr(addr);
-		return;
-	}
-	if (abbrev(tcp)) {
-		abbrev_end = addr + max_strlen * sizeof_iov;
-		if (abbrev_end < addr)
-			abbrev_end = end;
-	} else {
-		abbrev_end = end;
-	}
-	if (addr >= abbrev_end) {
-		tprints("[...]");
-		return;
-	}
-	for (cur = addr; cur < end; cur += sizeof_iov) {
-		if (cur > addr) {
-			tprints(", ");
-			if (cur >= abbrev_end) {
-				tprints("...");
-				break;
-			}
-		}
-		if (umove_ulong_array_or_printaddr(tcp, cur, iov,
-						   ARRAY_SIZE(iov)))
-			break;
-		if (cur <= addr)
-			tprints("[");
-		tprints("{");
-		if (decode_iov) {
-			unsigned long len = iov[1];
-			if (len > data_size)
-				len = data_size;
-			data_size -= len;
-			printstr(tcp, iov[0], len);
-		} else
-			printaddr(iov[0]);
-		tprintf(", %lu}", iov[1]);
-	}
-	if (cur > addr)
-		tprints("]");
+	print_array(tcp, addr, len, iov, current_wordsize * 2,
+		    umoven_or_printaddr, print_iovec, &config);
 }
 
 void
@@ -210,12 +202,15 @@ print_lld_from_low_high_val(struct tcb *tcp, int arg)
 	else
 # endif
 	tprintf("%lld",
-		((unsigned long long) (unsigned long) tcp->u_arg[arg + 1] << sizeof(long) * 8)
-		| (unsigned long long) (unsigned long) tcp->u_arg[arg]);
+		(widen_to_ull(tcp->u_arg[arg + 1]) << sizeof(long) * 8)
+		| widen_to_ull(tcp->u_arg[arg]));
 #endif
 }
 
-SYS_FUNC(preadv)
+#include "xlat/rwf_flags.h"
+
+static int
+do_preadv(struct tcb *tcp, const int flags_arg)
 {
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
@@ -225,19 +220,48 @@ SYS_FUNC(preadv)
 				tcp->u_rval);
 		tprintf(", %lu, ", tcp->u_arg[2]);
 		print_lld_from_low_high_val(tcp, 3);
+		if (flags_arg >= 0) {
+			tprints(", ");
+			printflags(rwf_flags, tcp->u_arg[flags_arg], "RWF_???");
+		}
 	}
 	return 0;
 }
 
-SYS_FUNC(pwritev)
+SYS_FUNC(preadv)
+{
+	return do_preadv(tcp, -1);
+}
+
+SYS_FUNC(preadv2)
+{
+	return do_preadv(tcp, 5);
+}
+
+static int
+do_pwritev(struct tcb *tcp, const int flags_arg)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
 	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
 	tprintf(", %lu, ", tcp->u_arg[2]);
 	print_lld_from_low_high_val(tcp, 3);
+	if (flags_arg >= 0) {
+		tprints(", ");
+		printflags(rwf_flags, tcp->u_arg[flags_arg], "RWF_???");
+	}
 
 	return RVAL_DECODED;
+}
+
+SYS_FUNC(pwritev)
+{
+	return do_pwritev(tcp, -1);
+}
+
+SYS_FUNC(pwritev2)
+{
+	return do_pwritev(tcp, 5);
 }
 
 #include "xlat/splice_flags.h"

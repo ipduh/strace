@@ -68,45 +68,47 @@ decode_bpf_code(uint16_t code)
 	switch (BPF_CLASS(code)) {
 		case BPF_LD:
 		case BPF_LDX:
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_size, BPF_SIZE(code), "BPF_???");
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_mode, BPF_MODE(code), "BPF_???");
 			break;
 		case BPF_ST:
 		case BPF_STX:
 			if (i)
-				tprintf(" | %#x /* %s */", i, "BPF_???");
+				tprintf("|%#x /* %s */", i, "BPF_???");
 			break;
 		case BPF_ALU:
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_src, BPF_SRC(code), "BPF_???");
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_op_alu, BPF_OP(code), "BPF_???");
 			break;
 		case BPF_JMP:
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_src, BPF_SRC(code), "BPF_???");
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_op_jmp, BPF_OP(code), "BPF_???");
 			break;
 		case BPF_RET:
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_rval, BPF_RVAL(code), "BPF_???");
 			i &= ~BPF_RVAL(code);
 			if (i)
-				tprintf(" | %#x /* %s */", i, "BPF_???");
+				tprintf("|%#x /* %s */", i, "BPF_???");
 			break;
 		case BPF_MISC:
-			tprints(" | ");
+			tprints("|");
 			printxval(bpf_miscop, BPF_MISCOP(code), "BPF_???");
 			i &= ~BPF_MISCOP(code);
 			if (i)
-				tprintf(" | %#x /* %s */", i, "BPF_???");
+				tprintf("|%#x /* %s */", i, "BPF_???");
 			break;
 	}
 
 }
+
+#endif /* HAVE_LINUX_FILTER_H */
 
 static void
 decode_bpf_stmt(const struct bpf_filter *filter)
@@ -121,7 +123,7 @@ decode_bpf_stmt(const struct bpf_filter *filter)
 
 		printxval(seccomp_ret_action, action, "SECCOMP_RET_???");
 		if (data)
-			tprintf(" | %#x)", data);
+			tprintf("|%#x)", data);
 		else
 			tprints(")");
 	} else {
@@ -146,47 +148,40 @@ decode_bpf_jump(const struct bpf_filter *filter)
 #endif /* HAVE_LINUX_FILTER_H */
 }
 
-static void
-decode_filter(const struct bpf_filter *filter)
-{
-	if (filter->jt || filter->jf)
-		decode_bpf_jump(filter);
-	else
-		decode_bpf_stmt(filter);
-}
-
-#endif /* HAVE_LINUX_FILTER_H */
-
 #ifndef BPF_MAXINSNS
 # define BPF_MAXINSNS 4096
 #endif
 
-static void
-decode_fprog(struct tcb *tcp, unsigned short len, unsigned long addr)
+static bool
+print_bpf_filter(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 {
-	if (!len || abbrev(tcp)) {
-		tprintf("{len = %u, filter = ", len);
+	const struct bpf_filter *filter = elem_buf;
+	unsigned int *pn = data;
+
+	if ((*pn)++ >= BPF_MAXINSNS) {
+		tprints("...");
+		return false;
+	}
+
+	if (filter->jt || filter->jf)
+		decode_bpf_jump(filter);
+	else
+		decode_bpf_stmt(filter);
+
+	return true;
+}
+
+void
+print_seccomp_fprog(struct tcb *tcp, unsigned long addr, unsigned short len)
+{
+	if (abbrev(tcp)) {
 		printaddr(addr);
-		tprints("}");
 	} else {
-		unsigned int i = 0;
+		unsigned int insns = 0;
+		struct bpf_filter filter;
 
-		tprints("[");
-		while (i < len && i < BPF_MAXINSNS) {
-			struct bpf_filter filter;
-
-			if (umove(tcp, addr, &filter) < 0)
-				break;
-			if (i)
-				tprints(", ");
-			decode_filter(&filter);
-
-			addr += sizeof(filter);
-			++i;
-		}
-		if (i < len)
-			tprints("...");
-		tprints("]");
+		print_array(tcp, addr, len, &filter, sizeof(filter),
+			    umoven_or_printaddr, print_bpf_filter, &insns);
 	}
 }
 
@@ -197,8 +192,11 @@ print_seccomp_filter(struct tcb *tcp, unsigned long addr)
 {
 	struct seccomp_fprog fprog;
 
-	if (fetch_seccomp_fprog(tcp, addr, &fprog))
-		decode_fprog(tcp, fprog.len, fprog.filter);
+	if (fetch_seccomp_fprog(tcp, addr, &fprog)) {
+		tprintf("{len=%hu, filter=", fprog.len);
+		print_seccomp_fprog(tcp, fprog.filter, fprog.len);
+		tprints("}");
+	}
 }
 
 static void

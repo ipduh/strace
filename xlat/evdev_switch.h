@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat evdev_switch in mpers mode
+extern const struct xlat evdev_switch[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat evdev_switch[] = {
 #if defined(SW_LID) || (defined(HAVE_DECL_SW_LID) && HAVE_DECL_SW_LID)
   XLAT(SW_LID),
