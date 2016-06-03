@@ -212,7 +212,7 @@
 [206] = { 3,	TI,		SEN(semop),			"semop"			},
 [207] = { 1,	0,		SEN(printargs),			"osf_utsname"		},
 [208] = { 3,	TF,		SEN(chown),			"lchown"		},
-[209] = { 3,	TI|TM,		SEN(printargs),			"osf_shmat"		},
+[209] = { 3,	TI|TM|SI,	SEN(shmat),			"osf_shmat"		},
 [210] = { 3,	TI,		SEN(shmctl),			"shmctl"		},
 [211] = { 1,	TI|TM|SI,	SEN(shmdt),			"shmdt"			},
 [212] = { 3,	TI,		SEN(shmget),			"shmget"		},
@@ -230,8 +230,8 @@
 [224] = { 5,	0,		SEN(printargs),			"osf_stat"		}, /*not implemented */
 [225] = { 5,	0,		SEN(printargs),			"osf_lstat"		}, /*not implemented */
 [226] = { 5,	0,		SEN(printargs),			"osf_fstat"		}, /*not implemented */
-[227] = { 5,	0,		SEN(printargs),			"osf_statfs64"		}, /*not implemented */
-[228] = { 5,	0,		SEN(printargs),			"osf_fstatfs64"		}, /*not implemented */
+[227] = { 3,	0,		SEN(osf_statfs),		"osf_statfs64"		}, /*not implemented */
+[228] = { 3,	0,		SEN(osf_fstatfs),		"osf_fstatfs64"		}, /*not implemented */
 [229 ... 232] = { },
 [233] = { 1,	0,		SEN(getpgid),			"getpgid"		},
 [234] = { 1,	0,		SEN(getsid),			"getsid"		},

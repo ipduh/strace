@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat v4l2_colorspaces in mpers mode
+extern const struct xlat v4l2_colorspaces[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat v4l2_colorspaces[] = {
 #if defined(V4L2_COLORSPACE_SMPTE170M) || (defined(HAVE_DECL_V4L2_COLORSPACE_SMPTE170M) && HAVE_DECL_V4L2_COLORSPACE_SMPTE170M)
   XLAT(V4L2_COLORSPACE_SMPTE170M),

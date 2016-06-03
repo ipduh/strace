@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat v4l2_framesize_types in mpers mode
+extern const struct xlat v4l2_framesize_types[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat v4l2_framesize_types[] = {
 #if defined(V4L2_FRMSIZE_TYPE_DISCRETE) || (defined(HAVE_DECL_V4L2_FRMSIZE_TYPE_DISCRETE) && HAVE_DECL_V4L2_FRMSIZE_TYPE_DISCRETE)
   XLAT(V4L2_FRMSIZE_TYPE_DISCRETE),

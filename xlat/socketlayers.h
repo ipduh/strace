@@ -101,6 +101,9 @@
 #if !(defined(SOL_NFC) || (defined(HAVE_DECL_SOL_NFC) && HAVE_DECL_SOL_NFC))
 # define SOL_NFC 280
 #endif
+#if !(defined(SOL_KCM) || (defined(HAVE_DECL_SOL_KCM) && HAVE_DECL_SOL_KCM))
+# define SOL_KCM 281
+#endif
 
 #ifdef IN_MPERS
 
@@ -144,6 +147,7 @@ const struct xlat socketlayers[] = {
  XLAT(SOL_CAIF),
  XLAT(SOL_ALG),
  XLAT(SOL_NFC),
+ XLAT(SOL_KCM),
  XLAT_END
 };
 

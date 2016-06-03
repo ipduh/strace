@@ -41,40 +41,40 @@ decode_loop_info(struct tcb *tcp, const long addr)
 	if (umove_or_printaddr(tcp, addr, &info))
 		return;
 
-	tprintf("{number=%d", info.lo_number);
+	tprintf("{lo_number=%d", info.lo_number);
 
 	if (!abbrev(tcp)) {
-		tprintf(", device=%#lx, inode=%lu, rdevice=%#lx",
+		tprintf(", lo_device=%#lx, lo_inode=%lu, lo_rdevice=%#lx",
 			(unsigned long) info.lo_device,
 			info.lo_inode,
 			(unsigned long) info.lo_rdevice);
 	}
 
-	tprintf(", offset=%#x", info.lo_offset);
+	tprintf(", lo_offset=%#x", info.lo_offset);
 
 	if (!abbrev(tcp) || info.lo_encrypt_type != LO_CRYPT_NONE) {
-		tprints(", encrypt_type=");
+		tprints(", lo_encrypt_type=");
 		printxval(loop_crypt_type_options, info.lo_encrypt_type,
 			"LO_CRYPT_???");
-		tprintf(", encrypt_key_size=%d", info.lo_encrypt_key_size);
+		tprintf(", lo_encrypt_key_size=%d", info.lo_encrypt_key_size);
 	}
 
-	tprints(", flags=");
+	tprints(", lo_flags=");
 	printflags(loop_flags_options, info.lo_flags, "LO_FLAGS_???");
 
-	tprints(", name=");
+	tprints(", lo_name=");
 	print_quoted_string(info.lo_name, LO_NAME_SIZE,
 			    QUOTE_0_TERMINATED);
 
 	if (!abbrev(tcp) || info.lo_encrypt_type != LO_CRYPT_NONE) {
-		tprints(", encrypt_key=");
+		tprints(", lo_encrypt_key=");
 		print_quoted_string((void *) info.lo_encrypt_key,
 				    LO_KEY_SIZE, 0);
 	}
 
 	if (!abbrev(tcp))
-		tprintf(", init={%#lx, %#lx}"
-			", reserved={%#x, %#x, %#x, %#x}}",
+		tprintf(", lo_init=[%#lx, %#lx]"
+			", reserved=[%#x, %#x, %#x, %#x]}",
 			info.lo_init[0], info.lo_init[1],
 			info.reserved[0], info.reserved[1],
 			info.reserved[2], info.reserved[3]);
@@ -92,9 +92,9 @@ decode_loop_info64(struct tcb *tcp, const long addr)
 		return;
 
 	if (!abbrev(tcp)) {
-		tprintf("{device=%" PRIu64 ", inode=%" PRIu64 ", "
-			"rdevice=%" PRIu64 ", offset=%#" PRIx64 ", "
-			"sizelimit=%" PRIu64 ", number=%" PRIu32,
+		tprintf("{lo_device=%" PRIu64 ", lo_inode=%" PRIu64
+			", lo_rdevice=%" PRIu64 ", lo_offset=%#" PRIx64
+			", lo_sizelimit=%" PRIu64 ", lo_number=%" PRIu32,
 			(uint64_t) info64.lo_device,
 			(uint64_t) info64.lo_inode,
 			(uint64_t) info64.lo_rdevice,
@@ -102,37 +102,37 @@ decode_loop_info64(struct tcb *tcp, const long addr)
 			(uint64_t) info64.lo_sizelimit,
 			(uint32_t) info64.lo_number);
 	} else {
-		tprintf("{offset=%#" PRIx64 ", number=%" PRIu32,
+		tprintf("{lo_offset=%#" PRIx64 ", lo_number=%" PRIu32,
 			(uint64_t) info64.lo_offset,
 			(uint32_t) info64.lo_number);
 	}
 
 	if (!abbrev(tcp) || info64.lo_encrypt_type != LO_CRYPT_NONE) {
-		tprints(", encrypt_type=");
+		tprints(", lo_encrypt_type=");
 		printxval(loop_crypt_type_options, info64.lo_encrypt_type,
 			"LO_CRYPT_???");
-		tprintf(", encrypt_key_size=%" PRIu32,
+		tprintf(", lo_encrypt_key_size=%" PRIu32,
 			info64.lo_encrypt_key_size);
 	}
 
-	tprints(", flags=");
+	tprints(", lo_flags=");
 	printflags(loop_flags_options, info64.lo_flags, "LO_FLAGS_???");
 
-	tprints(", file_name=");
+	tprints(", lo_file_name=");
 	print_quoted_string((void *) info64.lo_file_name,
 			    LO_NAME_SIZE, QUOTE_0_TERMINATED);
 
 	if (!abbrev(tcp) || info64.lo_encrypt_type != LO_CRYPT_NONE) {
-		tprints(", crypt_name=");
+		tprints(", lo_crypt_name=");
 		print_quoted_string((void *) info64.lo_crypt_name,
 				    LO_NAME_SIZE, QUOTE_0_TERMINATED);
-		tprints(", encrypt_key=");
+		tprints(", lo_encrypt_key=");
 		print_quoted_string((void *) info64.lo_encrypt_key,
 				    LO_KEY_SIZE, 0);
 	}
 
 	if (!abbrev(tcp))
-		tprintf(", init={%#" PRIx64 ", %#" PRIx64 "}}",
+		tprintf(", lo_init=[%#" PRIx64 ", %#" PRIx64 "]}",
 			(uint64_t) info64.lo_init[0],
 			(uint64_t) info64.lo_init[1]);
 	else
@@ -146,23 +146,19 @@ loop_ioctl(struct tcb *tcp, const unsigned int code, long arg)
 		return RVAL_DECODED;
 
 	switch (code) {
-	case LOOP_SET_STATUS:
-		decode_loop_info(tcp, arg);
-		break;
-
 	case LOOP_GET_STATUS:
 		if (entering(tcp))
 			return 0;
+		/* fall through */
+	case LOOP_SET_STATUS:
 		decode_loop_info(tcp, arg);
-		break;
-
-	case LOOP_SET_STATUS64:
-		decode_loop_info64(tcp, arg);
 		break;
 
 	case LOOP_GET_STATUS64:
 		if (entering(tcp))
 			return 0;
+		/* fall through */
+	case LOOP_SET_STATUS64:
 		decode_loop_info64(tcp, arg);
 		break;
 
@@ -188,6 +184,12 @@ loop_ioctl(struct tcb *tcp, const unsigned int code, long arg)
 	case LOOP_CTL_ADD:
 	case LOOP_CTL_REMOVE:
 		tprintf(", %d", (int) arg);
+		break;
+#endif
+
+#ifdef LOOP_SET_DIRECT_IO
+	case LOOP_SET_DIRECT_IO:
+		tprintf(", %lu", arg);
 		break;
 #endif
 
