@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat v4l2_buf_flags in mpers mode
+extern const struct xlat v4l2_buf_flags[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat v4l2_buf_flags[] = {
 #if defined(V4L2_BUF_FLAG_MAPPED) || (defined(HAVE_DECL_V4L2_BUF_FLAG_MAPPED) && HAVE_DECL_V4L2_BUF_FLAG_MAPPED)
   XLAT(V4L2_BUF_FLAG_MAPPED),

@@ -157,6 +157,7 @@ extern char *stpcpy(char *dst, const char *src);
 #   define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
 #   define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
 #   define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
+#   define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
 #  endif
 # endif
 #endif
@@ -170,11 +171,13 @@ extern char *stpcpy(char *dst, const char *src);
 #  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
+#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
 # endif
 # ifdef HAVE_MX32_MPERS
 #  define PERSONALITY2_INCLUDE_FUNCS "mx32_funcs.h"
 #  define PERSONALITY2_INCLUDE_PRINTERS_DECLS "mx32_printer_decls.h"
 #  define PERSONALITY2_INCLUDE_PRINTERS_DEFS "mx32_printer_defs.h"
+#  define MPERS_mx32_IOCTL_MACROS "ioctl_redefs2.h"
 # endif
 #endif
 
@@ -186,6 +189,7 @@ extern char *stpcpy(char *dst, const char *src);
 #  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
+#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
 # endif
 #endif
 
@@ -202,6 +206,7 @@ extern char *stpcpy(char *dst, const char *src);
 #  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
+#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
 # endif
 #endif
 
@@ -213,6 +218,7 @@ extern char *stpcpy(char *dst, const char *src);
 #  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
+#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
 # endif
 #endif
 
@@ -227,6 +233,7 @@ extern char *stpcpy(char *dst, const char *src);
 #  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
 #  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
+#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
 # endif
 #endif
 
@@ -360,16 +367,12 @@ typedef uint8_t qualbits_t;
 #define abbrev(tcp)	((tcp)->qual_flg & QUAL_ABBREV)
 #define filtered(tcp)	((tcp)->flags & TCB_FILTERED)
 
-struct xlat {
-	unsigned int val;
-	const char *str;
-};
-#define XLAT(x) { x, #x }
-#define XLAT_END { 0, NULL }
+#include "xlat.h"
 
 extern const struct xlat addrfams[];
 extern const struct xlat at_flags[];
 extern const struct xlat dirent_types[];
+extern const struct xlat evdev_abs[];
 extern const struct xlat open_access_modes[];
 extern const struct xlat open_mode_flags[];
 extern const struct xlat resource_flags[];
@@ -508,10 +511,24 @@ extern int umoven(struct tcb *, long, unsigned int, void *);
 extern int umoven_or_printaddr(struct tcb *, long, unsigned int, void *);
 #define umove_or_printaddr(pid, addr, objp)	\
 	umoven_or_printaddr((pid), (addr), sizeof(*(objp)), (void *) (objp))
-extern int umove_ulong_or_printaddr(struct tcb *, long, unsigned long *);
-extern int umove_ulong_array_or_printaddr(struct tcb *, long, unsigned long *, size_t);
 extern int umovestr(struct tcb *, long, unsigned int, char *);
 extern int upeek(int pid, long, long *);
+
+extern bool
+print_array(struct tcb *tcp,
+	    const unsigned long start_addr,
+	    const size_t nmemb,
+	    void *const elem_buf,
+	    const size_t elem_size,
+	    int (*const umoven_func)(struct tcb *,
+				     long,
+				     unsigned int,
+				     void *),
+	    bool (*const print_func)(struct tcb *,
+				     void *elem_buf,
+				     size_t elem_size,
+				     void *opaque_data),
+	    void *const opaque_data);
 
 #if defined ALPHA || defined IA64 || defined MIPS \
  || defined SH || defined SPARC || defined SPARC64
@@ -526,8 +543,8 @@ extern void pathtrace_select(const char *);
 extern int pathtrace_match(struct tcb *);
 extern int getfdpath(struct tcb *, int, char *, unsigned);
 
-extern const char *xlookup(const struct xlat *, const unsigned int);
-extern const char *xlat_search(const struct xlat *, const size_t, const unsigned int);
+extern const char *xlookup(const struct xlat *, const uint64_t);
+extern const char *xlat_search(const struct xlat *, const size_t, const uint64_t);
 
 extern unsigned long get_pagesize(void);
 extern int string_to_uint(const char *str);
@@ -554,17 +571,16 @@ extern int printllval(struct tcb *, const char *, int)
 	ATTRIBUTE_FORMAT((printf, 2, 0));
 
 extern void printaddr(long);
-extern void printxvals(const unsigned int, const char *, const struct xlat *, ...)
+extern void printxvals(const uint64_t, const char *, const struct xlat *, ...)
 	ATTRIBUTE_SENTINEL;
-#define printxval(xlat, val, dflt) printxvals(val, dflt, xlat, NULL)
 extern int printargs(struct tcb *);
 extern int printargs_u(struct tcb *);
 extern int printargs_d(struct tcb *);
 
-extern void addflags(const struct xlat *, int);
-extern int printflags(const struct xlat *, int, const char *);
-extern const char *sprintflags(const char *, const struct xlat *, int);
-extern const char *sprintmode(int);
+extern void addflags(const struct xlat *, uint64_t);
+extern int printflags64(const struct xlat *, uint64_t, const char *);
+extern const char *sprintflags(const char *, const struct xlat *, uint64_t);
+extern const char *sprintmode(unsigned int);
 extern const char *sprinttime(time_t);
 extern void dumpiov_in_msghdr(struct tcb *, long, unsigned long);
 extern void dumpiov_in_mmsghdr(struct tcb *, long);
@@ -635,21 +651,24 @@ extern const char *sprintsigmask_n(const char *, const void *, unsigned int);
 extern void printsignal(int);
 extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
 extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
-extern void tprint_open_modes(int);
-extern const char *sprint_open_modes(int);
-extern void print_seccomp_filter(struct tcb *tcp, unsigned long);
+extern void tprint_open_modes(unsigned int);
+extern const char *sprint_open_modes(unsigned int);
+extern void print_seccomp_filter(struct tcb *, unsigned long);
+extern void print_seccomp_fprog(struct tcb *, unsigned long, unsigned short);
 
-extern int block_ioctl(struct tcb *, const unsigned int, long);
-extern int evdev_ioctl(struct tcb *, const unsigned int, long);
+struct strace_statfs;
+extern void print_struct_statfs(struct tcb *tcp, long);
+extern void print_struct_statfs64(struct tcb *tcp, long, unsigned long);
+
+extern int file_ioctl(struct tcb *, const unsigned int, long);
+extern int fs_x_ioctl(struct tcb *, const unsigned int, long);
 extern int loop_ioctl(struct tcb *, const unsigned int, long);
-extern int mtd_ioctl(struct tcb *, const unsigned int, long);
 extern int ptp_ioctl(struct tcb *, const unsigned int, long);
-extern int rtc_ioctl(struct tcb *, const unsigned int, long);
 extern int scsi_ioctl(struct tcb *, const unsigned int, long);
 extern int sock_ioctl(struct tcb *, const unsigned int, long);
 extern int term_ioctl(struct tcb *, const unsigned int, long);
 extern int ubi_ioctl(struct tcb *, const unsigned int, long);
-extern int v4l2_ioctl(struct tcb *, const unsigned int, long);
+extern int uffdio_ioctl(struct tcb *, const unsigned int, long);
 
 extern int tv_nz(const struct timeval *);
 extern int tv_cmp(const struct timeval *, const struct timeval *);
@@ -667,6 +686,36 @@ extern void unwind_cache_invalidate(struct tcb* tcp);
 extern void unwind_print_stacktrace(struct tcb* tcp);
 extern void unwind_capture_stacktrace(struct tcb* tcp);
 #endif
+
+static inline int
+printflags(const struct xlat *x, unsigned int flags, const char *dflt)
+{
+	return printflags64(x, flags, dflt);
+}
+
+static inline int
+printflags_long(const struct xlat *x, unsigned long flags, const char *dflt)
+{
+	return printflags64(x, flags, dflt);
+}
+
+static inline void
+printxval64(const struct xlat *x, const uint64_t val, const char *dflt)
+{
+	printxvals(val, dflt, x, NULL);
+}
+
+static inline void
+printxval(const struct xlat *x, const unsigned int val, const char *dflt)
+{
+	printxvals(val, dflt, x, NULL);
+}
+
+static inline void
+printxval_long(const struct xlat *x, const unsigned long val, const char *dflt)
+{
+	printxvals(val, dflt, x, NULL);
+}
 
 /* Strace log generation machinery.
  *
@@ -720,6 +769,14 @@ extern unsigned current_wordsize;
 # define widen_to_long(v) ((long)(v))
 #endif
 
+/*
+ * Widen without sign-extension a signed integer type to unsigned long long.
+ */
+#define widen_to_ull(v) \
+	(sizeof(v) == sizeof(int) ? (unsigned long long) (unsigned int) (v) : \
+	 sizeof(v) == sizeof(long) ? (unsigned long long) (unsigned long) (v) : \
+	 (unsigned long long) (v))
+
 extern const struct_sysent sysent0[];
 extern const char *const errnoent0[];
 extern const char *const signalent0[];
@@ -745,11 +802,17 @@ extern unsigned nsignals;
 extern unsigned nioctlents;
 extern unsigned num_quals;
 
-#if SUPPORTED_PERSONALITIES > 1
-# include "printers.h"
-#else
-# include "native_printer_decls.h"
-#endif
+#ifdef IN_MPERS_BOOTSTRAP
+/* Transform multi-line MPERS_PRINTER_DECL statements to one-liners.  */
+# define MPERS_PRINTER_DECL(type, name, ...) MPERS_PRINTER_DECL(type, name, __VA_ARGS__)
+#else /* !IN_MPERS_BOOTSTRAP */
+# if SUPPORTED_PERSONALITIES > 1
+#  include "printers.h"
+# else
+#  include "native_printer_decls.h"
+# endif
+# define MPERS_PRINTER_DECL(type, name, ...) type MPERS_FUNC_NAME(name)(__VA_ARGS__)
+#endif /* !IN_MPERS_BOOTSTRAP */
 
 /*
  * If you need non-NULL sysent[scno].sys_func and sysent[scno].sys_name
@@ -769,8 +832,6 @@ extern unsigned num_quals;
 
 #define SYS_FUNC(syscall_name) int SYS_FUNC_NAME(sys_ ## syscall_name)(struct tcb *tcp)
 
-#define MPERS_PRINTER_DECL(type, name) type MPERS_FUNC_NAME(name)
-
 /*
  * The kernel used to define 64-bit types on 64-bit systems on a per-arch
  * basis.  Some architectures would use unsigned long and others would use
@@ -787,6 +848,6 @@ extern unsigned num_quals;
 # define PRI__64 "ll"
 #endif
 
-#define PRI__s64 PRI__64"d"
+#define PRI__d64 PRI__64"d"
 #define PRI__u64 PRI__64"u"
 #define PRI__x64 PRI__64"x"

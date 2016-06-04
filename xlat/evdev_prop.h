@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat evdev_prop in mpers mode
+extern const struct xlat evdev_prop[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat evdev_prop[] = {
 #if defined(INPUT_PROP_POINTER) || (defined(HAVE_DECL_INPUT_PROP_POINTER) && HAVE_DECL_INPUT_PROP_POINTER)
   XLAT(INPUT_PROP_POINTER),

@@ -30,8 +30,6 @@
 
 #ifdef __NR_lseek
 
-# include <assert.h>
-# include <errno.h>
 # include <stdio.h>
 # include <unistd.h>
 # include "kernel_types.h"
@@ -41,20 +39,19 @@ main(void)
 {
 	const kernel_ulong_t offset = (kernel_ulong_t) 0xfacefeeddeadbeefULL;
 
-	if (sizeof(offset) > sizeof(long))
-		assert(lseek(-1, offset, SEEK_SET) == -1);
-	else
-		assert(syscall(__NR_lseek, -1L, offset, SEEK_SET) == -1);
-
-	if (EBADF != errno)
-		perror_msg_and_skip("lseek");
-
-	if (sizeof(offset) > sizeof(long))
-		printf("lseek(-1, %lld, SEEK_SET) = -1 EBADF (%m)\n",
-		       (long long) offset);
-	else
-		printf("lseek(-1, %ld, SEEK_SET) = -1 EBADF (%m)\n",
-		       (long) offset);
+	if (sizeof(offset) > sizeof(long)) {
+		/*
+		 * Cannot use syscall because it takes long arguments.
+		 * Let's call lseek with hope it will invoke lseek syscall.
+		 */
+		long long rc = lseek(-1, offset, SEEK_SET);
+		printf("lseek(-1, %lld, SEEK_SET) = %lld %s (%m)\n",
+		       (long long) offset, rc, errno2name());
+	} else {
+		long rc = syscall(__NR_lseek, -1L, offset, SEEK_SET);
+		printf("lseek(-1, %ld, SEEK_SET) = %ld %s (%m)\n",
+		       (long) offset, rc, errno2name());
+	}
 
 	puts("+++ exited with 0 +++");
 	return 0;

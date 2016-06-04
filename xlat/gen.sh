@@ -59,6 +59,31 @@ cond_def()
 	fi
 }
 
+print_xlat()
+{
+	local val
+	val="$1"; shift
+
+	if [ -z "${val_type-}" ]; then
+		echo " XLAT(${val}),"
+	else
+		echo " XLAT_TYPE(${val_type}, ${val}),"
+	fi
+}
+
+print_xlat_pair()
+{
+	local val str
+	val="$1"; shift
+	str="$1"; shift
+
+	if [ -z "${val_type-}" ]; then
+		echo " XLAT_PAIR(${val}, \"${str}\"),"
+	else
+		echo " XLAT_TYPE_PAIR(${val_type}, ${val}, \"${str}\"),"
+	fi
+}
+
 cond_xlat()
 {
 	local line val m def xlat
@@ -70,10 +95,10 @@ cond_xlat()
 	       sed -n 's/^[^[:space:]]\+[[:space:]]\+\([^[:space:]].*\)$/\1/p')"
 
 	if [ "${m}" = "${m#1<<}" ]; then
-		xlat=" XLAT(${val}),"
+		xlat="$(print_xlat "${val}")"
 	else
+		xlat="$(print_xlat_pair "1ULL<<${val#1<<}" "${val}")"
 		m="${m#1<<}"
-		xlat=" { ${val}, \"${m}\" },"
 	fi
 
 	if [ -z "${def}" ]; then
@@ -116,6 +141,9 @@ gen_header()
 		'#unterminated')
 			unterminated=1
 			;;
+		'#val_type '*)
+			# to be processed during 2nd pass
+			;;
 		'#'*)
 			echo "${line}"
 			;;
@@ -157,7 +185,7 @@ gen_header()
 	fi
 	echo "const struct xlat ${name}[] = {"
 
-	unconditional=
+	unconditional= val_type=
 	# 2nd pass: output everything.
 	while read line; do
 		LC_COLLATE=C
@@ -168,22 +196,25 @@ gen_header()
 		'#unterminated')
 			# processed during 1st pass
 			;;
+		'#val_type '*)
+			val_type="${line#\#val_type }"
+			;;
 		[A-Z_]*)	# symbolic constants
 			if [ -n "${unconditional}" ]; then
-				echo " XLAT(${line}),"
+				print_xlat "${line}"
 			else
 				cond_xlat "${line}"
 			fi
 			;;
 		'1<<'[A-Z_]*)	# symbolic constants with shift
 			if [ -n "${unconditional}" ]; then
-				echo " { ${line}, \"${line#1<<}\" },"
+				print_xlat_pair "1ULL<<${line#1<<}" "${line}"
 			else
 				cond_xlat "${line}"
 			fi
 			;;
 		[0-9]*)	# numeric constants
-			echo " XLAT(${line}),"
+			print_xlat "${line}"
 			;;
 		*)	# verbatim lines
 			echo "${line}"

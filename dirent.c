@@ -48,8 +48,8 @@ print_old_dirent(struct tcb *tcp, long addr)
 		return;
 
 	tprintf("{d_ino=%llu, d_off=%llu, d_reclen=%u, d_name=",
-		(unsigned long long) d.d_ino,
-		(unsigned long long) d.d_off, d.d_reclen);
+		widen_to_ull(d.d_ino),
+		widen_to_ull(d.d_off), d.d_reclen);
 	if (d.d_reclen > D_NAME_LEN_MAX)
 		d.d_reclen = D_NAME_LEN_MAX;
 	printpathn(tcp, addr + offsetof(kernel_dirent, d_name), d.d_reclen);
@@ -76,16 +76,19 @@ SYS_FUNC(readdir)
 SYS_FUNC(getdents)
 {
 	unsigned int i, len, dents = 0;
-	char *buf;
+	unsigned char *buf;
 
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 		return 0;
 	}
+
+	const unsigned int count = tcp->u_arg[2];
+
 	if (syserror(tcp) || !verbose(tcp)) {
 		printaddr(tcp->u_arg[1]);
-		tprintf(", %lu", tcp->u_arg[2]);
+		tprintf(", %u", count);
 		return 0;
 	}
 
@@ -101,7 +104,7 @@ SYS_FUNC(getdents)
 		buf = malloc(len);
 		if (!buf || umoven(tcp, tcp->u_arg[1], len, buf) < 0) {
 			printaddr(tcp->u_arg[1]);
-			tprintf(", %lu", tcp->u_arg[2]);
+			tprintf(", %u", count);
 			free(buf);
 			return 0;
 		}
@@ -124,8 +127,8 @@ SYS_FUNC(getdents)
 
 			tprintf("%s{d_ino=%llu, d_off=%llu, d_reclen=%u"
 				", d_name=", i ? ", " : "",
-				(unsigned long long) d->d_ino,
-				(unsigned long long) d->d_off, d->d_reclen);
+				widen_to_ull(d->d_ino),
+				widen_to_ull(d->d_off), d->d_reclen);
 
 			if (print_quoted_string(d->d_name, d_name_len,
 					        QUOTE_0_TERMINATED) > 0) {
@@ -150,7 +153,7 @@ SYS_FUNC(getdents)
 		tprints("]");
 	else
 		tprintf("/* %u entries */", dents);
-	tprintf(", %lu", tcp->u_arg[2]);
+	tprintf(", %u", count);
 	free(buf);
 	return 0;
 }

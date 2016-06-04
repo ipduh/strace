@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat v4l2_format_description_flags in mpers mode
+extern const struct xlat v4l2_format_description_flags[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat v4l2_format_description_flags[] = {
 #if defined(V4L2_FMT_FLAG_COMPRESSED) || (defined(HAVE_DECL_V4L2_FMT_FLAG_COMPRESSED) && HAVE_DECL_V4L2_FMT_FLAG_COMPRESSED)
   XLAT(V4L2_FMT_FLAG_COMPRESSED),

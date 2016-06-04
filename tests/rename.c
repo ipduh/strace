@@ -1,5 +1,4 @@
 #include "tests.h"
-#include <errno.h>
 #include <sys/syscall.h>
 
 #ifdef __NR_rename
@@ -13,10 +12,9 @@
 int
 main(void)
 {
-	int rc = syscall(__NR_rename, OLD_FILE, NEW_FILE);
-	printf("rename(\"%s\", \"%s\") = %d %s (%m)\n",
-	       OLD_FILE, NEW_FILE, rc,
-	       errno == ENOSYS ? "ENOSYS" : "ENOENT");
+	long rc = syscall(__NR_rename, OLD_FILE, NEW_FILE);
+	printf("rename(\"%s\", \"%s\") = %ld %s (%m)\n",
+	       OLD_FILE, NEW_FILE, rc, errno2name());
 
 	puts("+++ exited with 0 +++");
 	return 0;

@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat mtd_file_mode_options in mpers mode
+extern const struct xlat mtd_file_mode_options[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat mtd_file_mode_options[] = {
  XLAT(MTD_FILE_MODE_NORMAL),
  XLAT(MTD_FILE_MODE_OTP_FACTORY),
