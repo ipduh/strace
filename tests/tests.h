@@ -84,6 +84,9 @@ void print_quoted_string(const char *);
 /* Print memory in a quoted form. */
 void print_quoted_memory(const char *, size_t);
 
+/* Read an int from the file. */
+int read_int_from_file(const char *, int *);
+
 /* Check whether given uid matches kernel overflowuid. */
 void check_overflowuid(const int);
 
@@ -93,6 +96,9 @@ void check_overflowgid(const int);
 /* Translate errno to its name. */
 const char *errno2name(void);
 
+/* Translate signal number to its name. */
+const char *signal2name(int);
+
 struct xlat;
 
 /* Print flags in symbolic form according to xlat table. */
@@ -101,8 +107,26 @@ int printflags(const struct xlat *, const unsigned long long, const char *);
 /* Print constant in symbolic form according to xlat table. */
 int printxval(const struct xlat *, const unsigned long long, const char *);
 
+/* Invoke a socket syscall, either directly or via __NR_socketcall. */
+int socketcall(const int nr, const int call,
+	       long a1, long a2, long a3, long a4, long a5);
+
+/* Wrappers for recvmmsg and sendmmsg syscalls. */
+struct mmsghdr;
+struct timespec;
+int recv_mmsg(int, struct mmsghdr *, unsigned int, unsigned int, struct timespec *);
+int send_mmsg(int, struct mmsghdr *, unsigned int, unsigned int);
+
 # define ARRAY_SIZE(arg) ((unsigned int) (sizeof(arg) / sizeof((arg)[0])))
 # define LENGTH_OF(arg) ((unsigned int) sizeof(arg) - 1)
+
+/*
+ * Widen without sign-extension a signed integer type to unsigned long long.
+ */
+#define widen_to_ull(v) \
+	(sizeof(v) == sizeof(int) ? (unsigned long long) (unsigned int) (v) : \
+	 sizeof(v) == sizeof(long) ? (unsigned long long) (unsigned long) (v) : \
+	 (unsigned long long) (v))
 
 # define SKIP_MAIN_UNDEFINED(arg) \
 	int main(void) { error_msg_and_skip("undefined: %s", arg); }

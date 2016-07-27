@@ -8,35 +8,17 @@
 
 static
 const struct xlat sysctl_root[] = {
-#if defined(CTL_KERN) || (defined(HAVE_DECL_CTL_KERN) && HAVE_DECL_CTL_KERN)
-  XLAT(CTL_KERN),
-#endif
-#if defined(CTL_VM) || (defined(HAVE_DECL_CTL_VM) && HAVE_DECL_CTL_VM)
-  XLAT(CTL_VM),
-#endif
-#if defined(CTL_NET) || (defined(HAVE_DECL_CTL_NET) && HAVE_DECL_CTL_NET)
-  XLAT(CTL_NET),
-#endif
+ XLAT(CTL_KERN),
+ XLAT(CTL_VM),
+ XLAT(CTL_NET),
+ XLAT(CTL_FS),
+ XLAT(CTL_DEBUG),
+ XLAT(CTL_DEV),
+ XLAT(CTL_BUS),
+ XLAT(CTL_ABI),
+ XLAT(CTL_CPU),
 #if defined(CTL_PROC) || (defined(HAVE_DECL_CTL_PROC) && HAVE_DECL_CTL_PROC)
   XLAT(CTL_PROC),
-#endif
-#if defined(CTL_FS) || (defined(HAVE_DECL_CTL_FS) && HAVE_DECL_CTL_FS)
-  XLAT(CTL_FS),
-#endif
-#if defined(CTL_DEBUG) || (defined(HAVE_DECL_CTL_DEBUG) && HAVE_DECL_CTL_DEBUG)
-  XLAT(CTL_DEBUG),
-#endif
-#if defined(CTL_DEV) || (defined(HAVE_DECL_CTL_DEV) && HAVE_DECL_CTL_DEV)
-  XLAT(CTL_DEV),
-#endif
-#if defined(CTL_BUS) || (defined(HAVE_DECL_CTL_BUS) && HAVE_DECL_CTL_BUS)
-  XLAT(CTL_BUS),
-#endif
-#if defined(CTL_ABI) || (defined(HAVE_DECL_CTL_ABI) && HAVE_DECL_CTL_ABI)
-  XLAT(CTL_ABI),
-#endif
-#if defined(CTL_CPU) || (defined(HAVE_DECL_CTL_CPU) && HAVE_DECL_CTL_CPU)
-  XLAT(CTL_CPU),
 #endif
 #if defined(CTL_ARLAN) || (defined(HAVE_DECL_CTL_ARLAN) && HAVE_DECL_CTL_ARLAN)
   XLAT(CTL_ARLAN),

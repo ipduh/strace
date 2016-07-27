@@ -171,7 +171,7 @@ int
 next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits)
 {
 	const unsigned endian = 1;
-	int little_endian = *(char*)&endian;
+	int little_endian = * (char *) (void *) &endian;
 
 	const uint8_t *array = bit_array;
 	unsigned pos = cur_bit / 8;
@@ -257,16 +257,16 @@ getllval(struct tcb *tcp, unsigned long long *val, int arg_no)
 # endif /* SUPPORTED_PERSONALITIES > 1 */
 #elif SIZEOF_LONG > 4
 #  error Unsupported configuration: SIZEOF_LONG > 4 && SIZEOF_LONG_LONG > SIZEOF_LONG
-#elif defined LINUX_MIPSN32
-	*val = tcp->ext_arg[arg_no];
-	arg_no++;
-#elif defined X32
-	if (current_personality == 0) {
-		*val = tcp->ext_arg[arg_no];
-		arg_no++;
-	} else {
+#elif HAVE_STRUCT_TCB_EXT_ARG
+# if SUPPORTED_PERSONALITIES > 1
+	if (current_personality == 1) {
 		*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 		arg_no += 2;
+	} else
+# endif
+	{
+		*val = tcp->ext_arg[arg_no];
+		arg_no++;
 	}
 #else
 # if defined __ARM_EABI__ || \
@@ -472,30 +472,33 @@ sprinttime(time_t t)
 	return buf;
 }
 
-static char *
-getfdproto(struct tcb *tcp, int fd, char *buf, unsigned bufsize)
+enum sock_proto
+getfdproto(struct tcb *tcp, int fd)
 {
 #ifdef HAVE_SYS_XATTR_H
+	size_t bufsize = 256;
+	char buf[bufsize];
 	ssize_t r;
 	char path[sizeof("/proc/%u/fd/%u") + 2 * sizeof(int)*3];
 
 	if (fd < 0)
-		return NULL;
+		return SOCK_PROTO_UNKNOWN;
 
 	sprintf(path, "/proc/%u/fd/%u", tcp->pid, fd);
 	r = getxattr(path, "system.sockprotoname", buf, bufsize - 1);
 	if (r <= 0)
-		return NULL;
+		return SOCK_PROTO_UNKNOWN;
 	else {
 		/*
 		 * This is a protection for the case when the kernel
 		 * side does not append a null byte to the buffer.
 		 */
 		buf[r] = '\0';
-		return buf;
+
+		return get_proto_by_name(buf);
 	}
 #else
-	return NULL;
+	return SOCK_PROTO_UNKNOWN;
 #endif
 }
 
@@ -516,9 +519,8 @@ printfd(struct tcb *tcp, int fd)
 				strtoul(path + socket_prefix_len, NULL, 10);
 
 			if (!print_sockaddr_by_inode_cached(inode)) {
-				char buf[256];
-				const char *proto =
-					getfdproto(tcp, fd, buf, sizeof(buf));
+				const enum sock_proto proto =
+					getfdproto(tcp, fd);
 				if (!print_sockaddr_by_inode(inode, proto))
 					tprints(path);
 			}
@@ -761,7 +763,7 @@ printpathn(struct tcb *tcp, long addr, unsigned int n)
 	/* Fetch one byte more to find out whether path length > n. */
 	nul_seen = umovestr(tcp, addr, n + 1, path);
 	if (nul_seen < 0)
-		tprintf("%#lx", addr);
+		printaddr(addr);
 	else {
 		path[n++] = '\0';
 		print_quoted_string(path, n, QUOTE_0_TERMINATED);
@@ -812,7 +814,7 @@ printstr(struct tcb *tcp, long addr, long len)
 		 * because string_quote may look one byte ahead.
 		 */
 		if (umovestr(tcp, addr, size + 1, str) < 0) {
-			tprintf("%#lx", addr);
+			printaddr(addr);
 			return;
 		}
 		style = QUOTE_0_TERMINATED;
@@ -821,7 +823,7 @@ printstr(struct tcb *tcp, long addr, long len)
 		if (size > (unsigned long)len)
 			size = (unsigned long)len;
 		if (umoven(tcp, addr, size, str) < 0) {
-			tprintf("%#lx", addr);
+			printaddr(addr);
 			return;
 		}
 		style = 0;
@@ -1071,7 +1073,7 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 		n = addr & (sizeof(long) - 1);	/* residue */
 		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *) addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1096,7 +1098,7 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 	}
 	while (len) {
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *) addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1131,13 +1133,9 @@ int
 umoven_or_printaddr(struct tcb *tcp, const long addr, const unsigned int len,
 		    void *our_addr)
 {
-	if (!addr) {
-		tprints("NULL");
-		return -1;
-	}
-	if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
+	if (!addr || !verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
 	    umoven(tcp, addr, len, our_addr) < 0) {
-		tprintf("%#lx", addr);
+		printaddr(addr);
 		return -1;
 	}
 	return 0;
@@ -1243,7 +1241,7 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 		n = addr & (sizeof(long) - 1);	/* residue */
 		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *)addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1272,7 +1270,7 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 
 	while (len) {
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (char *)addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1403,4 +1401,90 @@ print_array(struct tcb *tcp,
 		tprints("]");
 
 	return cur >= end_addr;
+}
+
+int
+printargs(struct tcb *tcp)
+{
+	if (entering(tcp)) {
+		int i;
+		int n = tcp->s_ent->nargs;
+		for (i = 0; i < n; i++) {
+#if HAVE_STRUCT_TCB_EXT_ARG
+# if SUPPORTED_PERSONALITIES > 1
+			if (current_personality == 1)
+				tprintf("%s%#lx", i ? ", " : "", tcp->u_arg[i]);
+			else
+# endif
+			tprintf("%s%#llx", i ? ", " : "", tcp->ext_arg[i]);
+#else
+			tprintf("%s%#lx", i ? ", " : "", tcp->u_arg[i]);
+#endif
+		}
+	}
+	return 0;
+}
+
+int
+printargs_u(struct tcb *tcp)
+{
+	const int n = tcp->s_ent->nargs;
+	int i;
+	for (i = 0; i < n; ++i)
+		tprintf("%s%u", i ? ", " : "",
+			(unsigned int) tcp->u_arg[i]);
+	return RVAL_DECODED;
+}
+
+int
+printargs_d(struct tcb *tcp)
+{
+	const int n = tcp->s_ent->nargs;
+	int i;
+	for (i = 0; i < n; ++i)
+		tprintf("%s%d", i ? ", " : "",
+			(int) tcp->u_arg[i]);
+	return RVAL_DECODED;
+}
+
+#if defined _LARGEFILE64_SOURCE && defined HAVE_OPEN64
+# define open_file open64
+#else
+# define open_file open
+#endif
+
+int
+read_int_from_file(const char *const fname, int *const pvalue)
+{
+	const int fd = open_file(fname, O_RDONLY);
+	if (fd < 0)
+		return -1;
+
+	long lval;
+	char buf[sizeof(lval) * 3];
+	int n = read(fd, buf, sizeof(buf) - 1);
+	int saved_errno = errno;
+	close(fd);
+
+	if (n < 0) {
+		errno = saved_errno;
+		return -1;
+	}
+
+	buf[n] = '\0';
+	char *endptr = 0;
+	errno = 0;
+	lval = strtol(buf, &endptr, 10);
+	if (!endptr || (*endptr && '\n' != *endptr)
+#if INT_MAX < LONG_MAX
+	    || lval > INT_MAX || lval < INT_MIN
+#endif
+	    || ERANGE == errno) {
+		if (!errno)
+			errno = EINVAL;
+		return -1;
+	}
+
+	*pvalue = (int) lval;
+	return 0;
 }

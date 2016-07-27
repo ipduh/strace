@@ -3,13 +3,8 @@
 # define MSG_BATCH 0x40000
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat msg_flags in mpers mode
-
-#else
-
-static
 const struct xlat msg_flags[] = {
 #if defined(MSG_OOB) || (defined(HAVE_DECL_MSG_OOB) && HAVE_DECL_MSG_OOB)
   XLAT(MSG_OOB),

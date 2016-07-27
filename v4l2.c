@@ -359,8 +359,8 @@ print_v4l2_buffer(struct tcb *tcp, const unsigned int code, const long arg)
 			if (b.memory == V4L2_MEMORY_MMAP) {
 				tprintf(", m.offset=%#x", b.m.offset);
 			} else if (b.memory == V4L2_MEMORY_USERPTR) {
-				tprintf(", m.userptr=%#lx",
-					(unsigned long) b.m.userptr);
+				tprints(", m.userptr=");
+				printaddr((unsigned long) b.m.userptr);
 			}
 
 			tprintf(", length=%u, bytesused=%u, flags=",
@@ -384,8 +384,10 @@ print_v4l2_framebuffer(struct tcb *tcp, const long arg)
 
 	tprints(", ");
 	if (!umove_or_printaddr(tcp, arg, &b)) {
-		tprintf("{capability=%#x, flags=%#x, base=%#lx}",
-			b.capability, b.flags, (unsigned long) b.base);
+		tprintf("{capability=%#x, flags=%#x, base=",
+			b.capability, b.flags);
+		printaddr((unsigned long) b.base);
+		tprints("}");
 	}
 
 	return RVAL_DECODED | 1;
@@ -569,14 +571,15 @@ print_v4l2_queryctrl(struct tcb *tcp, const long arg)
 			tprints("}");
 			return 1;
 		}
-		if (tcp->auxstr)
+		if (get_tcb_priv_ulong(tcp))
 			tprints(" => ");
 	}
 
-	if (entering(tcp) || tcp->auxstr) {
+	if (entering(tcp) || get_tcb_priv_ulong(tcp)) {
 #ifdef V4L2_CTRL_FLAG_NEXT_CTRL
-		tcp->auxstr = (c.id & V4L2_CTRL_FLAG_NEXT_CTRL) ? "" : NULL;
-		if (tcp->auxstr) {
+		const unsigned long next = c.id & V4L2_CTRL_FLAG_NEXT_CTRL;
+		set_tcb_priv_ulong(tcp, next);
+		if (next) {
 			tprints("V4L2_CTRL_FLAG_NEXT_CTRL|");
 			c.id &= ~V4L2_CTRL_FLAG_NEXT_CTRL;
 		}
@@ -676,12 +679,8 @@ static int
 umoven_or_printaddr_ignore_syserror(struct tcb *tcp, const long addr,
 				    const unsigned int len, void *our_addr)
 {
-	if (!addr) {
-		tprints("NULL");
-		return -1;
-	}
-	if (umoven(tcp, addr, len, our_addr) < 0) {
-		tprintf("%#lx", addr);
+	if (!addr || umoven(tcp, addr, len, our_addr) < 0) {
+		printaddr(addr);
 		return -1;
 	}
 	return 0;

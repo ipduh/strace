@@ -27,60 +27,10 @@
  */
 
 #include "tests.h"
-# include <sys/syscall.h>
+#include <assert.h>
+#include <unistd.h>
 
-#if (defined __NR_sendmmsg || defined HAVE_SENDMMSG) \
- && (defined __NR_recvmmsg || defined HAVE_RECVMMSG)
-
-# include <assert.h>
-# include <errno.h>
-# include <stdio.h>
-# include <unistd.h>
-# include <sys/socket.h>
-
-# ifndef HAVE_STRUCT_MMSGHDR
-struct mmsghdr {
-	struct msghdr msg_hdr;
-	unsigned msg_len;
-};
-# endif
-
-static int
-send_mmsg(int fd, struct mmsghdr *vec, unsigned int vlen, unsigned int flags)
-{
-	int rc;
-#ifdef __NR_sendmmsg
-	rc = syscall(__NR_sendmmsg, (long) fd, vec, (unsigned long) vlen,
-		     (unsigned long) flags);
-	if (rc >= 0 || ENOSYS != errno)
-		return rc;
-	tprintf("sendmmsg(%d, %p, %u, MSG_DONTROUTE|MSG_NOSIGNAL)"
-		" = -1 ENOSYS (%m)\n", fd, vec, vlen);
-#endif
-#ifdef HAVE_SENDMMSG
-	rc = sendmmsg(fd, vec, vlen, flags);
-#endif
-	return rc;
-}
-
-static int
-recv_mmsg(int fd, struct mmsghdr *vec, unsigned int vlen, unsigned int flags,
-	  struct timespec *timeout)
-{
-	int rc;
-#ifdef __NR_recvmmsg
-	rc = syscall(__NR_recvmmsg, (long) fd, vec, (unsigned long) vlen,
-		     (unsigned long) flags, timeout);
-	if (rc >= 0 || ENOSYS != errno)
-		return rc;
-	tprintf("recvmmsg(%d, %p, %u, MSG_DONTWAIT, NULL)"
-		" = -1 ENOSYS (%m)\n", fd, vec, vlen);
-#endif
-#ifdef HAVE_RECVMMSG
-	rc = recvmmsg(fd, vec, vlen, flags, timeout);
-#endif
-	return rc;
-}
+#include "msghdr.h"
 
 int
 main(void)
@@ -141,14 +91,17 @@ main(void)
 	const unsigned int n_w_mmh = ARRAY_SIZE(w_mmh_);
 
 	int r = send_mmsg(1, w_mmh, n_w_mmh, MSG_DONTROUTE | MSG_NOSIGNAL);
-	if (r < 0 && errno == ENOSYS)
+	if (r < 0)
 		perror_msg_and_skip("sendmmsg");
 	assert(r == (int) n_w_mmh);
 	assert(close(1) == 0);
-	tprintf("sendmmsg(1, {{{msg_name(0)=NULL, msg_iov(%u)=[{\"%s\", %u}"
-		", {\"%s\", %u}], msg_controllen=0, msg_flags=0}, %u}"
-		", {{msg_name(0)=NULL, msg_iov(%u)=[{\"%s\", %u}]"
-		", msg_controllen=0, msg_flags=0}, %u}}, %u"
+	tprintf("sendmmsg(1, [{msg_hdr={msg_name=NULL, msg_namelen=0"
+		", msg_iov=[{iov_base=\"%s\", iov_len=%u}"
+		", {iov_base=\"%s\", iov_len=%u}], msg_iovlen=%u"
+		", msg_controllen=0, msg_flags=0}, msg_len=%u}"
+		", {msg_hdr={msg_name=NULL, msg_namelen=0"
+		", msg_iov=[{iov_base=\"%s\", iov_len=%u}], msg_iovlen=%u"
+		", msg_controllen=0, msg_flags=0}, msg_len=%u}], %u"
 		", MSG_DONTROUTE|MSG_NOSIGNAL) = %d\n"
 		" = %u buffers in vector 0\n"
 		" * %u bytes in buffer 0\n"
@@ -158,10 +111,12 @@ main(void)
 		" = %u buffers in vector 1\n"
 		" * %u bytes in buffer 0\n"
 		" | 00000 %-49s  %-16s |\n",
-		ARRAY_SIZE(w0_iov_), w0_c, LENGTH_OF(w0_c),
+		w0_c, LENGTH_OF(w0_c),
 		w1_c, LENGTH_OF(w1_c),
+		ARRAY_SIZE(w0_iov_),
 		LENGTH_OF(w0_c) + LENGTH_OF(w1_c),
-		ARRAY_SIZE(w1_iov_), w2_c, LENGTH_OF(w2_c), LENGTH_OF(w2_c),
+		w2_c, LENGTH_OF(w2_c), ARRAY_SIZE(w1_iov_),
+		LENGTH_OF(w2_c),
 		n_w_mmh, r,
 		ARRAY_SIZE(w0_iov_), LENGTH_OF(w0_c), w0_d, w0_c,
 		LENGTH_OF(w1_c), w1_d, w1_c,
@@ -215,19 +170,22 @@ main(void)
 
 	assert(recv_mmsg(0, r_mmh, n_r_mmh, MSG_DONTWAIT, NULL) == (int) n_r_mmh);
 	assert(close(0) == 0);
-	tprintf("recvmmsg(0, {{{msg_name(0)=NULL, msg_iov(%u)=[{\"%s\", %u}]"
-		", msg_controllen=0, msg_flags=0}, %u}"
-		", {{msg_name(0)=NULL, msg_iov(%u)=[{\"%s\", %u}, {\"\", %u}]"
-		", msg_controllen=0, msg_flags=0}, %u}}, %u"
-		", MSG_DONTWAIT, NULL) = %d (left NULL)\n"
+	tprintf("recvmmsg(0, [{msg_hdr={msg_name=NULL, msg_namelen=0"
+		", msg_iov=[{iov_base=\"%s\", iov_len=%u}], msg_iovlen=%u"
+		", msg_controllen=0, msg_flags=0}, msg_len=%u}"
+		", {msg_hdr={msg_name=NULL, msg_namelen=0"
+		", msg_iov=[{iov_base=\"%s\", iov_len=%u}"
+		", {iov_base=\"\", iov_len=%u}], msg_iovlen=%u"
+		", msg_controllen=0, msg_flags=0}, msg_len=%u}], %u"
+		", MSG_DONTWAIT, NULL) = %d\n"
 		" = %u buffers in vector 0\n"
 		" * %u bytes in buffer 0\n"
 		" | 00000 %-49s  %-16s |\n"
 		" = %u buffers in vector 1\n"
 		" * %u bytes in buffer 0\n"
 		" | 00000 %-49s  %-16s |\n",
-		ARRAY_SIZE(r0_iov_), r0_c, r_len, LENGTH_OF(r0_c),
-		ARRAY_SIZE(r1_iov_), r1_c, r_len, r_len, LENGTH_OF(r1_c),
+		r0_c, r_len, ARRAY_SIZE(r0_iov_), LENGTH_OF(r0_c),
+		r1_c, r_len, r_len, ARRAY_SIZE(r1_iov_), LENGTH_OF(r1_c),
 		n_r_mmh, r,
 		ARRAY_SIZE(r0_iov_), LENGTH_OF(r0_c), r0_d, r0_c,
 		ARRAY_SIZE(r1_iov_), LENGTH_OF(r1_c), r1_d, r1_c);
@@ -235,9 +193,3 @@ main(void)
 	tprintf("+++ exited with 0 +++\n");
 	return 0;
 }
-
-#else
-
-SKIP_MAIN_UNDEFINED("(__NR_sendmmsg || HAVE_SENDMMSG) && (__NR_recvmmsg || HAVE_RECVMMSG)")
-
-#endif

@@ -21,6 +21,15 @@ git checkout -f "$tag"
 ./configure --enable-maintainer-mode
 
 make -s $j distcheck
-make -s $j news-check
 
-mv -f strace-*.tar.xz ..
+if git describe --exact-match --match='v*' >/dev/null; then
+	make -s $j news-check
+else
+	echo 'SKIP: make news-check'
+fi
+
+./make-dsc strace-*.tar.gz > ../strace.dsc
+
+cat strace.spec > ../strace.spec
+
+mv -f strace-*.tar.[gx]z ..
