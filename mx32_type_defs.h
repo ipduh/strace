@@ -31,6 +31,12 @@
 #ifdef MPERS_mx32_struct_flock64
 # define struct_flock64 MPERS_mx32_struct_flock64
 #endif
+#ifdef MPERS_mx32_struct_mmsghdr
+# define struct_mmsghdr MPERS_mx32_struct_mmsghdr
+#endif
+#ifdef MPERS_mx32_struct_msghdr
+# define struct_msghdr MPERS_mx32_struct_msghdr
+#endif
 #ifdef MPERS_mx32_struct_statfs
 # define struct_statfs MPERS_mx32_struct_statfs
 #endif

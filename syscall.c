@@ -567,29 +567,26 @@ qualify(const char *s)
 static void
 decode_socket_subcall(struct tcb *tcp)
 {
-	unsigned long addr;
-	unsigned int n;
+	const int call = tcp->u_arg[0];
 
-	if (tcp->u_arg[0] < 0 || tcp->u_arg[0] >= SYS_socket_nsubcalls)
+	if (call < 1 || call >= SYS_socket_nsubcalls)
 		return;
 
-	tcp->scno = SYS_socket_subcall + tcp->u_arg[0];
-	tcp->qual_flg = qual_flags[tcp->scno];
-	tcp->s_ent = &sysent[tcp->scno];
-	addr = tcp->u_arg[1];
-	n = tcp->s_ent->nargs;
-	if (sizeof(tcp->u_arg[0]) == current_wordsize) {
-		memset(tcp->u_arg, 0, n * sizeof(tcp->u_arg[0]));
-		(void) umoven(tcp, addr, n * sizeof(tcp->u_arg[0]), tcp->u_arg);
-	} else {
-		unsigned int args[n];
-		unsigned int i;
+	const unsigned long scno = SYS_socket_subcall + call;
+	const unsigned int nargs = sysent[scno].nargs;
+	uint64_t buf[nargs];
 
-		memset(args, 0, sizeof(args));
-		(void) umove(tcp, addr, &args);
-		for (i = 0; i < n; ++i)
-			tcp->u_arg[i] = args[i];
-	}
+	if (umoven(tcp, tcp->u_arg[1], nargs * current_wordsize, buf) < 0)
+		return;
+
+	tcp->scno = scno;
+	tcp->qual_flg = qual_flags[scno];
+	tcp->s_ent = &sysent[scno];
+
+	unsigned int i;
+	for (i = 0; i < nargs; ++i)
+		tcp->u_arg[i] = (sizeof(uint32_t) == current_wordsize)
+				? ((uint32_t *) (void *) buf)[i] : buf[i];
 }
 #endif
 
@@ -597,15 +594,37 @@ decode_socket_subcall(struct tcb *tcp)
 static void
 decode_ipc_subcall(struct tcb *tcp)
 {
-	unsigned int i, n;
+	unsigned int call = tcp->u_arg[0];
+	const unsigned int version = call >> 16;
 
-	if (tcp->u_arg[0] < 0 || tcp->u_arg[0] >= SYS_ipc_nsubcalls)
+	if (version) {
+# if defined S390 || defined S390X
 		return;
+# else
+#  ifdef SPARC64
+		if (current_wordsize == 8)
+			return;
+#  endif
+		set_tcb_priv_ulong(tcp, version);
+		call &= 0xffff;
+# endif
+	}
 
-	tcp->scno = SYS_ipc_subcall + tcp->u_arg[0];
+	switch (call) {
+		case  1: case  2: case  3: case  4:
+		case 11: case 12: case 13: case 14:
+		case 21: case 22: case 23: case 24:
+			break;
+		default:
+			return;
+	}
+
+	tcp->scno = SYS_ipc_subcall + call;
 	tcp->qual_flg = qual_flags[tcp->scno];
 	tcp->s_ent = &sysent[tcp->scno];
-	n = tcp->s_ent->nargs;
+
+	const unsigned int n = tcp->s_ent->nargs;
+	unsigned int i;
 	for (i = 0; i < n; i++)
 		tcp->u_arg[i] = tcp->u_arg[i + 1];
 }
@@ -629,40 +648,6 @@ decode_mips_subcall(struct tcb *tcp)
 	 */
 }
 #endif
-
-int
-printargs(struct tcb *tcp)
-{
-	if (entering(tcp)) {
-		int i;
-		int n = tcp->s_ent->nargs;
-		for (i = 0; i < n; i++)
-			tprintf("%s%#lx", i ? ", " : "", tcp->u_arg[i]);
-	}
-	return 0;
-}
-
-int
-printargs_u(struct tcb *tcp)
-{
-	const int n = tcp->s_ent->nargs;
-	int i;
-	for (i = 0; i < n; ++i)
-		tprintf("%s%u", i ? ", " : "",
-			(unsigned int) tcp->u_arg[i]);
-	return RVAL_DECODED;
-}
-
-int
-printargs_d(struct tcb *tcp)
-{
-	const int n = tcp->s_ent->nargs;
-	int i;
-	for (i = 0; i < n; ++i)
-		tprintf("%s%d", i ? ", " : "",
-			(int) tcp->u_arg[i]);
-	return RVAL_DECODED;
-}
 
 static void
 dumpio(struct tcb *tcp)
@@ -804,10 +789,8 @@ trace_syscall_entering(struct tcb *tcp)
 		printleader(tcp);
 		if (scno_good != 1)
 			tprints("????" /* anti-trigraph gap */ "(");
-		else if (tcp->qual_flg & UNDEFINED_SCNO)
-			tprintf("%s(", syscall_name(tcp->scno));
 		else
-			tprintf("%s(", tcp->s_ent->sys_name);
+			tprintf("%s(", syscall_name(tcp->scno));
 		/*
 		 * " <unavailable>" will be added later by the code which
 		 * detects ptrace errors.
@@ -866,10 +849,7 @@ trace_syscall_entering(struct tcb *tcp)
 #endif
 
 	printleader(tcp);
-	if (tcp->qual_flg & UNDEFINED_SCNO)
-		tprintf("%s(", syscall_name(tcp->scno));
-	else
-		tprintf("%s(", tcp->s_ent->sys_name);
+	tprintf("%s(", syscall_name(tcp->scno));
 	if ((tcp->qual_flg & QUAL_RAW) && SEN_exit != tcp->s_ent->sen)
 		res = printargs(tcp);
 	else
@@ -930,10 +910,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	if ((followfork < 2 && printing_tcp != tcp) || (tcp->flags & TCB_REPRINT)) {
 		tcp->flags &= ~TCB_REPRINT;
 		printleader(tcp);
-		if (tcp->qual_flg & UNDEFINED_SCNO)
-			tprintf("<... %s resumed> ", syscall_name(tcp->scno));
-		else
-			tprintf("<... %s resumed> ", tcp->s_ent->sys_name);
+		tprintf("<... %s resumed> ", syscall_name(tcp->scno));
 	}
 	printing_tcp = tcp;
 
@@ -946,6 +923,7 @@ trace_syscall_exiting(struct tcb *tcp)
 		line_ended();
 		tcp->flags &= ~TCB_INSYSCALL;
 		tcp->sys_func_rval = 0;
+		free_tcb_priv_data(tcp);
 		return res;
 	}
 	tcp->s_prev_ent = tcp->s_ent;
@@ -1084,7 +1062,7 @@ trace_syscall_exiting(struct tcb *tcp)
 				else
 					tprintf("= %ld", tcp->u_rval);
 				break;
-#if defined(LINUX_MIPSN32) || defined(X32)
+#if HAVE_STRUCT_TCB_EXT_ARG
 			/*
 			case RVAL_LHEX:
 				tprintf("= %#llx", tcp->u_lrval);
@@ -1101,7 +1079,7 @@ trace_syscall_exiting(struct tcb *tcp)
 				tprintf("= %lld", tcp->u_lrval);
 				break;
 			*/
-#endif
+#endif /* HAVE_STRUCT_TCB_EXT_ARG */
 			default:
 				error_msg("invalid rval format");
 				break;
@@ -1127,6 +1105,7 @@ trace_syscall_exiting(struct tcb *tcp)
  ret:
 	tcp->flags &= ~TCB_INSYSCALL;
 	tcp->sys_func_rval = 0;
+	free_tcb_priv_data(tcp);
 	return 0;
 }
 
@@ -1274,7 +1253,8 @@ get_regs(pid_t pid)
 #elif defined ARCH_REGS_FOR_GETREGS
 # if defined SPARC || defined SPARC64
 	/* SPARC systems have the meaning of data and addr reversed */
-	get_regs_error = ptrace(PTRACE_GETREGS, pid, (char *)&ARCH_REGS_FOR_GETREGS, 0);
+	get_regs_error =
+		ptrace(PTRACE_GETREGS, pid, (void *) &ARCH_REGS_FOR_GETREGS, 0);
 # elif defined POWERPC
 	static bool old_kernel = 0;
 	if (old_kernel)
@@ -1325,7 +1305,7 @@ get_scno(struct tcb *tcp)
 			.sys_name = "system call",
 		};
 		tcp->s_ent = &unknown;
-		tcp->qual_flg = UNDEFINED_SCNO | QUAL_RAW | DEFAULT_QUAL_FLAGS;
+		tcp->qual_flg = QUAL_RAW | DEFAULT_QUAL_FLAGS;
 		if (debug_flag)
 			error_msg("pid %d invalid syscall %ld", tcp->pid, tcp->scno);
 	}

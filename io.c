@@ -58,7 +58,7 @@ SYS_FUNC(write)
 }
 
 struct print_iovec_config {
-	int decode_iov;
+	enum iov_decode decode_iov;
 	unsigned long data_size;
 };
 
@@ -66,7 +66,7 @@ static bool
 print_iovec(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 {
 	const unsigned long *iov;
-	unsigned long iov_buf[2];
+	unsigned long iov_buf[2], len;
 	struct print_iovec_config *c = data;
 
         if (elem_size < sizeof(iov_buf)) {
@@ -77,19 +77,29 @@ print_iovec(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 		iov = elem_buf;
 	}
 
-	tprints("{");
+	tprints("{iov_base=");
 
-	if (c->decode_iov) {
-		unsigned long len = iov[1];
-		if (len > c->data_size)
-			len = c->data_size;
-		c->data_size -= len;
-		printstr(tcp, iov[0], len);
-	} else {
-		printaddr(iov[0]);
+	len = iov[1];
+
+	switch (c->decode_iov) {
+		case IOV_DECODE_STR:
+			if (len > c->data_size)
+				len = c->data_size;
+			c->data_size -= len;
+			printstr(tcp, iov[0], len);
+			break;
+		case IOV_DECODE_NETLINK:
+			if (len > c->data_size)
+				len = c->data_size;
+			c->data_size -= len;
+			decode_netlink(tcp, iov[0], iov[1]);
+			break;
+		default:
+			printaddr(iov[0]);
+			break;
 	}
 
-	tprintf(", %lu}", iov[1]);
+	tprintf(", iov_len=%lu}", iov[1]);
 
 	return true;
 }
@@ -100,7 +110,7 @@ print_iovec(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
  */
 void
 tprint_iov_upto(struct tcb *tcp, unsigned long len, unsigned long addr,
-		int decode_iov, unsigned long data_size)
+		enum iov_decode decode_iov, unsigned long data_size)
 {
 	unsigned long iov[2];
 	struct print_iovec_config config =
@@ -111,7 +121,8 @@ tprint_iov_upto(struct tcb *tcp, unsigned long len, unsigned long addr,
 }
 
 void
-tprint_iov(struct tcb *tcp, unsigned long len, unsigned long addr, int decode_iov)
+tprint_iov(struct tcb *tcp, unsigned long len, unsigned long addr,
+	   enum iov_decode decode_iov)
 {
 	tprint_iov_upto(tcp, len, addr, decode_iov, (unsigned long) -1L);
 }
@@ -122,8 +133,8 @@ SYS_FUNC(readv)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 	} else {
-		tprint_iov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1], 1,
-				tcp->u_rval);
+		tprint_iov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1],
+				IOV_DECODE_STR, tcp->u_rval);
 		tprintf(", %lu", tcp->u_arg[2]);
 	}
 	return 0;
@@ -133,7 +144,7 @@ SYS_FUNC(writev)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], IOV_DECODE_STR);
 	tprintf(", %lu", tcp->u_arg[2]);
 
 	return RVAL_DECODED;
@@ -180,7 +191,7 @@ SYS_FUNC(pwrite)
 static void
 print_lld_from_low_high_val(struct tcb *tcp, int arg)
 {
-#if SIZEOF_LONG == SIZEOF_LONG_LONG
+#if SIZEOF_LONG > 4 && SIZEOF_LONG == SIZEOF_LONG_LONG
 # if SUPPORTED_PERSONALITIES > 1
 #  ifdef X86_64
 	if (current_personality != 1)
@@ -195,12 +206,20 @@ print_lld_from_low_high_val(struct tcb *tcp, int arg)
 			((unsigned long) tcp->u_arg[arg + 1] << current_wordsize * 8)
 			| (unsigned long) tcp->u_arg[arg]);
 # endif
-#else
-# ifdef X32
-	if (current_personality == 0)
-		tprintf("%lld", tcp->ext_arg[arg]);
-	else
+#elif SIZEOF_LONG > 4
+# error Unsupported configuration: SIZEOF_LONG > 4 && SIZEOF_LONG_LONG > SIZEOF_LONG
+#elif HAVE_STRUCT_TCB_EXT_ARG
+# if SUPPORTED_PERSONALITIES > 1
+	if (current_personality == 1) {
+		tprintf("%lld",
+			(widen_to_ull(tcp->u_arg[arg + 1]) << sizeof(long) * 8)
+			| widen_to_ull(tcp->u_arg[arg]));
+	} else
 # endif
+	{
+		tprintf("%lld", tcp->ext_arg[arg]);
+	}
+#else /* SIZEOF_LONG_LONG > SIZEOF_LONG && !HAVE_STRUCT_TCB_EXT_ARG */
 	tprintf("%lld",
 		(widen_to_ull(tcp->u_arg[arg + 1]) << sizeof(long) * 8)
 		| widen_to_ull(tcp->u_arg[arg]));
@@ -216,7 +235,7 @@ do_preadv(struct tcb *tcp, const int flags_arg)
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
 	} else {
-		tprint_iov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1], 1,
+		tprint_iov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1], IOV_DECODE_STR,
 				tcp->u_rval);
 		tprintf(", %lu, ", tcp->u_arg[2]);
 		print_lld_from_low_high_val(tcp, 3);
@@ -243,7 +262,7 @@ do_pwritev(struct tcb *tcp, const int flags_arg)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], IOV_DECODE_STR);
 	tprintf(", %lu, ", tcp->u_arg[2]);
 	print_lld_from_low_high_val(tcp, 3);
 	if (flags_arg >= 0) {
@@ -310,7 +329,7 @@ SYS_FUNC(vmsplice)
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
 	/* const struct iovec *iov, unsigned long nr_segs */
-	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], 1);
+	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], IOV_DECODE_STR);
 	tprintf(", %lu, ", tcp->u_arg[2]);
 	/* unsigned int flags */
 	printflags(splice_flags, tcp->u_arg[3], "SPLICE_F_???");

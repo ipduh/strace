@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Wrappers for recvmmsg and sendmmsg syscalls.
+ *
+ * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,73 +28,42 @@
  */
 
 #include "tests.h"
-#include <assert.h>
-#include <signal.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/resource.h>
+#include <errno.h>
+#include <sys/syscall.h>
+
+#ifndef __NR_recvmmsg
+# define __NR_recvmmsg -1
+#endif
+#define SC_recvmmsg 19
+
+#ifndef __NR_sendmmsg
+# define __NR_sendmmsg -1
+#endif
+#define SC_sendmmsg 20
 
 int
-main(void)
+recv_mmsg(const int fd, struct mmsghdr *const vec,
+	  const unsigned int vlen, const unsigned int flags,
+	  struct timespec *const timeout)
 {
-	int fds[2];
-	int s;
-	pid_t pid;
-	struct rusage rusage = {};
-	siginfo_t info = {};
+	int rc = socketcall(__NR_recvmmsg, SC_recvmmsg,
+			    fd, (long) vec, vlen, flags, (long) timeout);
 
-	(void) close(0);
-	(void) close(1);
-	if (pipe(fds))
-		perror_msg_and_fail("pipe");
+	if (rc < 0 && ENOSYS == errno)
+		perror_msg_and_skip("recvmmsg");
 
-	pid = fork();
-	if (pid < 0)
-		perror_msg_and_fail("fork");
+	return rc;
+}
 
-	if (!pid) {
-		char c;
-		(void) close(1);
-		assert(read(0, &c, sizeof(c)) == 1);
-		return 42;
-	}
+int
+send_mmsg(const int fd, struct mmsghdr *const vec,
+	  const unsigned int vlen, const unsigned int flags)
+{
+	int rc = socketcall(__NR_sendmmsg, SC_sendmmsg,
+			    fd, (long) vec, vlen, flags, 0);
 
-	(void) close(0);
-	assert(wait4(pid, &s, WNOHANG | __WALL, NULL) == 0);
-	assert(waitid(P_PID, pid, &info, WNOHANG | WEXITED) == 0);
+	if (rc < 0 && ENOSYS == errno)
+		perror_msg_and_skip("sendmmsg");
 
-	assert(write(1, "", 1) == 1);
-	(void) close(1);
-	assert(wait4(pid, &s, 0, &rusage) == pid);
-	assert(WIFEXITED(s) && WEXITSTATUS(s) == 42);
-
-	pid = fork();
-	if (pid < 0)
-		perror_msg_and_fail("fork");
-
-	if (!pid) {
-		(void) raise(SIGUSR1);
-		return 1;
-	}
-	assert(wait4(pid, &s, __WALL, NULL) == pid);
-	assert(WIFSIGNALED(s) && WTERMSIG(s) == SIGUSR1);
-
-	pid = fork();
-	if (pid < 0)
-		perror_msg_and_fail("fork");
-
-	if (!pid) {
-		raise(SIGSTOP);
-		return 0;
-	}
-	assert(wait4(pid, &s, WUNTRACED, NULL) == pid);
-	assert(WIFSTOPPED(s) && WSTOPSIG(s) == SIGSTOP);
-
-	assert(kill(pid, SIGCONT) == 0);
-	assert(waitid(P_PID, pid, &info, WEXITED | WSTOPPED) == 0);
-	assert(info.si_code == CLD_EXITED && info.si_status == 0);
-
-	assert(wait4(-1, &s, WNOHANG | WUNTRACED | __WALL, &rusage) == -1);
-
-	return 0;
+	return rc;
 }

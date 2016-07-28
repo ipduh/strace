@@ -288,6 +288,12 @@ typedef struct ioctlent {
 	unsigned int code;
 } struct_ioctlent;
 
+#if defined LINUX_MIPSN32 || defined X32
+# define HAVE_STRUCT_TCB_EXT_ARG 1
+#else
+# define HAVE_STRUCT_TCB_EXT_ARG 0
+#endif
+
 /* Trace Control Block */
 struct tcb {
 	int flags;		/* See below for TCB_ values */
@@ -296,7 +302,7 @@ struct tcb {
 	int u_error;		/* Error code */
 	long scno;		/* System call number */
 	long u_arg[MAX_ARGS];	/* System call arguments */
-#if defined(LINUX_MIPSN32) || defined(X32)
+#if HAVE_STRUCT_TCB_EXT_ARG
 	long long ext_arg[MAX_ARGS];
 	long long u_lrval;	/* long long return value */
 #endif
@@ -308,6 +314,8 @@ struct tcb {
 	int curcol;		/* Output column for this process */
 	FILE *outf;		/* Output file for this process */
 	const char *auxstr;	/* Auxiliary info from syscall (see RVAL_STR) */
+	void *_priv_data;	/* Private data for syscall decoding functions */
+	void (*_free_priv_data)(void *); /* Callback for freeing priv_data */
 	const struct_sysent *s_ent; /* sysent[scno] or dummy struct for bad scno */
 	const struct_sysent *s_prev_ent; /* for "resuming interrupted SYSCALL" msg */
 	struct timeval stime;	/* System time usage as of last process wait */
@@ -356,7 +364,6 @@ struct tcb {
 #define QUAL_READ	0x020	/* dump data read on this file descriptor */
 #define QUAL_WRITE	0x040	/* dump data written to this file descriptor */
 typedef uint8_t qualbits_t;
-#define UNDEFINED_SCNO	0x100	/* Used only in tcp->qual_flg */
 
 #define DEFAULT_QUAL_FLAGS (QUAL_TRACE | QUAL_ABBREV | QUAL_VERBOSE)
 
@@ -373,9 +380,11 @@ extern const struct xlat addrfams[];
 extern const struct xlat at_flags[];
 extern const struct xlat dirent_types[];
 extern const struct xlat evdev_abs[];
+extern const struct xlat msg_flags[];
 extern const struct xlat open_access_modes[];
 extern const struct xlat open_mode_flags[];
 extern const struct xlat resource_flags[];
+extern const struct xlat socketlayers[];
 extern const struct xlat whence_codes[];
 
 /* Format of syscall return values */
@@ -383,14 +392,14 @@ extern const struct xlat whence_codes[];
 #define RVAL_HEX	001	/* hex format */
 #define RVAL_OCTAL	002	/* octal format */
 #define RVAL_UDECIMAL	003	/* unsigned decimal format */
-#if defined(LINUX_MIPSN32) || defined(X32)
+#if HAVE_STRUCT_TCB_EXT_ARG
 # if 0 /* unused so far */
 #  define RVAL_LDECIMAL	004	/* long decimal format */
 #  define RVAL_LHEX	005	/* long hex format */
 #  define RVAL_LOCTAL	006	/* long octal format */
 # endif
 # define RVAL_LUDECIMAL	007	/* long unsigned decimal format */
-#endif
+#endif /* HAVE_STRUCT_TCB_EXT_ARG */
 #define RVAL_FD		010	/* file descriptor */
 #define RVAL_MASK	017	/* mask for these values */
 
@@ -431,6 +440,23 @@ extern const struct xlat whence_codes[];
 #else
 # define NEED_UID16_PARSERS 0
 #endif
+
+enum sock_proto {
+	SOCK_PROTO_UNKNOWN,
+	SOCK_PROTO_UNIX,
+	SOCK_PROTO_TCP,
+	SOCK_PROTO_UDP,
+	SOCK_PROTO_TCPv6,
+	SOCK_PROTO_UDPv6,
+	SOCK_PROTO_NETLINK
+};
+extern enum sock_proto get_proto_by_name(const char *);
+
+enum iov_decode {
+	IOV_DECODE_ADDR,
+	IOV_DECODE_STR,
+	IOV_DECODE_NETLINK
+};
 
 typedef enum {
 	CFLAG_NONE = 0,
@@ -488,6 +514,8 @@ int strace_vfprintf(FILE *fp, const char *fmt, va_list args);
 # define strace_vfprintf vfprintf
 #endif
 
+extern int read_int_from_file(const char *, int *);
+
 extern void set_sortby(const char *);
 extern void set_overhead(int);
 extern void qualify(const char *);
@@ -504,6 +532,21 @@ extern const char *syscall_name(long scno);
 extern bool is_erestart(struct tcb *);
 extern void temporarily_clear_syserror(struct tcb *);
 extern void restore_cleared_syserror(struct tcb *);
+
+extern void *get_tcb_priv_data(const struct tcb *);
+extern int set_tcb_priv_data(struct tcb *, void *priv_data,
+			     void (*free_priv_data)(void *));
+extern void free_tcb_priv_data(struct tcb *);
+
+static inline unsigned long get_tcb_priv_ulong(const struct tcb *tcp)
+{
+	return (unsigned long) get_tcb_priv_data(tcp);
+}
+
+static inline int set_tcb_priv_ulong(struct tcb *tcp, unsigned long val)
+{
+	return set_tcb_priv_data(tcp, (void *) val, 0);
+}
 
 extern int umoven(struct tcb *, long, unsigned int, void *);
 #define umove(pid, addr, objp)	\
@@ -542,6 +585,7 @@ extern const char *signame(const int);
 extern void pathtrace_select(const char *);
 extern int pathtrace_match(struct tcb *);
 extern int getfdpath(struct tcb *, int, char *, unsigned);
+extern enum sock_proto getfdproto(struct tcb *, int);
 
 extern const char *xlookup(const struct xlat *, const uint64_t);
 extern const char *xlat_search(const struct xlat *, const size_t, const uint64_t);
@@ -631,11 +675,11 @@ extern void printpathn(struct tcb *, long, unsigned int);
 #define TIMESPEC_TEXT_BUFSIZE \
 		(sizeof(intmax_t)*3 * 2 + sizeof("{tv_sec=%jd, tv_nsec=%jd}"))
 extern void printfd(struct tcb *, int);
-extern bool print_sockaddr_by_inode(const unsigned long, const char *);
+extern void print_sockaddr(struct tcb *tcp, const void *, int);
+extern bool print_sockaddr_by_inode(const unsigned long, const enum sock_proto);
 extern bool print_sockaddr_by_inode_cached(const unsigned long);
 extern void print_dirfd(struct tcb *, int);
-extern void printsock(struct tcb *, long, int);
-extern void print_sock_optmgmt(struct tcb *, long, int);
+extern int decode_sockaddr(struct tcb *, long, int);
 #ifdef ALPHA
 extern void printrusage32(struct tcb *, long);
 extern const char *sprint_timeval32(struct tcb *tcp, long);
@@ -649,8 +693,10 @@ extern const char *sprintsigmask_n(const char *, const void *, unsigned int);
 #define tprintsigmask_addr(prefix, mask) \
 	tprints(sprintsigmask_n((prefix), (mask), sizeof(mask)))
 extern void printsignal(int);
-extern void tprint_iov(struct tcb *, unsigned long, unsigned long, int decode_iov);
-extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long, int decode_iov, unsigned long);
+extern void tprint_iov(struct tcb *, unsigned long, unsigned long, enum iov_decode);
+extern void tprint_iov_upto(struct tcb *, unsigned long, unsigned long,
+			    enum iov_decode, unsigned long);
+extern void decode_netlink(struct tcb *, unsigned long, unsigned long);
 extern void tprint_open_modes(unsigned int);
 extern const char *sprint_open_modes(unsigned int);
 extern void print_seccomp_filter(struct tcb *, unsigned long);
@@ -659,6 +705,8 @@ extern void print_seccomp_fprog(struct tcb *, unsigned long, unsigned short);
 struct strace_statfs;
 extern void print_struct_statfs(struct tcb *tcp, long);
 extern void print_struct_statfs64(struct tcb *tcp, long, unsigned long);
+
+extern void print_ifindex(unsigned int);
 
 extern int file_ioctl(struct tcb *, const unsigned int, long);
 extern int fs_x_ioctl(struct tcb *, const unsigned int, long);

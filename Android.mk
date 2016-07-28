@@ -23,6 +23,7 @@ LOCAL_PATH := $(call my-dir)
 #  git remote add strace git://git.code.sf.net/p/strace/code
 #  git fetch strace
 #  git merge strace/master
+#  ./xlat/gen.sh
 #  mm -j32
 #  # (Make any necessary Android.mk changes and test the new strace.)
 #  git push aosp HEAD:master  # Push directly, avoiding gerrit.
@@ -74,6 +75,8 @@ LOCAL_SRC_FILES := \
     fcntl.c \
     fetch_seccomp_fprog.c \
     fetch_struct_flock.c \
+    fetch_struct_mmsghdr.c \
+    fetch_struct_msghdr.c \
     fetch_struct_statfs.c \
     file.c \
     file_handle.c \
@@ -95,6 +98,7 @@ LOCAL_SRC_FILES := \
     ioperm.c \
     iopl.c \
     ioprio.c \
+    ipc.c \
     ipc_msg.c \
     ipc_msgctl.c \
     ipc_sem.c \
@@ -112,10 +116,13 @@ LOCAL_SRC_FILES := \
     membarrier.c \
     memfd_create.c \
     mknod.c \
+    mmsghdr.c \
     mount.c \
     mq.c \
+    msghdr.c \
     mtd.c \
     net.c \
+    netlink.c \
     numa.c \
     open.c \
     pathtrace.c \
@@ -151,6 +158,8 @@ LOCAL_SRC_FILES := \
     signalfd.c \
     sigreturn.c \
     sock.c \
+    sockaddr.c \
+    socketcall.c \
     socketutils.c \
     sram_alloc.c \
     statfs.c \

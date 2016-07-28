@@ -1,18 +1,20 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 4.12
+Version: @PACKAGE_VERSION@
 Release: 1%{?dist}
-%define srcname %name-%version
 License: BSD
 Group: Development/Debuggers
 URL: http://sourceforge.net/projects/strace/
-Source: http://downloads.sourceforge.net/strace/%{srcname}.tar.xz
-BuildRequires: time
+Source: http://downloads.sourceforge.net/strace/%{name}-%{version}.tar.xz
+%if 0%{?fedora_version} >= 20 || 0%{?centos_version} >= 800 || 0%{?rhel_version} >= 800 || 0%{?scientificlinux_version} >= 800 || 0%{?suse_version} >= 1300
+%define buildrequires_libunwind_devel BuildRequires: libunwind-devel
+%endif
 %ifarch x86_64
 # for experimental -k option
-BuildRequires: libunwind-devel
+%{?buildrequires_libunwind_devel}
 %endif
 %define strace64_arches ppc64 sparc64
+%{?!buildroot:BuildRoot: %_tmppath/buildroot-%name-%version-%release}
 
 %description
 The strace program intercepts and records the system calls called and
@@ -44,7 +46,8 @@ The `strace' program in the `strace' package is for 32-bit processes.
 %endif
 
 %prep
-%setup -q -n %{srcname}
+%setup -q
+echo -n %version-%release > .tarball-version
 
 %build
 echo 'BEGIN OF BUILD ENVIRONMENT INFORMATION'
@@ -84,6 +87,7 @@ tail -n 99999 -- tests*/test-suite.log tests*/ksysent.log
 echo 'END OF TEST SUITE INFORMATION'
 
 %files
+%{?suse_version:%defattr(-,root,root)}
 %doc CREDITS ChangeLog ChangeLog-CVS COPYING NEWS README
 %{_bindir}/strace
 %{_bindir}/strace-log-merge
@@ -91,10 +95,14 @@ echo 'END OF TEST SUITE INFORMATION'
 
 %ifarch %{strace64_arches}
 %files -n strace64
+%{?suse_version:%defattr(-,root,root)}
 %{_bindir}/strace64
 %endif
 
 %changelog
+* @RPM_CHANGELOGTIME@ @PACKAGE_BUGREPORT@ - @PACKAGE_VERSION@-1
+- @PACKAGE_STRING@ snapshot.
+
 * Tue May 31 2016 Dmitry V. Levin <ldv@altlinux.org> - 4.12-1
 - 4.11.0.163.9720 -> 4.12.
 

@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/vfs.h>
@@ -71,6 +70,20 @@ const unsigned char uuid_reference[BTRFS_UUID_SIZE] = {
 };
 
 const char uuid_reference_string[] = "01234567-89ab-cdef-fedc-ba9876543210";
+
+#ifndef BTRFS_IOC_QUOTA_RESCAN
+struct btrfs_ioctl_quota_rescan_args {
+	uint64_t flags, progress, reserved[6];
+};
+# define BTRFS_IOC_QUOTA_RESCAN _IOW(BTRFS_IOCTL_MAGIC, 44, \
+					struct btrfs_ioctl_quota_rescan_args)
+# define BTRFS_IOC_QUOTA_RESCAN_STATUS _IOR(BTRFS_IOCTL_MAGIC, 45, \
+					struct btrfs_ioctl_quota_rescan_args)
+#endif
+
+#ifndef BTRFS_IOC_QUOTA_RESCAN_WAIT
+# define BTRFS_IOC_QUOTA_RESCAN_WAIT _IO(BTRFS_IOCTL_MAGIC, 46)
+#endif
 
 #ifndef BTRFS_IOC_GET_FEATURES
 # define BTRFS_IOC_GET_FEATURES _IOR(BTRFS_IOCTL_MAGIC, 57, \
@@ -677,7 +690,8 @@ static void
 btrfs_print_defrag_range_args(struct btrfs_ioctl_defrag_range_args *args)
 {
 	printf("{start=%" PRIu64", len=%" PRIu64 "%s, flags=",
-		args->start, args->len, maybe_print_uint64max(args->len));
+		(uint64_t) args->start, (uint64_t) args->len,
+		maybe_print_uint64max(args->len));
 
 	printflags(btrfs_defrag_flags, args->flags, "BTRFS_DEFRAG_RANGE_???");
 	printf(", extent_thresh=%u, compress_type=", args->extent_thresh);
@@ -1339,7 +1353,7 @@ btrfs_test_send_ioctl(void)
 	printf("}) = -1 EBADF (%m)\n");
 
 	args.clone_sources_count = 2;
-	args.clone_sources = (__u64 *)u64_array;
+	args.clone_sources = (__u64 *) (void *) u64_array;
 
 	printf("ioctl(-1, BTRFS_IOC_SEND, "
 	       "{send_fd=%d, clone_sources_count=%" PRI__u64

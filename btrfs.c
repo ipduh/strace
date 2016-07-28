@@ -83,6 +83,20 @@ struct btrfs_ioctl_defrag_range_args {
 # define BTRFS_FIRST_FREE_OBJECTID 256ULL
 #endif
 
+#ifndef BTRFS_IOC_QUOTA_RESCAN
+struct btrfs_ioctl_quota_rescan_args {
+	uint64_t flags, progress, reserved[6];
+};
+# define BTRFS_IOC_QUOTA_RESCAN _IOW(BTRFS_IOCTL_MAGIC, 44, \
+					struct btrfs_ioctl_quota_rescan_args)
+# define BTRFS_IOC_QUOTA_RESCAN_STATUS _IOR(BTRFS_IOCTL_MAGIC, 45, \
+					struct btrfs_ioctl_quota_rescan_args)
+#endif
+
+#ifndef BTRFS_IOC_QUOTA_RESCAN_WAIT
+# define BTRFS_IOC_QUOTA_RESCAN_WAIT _IO(BTRFS_IOCTL_MAGIC, 46)
+#endif
+
 #ifndef BTRFS_IOC_GET_FEATURES
 # define BTRFS_IOC_GET_FEATURES _IOR(BTRFS_IOCTL_MAGIC, 57, \
 					struct btrfs_ioctl_feature_flags)
@@ -590,7 +604,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 
 		tprintf("{start=%" PRIu64 ", len=", (uint64_t)args.start);
 
-		tprintf("%" PRIu64, args.len);
+		tprintf("%" PRIu64, (uint64_t) args.len);
 		if (args.len == UINT64_MAX)
 			tprints(" /* UINT64_MAX */");
 
@@ -794,7 +808,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		sectorsize = args.sectorsize,
 		clone_alignment = args.clone_alignment;
 #else
-		reserved32 = (__u32 *)args.reserved;
+		reserved32 = (__u32 *) (void *) args.reserved;
 		nodesize = reserved32[0];
 		sectorsize = reserved32[1];
 		clone_alignment = reserved32[2];
@@ -876,10 +890,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		if (entering(tcp)) {
 			/* Use subvolume id of the containing root */
 			if (args.treeid == 0)
-				/* abuse of auxstr to retain state */
-				tcp->auxstr = (void *)1;
-			else
-				tcp->auxstr = NULL;
+				set_tcb_priv_ulong(tcp, 1);
 
 			tprints("{treeid=");
 			btrfs_print_objectid(args.treeid);
@@ -890,8 +901,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		}
 
 		tprints("{");
-		if (tcp->auxstr) {
-			tcp->auxstr = NULL;
+		if (get_tcb_priv_ulong(tcp)) {
 			tprints("treeid=");
 			btrfs_print_objectid(args.treeid);
 			tprints(", ");
@@ -1024,7 +1034,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		if (umove_or_printaddr(tcp, arg, &args))
 			break;
 
-		tprintf("{flags=%" PRI__u64 "}", args.flags);
+		tprintf("{flags=%" PRIu64 "}", (uint64_t) args.flags);
 		break;
 	}
 
@@ -1038,7 +1048,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		if (umove_or_printaddr(tcp, arg, &args))
 			break;
 
-		tprintf("{flags=%" PRI__u64 ", progress=", args.flags);
+		tprintf("{flags=%" PRIu64 ", progress=", (uint64_t) args.flags);
 		btrfs_print_objectid(args.progress);
 		tprints("}");
 		break;
