@@ -196,7 +196,7 @@ strerror(int err_no)
 #endif /* HAVE_STERRROR */
 
 static void
-usage()
+usage(void)
 {
 	printf("\
 usage: strace [-CdffhiqrtttTvVwxxy] [-I n] [-e expr]...\n\
@@ -447,7 +447,8 @@ set_cloexec_flag(int fd)
 	fcntl(fd, F_SETFD, newflags); /* never fails */
 }
 
-static void kill_save_errno(pid_t pid, int sig)
+static void
+kill_save_errno(pid_t pid, int sig)
 {
 	int saved_errno = errno;
 
@@ -745,11 +746,44 @@ alloctcb(int pid)
 	error_msg_and_die("bug in alloctcb");
 }
 
+void *
+get_tcb_priv_data(const struct tcb *tcp)
+{
+	return tcp->_priv_data;
+}
+
+int
+set_tcb_priv_data(struct tcb *tcp, void *const priv_data,
+		  void (*const free_priv_data)(void *))
+{
+	if (tcp->_priv_data)
+		return -1;
+
+	tcp->_free_priv_data = free_priv_data;
+	tcp->_priv_data = priv_data;
+
+	return 0;
+}
+
+void
+free_tcb_priv_data(struct tcb *tcp)
+{
+	if (tcp->_priv_data) {
+		if (tcp->_free_priv_data) {
+			tcp->_free_priv_data(tcp->_priv_data);
+			tcp->_free_priv_data = NULL;
+		}
+		tcp->_priv_data = NULL;
+	}
+}
+
 static void
 droptcb(struct tcb *tcp)
 {
 	if (tcp->pid == 0)
 		return;
+
+	free_tcb_priv_data(tcp);
 
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled) {
@@ -1961,7 +1995,7 @@ maybe_allocate_tcb(const int pid, int status)
 		/* This can happen if a clone call used
 		 * CLONE_PTRACE itself.
 		 */
-		ptrace(PTRACE_CONT, pid, (char *) 0, 0);
+		ptrace(PTRACE_CONT, pid, NULL, 0);
 		error_msg("Stop of unknown pid %u seen, PTRACE_CONTed it", pid);
 		return NULL;
 	}

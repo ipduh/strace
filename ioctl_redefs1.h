@@ -614,6 +614,10 @@
 # undef HE_GET_REG
 # define HE_GET_REG 0x400c6160
 #endif
+#ifdef HFI1_IOCTL_ACK_EVENT
+# undef HFI1_IOCTL_ACK_EVENT
+# define HFI1_IOCTL_ACK_EVENT 0x40041bea
+#endif
 #ifdef HPET_INFO
 # undef HPET_INFO
 # define HPET_INFO 0x800c6803
