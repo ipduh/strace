@@ -66,6 +66,8 @@ libstrace_a_CFLAGS = $(strace_CFLAGS)
 libstrace_a_SOURCES =	\
 	fstatfs.c \
 	fstatfs64.c \
+	ipc.c \
+	socketcall.c \
 	statfs.c \
 	statfs64.c \
 	sync_file_range.c \
@@ -108,6 +110,8 @@ strace_SOURCES =	\
 	fcntl.c		\
 	fetch_seccomp_fprog.c \
 	fetch_struct_flock.c \
+	fetch_struct_mmsghdr.c \
+	fetch_struct_msghdr.c \
 	fetch_struct_statfs.c \
 	file.c		\
 	file_handle.c	\
@@ -150,12 +154,16 @@ strace_SOURCES =	\
 	membarrier.c	\
 	memfd_create.c	\
 	mknod.c		\
+	mmsghdr.c	\
 	mount.c		\
 	mpers_type.h	\
 	mq.c		\
+	msghdr.c	\
+	msghdr.h	\
 	mtd.c		\
 	native_defs.h	\
 	net.c		\
+	netlink.c       \
 	numa.c		\
 	open.c		\
 	or1k_atomic.c	\
@@ -198,6 +206,7 @@ strace_SOURCES =	\
 	signalfd.c	\
 	sigreturn.c	\
 	sock.c		\
+	sockaddr.c	\
 	socketutils.c	\
 	sram_alloc.c	\
 	statfs.c	\

@@ -47,10 +47,13 @@ libtests_a_SOURCES = \
 	hexdump_strdup.c \
 	hexquote_strndup.c \
 	inode_of_sockfd.c \
+	libmmsg.c \
+	libsocketcall.c \
 	overflowuid.c \
 	print_quoted_string.c \
 	printflags.c \
 	printxval.c \
+	signal2name.c \
 	tail_alloc.c \
 	tests.h \
 	tprintf.c \
@@ -61,6 +64,8 @@ LDADD = libtests.a
 
 check_PROGRAMS = \
 	_newselect \
+	accept \
+	accept4 \
 	access \
 	acct \
 	adjtimex \
@@ -133,14 +138,17 @@ check_PROGRAMS = \
 	getgid32 \
 	getgroups \
 	getgroups32 \
+	getpeername \
 	getpgrp \
 	getrandom \
 	getresgid \
 	getresgid32 \
 	getresuid \
 	getresuid32 \
+	getrlimit \
 	getrusage \
 	getsid \
+	getsockname \
 	getuid \
 	getuid32 \
 	getxxid \
@@ -157,6 +165,7 @@ check_PROGRAMS = \
 	ioperm \
 	iopl \
 	ip_mreq \
+	ipc \
 	ipc_msg \
 	ipc_msgbuf \
 	ipc_sem \
@@ -186,19 +195,27 @@ check_PROGRAMS = \
 	mmap \
 	mmap64 \
 	mmsg \
+	mmsg-silent \
+	mmsg_name \
+	mmsg_name-v \
 	mount \
 	move_pages \
 	mq \
+	msg_control \
+	msg_control-v \
+	msg_name \
 	munlockall \
 	nanosleep \
 	net-accept-connect \
 	net-icmp_filter \
+	net-sockaddr \
 	net-y-unix \
 	net-yy-inet \
 	net-yy-netlink \
 	net-yy-unix \
 	netlink_inet_diag \
 	netlink_netlink_diag \
+	netlink_protocol \
 	netlink_unix_diag \
 	newfstatat \
 	nsyscalls \
@@ -218,6 +235,7 @@ check_PROGRAMS = \
 	preadv \
 	preadv-pwritev \
 	preadv2-pwritev2 \
+	prlimit64 \
 	pselect6 \
 	ptrace \
 	pwritev \
@@ -227,6 +245,8 @@ check_PROGRAMS = \
 	readlinkat \
 	readv \
 	reboot \
+	recvfrom \
+	recvmmsg-timeout \
 	recvmsg \
 	remap_file_pages \
 	rename \
@@ -275,14 +295,19 @@ check_PROGRAMS = \
 	setresuid32 \
 	setreuid \
 	setreuid32 \
+	setrlimit \
 	setuid \
 	setuid32 \
 	shmxt \
+	shutdown \
 	sigaction \
 	sigaltstack \
+	siginfo \
+	signal_receive \
 	signalfd \
 	sigreturn \
 	sleep \
+	socketcall \
 	splice \
 	stack-fcall \
 	stat \
@@ -306,6 +331,7 @@ check_PROGRAMS = \
 	times-fail \
 	truncate \
 	truncate64 \
+	ugetrlimit \
 	uio \
 	umask \
 	umount \
@@ -315,6 +341,7 @@ check_PROGRAMS = \
 	umovestr3 \
 	uname \
 	unix-pair-send-recv \
+	unix-pair-sendto-recvfrom \
 	unlink \
 	unlinkat \
 	userfaultfd \
@@ -324,7 +351,11 @@ check_PROGRAMS = \
 	vfork-f \
 	vhangup \
 	vmsplice \
-	wait \
+	wait4 \
+	wait4-v \
+	waitid \
+	waitid-v \
+	waitpid \
 	xattr \
 	xet_robust_list \
 	xetitimer \
@@ -366,6 +397,8 @@ endif
 
 DECODER_TESTS = \
 	_newselect.test \
+	accept.test \
+	accept4.test \
 	access.test \
 	acct.test \
 	adjtimex.test \
@@ -435,14 +468,17 @@ DECODER_TESTS = \
 	getgid32.test \
 	getgroups.test \
 	getgroups32.test \
+	getpeername.test \
 	getpgrp.test \
 	getrandom.test \
 	getresgid.test \
 	getresgid32.test \
 	getresuid.test \
 	getresuid32.test \
+	getrlimit.test \
 	getrusage.test \
 	getsid.test \
+	getsockname.test \
 	getuid.test \
 	getuid32.test \
 	getxxid.test \
@@ -459,6 +495,7 @@ DECODER_TESTS = \
 	ioperm.test \
 	iopl.test \
 	ip_mreq.test \
+	ipc.test \
 	ipc_msg.test \
 	ipc_msgbuf.test \
 	ipc_sem.test \
@@ -487,17 +524,25 @@ DECODER_TESTS = \
 	mmap.test \
 	mmap64.test \
 	mmsg.test \
+	mmsg-silent.test \
+	mmsg_name.test \
+	mmsg_name-v.test \
 	mount.test \
 	move_pages.test \
 	mq.test \
+	msg_control.test \
+	msg_control-v.test \
+	msg_name.test \
 	munlockall.test \
 	nanosleep.test \
 	net-icmp_filter.test \
+	net-sockaddr.test \
 	net-y-unix.test \
 	net-yy-inet.test \
 	net-yy-netlink.test \
 	net-yy-unix.test \
 	net.test \
+	netlink_protocol.test \
 	newfstatat.test \
 	nsyscalls.test \
 	old_mmap.test \
@@ -515,6 +560,7 @@ DECODER_TESTS = \
 	preadv-pwritev.test \
 	preadv2-pwritev2.test \
 	preadv.test \
+	prlimit64.test \
 	pselect6.test \
 	ptrace.test \
 	pwritev.test \
@@ -524,6 +570,8 @@ DECODER_TESTS = \
 	readlinkat.test \
 	readv.test \
 	reboot.test \
+	recvfrom.test \
+	recvmmsg-timeout.test \
 	recvmsg.test \
 	remap_file_pages.test \
 	rename.test \
@@ -570,13 +618,17 @@ DECODER_TESTS = \
 	setresuid32.test \
 	setreuid.test \
 	setreuid32.test \
+	setrlimit.test \
 	setuid.test \
 	setuid32.test \
 	shmxt.test \
+	shutdown.test \
 	sigaction.test \
 	sigaltstack.test \
+	siginfo.test \
 	signalfd.test \
 	sigreturn.test \
+	socketcall.test \
 	splice.test \
 	stat.test \
 	stat64.test \
@@ -600,6 +652,7 @@ DECODER_TESTS = \
 	times.test \
 	truncate.test \
 	truncate64.test \
+	ugetrlimit.test \
 	uio.test \
 	umask.test \
 	umount.test \
@@ -608,6 +661,8 @@ DECODER_TESTS = \
 	umovestr2.test \
 	umovestr3.test \
 	uname.test \
+	unix-pair-send-recv.test \
+	unix-pair-sendto-recvfrom.test \
 	unlink.test \
 	unlinkat.test \
 	userfaultfd.test \
@@ -616,7 +671,11 @@ DECODER_TESTS = \
 	utimes.test \
 	vhangup.test \
 	vmsplice.test \
-	wait.test \
+	wait4.test \
+	wait4-v.test \
+	waitid.test \
+	waitid-v.test \
+	waitpid.test \
 	xattr.test \
 	xet_robust_list.test \
 	xetitimer.test \
@@ -634,7 +693,6 @@ MISC_TESTS = \
 	detach-running.test \
 	detach-sleeping.test \
 	detach-stopped.test \
-	dumpio.test \
 	filter-unavailable.test \
 	fork-f.test \
 	ksysent.test \
@@ -643,10 +701,11 @@ MISC_TESTS = \
 	qual_syscall.test \
 	redirect.test \
 	restart_syscall.test \
+	signal_receive.test \
+	strace-E.test \
 	strace-S.test \
 	strace-T.test \
 	strace-V.test \
-	strace-f.test \
 	strace-ff.test \
 	strace-r.test \
 	strace-t.test \
@@ -668,7 +727,6 @@ AM_TEST_LOG_FLAGS = STRACE_ARCH=$(ARCH) $(srcdir)/run.sh
 EXTRA_DIST = init.sh run.sh match.awk \
 	     caps.awk \
 	     count-f.expected \
-	     dumpio.expected \
 	     eventfd.expected \
 	     fanotify_mark.expected \
 	     filter-unavailable.expected \
@@ -694,17 +752,22 @@ EXTRA_DIST = init.sh run.sh match.awk \
 	     sigaction.awk \
 	     sigaltstack.expected \
 	     signalfd.expected \
+	     sockname.c \
 	     statfs.expected \
 	     statx.sh \
+	     strace-E.expected \
 	     strace-T.expected \
 	     strace-ff.expected \
+	     strace-k.test \
 	     strace-r.expected \
 	     struct_flock.c \
 	     sun_path.expected \
 	     uio.expected \
 	     umovestr.expected \
-	     wait.expected \
+	     unix-pair-send-recv.expected \
+	     unix-pair-sendto-recvfrom.expected \
 	     xchownx.c \
+	     xgetrlimit.c \
 	     xselect.c \
 	     xstatfs.c \
 	     xstatfs64.c \

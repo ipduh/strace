@@ -104,7 +104,6 @@
 #define	sys_gettid		printargs
 #define	sys_idle		printargs
 #define	sys_inotify_init	printargs
-#define	sys_ipc			printargs
 #define	sys_munlockall		printargs
 #define	sys_pause		printargs
 #define	sys_printargs		printargs
@@ -113,7 +112,6 @@
 #define	sys_setsid		printargs
 #define	sys_set_tid_address	printargs
 #define	sys_setup		printargs
-#define	sys_socketcall		printargs
 #define	sys_sync		printargs
 #define	sys_syscall		printargs
 #define	sys_vhangup		printargs
