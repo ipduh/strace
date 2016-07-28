@@ -54,17 +54,17 @@ main(int ac, const char **av)
 	if (*len > sizeof(addr))
 		*len = sizeof(addr);
 
-	int listen_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
+	int listen_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (listen_fd < 0)
 		perror_msg_and_skip("socket");
 	unsigned long listen_inode = inode_of_sockfd(listen_fd);
-	printf("socket(AF_LOCAL, SOCK_STREAM, 0) = %d<socket:[%lu]>\n",
+	printf("socket(AF_UNIX, SOCK_STREAM, 0) = %d<socket:[%lu]>\n",
 	       listen_fd, listen_inode);
 
 	(void) unlink(av[1]);
 	if (bind(listen_fd, listen_sa, *len))
 		perror_msg_and_skip("bind");
-	printf("bind(%d<socket:[%lu]>, {sa_family=AF_LOCAL, sun_path=\"%s\"}"
+	printf("bind(%d<socket:[%lu]>, {sa_family=AF_UNIX, sun_path=\"%s\"}"
 	       ", %u) = 0\n", listen_fd, listen_inode, av[1], (unsigned) *len);
 
 	if (listen(listen_fd, 1))
@@ -83,20 +83,20 @@ main(int ac, const char **av)
 	*len = sizeof(addr);
 	if (getsockname(listen_fd, listen_sa, len))
 		perror_msg_and_fail("getsockname");
-	printf("getsockname(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
-	       ", sun_path=\"%s\"}, [%u]) = 0\n", listen_fd, listen_inode,
-	       av[1], (unsigned) *len);
+	printf("getsockname(%d<socket:[%lu]>, {sa_family=AF_UNIX"
+	       ", sun_path=\"%s\"}, [%d->%d]) = 0\n", listen_fd, listen_inode,
+	       av[1], (int) sizeof(addr), (int) *len);
 
-	int connect_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
+	int connect_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (connect_fd < 0)
 		perror_msg_and_fail("socket");
 	unsigned long connect_inode = inode_of_sockfd(connect_fd);
-	printf("socket(AF_LOCAL, SOCK_STREAM, 0) = %d<socket:[%lu]>\n",
+	printf("socket(AF_UNIX, SOCK_STREAM, 0) = %d<socket:[%lu]>\n",
 	       connect_fd, connect_inode);
 
 	if (connect(connect_fd, listen_sa, *len))
 		perror_msg_and_fail("connect");
-	printf("connect(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
+	printf("connect(%d<socket:[%lu]>, {sa_family=AF_UNIX"
 	       ", sun_path=\"%s\"}, %u) = 0\n",
 	       connect_fd, connect_inode, av[1], (unsigned) *len);
 
@@ -107,18 +107,19 @@ main(int ac, const char **av)
 	if (accept_fd < 0)
 		perror_msg_and_fail("accept");
 	unsigned long accept_inode = inode_of_sockfd(accept_fd);
-	printf("accept(%d<socket:[%lu]>, {sa_family=AF_LOCAL, NULL}"
-	       ", [%u]) = %d<socket:[%lu]>\n",
-	       listen_fd, listen_inode, (unsigned) *len,
+	printf("accept(%d<socket:[%lu]>, {sa_family=AF_UNIX}"
+	       ", [%d->%d]) = %d<socket:[%lu]>\n",
+	       listen_fd, listen_inode,
+	       (int) sizeof(addr), (int) *len,
 	       accept_fd, accept_inode);
 
 	memset(listen_sa, 0, sizeof(addr));
 	*len = sizeof(addr);
 	if (getpeername(connect_fd, listen_sa, len))
 		perror_msg_and_fail("getpeername");
-	printf("getpeername(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
-	       ", sun_path=\"%s\"}, [%u]) = 0\n", connect_fd, connect_inode,
-	       av[1], (unsigned) *len);
+	printf("getpeername(%d<socket:[%lu]>, {sa_family=AF_UNIX"
+	       ", sun_path=\"%s\"}, [%d->%d]) = 0\n", connect_fd, connect_inode,
+	       av[1], (int) sizeof(addr), (int) *len);
 
 	char text[] = "text";
 	assert(sendto(connect_fd, text, sizeof(text) - 1, MSG_DONTWAIT, NULL, 0)
@@ -141,11 +142,11 @@ main(int ac, const char **av)
 	assert(close(accept_fd) == 0);
 	printf("close(%d<socket:[%lu]>) = 0\n", accept_fd, accept_inode);
 
-	connect_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
+	connect_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (connect_fd < 0)
 		perror_msg_and_fail("socket");
 	connect_inode = inode_of_sockfd(connect_fd);
-	printf("socket(AF_LOCAL, SOCK_STREAM, 0) = %d<socket:[%lu]>\n",
+	printf("socket(AF_UNIX, SOCK_STREAM, 0) = %d<socket:[%lu]>\n",
 	       connect_fd, connect_inode);
 
 	*optval = 1;
@@ -160,13 +161,14 @@ main(int ac, const char **av)
 	*len = sizeof(addr);
 	if (getsockname(listen_fd, listen_sa, len))
 		perror_msg_and_fail("getsockname");
-	printf("getsockname(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
-	       ", sun_path=\"%s\"}, [%u]) = 0\n",
-	       listen_fd, listen_inode, av[1], (unsigned) *len);
+	printf("getsockname(%d<socket:[%lu]>, {sa_family=AF_UNIX"
+	       ", sun_path=\"%s\"}, [%d->%d]) = 0\n",
+	       listen_fd, listen_inode, av[1],
+	       (int) sizeof(addr), (int) *len);
 
 	if (connect(connect_fd, listen_sa, *len))
 		perror_msg_and_fail("connect");
-	printf("connect(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
+	printf("connect(%d<socket:[%lu]>, {sa_family=AF_UNIX"
 	       ", sun_path=\"%s\"}, %u) = 0\n",
 	       connect_fd, connect_inode, av[1], (unsigned) *len);
 
@@ -178,26 +180,29 @@ main(int ac, const char **av)
 	accept_inode = inode_of_sockfd(accept_fd);
 	const char * const sun_path1 =
 		((struct sockaddr_un *) accept_sa) -> sun_path + 1;
-	printf("accept(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
-	       ", sun_path=@\"%s\"}, [%u]) = %d<socket:[%lu]>\n",
-	       listen_fd, listen_inode, sun_path1, (unsigned) *len,
+	printf("accept(%d<socket:[%lu]>, {sa_family=AF_UNIX"
+	       ", sun_path=@\"%s\"}, [%d->%d]) = %d<socket:[%lu]>\n",
+	       listen_fd, listen_inode, sun_path1,
+	       (int) sizeof(addr), (int) *len,
 	       accept_fd, accept_inode);
 
 	memset(listen_sa, 0, sizeof(addr));
 	*len = sizeof(addr);
 	if (getpeername(connect_fd, listen_sa, len))
 		perror_msg_and_fail("getpeername");
-	printf("getpeername(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
-	       ", sun_path=\"%s\"}, [%u]) = 0\n",
-	       connect_fd, connect_inode, av[1], (unsigned) *len);
+	printf("getpeername(%d<socket:[%lu]>, {sa_family=AF_UNIX"
+	       ", sun_path=\"%s\"}, [%d->%d]) = 0\n",
+	       connect_fd, connect_inode, av[1],
+	       (int) sizeof(addr), (int) *len);
 
 	memset(accept_sa, 0, sizeof(addr));
 	*len = sizeof(addr);
 	if (getsockname(connect_fd, accept_sa, len))
 		perror_msg_and_fail("getsockname");
-	printf("getsockname(%d<socket:[%lu]>, {sa_family=AF_LOCAL"
-	       ", sun_path=@\"%s\"}, [%u]) = 0\n",
-	       connect_fd, connect_inode, sun_path1, (unsigned) *len);
+	printf("getsockname(%d<socket:[%lu]>, {sa_family=AF_UNIX"
+	       ", sun_path=@\"%s\"}, [%d->%d]) = 0\n",
+	       connect_fd, connect_inode, sun_path1,
+	       (int) sizeof(addr), (int) *len);
 
 	assert(sendto(connect_fd, text, sizeof(text) - 1, MSG_DONTWAIT, NULL, 0)
 	       == sizeof(text) - 1);

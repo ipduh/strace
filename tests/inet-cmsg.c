@@ -38,7 +38,7 @@
 static void
 print_pktinfo(const struct cmsghdr *c)
 {
-	printf("IP_PKTINFO, {ipi_ifindex=if_nametoindex(\"lo\")"
+	printf("IP_PKTINFO, cmsg_data={ipi_ifindex=if_nametoindex(\"lo\")"
 	       ", ipi_spec_dst=inet_addr(\"127.0.0.1\")"
 	       ", ipi_addr=inet_addr(\"127.0.0.1\")}");
 }
@@ -48,7 +48,7 @@ print_ttl(const struct cmsghdr *c)
 {
 	const unsigned int *ttl = (const unsigned int *) CMSG_DATA(c);
 
-	printf("IP_TTL, {ttl=%u}", *ttl);
+	printf("IP_TTL, cmsg_data=[%u]", *ttl);
 }
 
 static void
@@ -56,7 +56,7 @@ print_tos(const struct cmsghdr *c)
 {
 	const uint8_t *tos = (const uint8_t *) CMSG_DATA(c);
 
-	printf("IP_TOS, {tos=%x}", *tos);
+	printf("IP_TOS, cmsg_data=[%#x]", *tos);
 }
 
 static void
@@ -67,11 +67,11 @@ print_opts(const char *name, const struct cmsghdr *c)
 
 	printf("%s", name);
 	if (len) {
-		printf(", {opts=0x");
+		printf(", cmsg_data=[");
 		size_t i;
 		for (i = 0; i < len; ++i)
-			printf("%02x", opts[i]);
-		printf("}");
+			printf("%s0x%02x", i ? ", " : "", opts[i]);
+		printf("]");
 	}
 }
 
@@ -82,7 +82,7 @@ print_origdstaddr(const struct cmsghdr *c)
 	const struct sockaddr_in *sin =
 		(const struct sockaddr_in *) CMSG_DATA(c);
 
-	printf("IP_ORIGDSTADDR, {sa_family=AF_INET, sin_port=htons(%u)"
+	printf("IP_ORIGDSTADDR, cmsg_data={sa_family=AF_INET, sin_port=htons(%u)"
 	       ", sin_addr=inet_addr(\"127.0.0.1\")}", ntohs(sin->sin_port));
 }
 #endif
@@ -145,11 +145,12 @@ main(void)
 	assert(recvmsg(0, &mh, 0) == (int) size);
 	assert(!close(0));
 
-	printf("recvmsg(0, {msg_name(%u)={sa_family=AF_INET, sin_port=htons(%u)"
-	       ", sin_addr=inet_addr(\"127.0.0.1\")}, msg_iov(1)=[{\"%s\", %zu}]"
-	       ", msg_controllen=%lu, [",
-	       (unsigned) mh.msg_namelen, ntohs(addr.sin_port),
-	       data, size, (unsigned long) mh.msg_controllen);
+	printf("recvmsg(0, {msg_name={sa_family=AF_INET, sin_port=htons(%u)"
+	       ", sin_addr=inet_addr(\"127.0.0.1\")}, msg_namelen=%u"
+	       ", msg_iov=[{iov_base=\"%s\", iov_len=%u}], msg_iovlen=1"
+	       ", msg_control=[",
+	       ntohs(addr.sin_port), (unsigned) mh.msg_namelen,
+	       data, (unsigned) size);
 
 	struct cmsghdr *c;
 	for (c = CMSG_FIRSTHDR(&mh); c; c = CMSG_NXTHDR(&mh, c)) {
@@ -186,7 +187,8 @@ main(void)
 		}
 		printf("}");
 	}
-	printf("], msg_flags=0}, 0) = %zu\n", size);
+	printf("], msg_controllen=%lu, msg_flags=0}, 0) = %u\n",
+	       (unsigned long) mh.msg_controllen, (unsigned) size);
 	puts("+++ exited with 0 +++");
 
 	return 0;

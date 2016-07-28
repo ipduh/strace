@@ -105,13 +105,8 @@
 # define SOL_KCM 281
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat socketlayers in mpers mode
-
-#else
-
-static
 const struct xlat socketlayers[] = {
  XLAT(SOL_IP),
  XLAT(SOL_SOCKET),

@@ -5,6 +5,9 @@
 #if !(defined(SS_DISABLE) || (defined(HAVE_DECL_SS_DISABLE) && HAVE_DECL_SS_DISABLE))
 # define SS_DISABLE 2
 #endif
+#if !(defined(SS_AUTODISARM) || (defined(HAVE_DECL_SS_AUTODISARM) && HAVE_DECL_SS_AUTODISARM))
+# define SS_AUTODISARM (1U << 31)
+#endif
 
 #ifdef IN_MPERS
 
@@ -18,6 +21,7 @@ static
 const struct xlat sigaltstack_flags[] = {
  XLAT(SS_ONSTACK),
  XLAT(SS_DISABLE),
+ XLAT(SS_AUTODISARM),
  XLAT_END
 };
 
