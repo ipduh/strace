@@ -20,18 +20,14 @@ LOCAL_PATH := $(call my-dir)
 # To update:
 #
 
-#  git remote add strace git://git.code.sf.net/p/strace/code
-#  git fetch strace
-#  git merge strace/master
-#  ./xlat/gen.sh
+#  repo sync .
+#  repo start merge .
+#  git merge aosp/upstream-master --no-ff # resolve any conflicts
+#  ./configure && make
 #  mm -j32
 #  # (Make any necessary Android.mk changes and test the new strace.)
-#  git push aosp HEAD:master  # Push directly, avoiding gerrit.
-#  git push aosp HEAD:refs/for/master  # Push to gerrit.
-#
-#  # Now commit any necessary Android.mk changes like normal:
-#  repo start post-sync .
-#  git commit -a
+#  # Beware the .gitignore files --- xlat especially.
+#  git commit -a --amend
 #
 
 # We don't currently have a good solution for the 'configure' side of things.
@@ -43,7 +39,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-strace_version := $(shell grep Version $(LOCAL_PATH)/strace.spec | cut -d " " -f 2)
+strace_version := $(shell grep strace $(LOCAL_PATH)/debian/changelog.in | \
+                          head -2 | tail -1 | cut -d " " -f 2)
 
 LOCAL_SRC_FILES := \
     access.c \
