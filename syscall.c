@@ -419,11 +419,43 @@ qualify_one(const unsigned int n, unsigned int bitflag, const int not, const int
 }
 
 static int
+lookup_class(const char *s)
+{
+	if (strcmp(s, "file") == 0)
+		return TRACE_FILE;
+	if (strcmp(s, "ipc") == 0)
+		return TRACE_IPC;
+	if (strcmp(s, "network") == 0)
+		return TRACE_NETWORK;
+	if (strcmp(s, "process") == 0)
+		return TRACE_PROCESS;
+	if (strcmp(s, "signal") == 0)
+		return TRACE_SIGNAL;
+	if (strcmp(s, "desc") == 0)
+		return TRACE_DESC;
+	if (strcmp(s, "memory") == 0)
+		return TRACE_MEMORY;
+	return -1;
+}
+
+static int
 qual_syscall(const char *s, const unsigned int bitflag, const int not)
 {
-	int p;
+	unsigned int p;
 	unsigned int i;
+	int n;
 	int rc = -1;
+
+	if ((n = lookup_class(s)) >= 0) {
+		for (p = 0; p < SUPPORTED_PERSONALITIES; ++p) {
+			for (i = 0; i < nsyscall_vec[p]; ++i) {
+				if ((sysent_vec[p][i].sys_flags & n) == n) {
+					qualify_one(i, bitflag, not, p);
+				}
+			}
+		}
+		return 0;
+	}
 
 	if (*s >= '0' && *s <= '9') {
 		i = string_to_uint(s);
@@ -483,26 +515,6 @@ qual_desc(const char *s, const unsigned int bitflag, const int not)
 	return -1;
 }
 
-static int
-lookup_class(const char *s)
-{
-	if (strcmp(s, "file") == 0)
-		return TRACE_FILE;
-	if (strcmp(s, "ipc") == 0)
-		return TRACE_IPC;
-	if (strcmp(s, "network") == 0)
-		return TRACE_NETWORK;
-	if (strcmp(s, "process") == 0)
-		return TRACE_PROCESS;
-	if (strcmp(s, "signal") == 0)
-		return TRACE_SIGNAL;
-	if (strcmp(s, "desc") == 0)
-		return TRACE_DESC;
-	if (strcmp(s, "memory") == 0)
-		return TRACE_MEMORY;
-	return -1;
-}
-
 void
 qualify(const char *s)
 {
@@ -544,16 +556,6 @@ qualify(const char *s)
 	}
 	copy = xstrdup(s);
 	for (p = strtok(copy, ","); p; p = strtok(NULL, ",")) {
-		int n;
-		if (opt->bitflag == QUAL_TRACE && (n = lookup_class(p)) > 0) {
-			unsigned pers;
-			for (pers = 0; pers < SUPPORTED_PERSONALITIES; pers++) {
-				for (i = 0; i < nsyscall_vec[pers]; i++)
-					if (sysent_vec[pers][i].sys_flags & n)
-						qualify_one(i, opt->bitflag, not, pers);
-			}
-			continue;
-		}
 		if (opt->qualify(p, opt->bitflag, not)) {
 			error_msg_and_die("invalid %s '%s'",
 				opt->argument_name, p);
@@ -643,11 +645,18 @@ decode_mips_subcall(struct tcb *tcp)
 		sizeof(tcp->u_arg) - sizeof(tcp->u_arg[0]));
 	/*
 	 * Fetching the last arg of 7-arg syscalls (fadvise64_64
-	 * and sync_file_range) would require additional code,
+	 * and sync_file_range) requires additional code,
 	 * see linux/mips/get_syscall_args.c
 	 */
+	if (tcp->s_ent->nargs == MAX_ARGS) {
+		if (umoven(tcp,
+			   mips_REG_SP + MAX_ARGS * sizeof(tcp->u_arg[0]),
+			   sizeof(tcp->u_arg[0]),
+			   &tcp->u_arg[MAX_ARGS - 1]) < 0)
+		tcp->u_arg[MAX_ARGS - 1] = 0;
+	}
 }
-#endif
+#endif /* LINUX_MIPSO32 */
 
 static void
 dumpio(struct tcb *tcp)
@@ -753,9 +762,18 @@ syscall_name(long scno)
 	if (SCNO_IS_VALID(scno))
 		return sysent[scno].sys_name;
 	else {
-		sprintf(buf, "syscall_%lu", shuffle_scno(scno));
+		sprintf(buf, "syscall_%lu", scno);
 		return buf;
 	}
+}
+
+const char *
+err_name(unsigned long err)
+{
+	if ((err < nerrnos) && errnoent[err])
+		return errnoent[err];
+
+	return NULL;
 }
 
 static long get_regs_error;
@@ -787,10 +805,7 @@ trace_syscall_entering(struct tcb *tcp)
 
 	if (res != 1) {
 		printleader(tcp);
-		if (scno_good != 1)
-			tprints("????" /* anti-trigraph gap */ "(");
-		else
-			tprintf("%s(", syscall_name(tcp->scno));
+		tprintf("%s(", scno_good == 1 ? tcp->s_ent->sys_name : "????");
 		/*
 		 * " <unavailable>" will be added later by the code which
 		 * detects ptrace errors.
@@ -849,7 +864,7 @@ trace_syscall_entering(struct tcb *tcp)
 #endif
 
 	printleader(tcp);
-	tprintf("%s(", syscall_name(tcp->scno));
+	tprintf("%s(", tcp->s_ent->sys_name);
 	if ((tcp->qual_flg & QUAL_RAW) && SEN_exit != tcp->s_ent->sen)
 		res = printargs(tcp);
 	else
@@ -871,7 +886,8 @@ trace_syscall_exiting(struct tcb *tcp)
 	int sys_res;
 	struct timeval tv;
 	int res;
-	long u_error;
+	unsigned long u_error;
+	const char *u_error_str;
 
 	/* Measure the exit time as early as possible to avoid errors. */
 	if (Tflag || cflag)
@@ -910,7 +926,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	if ((followfork < 2 && printing_tcp != tcp) || (tcp->flags & TCB_REPRINT)) {
 		tcp->flags &= ~TCB_REPRINT;
 		printleader(tcp);
-		tprintf("<... %s resumed> ", syscall_name(tcp->scno));
+		tprintf("<... %s resumed> ", tcp->s_ent->sys_name);
 	}
 	printing_tcp = tcp;
 
@@ -953,7 +969,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	u_error = tcp->u_error;
 	if (tcp->qual_flg & QUAL_RAW) {
 		if (u_error)
-			tprintf("= -1 (errno %ld)", u_error);
+			tprintf("= -1 (errno %lu)", u_error);
 		else
 			tprintf("= %#lx", tcp->u_rval);
 	}
@@ -1013,13 +1029,13 @@ trace_syscall_exiting(struct tcb *tcp)
 			tprints("= ? ERESTART_RESTARTBLOCK (Interrupted by signal)");
 			break;
 		default:
-			if ((unsigned long) u_error < nerrnos
-			    && errnoent[u_error])
-				tprintf("= -1 %s (%s)", errnoent[u_error],
-					strerror(u_error));
+			u_error_str = err_name(u_error);
+			if (u_error_str)
+				tprintf("= -1 %s (%s)",
+					u_error_str, strerror(u_error));
 			else
-				tprintf("= -1 ERRNO_%lu (%s)", u_error,
-					strerror(u_error));
+				tprintf("= -1 %lu (%s)",
+					u_error, strerror(u_error));
 			break;
 		}
 		if ((sys_res & RVAL_STR) && tcp->auxstr)
@@ -1040,7 +1056,8 @@ trace_syscall_exiting(struct tcb *tcp)
 					tprintf("= %#lx", tcp->u_rval);
 				break;
 			case RVAL_OCTAL:
-				tprintf("= %#lo", tcp->u_rval);
+				tprints("= ");
+				print_numeric_long_umask(tcp->u_rval);
 				break;
 			case RVAL_UDECIMAL:
 #if SUPPORTED_PERSONALITIES > 1
@@ -1130,7 +1147,7 @@ is_erestart(struct tcb *tcp)
 	}
 }
 
-static int saved_u_error;
+static unsigned long saved_u_error;
 
 void
 temporarily_clear_syserror(struct tcb *tcp)
@@ -1157,18 +1174,18 @@ is_negated_errno(kernel_ulong_t val)
 	/* Linux kernel defines MAX_ERRNO to 4095. */
 	kernel_ulong_t max = -(kernel_long_t) 4095;
 
-#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
-	if (current_wordsize < sizeof(val)) {
+#if defined X86_64 || defined X32
+	/*
+	 * current_wordsize is 4 for x32 personality
+	 * but truncation _must not_ be done in it, so
+	 * check current_personality instead.
+	 */
+	if (current_personality == 1) {
 		val = (uint32_t) val;
 		max = (uint32_t) max;
 	}
-#elif defined X32
-	/*
-	 * current_wordsize is 4 even in personality 0 (native X32)
-	 * but truncation _must not_ be done in it.
-	 * can't check current_wordsize here!
-	 */
-	if (current_personality != 0) {
+#elif SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
+	if (current_wordsize < sizeof(val)) {
 		val = (uint32_t) val;
 		max = (uint32_t) max;
 	}
@@ -1277,6 +1294,20 @@ get_regs(pid_t pid)
 #endif
 }
 
+struct sysent_buf {
+	struct tcb *tcp;
+	struct_sysent ent;
+	char buf[sizeof("syscall_%lu") + sizeof(long) * 3];
+};
+
+static void
+free_sysent_buf(void *ptr)
+{
+	struct sysent_buf *s = ptr;
+	s->tcp->s_prev_ent = s->tcp->s_ent = NULL;
+	free(ptr);
+}
+
 /*
  * Returns:
  * 0: "ignore this ptrace stop", bail out of trace_syscall_entering() silently.
@@ -1298,14 +1329,20 @@ get_scno(struct tcb *tcp)
 		tcp->s_ent = &sysent[tcp->scno];
 		tcp->qual_flg = qual_flags[tcp->scno];
 	} else {
-		static const struct_sysent unknown = {
-			.nargs = MAX_ARGS,
-			.sys_flags = 0,
-			.sys_func = printargs,
-			.sys_name = "system call",
-		};
-		tcp->s_ent = &unknown;
+		struct sysent_buf *s = xcalloc(1, sizeof(*s));
+
+		s->tcp = tcp;
+		s->ent.nargs = MAX_ARGS;
+		s->ent.sen = SEN_printargs;
+		s->ent.sys_func = printargs;
+		s->ent.sys_name = s->buf;
+		sprintf(s->buf, "syscall_%lu", shuffle_scno(tcp->scno));
+
+		tcp->s_ent = &s->ent;
 		tcp->qual_flg = QUAL_RAW | DEFAULT_QUAL_FLAGS;
+
+		set_tcb_priv_data(tcp, s, free_sysent_buf);
+
 		if (debug_flag)
 			error_msg("pid %d invalid syscall %ld", tcp->pid, tcp->scno);
 	}

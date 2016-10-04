@@ -36,13 +36,13 @@ SYS_FUNC(io_setup)
 	if (entering(tcp))
 		tprintf("%u, ", (unsigned int) tcp->u_arg[0]);
 	else
-		printnum_ulong(tcp, tcp->u_arg[1]);
+		printnum_ptr(tcp, tcp->u_arg[1]);
 	return 0;
 }
 
 SYS_FUNC(io_destroy)
 {
-	tprintf("%lu", tcp->u_arg[0]);
+	printaddr(tcp->u_arg[0]);
 
 	return RVAL_DECODED;
 }
@@ -78,12 +78,14 @@ tprint_lio_opcode(unsigned cmd)
 }
 
 static void
-print_common_flags(const struct iocb *cb)
+print_common_flags(struct tcb *tcp, const struct iocb *cb)
 {
 /* IOCB_FLAG_RESFD is available since v2.6.22-rc1~47 */
 #ifdef IOCB_FLAG_RESFD
-	if (cb->aio_flags & IOCB_FLAG_RESFD)
-		tprintf(", resfd=%d", cb->aio_resfd);
+	if (cb->aio_flags & IOCB_FLAG_RESFD) {
+		tprints(", resfd=");
+		printfd(tcp, cb->aio_resfd);
+	}
 	if (cb->aio_flags & ~IOCB_FLAG_RESFD)
 		tprintf(", flags=%x", cb->aio_flags);
 #endif
@@ -98,7 +100,7 @@ iocb_is_valid(const struct iocb *cb)
 }
 
 static enum iocb_sub
-print_iocb_header(const struct iocb *cb)
+print_iocb_header(struct tcb *tcp, const struct iocb *cb)
 {
 	enum iocb_sub sub;
 
@@ -113,7 +115,8 @@ print_iocb_header(const struct iocb *cb)
 	if (cb->aio_reqprio)
 		tprintf(", reqprio=%hd", cb->aio_reqprio);
 
-	tprintf(", fildes=%d", cb->aio_fildes);
+	tprints(", fildes=");
+	printfd(tcp, cb->aio_fildes);
 
 	return sub;
 }
@@ -121,7 +124,7 @@ print_iocb_header(const struct iocb *cb)
 static void
 print_iocb(struct tcb *tcp, const struct iocb *cb)
 {
-	enum iocb_sub sub = print_iocb_header(cb);
+	enum iocb_sub sub = print_iocb_header(tcp, cb);
 
 	switch (sub) {
 	case SUB_COMMON:
@@ -134,7 +137,7 @@ print_iocb(struct tcb *tcp, const struct iocb *cb)
 		}
 		tprintf(", nbytes=%" PRIu64 ", offset=%" PRId64,
 			(uint64_t) cb->aio_nbytes, (int64_t) cb->aio_offset);
-		print_common_flags(cb);
+		print_common_flags(tcp, cb);
 		break;
 	case SUB_VECTOR:
 		if (iocb_is_valid(cb)) {
@@ -149,7 +152,7 @@ print_iocb(struct tcb *tcp, const struct iocb *cb)
 				(uint64_t) cb->aio_nbytes);
 		}
 		tprintf(", offset=%" PRId64, (int64_t) cb->aio_offset);
-		print_common_flags(cb);
+		print_common_flags(tcp, cb);
 		break;
 	case SUB_NONE:
 		break;
@@ -182,7 +185,8 @@ SYS_FUNC(io_submit)
 	const unsigned long addr = tcp->u_arg[2];
 	unsigned long iocbp;
 
-	tprintf("%lu, %ld, ", tcp->u_arg[0], nr);
+	printaddr(tcp->u_arg[0]);
+	tprintf(", %ld, ", nr);
 
 	if (nr < 0)
 		printaddr(addr);
@@ -209,12 +213,14 @@ print_io_event(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 SYS_FUNC(io_cancel)
 {
 	if (entering(tcp)) {
-		tprintf("%lu, ", tcp->u_arg[0]);
+		printaddr(tcp->u_arg[0]);
+		tprints(", ");
+
 		struct iocb cb;
 
 		if (!umove_or_printaddr(tcp, tcp->u_arg[1], &cb)) {
 			tprints("{");
-			print_iocb_header(&cb);
+			print_iocb_header(tcp, &cb);
 			tprints("}");
 		}
 		tprints(", ");
@@ -230,8 +236,8 @@ SYS_FUNC(io_cancel)
 SYS_FUNC(io_getevents)
 {
 	if (entering(tcp)) {
-		tprintf("%lu, %ld, %ld, ",
-			tcp->u_arg[0],
+		printaddr(tcp->u_arg[0]);
+		tprintf(", %ld, %ld, ",
 			widen_to_long(tcp->u_arg[1]),
 			widen_to_long(tcp->u_arg[2]));
 	} else {
