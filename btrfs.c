@@ -32,6 +32,7 @@
 #include DEF_MPERS_TYPE(struct_btrfs_ioctl_dev_replace_args)
 #include DEF_MPERS_TYPE(struct_btrfs_ioctl_send_args)
 #include DEF_MPERS_TYPE(struct_btrfs_ioctl_received_subvol_args)
+#include DEF_MPERS_TYPE(struct_btrfs_ioctl_vol_args_v2)
 
 # include <linux/btrfs.h>
 
@@ -41,6 +42,8 @@ typedef struct btrfs_ioctl_send_args
 	struct_btrfs_ioctl_send_args;
 typedef struct btrfs_ioctl_received_subvol_args
 	struct_btrfs_ioctl_received_subvol_args;
+typedef struct btrfs_ioctl_vol_args_v2
+	struct_btrfs_ioctl_vol_args_v2;
 
 #endif /* HAVE_LINUX_BTRFS_H */
 
@@ -373,14 +376,14 @@ print_uint64(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 }
 
 static void
-btrfs_print_qgroup_inherit(struct tcb *tcp, const uint64_t qgi_addr)
+btrfs_print_qgroup_inherit(struct tcb *tcp, const unsigned long qgi_addr)
 {
 	struct btrfs_qgroup_inherit inherit;
 
 	if (umove_or_printaddr(tcp, qgi_addr, &inherit))
 		return;
 
-	tprintf("{flags=");
+	tprints("{flags=");
 	printflags64(btrfs_qgroup_inherit_flags, inherit.flags,
 		     "BTRFS_QGROUP_INHERIT_???");
 	tprintf(", num_qgroups=%" PRI__u64 ", num_ref_copies=%" PRI__u64
@@ -420,7 +423,7 @@ btrfs_print_tree_search(struct tcb *tcp, struct btrfs_ioctl_search_key *key,
 			uint64_t buf_addr, uint64_t buf_size, bool print_size)
 {
 	if (entering(tcp)) {
-		tprintf("{key={tree_id=");
+		tprints("{key={tree_id=");
 		btrfs_print_objectid(key->tree_id);
 
 		if (key->min_objectid != BTRFS_FIRST_FREE_OBJECTID ||
@@ -1294,7 +1297,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 
 	case BTRFS_IOC_SNAP_CREATE_V2:
 	case BTRFS_IOC_SUBVOL_CREATE_V2: { /* code is W, but is actually RW */
-		struct btrfs_ioctl_vol_args_v2 args;
+		struct_btrfs_ioctl_vol_args_v2 args;
 
 		if (entering(tcp))
 			tprints(", ");
@@ -1313,19 +1316,19 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 			printflags64(btrfs_snap_flags_v2, args.flags,
 				     "BTRFS_SUBVOL_???");
 			if (args.flags & BTRFS_SUBVOL_QGROUP_INHERIT) {
-				tprintf(", size=%" PRI__u64 ", qgroup_inherit=",
-					args.size);
+				tprintf(", size=%llu, qgroup_inherit=",
+					(unsigned long long) args.size);
 
 				btrfs_print_qgroup_inherit(tcp,
-					(unsigned long)args.qgroup_inherit);
+					(unsigned long) args.qgroup_inherit);
 			}
-			tprintf(", name=");
+			tprints(", name=");
 			print_quoted_string(args.name, sizeof(args.name),
 					    QUOTE_0_TERMINATED);
 			tprints("}");
 			return 0;
 		}
-		tprintf("{transid=%" PRI__u64 "}", args.transid);
+		tprintf("{transid=%llu}", (unsigned long long) args.transid);
 		break;
 	}
 

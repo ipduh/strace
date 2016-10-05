@@ -30,10 +30,6 @@
 
 #include "defs.h"
 
-#ifdef HAVE_LINUX_FUTEX_H
-# include <linux/futex.h>
-#endif
-
 #ifndef FUTEX_PRIVATE_FLAG
 # define FUTEX_PRIVATE_FLAG 128
 #endif
@@ -59,32 +55,40 @@ SYS_FUNC(futex)
 	printaddr(uaddr);
 	tprints(", ");
 	printxval(futexops, op, "FUTEX_???");
-	tprintf(", %u", val);
 	switch (cmd) {
 	case FUTEX_WAIT:
+		tprintf(", %u", val);
+		tprints(", ");
+		print_timespec(tcp, timeout);
+		break;
 	case FUTEX_LOCK_PI:
 		tprints(", ");
 		print_timespec(tcp, timeout);
 		break;
 	case FUTEX_WAIT_BITSET:
+		tprintf(", %u", val);
 		tprints(", ");
 		print_timespec(tcp, timeout);
-		tprintf(", %x", val3);
+		tprintf(", %#x", val3);
 		break;
 	case FUTEX_WAKE_BITSET:
-		tprintf(", %x", val3);
+		tprintf(", %u", val);
+		tprintf(", %#x", val3);
 		break;
 	case FUTEX_REQUEUE:
+		tprintf(", %u", val);
 		tprintf(", %u, ", val2);
 		printaddr(uaddr2);
 		break;
 	case FUTEX_CMP_REQUEUE:
 	case FUTEX_CMP_REQUEUE_PI:
+		tprintf(", %u", val);
 		tprintf(", %u, ", val2);
 		printaddr(uaddr2);
 		tprintf(", %u", val3);
 		break;
 	case FUTEX_WAKE_OP:
+		tprintf(", %u", val);
 		tprintf(", %u, ", val2);
 		printaddr(uaddr2);
 		tprints(", {");
@@ -92,23 +96,29 @@ SYS_FUNC(futex)
 			tprints("FUTEX_OP_OPARG_SHIFT|");
 		printxval(futexwakeops, (val3 >> 28) & 0x7, "FUTEX_OP_???");
 		tprintf(", %u, ", (val3 >> 12) & 0xfff);
-		if ((val3 >> 24) & 8)
-			tprints("FUTEX_OP_OPARG_SHIFT|");
-		printxval(futexwakecmps, (val3 >> 24) & 0x7, "FUTEX_OP_CMP_???");
+		printxval(futexwakecmps, (val3 >> 24) & 0xf, "FUTEX_OP_CMP_???");
 		tprintf(", %u}", val3 & 0xfff);
 		break;
 	case FUTEX_WAIT_REQUEUE_PI:
+		tprintf(", %u", val);
 		tprints(", ");
 		print_timespec(tcp, timeout);
 		tprints(", ");
 		printaddr(uaddr2);
 		break;
+	case FUTEX_FD:
 	case FUTEX_WAKE:
+		tprintf(", %u", val);
+		break;
 	case FUTEX_UNLOCK_PI:
 	case FUTEX_TRYLOCK_PI:
 		break;
 	default:
-		tprintf(", %lx, %lx, %x", timeout, uaddr2, val3);
+		tprintf(", %u", val);
+		tprintf(", %#lx", timeout);
+		tprints(", ");
+		printaddr(uaddr2);
+		tprintf(", %#x", val3);
 		break;
 	}
 

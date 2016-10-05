@@ -187,6 +187,11 @@ xtensa*)
 	AC_DEFINE([XTENSA], 1, [Define for the Xtensa architecture])
 	;;
 
+riscv*)
+	arch=riscv
+	AC_DEFINE([RISCV], 1, [Define for the RISC-V architecture])
+	;;
+
 *)
 	AC_MSG_RESULT([NO!])
 	AC_MSG_ERROR([architecture $host_cpu is not supported by strace])
@@ -202,6 +207,7 @@ AC_SUBST(arch)
 AC_SUBST(arch_m32)
 AC_SUBST(arch_mx32)
 
+MIPS_ABI=
 if test "$arch" = mips; then
 	AC_CACHE_CHECK([for _MIPS_SIM], [st_cv__MIPS_SIM],
 		       [AC_COMPUTE_INT([st_cv__MIPS_SIM], [_MIPS_SIM],
@@ -229,7 +235,9 @@ if test "$arch" = mips; then
 		n64) AC_DEFINE([LINUX_MIPSN64], [1], [Define for _MIPS_SIM_ABI64.]);;
 		*) AC_MSG_ERROR([Unsupported _MIPS_SIM]);;
 	esac
+	MIPS_ABI="$st_cv_mips_abi"
 fi
+AC_SUBST(MIPS_ABI)
 
 AC_ARG_ENABLE([arm-oabi],
 	      [AS_HELP_STRING([--enable-arm-oabi],
@@ -267,22 +275,13 @@ AC_ARG_ENABLE([gcc-Werror],
 AC_SUBST([WARN_CFLAGS])
 
 AC_C_BIGENDIAN
-AC_C_CONST
 AC_C_TYPEOF
 
-AC_TYPE_GETGROUPS
-AC_TYPE_MODE_T
-AC_TYPE_SIGNAL
 AC_TYPE_UID_T
-
-AC_HEADER_DIRENT
-AC_HEADER_MAJOR
-AC_HEADER_STAT
-AC_HEADER_STDBOOL
-AC_HEADER_STDC
 
 AC_CHECK_FUNCS(m4_normalize([
 	accept4
+	fallocate
 	fanotify_mark
 	fopen64
 	fork
@@ -297,7 +296,7 @@ AC_CHECK_FUNCS(m4_normalize([
 	preadv
 	process_vm_readv
 	pwritev
-	sigaction
+	readahead
 	signalfd
 	stpcpy
 	strerror
@@ -317,6 +316,12 @@ AC_CHECK_TYPES([struct stat64, struct __old_kernel_stat],,,
 [#include <sys/types.h>
 #include <asm/stat.h>])
 
+AC_CHECK_MEMBERS([struct stat.st_mtime_nsec, struct stat64.st_mtime_nsec],,,
+[#include <sys/types.h>
+#include <asm/stat.h>])
+
+AC_CHECK_MEMBERS([struct stat.st_mtim.tv_nsec])
+
 AC_CHECK_TYPES(m4_normalize([
 	struct pt_all_user_regs,
 	struct ia64_fpreg,
@@ -332,28 +337,9 @@ AC_CHECK_TYPES(m4_normalize([
 [#include <sys/types.h>
 #include <linux/fcntl.h>])
 
-AC_CHECK_MEMBERS(m4_normalize([
-	struct stat.st_atim.tv_nsec,
-	struct stat.st_blksize,
-	struct stat.st_blocks,
-	struct stat.st_ctim.tv_nsec,
-	struct stat.st_flags,
-	struct stat.st_fstype,
-	struct stat.st_gen,
-	struct stat.st_mtim.tv_nsec,
-	struct stat.st_rdev
-]))
-
 AC_CHECK_MEMBERS([struct timex.tai],,, [#include <sys/timex.h>])
 
 AC_CHECK_MEMBERS([struct utsname.domainname],,, [#include <sys/utsname.h>])
-
-AC_CHECK_MEMBERS(m4_normalize([
-	struct stat.st_atime_nsec,
-	struct stat.st_ctime_nsec,
-	struct stat.st_mtime_nsec
-]),,, [#include <sys/types.h>
-#include <asm/stat.h>])
 
 AC_CHECK_MEMBERS(m4_normalize([
 	siginfo_t.si_syscall,
@@ -368,6 +354,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	elf.h
 	inttypes.h
 	linux/bsg.h
+	linux/dqblk_xfs.h
 	linux/falloc.h
 	linux/fiemap.h
 	linux/filter.h
@@ -377,6 +364,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	linux/mmtimer.h
 	linux/msg.h
 	linux/perf_event.h
+	linux/quota.h
 	linux/seccomp.h
 	linux/securebits.h
 	linux/sem.h
@@ -393,6 +381,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	sys/fanotify.h
 	sys/ipc.h
 	sys/msg.h
+	sys/quota.h
 	sys/reg.h
 	sys/sem.h
 	sys/shm.h

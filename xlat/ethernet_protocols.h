@@ -143,6 +143,9 @@ const struct xlat ethernet_protocols[] = {
 #if defined(ETH_P_1588) || (defined(HAVE_DECL_ETH_P_1588) && HAVE_DECL_ETH_P_1588)
   XLAT(ETH_P_1588),
 #endif
+#if defined(ETH_P_NCSI) || (defined(HAVE_DECL_ETH_P_NCSI) && HAVE_DECL_ETH_P_NCSI)
+  XLAT(ETH_P_NCSI),
+#endif
 #if defined(ETH_P_PRP) || (defined(HAVE_DECL_ETH_P_PRP) && HAVE_DECL_ETH_P_PRP)
   XLAT(ETH_P_PRP),
 #endif
