@@ -74,8 +74,9 @@ LOCAL_SRC_FILES := \
     fetch_struct_flock.c \
     fetch_struct_mmsghdr.c \
     fetch_struct_msghdr.c \
+    fetch_struct_stat.c \
+    fetch_struct_stat64.c \
     fetch_struct_statfs.c \
-    file.c \
     file_handle.c \
     file_ioctl.c \
     flock.c \
@@ -121,6 +122,7 @@ LOCAL_SRC_FILES := \
     net.c \
     netlink.c \
     numa.c \
+    oldstat.c \
     open.c \
     pathtrace.c \
     perf.c \
@@ -131,6 +133,7 @@ LOCAL_SRC_FILES := \
     print_msgbuf.c \
     print_sigevent.c \
     print_statfs.c \
+    print_struct_stat.c \
     print_time.c \
     print_timex.c \
     printmode.c \
@@ -159,6 +162,8 @@ LOCAL_SRC_FILES := \
     socketcall.c \
     socketutils.c \
     sram_alloc.c \
+    stat.c \
+    stat64.c \
     statfs.c \
     statfs64.c \
     strace.c \
@@ -242,7 +247,6 @@ LOCAL_CFLAGS := \
     -DHAVE_SIGINFO_T_SI_OVERRUN=1 \
     -DHAVE_SIGINFO_T_SI_SYSCALL=1 \
     -DHAVE_SIGINFO_T_SI_TIMERID=1 \
-    -UHAVE_STAT64 \
     -DHAVE_STATFS64=1 \
     -DHAVE_STDBOOL_H=1 \
     -DHAVE_STRERROR=1 \
@@ -290,7 +294,7 @@ LOCAL_CFLAGS += -D_GNU_SOURCE=1 -D_POSIX_SOURCE=1
 
 LOCAL_CFLAGS += -fno-strict-aliasing
 
-LOCAL_CFLAGS_32 += -DSIZEOF_LONG=4 -DSIZEOF_RLIM_T=4 -DHAVE_STAT64=1
+LOCAL_CFLAGS_32 += -DSIZEOF_LONG=4 -DSIZEOF_RLIM_T=4 -DHAVE_STRUCT_STAT64=1
 LOCAL_CFLAGS_64 += -DSIZEOF_LONG=8 -DSIZEOF_RLIM_T=8
 
 LOCAL_CFLAGS_arm += -DARM=1

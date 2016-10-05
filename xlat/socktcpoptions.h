@@ -92,6 +92,9 @@ const struct xlat socktcpoptions[] = {
 #if defined(TCP_SAVED_SYN) || (defined(HAVE_DECL_TCP_SAVED_SYN) && HAVE_DECL_TCP_SAVED_SYN)
   XLAT(TCP_SAVED_SYN),
 #endif
+#if defined(TCP_REPAIR_WINDOW) || (defined(HAVE_DECL_TCP_REPAIR_WINDOW) && HAVE_DECL_TCP_REPAIR_WINDOW)
+  XLAT(TCP_REPAIR_WINDOW),
+#endif
  XLAT_END
 };
 

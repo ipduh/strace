@@ -138,7 +138,7 @@ static bool skip_one_b_execve = 0;
 /* Are we "strace PROG" and need to hide everything until execve? */
 bool hide_log_until_execve = 0;
 
-static int exit_code = 0;
+static int exit_code;
 static int strace_child = 0;
 static int strace_tracer_pid = 0;
 
@@ -360,22 +360,26 @@ error_opt_arg(int opt, const char *arg)
 	error_msg_and_help("invalid -%c argument: '%s'", opt, arg);
 }
 
-#if USE_SEIZE
+static const char *ptrace_attach_cmd;
+
 static int
 ptrace_attach_or_seize(int pid)
 {
+#if USE_SEIZE
 	int r;
 	if (!use_seize)
-		return ptrace(PTRACE_ATTACH, pid, 0L, 0L);
+		return ptrace_attach_cmd = "PTRACE_ATTACH",
+		       ptrace(PTRACE_ATTACH, pid, 0L, 0L);
 	r = ptrace(PTRACE_SEIZE, pid, 0L, (unsigned long) ptrace_setoptions);
 	if (r)
-		return r;
+		return ptrace_attach_cmd = "PTRACE_SEIZE", r;
 	r = ptrace(PTRACE_INTERRUPT, pid, 0L, 0L);
-	return r;
-}
+	return ptrace_attach_cmd = "PTRACE_INTERRUPT", r;
 #else
-# define ptrace_attach_or_seize(pid) ptrace(PTRACE_ATTACH, (pid), 0, 0)
+		return ptrace_attach_cmd = "PTRACE_ATTACH",
+		       ptrace(PTRACE_ATTACH, pid, 0L, 0L);
 #endif
+}
 
 /*
  * Used when we want to unblock stopped traced process.
@@ -401,10 +405,8 @@ ptrace_restart(int op, struct tcb *tcp, int sig)
 		msg = "CONT";
 	if (op == PTRACE_DETACH)
 		msg = "DETACH";
-#ifdef PTRACE_LISTEN
 	if (op == PTRACE_LISTEN)
 		msg = "LISTEN";
-#endif
 	/*
 	 * Why curcol != 0? Otherwise sometimes we get this:
 	 *
@@ -832,10 +834,6 @@ detach(struct tcb *tcp)
 	 * before detaching.  Arghh.  We go through hoops
 	 * to make a clean break of things.
 	 */
-#if defined(SPARC)
-# undef PTRACE_DETACH
-# define PTRACE_DETACH PTRACE_SUNDETACH
-#endif
 
 	if (!(tcp->flags & TCB_ATTACHED))
 		goto drop;
@@ -1011,6 +1009,69 @@ process_opt_p_list(char *opt)
 }
 
 static void
+attach_tcb(struct tcb *const tcp)
+{
+	if (ptrace_attach_or_seize(tcp->pid) < 0) {
+		perror_msg("attach: ptrace(%s, %d)",
+			   ptrace_attach_cmd, tcp->pid);
+		droptcb(tcp);
+		return;
+	}
+
+	tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
+	newoutf(tcp);
+	if (debug_flag)
+		error_msg("attach to pid %d (main) succeeded", tcp->pid);
+
+	char procdir[sizeof("/proc/%d/task") + sizeof(int) * 3];
+	DIR *dir;
+	unsigned int ntid = 0, nerr = 0;
+
+	if (followfork && tcp->pid != strace_child &&
+	    sprintf(procdir, "/proc/%d/task", tcp->pid) > 0 &&
+	    (dir = opendir(procdir)) != NULL) {
+		struct_dirent *de;
+
+		while ((de = read_dir(dir)) != NULL) {
+			if (de->d_fileno == 0)
+				continue;
+
+			int tid = string_to_uint(de->d_name);
+			if (tid <= 0 || tid == tcp->pid)
+				continue;
+
+			++ntid;
+			if (ptrace_attach_or_seize(tid) < 0) {
+				++nerr;
+				if (debug_flag)
+					perror_msg("attach: ptrace(%s, %d)",
+						   ptrace_attach_cmd, tid);
+				continue;
+			}
+			if (debug_flag)
+				error_msg("attach to pid %d succeeded", tid);
+
+			struct tcb *tid_tcp = alloctcb(tid);
+			tid_tcp->flags |= TCB_ATTACHED | TCB_STARTUP |
+					  post_attach_sigstop;
+			newoutf(tid_tcp);
+		}
+
+		closedir(dir);
+	}
+
+	if (!qflag) {
+		if (ntid > nerr)
+			error_msg("Process %u attached"
+				  " with %u threads",
+				  tcp->pid, ntid - nerr + 1);
+		else
+			error_msg("Process %u attached",
+				  tcp->pid);
+	}
+}
+
+static void
 startup_attach(void)
 {
 	pid_t parent_pid = strace_tracer_pid;
@@ -1058,89 +1119,19 @@ startup_attach(void)
 
 		if (tcp->pid == parent_pid || tcp->pid == strace_tracer_pid) {
 			errno = EPERM;
-			perror_msg("attach: %d", tcp->pid);
+			perror_msg("attach: pid %d", tcp->pid);
 			droptcb(tcp);
 			continue;
 		}
-		if (followfork && tcp->pid != strace_child) {
-			char procdir[sizeof("/proc/%d/task") + sizeof(int) * 3];
-			DIR *dir;
 
-			sprintf(procdir, "/proc/%d/task", tcp->pid);
-			dir = opendir(procdir);
-			if (dir != NULL) {
-				unsigned int ntid = 0, nerr = 0;
-				struct_dirent *de;
+		attach_tcb(tcp);
 
-				while ((de = read_dir(dir)) != NULL) {
-					struct tcb *cur_tcp;
-					int tid;
-
-					if (de->d_fileno == 0)
-						continue;
-					/* we trust /proc filesystem */
-					tid = atoi(de->d_name);
-					if (tid <= 0)
-						continue;
-					++ntid;
-					if (ptrace_attach_or_seize(tid) < 0) {
-						++nerr;
-						if (debug_flag)
-							error_msg("attach to pid %d failed", tid);
-						continue;
-					}
-					if (debug_flag)
-						error_msg("attach to pid %d succeeded", tid);
-					cur_tcp = tcp;
-					if (tid != tcp->pid)
-						cur_tcp = alloctcb(tid);
-					cur_tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
-					newoutf(cur_tcp);
-				}
-				closedir(dir);
-				if (interactive) {
-					sigprocmask(SIG_SETMASK, &empty_set, NULL);
-					if (interrupted)
-						goto ret;
-					sigprocmask(SIG_BLOCK, &blocked_set, NULL);
-				}
-				ntid -= nerr;
-				if (ntid == 0) {
-					perror_msg("attach: ptrace(PTRACE_ATTACH, ...)");
-					droptcb(tcp);
-					continue;
-				}
-				if (!qflag) {
-					if (ntid > 1)
-						error_msg("Process %u attached"
-							  " with %u threads",
-							  tcp->pid, ntid);
-					else
-						error_msg("Process %u attached",
-							  tcp->pid);
-				}
-				if (!(tcp->flags & TCB_ATTACHED)) {
-					/* -p PID, we failed to attach to PID itself
-					 * but did attach to some of its sibling threads.
-					 * Drop PID's tcp.
-					 */
-					droptcb(tcp);
-				}
-				continue;
-			} /* if (opendir worked) */
-		} /* if (-f) */
-		if (ptrace_attach_or_seize(tcp->pid) < 0) {
-			perror_msg("attach: ptrace(PTRACE_ATTACH, ...)");
-			droptcb(tcp);
-			continue;
+		if (interactive) {
+			sigprocmask(SIG_SETMASK, &empty_set, NULL);
+			if (interrupted)
+				goto ret;
+			sigprocmask(SIG_BLOCK, &blocked_set, NULL);
 		}
-		tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
-		newoutf(tcp);
-		if (debug_flag)
-			error_msg("attach to pid %d (main) succeeded", tcp->pid);
-
-		if (!qflag)
-			error_msg("Process %u attached", tcp->pid);
 	} /* for each tcbtab[] */
 
 	if (daemonized_tracer) {
@@ -1224,6 +1215,12 @@ exec_or_die(void)
 	perror_msg_and_die("exec");
 }
 
+/*
+ * Open a dummy descriptor for use as a placeholder.
+ * The descriptor is O_RDONLY with FD_CLOEXEC flag set.
+ * A read attempt from such descriptor ends with EOF,
+ * a write attempt is rejected with EBADF.
+ */
 static int
 open_dummy_desc(void)
 {
@@ -1232,7 +1229,54 @@ open_dummy_desc(void)
 	if (pipe(fds))
 		perror_msg_and_die("pipe");
 	close(fds[1]);
+	set_cloexec_flag(fds[0]);
 	return fds[0];
+}
+
+/* placeholder fds status for stdin and stdout */
+static bool fd_is_placeholder[2];
+
+/*
+ * Ensure that all standard file descriptors are open by opening placeholder
+ * file descriptors for those standard file descriptors that are not open.
+ *
+ * The information which descriptors have been made open is saved
+ * in fd_is_placeholder for later use.
+ */
+static void
+ensure_standard_fds_opened(void)
+{
+	int fd;
+
+	while ((fd = open_dummy_desc()) <= 2) {
+		if (fd == 2)
+			break;
+		fd_is_placeholder[fd] = true;
+	}
+
+	if (fd > 2)
+		close(fd);
+}
+
+/*
+ * Redirect stdin and stdout unless they have been opened earlier
+ * by ensure_standard_fds_opened as placeholders.
+ */
+static void
+redirect_standard_fds(void)
+{
+	int i;
+
+	/*
+	 * It might be a good idea to redirect stderr as well,
+	 * but we sometimes need to print error messages.
+	 */
+	for (i = 0; i <= 1; ++i) {
+		if (!fd_is_placeholder[i]) {
+			close(i);
+			open_dummy_desc();
+		}
+	}
 }
 
 static void
@@ -1363,7 +1407,8 @@ startup_child(char **argv)
 
 			if (ptrace_attach_or_seize(pid)) {
 				kill_save_errno(pid, SIGKILL);
-				perror_msg_and_die("Can't attach to %d", pid);
+				perror_msg_and_die("attach: ptrace(%s, %d)",
+						   ptrace_attach_cmd, pid);
 			}
 			if (!NOMMU_SYSTEM)
 				kill(pid, SIGCONT);
@@ -1411,18 +1456,11 @@ startup_child(char **argv)
 	 * the pipe is still open, it has a reader. Thus, "head" will not get its
 	 * SIGPIPE at once, on the first write.
 	 *
-	 * Preventing it by closing strace's stdin/out.
+	 * Preventing it by redirecting strace's stdin/out.
 	 * (Don't leave fds 0 and 1 closed, this is bad practice: future opens
 	 * will reuse them, unexpectedly making a newly opened object "stdin").
 	 */
-	close(0);
-	open_dummy_desc(); /* opens to fd#0 */
-	dup2(0, 1);
-#if 0
-	/* A good idea too, but we sometimes need to print error messages */
-	if (shared_log != stderr)
-		dup2(0, 2);
-#endif
+	redirect_standard_fds();
 }
 
 #if USE_SEIZE
@@ -1755,24 +1793,18 @@ init(int argc, char *argv[])
 		error_msg("ptrace_setoptions = %#x", ptrace_setoptions);
 	test_ptrace_seize();
 
-	if (fcntl(0, F_GETFD) == -1 || fcntl(1, F_GETFD) == -1) {
-		/*
-		 * Something weird with our stdin and/or stdout -
-		 * for example, may be not open? In this case,
-		 * ensure that none of the future opens uses them.
-		 *
-		 * This was seen in the wild when /proc/sys/kernel/core_pattern
-		 * was set to "|/bin/strace -o/tmp/LOG PROG":
-		 * kernel runs coredump helper with fd#0 open but fd#1 closed (!),
-		 * therefore LOG gets opened to fd#1, and fd#1 is closed by
-		 * "don't hold up stdin/out open" code soon after.
-		 */
-		int fd = open_dummy_desc();
-		while (fd >= 0 && fd < 2)
-			fd = dup(fd);
-		if (fd > 2)
-			close(fd);
-	}
+	/*
+	 * Is something weird with our stdin and/or stdout -
+	 * for example, may they be not open? In this case,
+	 * ensure that none of the future opens uses them.
+	 *
+	 * This was seen in the wild when /proc/sys/kernel/core_pattern
+	 * was set to "|/bin/strace -o/tmp/LOG PROG":
+	 * kernel runs coredump helper with fd#0 open but fd#1 closed (!),
+	 * therefore LOG gets opened to fd#1, and fd#1 is closed by
+	 * "don't hold up stdin/out open" code soon after.
+	 */
+	ensure_standard_fds_opened();
 
 	/* Check if they want to redirect the output. */
 	if (outfname) {
@@ -2388,6 +2420,8 @@ int
 main(int argc, char *argv[])
 {
 	init(argc, argv);
+
+	exit_code = !nprocs;
 
 	while (trace())
 		;
