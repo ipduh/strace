@@ -1,5 +1,5 @@
 #include "tests.h"
-#include <sys/syscall.h>
+#include <asm/unistd.h>
 
 #if defined __NR_sched_getscheduler && defined __NR_sched_setscheduler
 
@@ -46,10 +46,29 @@ main(void)
 	printf("sched_getscheduler(0) = %ld (%s)\n",
 	       rc, scheduler);
 
+	rc = syscall(__NR_sched_getscheduler, -1);
+	printf("sched_getscheduler(-1) = %s\n", sprintrc(rc));
+
 	param->sched_priority = -1;
+
+	rc = syscall(__NR_sched_setscheduler, 0, SCHED_FIFO, NULL);
+	printf("sched_setscheduler(0, SCHED_FIFO, NULL) = %s\n", sprintrc(rc));
+
+	rc = syscall(__NR_sched_setscheduler, 0, SCHED_FIFO, param + 1);
+	printf("sched_setscheduler(0, SCHED_FIFO, %p) = %s\n", param + 1,
+	       sprintrc(rc));
+
+	rc = syscall(__NR_sched_setscheduler, 0, 0xfaceda7a, param);
+	printf("sched_setscheduler(0, %#x /* SCHED_??? */, [%d]) = %s\n",
+	       0xfaceda7a, param->sched_priority, sprintrc(rc));
+
+	rc = syscall(__NR_sched_setscheduler, -1, SCHED_FIFO, param);
+	printf("sched_setscheduler(-1, SCHED_FIFO, [%d]) = %s\n",
+	       param->sched_priority, sprintrc(rc));
+
 	rc = syscall(__NR_sched_setscheduler, 0, SCHED_FIFO, param);
-	printf("sched_setscheduler(0, SCHED_FIFO, [%d]) = %ld %s (%m)\n",
-	       param->sched_priority, rc, errno2name());
+	printf("sched_setscheduler(0, SCHED_FIFO, [%d]) = %s\n",
+	       param->sched_priority, sprintrc(rc));
 
 	puts("+++ exited with 0 +++");
 	return 0;

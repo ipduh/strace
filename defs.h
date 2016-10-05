@@ -27,20 +27,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef STRACE_DEFS_H
+#define STRACE_DEFS_H
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
 #include <features.h>
-#ifdef HAVE_STDBOOL_H
-# include <stdbool.h>
-#endif
+#include <stdbool.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <sys/types.h>
-#ifdef STDC_HEADERS
-# include <stddef.h>
-#endif
+#include <stddef.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,7 +51,7 @@
 #include <errno.h>
 #include <time.h>
 #include <sys/time.h>
-#include <sys/syscall.h>
+#include <asm/unistd.h>
 
 #include "mpers_type.h"
 #include "gcc_compat.h"
@@ -67,11 +66,6 @@ const char *strerror(int);
 #undef stpcpy
 #define stpcpy strace_stpcpy
 extern char *stpcpy(char *dst, const char *src);
-#endif
-
-#ifndef offsetof
-# define offsetof(type, member)	\
-	(((char *) &(((type *) NULL)->member)) - ((char *) (type *) NULL))
 #endif
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
@@ -148,130 +142,53 @@ extern char *stpcpy(char *dst, const char *src);
 # define ERESTART_RESTARTBLOCK 516
 #endif
 
-#if defined(SPARC) || defined(SPARC64)
-# define PERSONALITY0_WORDSIZE 4
-# if defined(SPARC64)
-#  define SUPPORTED_PERSONALITIES 2
-#  define PERSONALITY1_WORDSIZE 8
-#  ifdef HAVE_M32_MPERS
-#   define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
-#   define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
-#   define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
-#   define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
-#  endif
-# endif
-#endif
-
-#ifdef X86_64
+#if defined X86_64
 # define SUPPORTED_PERSONALITIES 3
-# define PERSONALITY0_WORDSIZE 8
-# define PERSONALITY1_WORDSIZE 4
 # define PERSONALITY2_WORDSIZE 4
-# ifdef HAVE_M32_MPERS
-#  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
-#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
-# endif
-# ifdef HAVE_MX32_MPERS
-#  define PERSONALITY2_INCLUDE_FUNCS "mx32_funcs.h"
-#  define PERSONALITY2_INCLUDE_PRINTERS_DECLS "mx32_printer_decls.h"
-#  define PERSONALITY2_INCLUDE_PRINTERS_DEFS "mx32_printer_defs.h"
-#  define MPERS_mx32_IOCTL_MACROS "ioctl_redefs2.h"
-# endif
-#endif
-
-#ifdef X32
+#elif defined AARCH64 \
+   || defined POWERPC64 \
+   || defined RISCV \
+   || defined SPARC64 \
+   || defined TILE \
+   || defined X32
 # define SUPPORTED_PERSONALITIES 2
-# define PERSONALITY0_WORDSIZE 4
-# define PERSONALITY1_WORDSIZE 4
-# ifdef HAVE_M32_MPERS
-#  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
-#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
-# endif
-#endif
-
-#ifdef ARM
-/* one personality */
-#endif
-
-#ifdef AARCH64
-/* The existing ARM personality, then AArch64 */
-# define SUPPORTED_PERSONALITIES 2
-# define PERSONALITY0_WORDSIZE 8
-# define PERSONALITY1_WORDSIZE 4
-# ifdef HAVE_M32_MPERS
-#  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
-#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
-# endif
-#endif
-
-#ifdef POWERPC64
-# define SUPPORTED_PERSONALITIES 2
-# define PERSONALITY0_WORDSIZE 8
-# define PERSONALITY1_WORDSIZE 4
-# ifdef HAVE_M32_MPERS
-#  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
-#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
-# endif
-#endif
-
-#ifdef TILE
-# define SUPPORTED_PERSONALITIES 2
-# define PERSONALITY0_WORDSIZE 8
-# define PERSONALITY1_WORDSIZE 4
-# ifdef __tilepro__
-#  define DEFAULT_PERSONALITY 1
-# endif
-# ifdef HAVE_M32_MPERS
-#  define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
-#  define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
-#  define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
-# endif
-#endif
-
-#ifndef SUPPORTED_PERSONALITIES
+#else
 # define SUPPORTED_PERSONALITIES 1
 #endif
-#ifndef DEFAULT_PERSONALITY
+
+#if defined TILE && defined __tilepro__
+# define DEFAULT_PERSONALITY 1
+#else
 # define DEFAULT_PERSONALITY 0
 #endif
-#ifndef PERSONALITY0_WORDSIZE
-# define PERSONALITY0_WORDSIZE SIZEOF_LONG
+
+#define PERSONALITY0_WORDSIZE SIZEOF_LONG
+#define PERSONALITY0_INCLUDE_PRINTERS_DECLS "native_printer_decls.h"
+#define PERSONALITY0_INCLUDE_PRINTERS_DEFS "native_printer_defs.h"
+
+#if SUPPORTED_PERSONALITIES > 1
+# define PERSONALITY1_WORDSIZE 4
 #endif
 
-#ifndef PERSONALITY0_INCLUDE_PRINTERS_DECLS
-# define PERSONALITY0_INCLUDE_PRINTERS_DECLS "native_printer_decls.h"
-#endif
-#ifndef PERSONALITY0_INCLUDE_PRINTERS_DEFS
-# define PERSONALITY0_INCLUDE_PRINTERS_DEFS "native_printer_defs.h"
-#endif
-
-#ifndef PERSONALITY1_INCLUDE_PRINTERS_DECLS
+#if SUPPORTED_PERSONALITIES > 1 && defined HAVE_M32_MPERS
+# define PERSONALITY1_INCLUDE_PRINTERS_DECLS "m32_printer_decls.h"
+# define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
+# define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
+# define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
+#else
 # define PERSONALITY1_INCLUDE_PRINTERS_DECLS "native_printer_decls.h"
-#endif
-#ifndef PERSONALITY1_INCLUDE_PRINTERS_DEFS
 # define PERSONALITY1_INCLUDE_PRINTERS_DEFS "native_printer_defs.h"
-#endif
-
-#ifndef PERSONALITY2_INCLUDE_PRINTERS_DECLS
-# define PERSONALITY2_INCLUDE_PRINTERS_DECLS "native_printer_decls.h"
-#endif
-#ifndef PERSONALITY2_INCLUDE_PRINTERS_DEFS
-# define PERSONALITY2_INCLUDE_PRINTERS_DEFS "native_printer_defs.h"
-#endif
-
-#ifndef PERSONALITY1_INCLUDE_FUNCS
 # define PERSONALITY1_INCLUDE_FUNCS "empty.h"
 #endif
-#ifndef PERSONALITY2_INCLUDE_FUNCS
+
+#if SUPPORTED_PERSONALITIES > 2 && defined HAVE_MX32_MPERS
+# define PERSONALITY2_INCLUDE_FUNCS "mx32_funcs.h"
+# define PERSONALITY2_INCLUDE_PRINTERS_DECLS "mx32_printer_decls.h"
+# define PERSONALITY2_INCLUDE_PRINTERS_DEFS "mx32_printer_defs.h"
+# define MPERS_mx32_IOCTL_MACROS "ioctl_redefs2.h"
+#else
+# define PERSONALITY2_INCLUDE_PRINTERS_DECLS "native_printer_decls.h"
+# define PERSONALITY2_INCLUDE_PRINTERS_DEFS "native_printer_defs.h"
 # define PERSONALITY2_INCLUDE_FUNCS "empty.h"
 #endif
 
@@ -299,7 +216,7 @@ struct tcb {
 	int flags;		/* See below for TCB_ values */
 	int pid;		/* If 0, this tcb is free */
 	int qual_flg;		/* qual_flags[scno] or DEFAULT_QUAL_FLAGS + RAW */
-	int u_error;		/* Error code */
+	unsigned long u_error;	/* Error code */
 	long scno;		/* System call number */
 	long u_arg[MAX_ARGS];	/* System call arguments */
 #if HAVE_STRUCT_TCB_EXT_ARG
@@ -432,6 +349,7 @@ extern const struct xlat whence_codes[];
  || defined(BFIN) \
  || defined(M68K) \
  || defined(MICROBLAZE) \
+ || defined(RISCV) \
  || defined(S390) \
  || defined(SH) || defined(SH64) \
  || defined(SPARC) || defined(SPARC64) \
@@ -528,6 +446,7 @@ extern void clear_regs(void);
 extern void get_regs(pid_t pid);
 extern int get_scno(struct tcb *tcp);
 extern const char *syscall_name(long scno);
+extern const char *err_name(unsigned long err);
 
 extern bool is_erestart(struct tcb *);
 extern void temporarily_clear_syserror(struct tcb *);
@@ -594,8 +513,9 @@ extern unsigned long get_pagesize(void);
 extern int string_to_uint(const char *str);
 extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits);
 
-#define QUOTE_0_TERMINATED			0x01
-#define QUOTE_OMIT_LEADING_TRAILING_QUOTES	0x02
+#define QUOTE_0_TERMINATED                      0x01
+#define QUOTE_OMIT_LEADING_TRAILING_QUOTES      0x02
+#define QUOTE_OMIT_TRAILING_0                   0x08
 
 extern int string_quote(const char *, char *, unsigned int, unsigned int);
 extern int print_quoted_string(const char *, unsigned int, unsigned int);
@@ -617,6 +537,8 @@ extern int printllval(struct tcb *, const char *, int)
 extern void printaddr(long);
 extern void printxvals(const uint64_t, const char *, const struct xlat *, ...)
 	ATTRIBUTE_SENTINEL;
+extern long long getarg_ll(struct tcb *tcp, int argn);
+extern unsigned long long getarg_ull(struct tcb *tcp, int argn);
 extern int printargs(struct tcb *);
 extern int printargs_u(struct tcb *);
 extern int printargs_d(struct tcb *);
@@ -624,15 +546,18 @@ extern int printargs_d(struct tcb *);
 extern void addflags(const struct xlat *, uint64_t);
 extern int printflags64(const struct xlat *, uint64_t, const char *);
 extern const char *sprintflags(const char *, const struct xlat *, uint64_t);
-extern const char *sprintmode(unsigned int);
 extern const char *sprinttime(time_t);
+extern void print_symbolic_mode_t(unsigned int);
+extern void print_numeric_umode_t(unsigned short);
+extern void print_numeric_long_umask(unsigned long);
 extern void dumpiov_in_msghdr(struct tcb *, long, unsigned long);
 extern void dumpiov_in_mmsghdr(struct tcb *, long);
 extern void dumpiov_upto(struct tcb *, int, long, unsigned long);
 #define dumpiov(tcp, len, addr) \
 	dumpiov_upto((tcp), (len), (addr), (unsigned long) -1L)
 extern void dumpstr(struct tcb *, long, int);
-extern void printstr(struct tcb *, long, long);
+extern void printstr_ex(struct tcb *, long addr, long len,
+	unsigned int user_style);
 extern bool printnum_short(struct tcb *, long, const char *)
 	ATTRIBUTE_FORMAT((printf, 3, 0));
 extern bool printnum_int(struct tcb *, long, const char *)
@@ -702,6 +627,9 @@ extern const char *sprint_open_modes(unsigned int);
 extern void print_seccomp_filter(struct tcb *, unsigned long);
 extern void print_seccomp_fprog(struct tcb *, unsigned long, unsigned short);
 
+struct strace_stat;
+extern void print_struct_stat(struct tcb *tcp, const struct strace_stat *const st);
+
 struct strace_statfs;
 extern void print_struct_statfs(struct tcb *tcp, long);
 extern void print_struct_statfs64(struct tcb *tcp, long, unsigned long);
@@ -734,6 +662,12 @@ extern void unwind_cache_invalidate(struct tcb* tcp);
 extern void unwind_print_stacktrace(struct tcb* tcp);
 extern void unwind_capture_stacktrace(struct tcb* tcp);
 #endif
+
+static inline void
+printstr(struct tcb *tcp, long addr, long len)
+{
+	printstr_ex(tcp, addr, len, 0);
+}
 
 static inline int
 printflags(const struct xlat *x, unsigned int flags, const char *dflt)
@@ -818,12 +752,24 @@ extern unsigned current_wordsize;
 #endif
 
 /*
- * Widen without sign-extension a signed integer type to unsigned long long.
+ * Zero-extend a signed integer type to unsigned long long.
  */
-#define widen_to_ull(v) \
-	(sizeof(v) == sizeof(int) ? (unsigned long long) (unsigned int) (v) : \
+#define zero_extend_signed_to_ull(v) \
+	(sizeof(v) == sizeof(char) ? (unsigned long long) (unsigned char) (v) : \
+	 sizeof(v) == sizeof(short) ? (unsigned long long) (unsigned short) (v) : \
+	 sizeof(v) == sizeof(int) ? (unsigned long long) (unsigned int) (v) : \
 	 sizeof(v) == sizeof(long) ? (unsigned long long) (unsigned long) (v) : \
 	 (unsigned long long) (v))
+
+/*
+ * Sign-extend an unsigned integer type to long long.
+ */
+#define sign_extend_unsigned_to_ll(v) \
+	(sizeof(v) == sizeof(char) ? (long long) (char) (v) : \
+	 sizeof(v) == sizeof(short) ? (long long) (short) (v) : \
+	 sizeof(v) == sizeof(int) ? (long long) (int) (v) : \
+	 sizeof(v) == sizeof(long) ? (long long) (long) (v) : \
+	 (long long) (v))
 
 extern const struct_sysent sysent0[];
 extern const char *const errnoent0[];
@@ -863,10 +809,13 @@ extern unsigned num_quals;
 #endif /* !IN_MPERS_BOOTSTRAP */
 
 /*
- * If you need non-NULL sysent[scno].sys_func and sysent[scno].sys_name
+ * If you need non-NULL sysent[scno].sys_func, non-NULL sysent[scno].sys_name,
+ * and non-indirect sysent[scno].sys_flags.
  */
 #define SCNO_IS_VALID(scno) \
-	((unsigned long)(scno) < nsyscalls && sysent[scno].sys_func)
+	((unsigned long)(scno) < nsyscalls \
+	 && sysent[scno].sys_func \
+	 && !(sysent[scno].sys_flags & TRACE_INDIRECT_SUBCALL))
 
 /* Only ensures that sysent[scno] isn't out of range */
 #define SCNO_IN_RANGE(scno) \
@@ -899,3 +848,5 @@ extern unsigned num_quals;
 #define PRI__d64 PRI__64"d"
 #define PRI__u64 PRI__64"u"
 #define PRI__x64 PRI__64"x"
+
+#endif /* !STRACE_DEFS_H */

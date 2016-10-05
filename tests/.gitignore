@@ -10,6 +10,7 @@ accept
 accept4
 access
 acct
+addkey
 adjtimex
 aio
 alarm
@@ -44,6 +45,9 @@ execve-v
 execveat
 execveat-v
 faccessat
+fadvise64
+fadvise64_64
+fallocate
 fanotify_mark
 fchdir
 fchmod
@@ -67,8 +71,10 @@ fstatfs64
 fsync
 ftruncate
 ftruncate64
+futex
 futimesat
 get_mempolicy
+getcpu
 getcwd
 getdents
 getdents64
@@ -112,6 +118,7 @@ ipc_msg
 ipc_msgbuf
 ipc_sem
 ipc_shm
+keyctl
 kill
 ksysent
 ksysent.h
@@ -169,6 +176,7 @@ open
 openat
 pause
 pc
+perf_event_open
 personality
 pipe
 poll
@@ -183,7 +191,12 @@ prlimit64
 pselect6
 ptrace
 pwritev
+quotactl
+quotactl-v
+quotactl-xfs
+quotactl-xfs-v
 read-write
+readahead
 readdir
 readlink
 readlinkat
@@ -192,10 +205,12 @@ reboot
 recvfrom
 recvmmsg-timeout
 recvmsg
+redirect-fds
 remap_file_pages
 rename
 renameat
 renameat2
+request_key
 restart_syscall
 rmdir
 rt_sigpending
@@ -248,7 +263,7 @@ sigaction
 sigaltstack
 siginfo
 signal_receive
-signalfd
+signalfd4
 sigreturn
 sleep
 socketcall

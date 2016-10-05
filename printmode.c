@@ -36,27 +36,38 @@
 
 #include "xlat/modetypes.h"
 
-const char *
-sprintmode(unsigned int mode)
+void
+print_symbolic_mode_t(const unsigned int mode)
 {
-	static char buf[sizeof("S_IFSOCK|S_ISUID|S_ISGID|S_ISVTX|%o")
-			+ sizeof(int)*3
-			+ /*paranoia:*/ 8];
-	const char *s;
+	const char *ifmt;
 
-	if ((mode & S_IFMT) == 0)
-		s = "";
-	else if ((s = xlookup(modetypes, mode & S_IFMT)) == NULL) {
-		sprintf(buf, "%#o", mode);
-		return buf;
+	if (mode & S_IFMT) {
+		ifmt = xlookup(modetypes, mode & S_IFMT);
+		if (!ifmt) {
+			tprintf("%#03o", mode);
+			return;
+		}
+	} else {
+		ifmt = NULL;
 	}
-	s = buf + sprintf(buf, "%s%s%s%s", s,
-		(mode & S_ISUID) ? "|S_ISUID" : "",
-		(mode & S_ISGID) ? "|S_ISGID" : "",
-		(mode & S_ISVTX) ? "|S_ISVTX" : "");
-	mode &= ~(S_IFMT|S_ISUID|S_ISGID|S_ISVTX);
-	if (mode)
-		sprintf((char*)s, "|%#o", mode);
-	s = (*buf == '|') ? buf + 1 : buf;
-	return *s ? s : "0";
+
+	tprintf("%s%s%s%s%s%#03o",
+		ifmt ? ifmt : "",
+		ifmt ? "|" : "",
+		(mode & S_ISUID) ? "S_ISUID|" : "",
+		(mode & S_ISGID) ? "S_ISGID|" : "",
+		(mode & S_ISVTX) ? "S_ISVTX|" : "",
+		mode & ~(S_IFMT|S_ISUID|S_ISGID|S_ISVTX));
+}
+
+void
+print_numeric_umode_t(const unsigned short mode)
+{
+	tprintf("%#03ho", mode);
+}
+
+void
+print_numeric_long_umask(const unsigned long mode)
+{
+	tprintf("%#03lo", mode);
 }
