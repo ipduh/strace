@@ -27,7 +27,7 @@
 
 #include "tests.h"
 #include <fcntl.h>
-#include <sys/syscall.h>
+#include <asm/unistd.h>
 
 #if defined __NR_timerfd_create \
  && defined __NR_timerfd_gettime \
@@ -51,6 +51,10 @@ main(void)
 		struct itimerspec its;
 		uint32_t pad[4];
 	} old = {
+		.its = {
+			.it_interval = { 0xdeface5, 0xdeface6 },
+			.it_value = { 0xdeface7, 0xdeface8 }
+		},
 		.pad = { 0xdeadbeef, 0xbadc0ded, 0xdeadbeef, 0xbadc0ded }
 	}, new = {
 		.its = {

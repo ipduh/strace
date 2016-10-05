@@ -275,7 +275,17 @@ getllval(struct tcb *tcp, unsigned long long *val, int arg_no)
      defined XTENSA
 	/* Align arg_no to the next even number. */
 	arg_no = (arg_no + 1) & 0xe;
-# endif
+# elif defined SH
+	/*
+	 * The SH4 ABI does allow long longs in odd-numbered registers, but
+	 * does not allow them to be split between registers and memory - and
+	 * there are only four argument registers for normal functions.  As a
+	 * result, pread, for example, takes an extra padding argument before
+	 * the offset.  This was changed late in the 2.4 series (around 2.4.20).
+	 */
+	if (arg_no == 3)
+		arg_no++;
+# endif /* __ARM_EABI__ || LINUX_MIPSO32 || POWERPC || XTENSA || SH */
 	*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 	arg_no += 2;
 #endif
@@ -609,6 +619,9 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
 			/* Check for NUL-terminated string. */
 			if (c == eol)
 				goto asciz_ended;
+			if ((i == (size - 1)) &&
+			    (style & QUOTE_OMIT_TRAILING_0) && (c == '\0'))
+				goto asciz_ended;
 			switch (c) {
 				case '\"': case '\\':
 					*s++ = '\\';
@@ -785,7 +798,7 @@ printpath(struct tcb *tcp, long addr)
  * If string length exceeds `max_strlen', append `...' to the output.
  */
 void
-printstr(struct tcb *tcp, long addr, long len)
+printstr_ex(struct tcb *tcp, long addr, long len, unsigned int user_style)
 {
 	static char *str = NULL;
 	static char *outstr;
@@ -828,6 +841,8 @@ printstr(struct tcb *tcp, long addr, long len)
 		}
 		style = 0;
 	}
+
+	style |= user_style;
 
 	/* If string_quote didn't see NUL and (it was supposed to be ASCIZ str
 	 * or we were requested to print more than -s NUM chars)...
@@ -1403,24 +1418,44 @@ print_array(struct tcb *tcp,
 	return cur >= end_addr;
 }
 
+long long
+getarg_ll(struct tcb *tcp, int argn)
+{
+#if HAVE_STRUCT_TCB_EXT_ARG
+# if SUPPORTED_PERSONALITIES > 1
+	if (current_personality == 1)
+		return (long) tcp->u_arg[argn];
+	else
+# endif
+	return (long long) tcp->ext_arg[argn];
+#else
+	return (long) tcp->u_arg[argn];
+#endif
+}
+
+unsigned long long
+getarg_ull(struct tcb *tcp, int argn)
+{
+#if HAVE_STRUCT_TCB_EXT_ARG
+# if SUPPORTED_PERSONALITIES > 1
+	if (current_personality == 1)
+		return (unsigned long) tcp->u_arg[argn];
+	else
+# endif
+	return (unsigned long long) tcp->ext_arg[argn];
+#else
+	return (unsigned long) tcp->u_arg[argn];
+#endif
+}
+
 int
 printargs(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		int i;
 		int n = tcp->s_ent->nargs;
-		for (i = 0; i < n; i++) {
-#if HAVE_STRUCT_TCB_EXT_ARG
-# if SUPPORTED_PERSONALITIES > 1
-			if (current_personality == 1)
-				tprintf("%s%#lx", i ? ", " : "", tcp->u_arg[i]);
-			else
-# endif
-			tprintf("%s%#llx", i ? ", " : "", tcp->ext_arg[i]);
-#else
-			tprintf("%s%#lx", i ? ", " : "", tcp->u_arg[i]);
-#endif
-		}
+		for (i = 0; i < n; i++)
+			tprintf("%s%#llx", i ? ", " : "", getarg_ull(tcp, i));
 	}
 	return 0;
 }

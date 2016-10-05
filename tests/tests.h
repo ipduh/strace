@@ -25,8 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TESTS_H_
-# define TESTS_H_
+#ifndef STRACE_TESTS_H
+#define STRACE_TESTS_H
 
 # ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -34,6 +34,11 @@
 
 # include <sys/types.h>
 # include "gcc_compat.h"
+
+/* Tests of "strace -v" are expected to define VERBOSE to 1. */
+#ifndef VERBOSE
+# define VERBOSE 0
+#endif
 
 /* Cached sysconf(_SC_PAGESIZE). */
 size_t get_page_size(void);
@@ -99,6 +104,11 @@ const char *errno2name(void);
 /* Translate signal number to its name. */
 const char *signal2name(int);
 
+/* Print return code and, in case return code is -1, errno information. */
+const char *sprintrc(long rc);
+/* sprintrc variant suitable for usage as part of grep pattern. */
+const char *sprintrc_grep(long rc);
+
 struct xlat;
 
 /* Print flags in symbolic form according to xlat table. */
@@ -120,13 +130,21 @@ int send_mmsg(int, struct mmsghdr *, unsigned int, unsigned int);
 # define ARRAY_SIZE(arg) ((unsigned int) (sizeof(arg) / sizeof((arg)[0])))
 # define LENGTH_OF(arg) ((unsigned int) sizeof(arg) - 1)
 
-/*
- * Widen without sign-extension a signed integer type to unsigned long long.
- */
-#define widen_to_ull(v) \
-	(sizeof(v) == sizeof(int) ? (unsigned long long) (unsigned int) (v) : \
+/* Zero-extend a signed integer type to unsigned long long. */
+#define zero_extend_signed_to_ull(v) \
+	(sizeof(v) == sizeof(char) ? (unsigned long long) (unsigned char) (v) : \
+	 sizeof(v) == sizeof(short) ? (unsigned long long) (unsigned short) (v) : \
+	 sizeof(v) == sizeof(int) ? (unsigned long long) (unsigned int) (v) : \
 	 sizeof(v) == sizeof(long) ? (unsigned long long) (unsigned long) (v) : \
 	 (unsigned long long) (v))
+
+/* Sign-extend an unsigned integer type to long long. */
+#define sign_extend_unsigned_to_ll(v) \
+	(sizeof(v) == sizeof(char) ? (long long) (char) (v) : \
+	 sizeof(v) == sizeof(short) ? (long long) (short) (v) : \
+	 sizeof(v) == sizeof(int) ? (long long) (int) (v) : \
+	 sizeof(v) == sizeof(long) ? (long long) (long) (v) : \
+	 (long long) (v))
 
 # define SKIP_MAIN_UNDEFINED(arg) \
 	int main(void) { error_msg_and_skip("undefined: %s", arg); }
@@ -151,4 +169,4 @@ int send_mmsg(int, struct mmsghdr *, unsigned int, unsigned int);
 # define PRI__u64 PRI__64"u"
 # define PRI__x64 PRI__64"x"
 
-#endif
+#endif /* !STRACE_TESTS_H */

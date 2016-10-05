@@ -70,6 +70,7 @@
 # endif
 #endif
 
+#include "xlat/sa_handler_values.h"
 #include "xlat/sigact_flags.h"
 #include "xlat/sigprocmaskcmds.h"
 
@@ -112,6 +113,23 @@
  * to fetch a sigset_t.
  * Use (NSIG / 8) as a size instead.
  */
+
+static const char *
+get_sa_handler_str(unsigned long handler)
+{
+	return xlookup(sa_handler_values, handler);
+}
+
+static void
+print_sa_handler(unsigned long handler)
+{
+	const char *sa_handler_str = get_sa_handler_str(handler);
+
+	if (sa_handler_str)
+		tprints(sa_handler_str);
+	else
+		printaddr(handler);
+}
 
 const char *
 signame(const int sig)
@@ -258,8 +276,6 @@ SYS_FUNC(sigsetmask)
 	return 0;
 }
 
-#ifdef HAVE_SIGACTION
-
 struct old_sigaction {
 	/* sa_handler may be a libc #define, need to use other name: */
 #ifdef MIPS
@@ -320,14 +336,7 @@ decode_old_sigaction(struct tcb *tcp, long addr)
 	 * compiler from generating code to manipulate
 	 * __sa_handler we cast the function pointers to long. */
 	tprints("{");
-	if ((long)sa.__sa_handler == (long)SIG_ERR)
-		tprints("SIG_ERR");
-	else if ((long)sa.__sa_handler == (long)SIG_DFL)
-		tprints("SIG_DFL");
-	else if ((long)sa.__sa_handler == (long)SIG_IGN)
-		tprints("SIG_IGN");
-	else
-		printaddr((long) sa.__sa_handler);
+	print_sa_handler((unsigned long) sa.__sa_handler);
 	tprints(", ");
 #ifdef MIPS
 	tprintsigmask_addr("", sa.sa_mask);
@@ -360,38 +369,14 @@ SYS_FUNC(signal)
 	if (entering(tcp)) {
 		printsignal(tcp->u_arg[0]);
 		tprints(", ");
-		switch (tcp->u_arg[1]) {
-		case (long) SIG_ERR:
-			tprints("SIG_ERR");
-			break;
-		case (long) SIG_DFL:
-			tprints("SIG_DFL");
-			break;
-		case (long) SIG_IGN:
-			tprints("SIG_IGN");
-			break;
-		default:
-			printaddr(tcp->u_arg[1]);
-		}
+		print_sa_handler(tcp->u_arg[1]);
 		return 0;
-	}
-	else if (!syserror(tcp)) {
-		switch (tcp->u_rval) {
-		case (long) SIG_ERR:
-			tcp->auxstr = "SIG_ERR"; break;
-		case (long) SIG_DFL:
-			tcp->auxstr = "SIG_DFL"; break;
-		case (long) SIG_IGN:
-			tcp->auxstr = "SIG_IGN"; break;
-		default:
-			tcp->auxstr = NULL;
-		}
+	} else if (!syserror(tcp)) {
+		tcp->auxstr = get_sa_handler_str(tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	}
 	return 0;
 }
-
-#endif /* HAVE_SIGACTION */
 
 SYS_FUNC(siggetmask)
 {
@@ -407,8 +392,6 @@ SYS_FUNC(sigsuspend)
 
 	return RVAL_DECODED;
 }
-
-#ifdef HAVE_SIGACTION
 
 /* "Old" sigprocmask, which operates with word-sized signal masks */
 SYS_FUNC(sigprocmask)
@@ -446,8 +429,6 @@ SYS_FUNC(sigprocmask)
 # endif /* !ALPHA */
 	return 0;
 }
-
-#endif /* HAVE_SIGACTION */
 
 SYS_FUNC(kill)
 {
@@ -545,7 +526,7 @@ decode_new_sigaction(struct tcb *tcp, long addr)
 		 * For little-endian, it's the same.
 		 * For big-endian, we swap 32-bit words.
 		 */
-		sa.sa_mask[0] = sa32.sa_mask[0] + ((long)(sa32.sa_mask[1]) << 32);
+		sa.sa_mask[0] = LONG_LONG(sa32.sa_mask[0], sa32.sa_mask[1]);
 	} else
 #endif
 	if (umove_or_printaddr(tcp, addr, &sa))
@@ -560,14 +541,7 @@ decode_new_sigaction(struct tcb *tcp, long addr)
 	 * compiler from generating code to manipulate
 	 * __sa_handler we cast the function pointers to long. */
 	tprints("{");
-	if ((long)sa.__sa_handler == (long)SIG_ERR)
-		tprints("SIG_ERR");
-	else if ((long)sa.__sa_handler == (long)SIG_DFL)
-		tprints("SIG_DFL");
-	else if ((long)sa.__sa_handler == (long)SIG_IGN)
-		tprints("SIG_IGN");
-	else
-		printaddr((unsigned long) sa.__sa_handler);
+	print_sa_handler((unsigned long) sa.__sa_handler);
 	tprints(", ");
 	/*
 	 * Sigset size is in tcp->u_arg[4] (SPARC)

@@ -43,21 +43,22 @@
 
 SYS_FUNC(shmget)
 {
-	if (tcp->u_arg[0])
-		tprintf("%#lx", tcp->u_arg[0]);
+	const int key = (int) tcp->u_arg[0];
+	if (key)
+		tprintf("%#x", key);
 	else
 		tprints("IPC_PRIVATE");
 	tprintf(", %lu, ", tcp->u_arg[1]);
 	if (printflags(shm_resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
 		tprints("|");
-	tprintf("%#lo", tcp->u_arg[2] & 0777);
+	print_numeric_umode_t(tcp->u_arg[2] & 0777);
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(shmat)
 {
 	if (entering(tcp)) {
-		tprintf("%lu, ", tcp->u_arg[0]);
+		tprintf("%d, ", (int) tcp->u_arg[0]);
 		if (indirect_ipccall(tcp)) {
 			printaddr(tcp->u_arg[3]);
 			tprints(", ");
@@ -72,10 +73,14 @@ SYS_FUNC(shmat)
 		if (syserror(tcp))
 			return 0;
 		if (indirect_ipccall(tcp)) {
-			unsigned long raddr;
-			if (umove(tcp, tcp->u_arg[2], &raddr) < 0)
+			union {
+				uint64_t r64;
+				uint32_t r32;
+			} u;
+			if (umoven(tcp, tcp->u_arg[2], current_wordsize, &u) < 0)
 				return RVAL_NONE;
-			tcp->u_rval = raddr;
+			tcp->u_rval = (sizeof(u.r32) == current_wordsize)
+				      ? u.r32 : u.r64;
 		}
 		return RVAL_HEX;
 	}
