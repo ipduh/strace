@@ -32,6 +32,9 @@
 #include <stdlib.h>
 #include <sys/shm.h>
 
+#include "xlat.h"
+#include "xlat/shm_resource_flags.h"
+
 static int id = -1;
 
 static void
@@ -45,14 +48,49 @@ cleanup(void)
 int
 main(void)
 {
+	static const key_t private_key =
+		(key_t) (0xffffffff00000000ULL | IPC_PRIVATE);
+	static const key_t bogus_key = (key_t) 0xeca86420fdb97531ULL;
+	static const int bogus_id = 0xdefaced1;
+	static const int bogus_cmd = 0xdefaced2;
+	static void * const bogus_addr = (void *) -1L;
+	static const size_t bogus_size =
+	/*
+	 * musl sets size to SIZE_MAX if size argument is greater than
+	 * PTRDIFF_MAX - musl/src/ipc/shmget.c
+	 */
+	#ifdef __GLIBC__
+		(size_t) 0xdec0ded1dec0ded2ULL;
+	#else
+		(size_t) 0x1e55c0de5dec0dedULL;
+	#endif
+	static const int bogus_flags = 0xface1e55;
+
 	int rc;
 	struct shmid_ds ds;
 
-	id = shmget(IPC_PRIVATE, 1, 0600);
+	rc = shmget(bogus_key, bogus_size, bogus_flags);
+	printf("shmget\\(%#llx, %zu, %s%s%s%#x\\|%#04o\\) += %s\n",
+	       zero_extend_signed_to_ull(bogus_key), bogus_size,
+	       IPC_CREAT & bogus_flags ? "IPC_CREAT\\|" : "",
+	       IPC_EXCL & bogus_flags ? "IPC_EXCL\\|" : "",
+	       SHM_HUGETLB & bogus_flags ? "SHM_HUGETLB\\|" : "",
+	       bogus_flags & ~(0777 | IPC_CREAT | IPC_EXCL | SHM_HUGETLB),
+	       bogus_flags & 0777, sprintrc_grep(rc));
+
+	id = shmget(private_key, 1, 0600);
 	if (id < 0)
 		perror_msg_and_skip("shmget");
 	printf("shmget\\(IPC_PRIVATE, 1, 0600\\) += %d\n", id);
 	atexit(cleanup);
+
+	rc = shmctl(bogus_id, bogus_cmd, NULL);
+	printf("shmctl\\(%d, (IPC_64\\|)?%#x /\\* SHM_\\?\\?\\? \\*/, NULL\\)"
+	       " += %s\n", bogus_id, bogus_cmd, sprintrc_grep(rc));
+
+	rc = shmctl(bogus_id, IPC_STAT, bogus_addr);
+	printf("shmctl\\(%d, (IPC_64\\|)?IPC_STAT, %p\\) += %s\n",
+	       bogus_id, bogus_addr, sprintrc_grep(rc));
 
 	if (shmctl(id, IPC_STAT, &ds))
 		perror_msg_and_skip("shmctl IPC_STAT");
@@ -68,23 +106,20 @@ main(void)
 		(unsigned) ds.shm_atime, (unsigned) ds.shm_dtime,
 		(unsigned) ds. shm_ctime);
 
-	int max = shmctl(0, SHM_INFO, &ds);
-	if (max < 0)
-		perror_msg_and_skip("shmctl SHM_INFO");
-	printf("shmctl\\(0, (IPC_64\\|)?SHM_INFO, %p\\) += %d\n", &ds, max);
+	if (shmctl(id, IPC_SET, &ds))
+		perror_msg_and_skip("shmctl IPC_SET");
+	printf("shmctl\\(%d, (IPC_64\\|)?IPC_SET, \\{shm_perm=\\{uid=%u, gid=%u"
+	       ", mode=%#o\\}, ...\\}\\) += 0\n",
+	       id, (unsigned) ds.shm_perm.uid, (unsigned) ds.shm_perm.gid,
+	       (unsigned) ds.shm_perm.mode);
+
+	rc = shmctl(0, SHM_INFO, &ds);
+	printf("shmctl\\(0, (IPC_64\\|)?SHM_INFO, %p\\) += %s\n",
+	       &ds, sprintrc_grep(rc));
 
 	rc = shmctl(id, SHM_STAT, &ds);
-	if (rc != id) {
-		/*
-		 * In linux < v2.6.24-rc1 the first argument must be
-		 * an index in the kernel's internal array.
-		 */
-		if (-1 != rc || EINVAL != errno)
-			perror_msg_and_skip("shmctl SHM_STAT");
-		printf("shmctl\\(%d, (IPC_64\\|)?SHM_STAT, %p\\) += -1 EINVAL \\(%m\\)\n", id, &ds);
-	} else {
-		printf("shmctl\\(%d, (IPC_64\\|)?SHM_STAT, %p\\) += %d\n", id, &ds, id);
-	}
+	printf("shmctl\\(%d, (IPC_64\\|)?SHM_STAT, %p\\) += %s\n",
+	       id, &ds, sprintrc_grep(rc));
 
 	return 0;
 }

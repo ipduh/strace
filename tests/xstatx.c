@@ -44,14 +44,7 @@
 # include <stddef.h>
 # include <time.h>
 # include <unistd.h>
-
-# if defined MAJOR_IN_SYSMACROS
-#  include <sys/sysmacros.h>
-# elif defined MAJOR_IN_MKDEV
-#  include <sys/mkdev.h>
-# else
-#  include <sys/types.h>
-# endif
+# include <sys/sysmacros.h>
 
 static void
 print_time(const time_t t)
@@ -68,8 +61,17 @@ print_time(const time_t t)
 		       p->tm_year + 1900, p->tm_mon + 1, p->tm_mday,
 		       p->tm_hour, p->tm_min, p->tm_sec);
 	else
-		printf("%llu", (unsigned long long) t);
+		printf("%llu", zero_extend_signed_to_ull(t));
 }
+
+# ifndef STRUCT_STAT
+#  define STRUCT_STAT struct stat
+#  define STRUCT_STAT_STR "struct stat"
+#  define STRUCT_STAT_IS_STAT64 0
+# endif
+# ifndef SAMPLE_SIZE
+#  define SAMPLE_SIZE 43147718418
+# endif
 
 typedef off_t libc_off_t;
 
@@ -88,54 +90,46 @@ typedef off_t libc_off_t;
 #  undef st_atime
 #  undef st_mtime
 #  undef st_ctime
-#  undef dev_t
-#  undef gid_t
-#  undef ino_t
-#  undef loff_t
-#  undef mode_t
-#  undef nlink_t
-#  undef off64_t
-#  undef off_t
-#  undef time_t
-#  undef uid_t
-#  define dev_t __kernel_dev_t
-#  define gid_t __kernel_gid_t
-#  define ino_t __kernel_ino_t
-#  define loff_t __kernel_loff_t
-#  define mode_t __kernel_mode_t
-#  define nlink_t __kernel_nlink_t
-#  define off64_t __kernel_off64_t
-#  define off_t __kernel_off_t
-#  define time_t __kernel_time_t
-#  define uid_t __kernel_uid_t
 #  include "asm_stat.h"
-# else
-#  undef HAVE_STRUCT_STAT_ST_ATIME_NSEC
-#  ifdef HAVE_STRUCT_STAT_ST_ATIM_TV_NSEC
-#   define HAVE_STRUCT_STAT_ST_ATIME_NSEC 1
-#   undef st_atime_nsec
-#   define st_atime_nsec st_atim.tv_nsec
-#  endif
+
+#  if STRUCT_STAT_IS_STAT64
+#   undef HAVE_STRUCT_STAT_ST_MTIME_NSEC
+#   if defined MPERS_IS_m32
+#    ifdef HAVE_M32_STRUCT_STAT64_ST_MTIME_NSEC
+#     define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
+#    endif
+#   elif defined MPERS_IS_mx32
+#    ifdef HAVE_MX32_STRUCT_STAT64_ST_MTIME_NSEC
+#     define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
+#    endif
+#   elif defined HAVE_STRUCT_STAT64_ST_MTIME_NSEC
+#    define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
+#   endif /* MPERS_IS_m32 || MPERS_IS_mx32 || HAVE_STRUCT_STAT64_ST_MTIME_NSEC */
+#  else /* !STRUCT_STAT_IS_STAT64 */
+#   if defined MPERS_IS_m32
+#    undef HAVE_STRUCT_STAT_ST_MTIME_NSEC
+#    ifdef HAVE_M32_STRUCT_STAT_ST_MTIME_NSEC
+#     define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
+#    endif
+#   elif defined MPERS_IS_mx32
+#    undef HAVE_STRUCT_STAT_ST_MTIME_NSEC
+#    ifdef HAVE_MX32_STRUCT_STAT_ST_MTIME_NSEC
+#     define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
+#    endif
+#   endif /*  MPERS_IS_m32 || MPERS_IS_mx32 */
+#  endif /* STRUCT_STAT_IS_STAT64 */
+
+# else /* !USE_ASM_STAT */
 #  undef HAVE_STRUCT_STAT_ST_MTIME_NSEC
 #  ifdef HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC
 #   define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
-#   undef st_mtime_nsec
-#   define st_mtime_nsec st_mtim.tv_nsec
-#  endif
-#  undef HAVE_STRUCT_STAT_ST_CTIME_NSEC
-#  ifdef HAVE_STRUCT_STAT_ST_CTIM_TV_NSEC
-#   define HAVE_STRUCT_STAT_ST_CTIME_NSEC 1
+#   undef st_atime_nsec
+#   define st_atime_nsec st_atim.tv_nsec
 #   undef st_ctime_nsec
 #   define st_ctime_nsec st_ctim.tv_nsec
-#  endif
-# endif
-
-# ifndef STRUCT_STAT
-#  define STRUCT_STAT struct stat
-#  define STRUCT_STAT_STR "struct stat"
-# endif
-# ifndef SAMPLE_SIZE
-#  define SAMPLE_SIZE 43147718418
+#   undef st_mtime_nsec
+#   define st_mtime_nsec st_mtim.tv_nsec
+#  endif /* HAVE_STRUCT_STAT_ST_MTIM_TV_NSEC */
 # endif
 
 static void
@@ -163,46 +157,46 @@ static void
 print_stat(const STRUCT_STAT *st)
 {
 	printf("{st_dev=makedev(%u, %u)",
-	       (unsigned int) major(st->st_dev),
-	       (unsigned int) minor(st->st_dev));
-	printf(", st_ino=%llu", (unsigned long long) st->st_ino);
+	       (unsigned int) major(zero_extend_signed_to_ull(st->st_dev)),
+	       (unsigned int) minor(zero_extend_signed_to_ull(st->st_dev)));
+	printf(", st_ino=%llu", zero_extend_signed_to_ull(st->st_ino));
 	printf(", st_mode=");
 	print_ftype(st->st_mode);
 	printf("|");
 	print_perms(st->st_mode);
-	printf(", st_nlink=%u", (unsigned int) st->st_nlink);
-	printf(", st_uid=%u", (unsigned int) st->st_uid);
-	printf(", st_gid=%u", (unsigned int) st->st_gid);
-	printf(", st_blksize=%u", (unsigned int) st->st_blksize);
-	printf(", st_blocks=%u", (unsigned int) st->st_blocks);
+	printf(", st_nlink=%llu", zero_extend_signed_to_ull(st->st_nlink));
+	printf(", st_uid=%llu", zero_extend_signed_to_ull(st->st_uid));
+	printf(", st_gid=%llu", zero_extend_signed_to_ull(st->st_gid));
+	printf(", st_blksize=%llu", zero_extend_signed_to_ull(st->st_blksize));
+	printf(", st_blocks=%llu", zero_extend_signed_to_ull(st->st_blocks));
 
 	switch (st->st_mode & S_IFMT) {
 	case S_IFCHR: case S_IFBLK:
 		printf(", st_rdev=makedev(%u, %u)",
-		       (unsigned int) major(st->st_rdev),
-		       (unsigned int) minor(st->st_rdev));
+		       (unsigned int) major(zero_extend_signed_to_ull(st->st_rdev)),
+		       (unsigned int) minor(zero_extend_signed_to_ull(st->st_rdev)));
 		break;
 	default:
-		printf(", st_size=%llu", (unsigned long long) st->st_size);
+		printf(", st_size=%llu", zero_extend_signed_to_ull(st->st_size));
 	}
 
 	printf(", st_atime=");
-	print_time(st->st_atime);
-# ifdef HAVE_STRUCT_STAT_ST_ATIME_NSEC
+	print_time(sign_extend_unsigned_to_ll(st->st_atime));
+# ifdef HAVE_STRUCT_STAT_ST_MTIME_NSEC
 	if (st->st_atime_nsec)
-		printf(".%09lu", (unsigned long) st->st_atime_nsec);
+		printf(".%09llu", zero_extend_signed_to_ull(st->st_atime_nsec));
 # endif
 	printf(", st_mtime=");
-	print_time(st->st_mtime);
+	print_time(sign_extend_unsigned_to_ll(st->st_mtime));
 # ifdef HAVE_STRUCT_STAT_ST_MTIME_NSEC
 	if (st->st_mtime_nsec)
-		printf(".%09lu", (unsigned long) st->st_mtime_nsec);
+		printf(".%09llu", zero_extend_signed_to_ull(st->st_mtime_nsec));
 # endif
 	printf(", st_ctime=");
-	print_time(st->st_ctime);
-# ifdef HAVE_STRUCT_STAT_ST_CTIME_NSEC
+	print_time(sign_extend_unsigned_to_ll(st->st_ctime));
+# ifdef HAVE_STRUCT_STAT_ST_MTIME_NSEC
 	if (st->st_ctime_nsec)
-		printf(".%09lu", (unsigned long) st->st_ctime_nsec);
+		printf(".%09llu", zero_extend_signed_to_ull(st->st_ctime_nsec));
 # endif
 	printf("}");
 }
@@ -248,12 +242,12 @@ main(void)
 		return 77;
 	}
 	(void) unlink(sample);
-	if ((unsigned long long) SAMPLE_SIZE !=
-	    (unsigned long long) st[0].st_size) {
+	if (zero_extend_signed_to_ull(SAMPLE_SIZE) !=
+	    zero_extend_signed_to_ull(st[0].st_size)) {
 		fprintf(stderr, "Size mismatch: "
 				"requested size(%llu) != st_size(%llu)\n",
-			(unsigned long long) SAMPLE_SIZE,
-			(unsigned long long) st[0].st_size);
+			zero_extend_signed_to_ull(SAMPLE_SIZE),
+			zero_extend_signed_to_ull(st[0].st_size));
 		fprintf(stderr, "The most likely reason for this is incorrect"
 				" definition of %s.\n"
 				"Here is some diagnostics that might help:\n",

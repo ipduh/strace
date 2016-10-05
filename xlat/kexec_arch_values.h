@@ -35,6 +35,9 @@
 #if !(defined(KEXEC_ARCH_MIPS) || (defined(HAVE_DECL_KEXEC_ARCH_MIPS) && HAVE_DECL_KEXEC_ARCH_MIPS))
 # define KEXEC_ARCH_MIPS ( 8 << 16)
 #endif
+#if !(defined(KEXEC_ARCH_AARCH64) || (defined(HAVE_DECL_KEXEC_ARCH_AARCH64) && HAVE_DECL_KEXEC_ARCH_AARCH64))
+# define KEXEC_ARCH_AARCH64 (183 << 16)
+#endif
 
 #ifdef IN_MPERS
 
@@ -56,6 +59,7 @@ const struct xlat kexec_arch_values[] = {
  XLAT(KEXEC_ARCH_SH),
  XLAT(KEXEC_ARCH_MIPS_LE),
  XLAT(KEXEC_ARCH_MIPS),
+ XLAT(KEXEC_ARCH_AARCH64),
  XLAT_END
 };
 

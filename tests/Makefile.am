@@ -54,6 +54,7 @@ libtests_a_SOURCES = \
 	printflags.c \
 	printxval.c \
 	signal2name.c \
+	sprintrc.c \
 	tail_alloc.c \
 	tests.h \
 	tprintf.c \
@@ -68,6 +69,7 @@ check_PROGRAMS = \
 	accept4 \
 	access \
 	acct \
+	add_key \
 	adjtimex \
 	aio \
 	alarm \
@@ -102,6 +104,9 @@ check_PROGRAMS = \
 	execveat \
 	execveat-v \
 	faccessat \
+	fadvise64 \
+	fadvise64_64 \
+	fallocate \
 	fanotify_mark \
 	fchdir \
 	fchmod \
@@ -125,8 +130,10 @@ check_PROGRAMS = \
 	fsync \
 	ftruncate \
 	ftruncate64 \
+	futex \
 	futimesat \
 	get_mempolicy \
+	getcpu \
 	getcwd \
 	getdents \
 	getdents64 \
@@ -170,6 +177,7 @@ check_PROGRAMS = \
 	ipc_msgbuf \
 	ipc_sem \
 	ipc_shm \
+	keyctl \
 	kill \
 	ksysent \
 	lchown \
@@ -225,6 +233,7 @@ check_PROGRAMS = \
 	openat \
 	pause \
 	pc \
+	perf_event_open \
 	personality \
 	pipe \
 	poll \
@@ -239,7 +248,12 @@ check_PROGRAMS = \
 	pselect6 \
 	ptrace \
 	pwritev \
+	quotactl \
+	quotactl-v \
+	quotactl-xfs \
+	quotactl-xfs-v \
 	read-write \
+	readahead \
 	readdir \
 	readlink \
 	readlinkat \
@@ -248,10 +262,12 @@ check_PROGRAMS = \
 	recvfrom \
 	recvmmsg-timeout \
 	recvmsg \
+	redirect-fds \
 	remap_file_pages \
 	rename \
 	renameat \
 	renameat2 \
+	request_key \
 	restart_syscall \
 	rmdir \
 	rt_sigpending \
@@ -304,7 +320,7 @@ check_PROGRAMS = \
 	sigaltstack \
 	siginfo \
 	signal_receive \
-	signalfd \
+	signalfd4 \
 	sigreturn \
 	sleep \
 	socketcall \
@@ -401,6 +417,7 @@ DECODER_TESTS = \
 	accept4.test \
 	access.test \
 	acct.test \
+	add_key.test \
 	adjtimex.test \
 	aio.test \
 	alarm.test \
@@ -434,6 +451,9 @@ DECODER_TESTS = \
 	execveat-v.test \
 	execveat.test \
 	faccessat.test \
+	fadvise64.test \
+	fadvise64_64.test \
+	fallocate.test \
 	fanotify_mark.test \
 	fchdir.test \
 	fchmod.test \
@@ -455,8 +475,10 @@ DECODER_TESTS = \
 	fsync.test \
 	ftruncate.test \
 	ftruncate64.test \
+	futex.test \
 	futimesat.test \
 	get_mempolicy.test \
+	getcpu.test \
 	getcwd.test \
 	getdents.test \
 	getdents64.test \
@@ -500,6 +522,7 @@ DECODER_TESTS = \
 	ipc_msgbuf.test \
 	ipc_sem.test \
 	ipc_shm.test \
+	keyctl.test \
 	kill.test \
 	lchown.test \
 	lchown32.test \
@@ -550,6 +573,7 @@ DECODER_TESTS = \
 	open.test \
 	openat.test \
 	pause.test \
+	perf_event_open.test \
 	personality.test \
 	pipe.test \
 	poll.test \
@@ -564,7 +588,12 @@ DECODER_TESTS = \
 	pselect6.test \
 	ptrace.test \
 	pwritev.test \
+	quotactl.test \
+	quotactl-v.test \
+	quotactl-xfs.test \
+	quotactl-xfs-v.test \
 	read-write.test \
+	readahead.test \
 	readdir.test \
 	readlink.test \
 	readlinkat.test \
@@ -577,6 +606,7 @@ DECODER_TESTS = \
 	rename.test \
 	renameat.test \
 	renameat2.test \
+	request_key.test \
 	rmdir.test \
 	rt_sigpending.test \
 	rt_sigprocmask.test \
@@ -626,7 +656,7 @@ DECODER_TESTS = \
 	sigaction.test \
 	sigaltstack.test \
 	siginfo.test \
-	signalfd.test \
+	signalfd4.test \
 	sigreturn.test \
 	socketcall.test \
 	splice.test \
@@ -700,6 +730,7 @@ MISC_TESTS = \
 	pc.test \
 	qual_syscall.test \
 	redirect.test \
+	redirect-fds.test \
 	restart_syscall.test \
 	signal_receive.test \
 	strace-E.test \
@@ -722,36 +753,34 @@ XFAIL_TESTS_mx32 = $(LIBUNWIND_TESTS)
 XFAIL_TESTS = $(XFAIL_TESTS_$(MPERS_NAME))
 
 TEST_LOG_COMPILER = env
-AM_TEST_LOG_FLAGS = STRACE_ARCH=$(ARCH) $(srcdir)/run.sh
+AM_TEST_LOG_FLAGS = STRACE_ARCH=$(ARCH) MIPS_ABI=$(MIPS_ABI) $(srcdir)/run.sh
 
 EXTRA_DIST = init.sh run.sh match.awk \
 	     caps.awk \
 	     count-f.expected \
 	     eventfd.expected \
-	     fanotify_mark.expected \
+	     fadvise.h \
 	     filter-unavailable.expected \
 	     fstatat.c \
 	     fstatx.c \
 	     getresugid.c \
-	     ip_mreq.expected \
 	     ipc.sh \
 	     ipc_msgbuf.expected \
 	     ksysent.sed \
 	     lstatx.c \
-	     memfd_create.expected \
 	     mq.expected \
 	     net.expected \
 	     oldselect.expected \
 	     pipe.expected \
 	     ppoll.expected \
 	     ppoll-v.expected \
+	     quotactl.h \
 	     setfsugid.c \
 	     setreugid.c \
 	     setresugid.c \
 	     setugid.c \
 	     sigaction.awk \
 	     sigaltstack.expected \
-	     signalfd.expected \
 	     sockname.c \
 	     statfs.expected \
 	     statx.sh \
@@ -763,6 +792,7 @@ EXTRA_DIST = init.sh run.sh match.awk \
 	     struct_flock.c \
 	     sun_path.expected \
 	     uio.expected \
+	     umode_t.c \
 	     umovestr.expected \
 	     unix-pair-send-recv.expected \
 	     unix-pair-sendto-recvfrom.expected \
@@ -778,7 +808,7 @@ EXTRA_DIST = init.sh run.sh match.awk \
 ksysent.h: $(srcdir)/ksysent.sed
 	echo '#include <asm/unistd.h>' | \
 		$(CPP) $(AM_CPPFLAGS) $(CPPFLAGS) -dM - > $@.t1
-	LC_COLLATE=C sed -n -f $(srcdir)/ksysent.sed < $@.t1 > $@.t2
+	LC_COLLATE=C sed -r -n -f $(srcdir)/ksysent.sed < $@.t1 > $@.t2
 	mv -f $@.t2 $@
 	rm -f $@.t1
 

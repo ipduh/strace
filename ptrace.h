@@ -33,6 +33,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef STRACE_PTRACE_H
+#define STRACE_PTRACE_H
+
 #ifdef NEED_PTRACE_PROTOTYPE_WORKAROUND
 # define ptrace xptrace
 # include <sys/ptrace.h>
@@ -62,6 +65,16 @@ extern long ptrace(int, int, char *, long);
 #endif
 #ifdef HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS
 # undef ptrace_peeksiginfo_args
+#endif
+
+#if defined(SPARC) || defined(SPARC64)
+/*
+ * SPARC has a different PTRACE_DETACH value correctly defined in sys/ptrace.h,
+ * but linux/ptrace.h clobbers it with the standard one.  PTRACE_SUNDETACH is
+ * also defined to the correct value by sys/ptrace.h, so use that instead.
+ */
+# undef PTRACE_DETACH
+# define PTRACE_DETACH PTRACE_SUNDETACH
 #endif
 
 #ifndef PTRACE_EVENT_FORK
@@ -172,3 +185,5 @@ extern long ptrace(int, int, char *, long);
 #if !HAVE_DECL_PTRACE_POKEUSER
 # define PTRACE_POKEUSER PTRACE_POKEUSR
 #endif
+
+#endif /* !STRACE_PTRACE_H */
