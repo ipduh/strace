@@ -38,13 +38,10 @@
 #include "xlat/modem_flags.h"
 
 static void
-decode_termios(struct tcb *tcp, const long addr)
+decode_termios(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	struct termios tios;
 	int i;
-
-	if (!verbose(tcp))
-		return;
 
 	tprints(", ");
 	if (umove_or_printaddr(tcp, addr, &tios))
@@ -74,13 +71,10 @@ decode_termios(struct tcb *tcp, const long addr)
 }
 
 static void
-decode_termio(struct tcb *tcp, const long addr)
+decode_termio(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	struct termio tio;
 	int i;
-
-	if (!verbose(tcp))
-		return;
 
 	tprints(", ");
 	if (umove_or_printaddr(tcp, addr, &tio))
@@ -116,12 +110,9 @@ decode_termio(struct tcb *tcp, const long addr)
 }
 
 static void
-decode_winsize(struct tcb *tcp, const long addr)
+decode_winsize(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	struct winsize ws;
-
-	if (!verbose(tcp))
-		return;
 
 	tprints(", ");
 	if (umove_or_printaddr(tcp, addr, &ws))
@@ -132,12 +123,9 @@ decode_winsize(struct tcb *tcp, const long addr)
 
 #ifdef TIOCGSIZE
 static void
-decode_ttysize(struct tcb *tcp, const long addr)
+decode_ttysize(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	struct ttysize ts;
-
-	if (!verbose(tcp))
-		return;
 
 	tprints(", ");
 	if (umove_or_printaddr(tcp, addr, &ts))
@@ -148,12 +136,9 @@ decode_ttysize(struct tcb *tcp, const long addr)
 #endif
 
 static void
-decode_modem_flags(struct tcb *tcp, const long addr)
+decode_modem_flags(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	int i;
-
-	if (!verbose(tcp))
-		return;
 
 	tprints(", ");
 	if (umove_or_printaddr(tcp, addr, &i))
@@ -164,7 +149,8 @@ decode_modem_flags(struct tcb *tcp, const long addr)
 }
 
 int
-term_ioctl(struct tcb *tcp, const unsigned int code, const long arg)
+term_ioctl(struct tcb *const tcp, const unsigned int code,
+	   const kernel_ulong_t arg)
 {
 	switch (code) {
 	/* struct termios */
@@ -222,11 +208,11 @@ term_ioctl(struct tcb *tcp, const unsigned int code, const long arg)
 	/* ioctls with a direct decodable arg */
 	case TCXONC:
 		tprints(", ");
-		printxval_long(tcxonc_options, arg, "TC???");
+		printxval64(tcxonc_options, arg, "TC???");
 		break;
 	case TCFLSH:
 		tprints(", ");
-		printxval_long(tcflsh_options, arg, "TC???");
+		printxval64(tcflsh_options, arg, "TC???");
 		break;
 	case TCSBRK:
 	case TCSBRKP:
@@ -274,7 +260,7 @@ term_ioctl(struct tcb *tcp, const unsigned int code, const long arg)
 	/* ioctls with an indirect parameter displayed as a char */
 	case TIOCSTI:
 		tprints(", ");
-		printstr(tcp, arg, 1);
+		printstrn(tcp, arg, 1);
 		break;
 
 	/* ioctls with no parameters */

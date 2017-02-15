@@ -34,11 +34,7 @@ static void
 print_statfs_type(const char *const prefix, const unsigned long long magic)
 {
 	tprints(prefix);
-	const char *s = xlat_search(fsmagic, ARRAY_SIZE(fsmagic), magic);
-	if (s)
-		tprints(s);
-	else
-		tprintf("%#llx", magic);
+	printxval_search(fsmagic, magic, NULL);
 }
 
 #if defined HAVE_STRUCT_STATFS_F_FLAGS || defined HAVE_STRUCT_STATFS64_F_FLAGS
@@ -60,7 +56,7 @@ print_statfs_number(const char *const prefix, const unsigned long long number)
 }
 
 void
-print_struct_statfs(struct tcb *tcp, const long addr)
+print_struct_statfs(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 #ifdef HAVE_STRUCT_STATFS
 	struct strace_statfs b;
@@ -77,9 +73,9 @@ print_struct_statfs(struct tcb *tcp, const long addr)
 	print_statfs_number(", f_ffree=", b.f_ffree);
 # if defined HAVE_STRUCT_STATFS_F_FSID_VAL \
   || defined HAVE_STRUCT_STATFS_F_FSID___VAL
-	print_statfs_number(", f_fsid={", b.f_fsid[0]);
+	print_statfs_number(", f_fsid={val=[", b.f_fsid[0]);
 	print_statfs_number(", ", b.f_fsid[1]);
-	tprints("}");
+	tprints("]}");
 # endif
 	print_statfs_number(", f_namelen=", b.f_namelen);
 # ifdef HAVE_STRUCT_STATFS_F_FRSIZE
@@ -95,7 +91,8 @@ print_struct_statfs(struct tcb *tcp, const long addr)
 }
 
 void
-print_struct_statfs64(struct tcb *tcp, const long addr, const unsigned long size)
+print_struct_statfs64(struct tcb *const tcp, const kernel_ulong_t addr,
+		      const kernel_ulong_t size)
 {
 #ifdef HAVE_STRUCT_STATFS64
 	struct strace_statfs b;
@@ -112,9 +109,9 @@ print_struct_statfs64(struct tcb *tcp, const long addr, const unsigned long size
 	print_statfs_number(", f_ffree=", b.f_ffree);
 # if defined HAVE_STRUCT_STATFS64_F_FSID_VAL \
   || defined HAVE_STRUCT_STATFS64_F_FSID___VAL
-	print_statfs_number(", f_fsid={", b.f_fsid[0]);
+	print_statfs_number(", f_fsid={val=[", b.f_fsid[0]);
 	print_statfs_number(", ", b.f_fsid[1]);
-	tprints("}");
+	tprints("]}");
 # endif
 	print_statfs_number(", f_namelen=", b.f_namelen);
 # ifdef HAVE_STRUCT_STATFS64_F_FRSIZE

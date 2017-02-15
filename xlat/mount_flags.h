@@ -71,6 +71,9 @@
 #if !(defined(MS_LAZYTIME) || (defined(HAVE_DECL_MS_LAZYTIME) && HAVE_DECL_MS_LAZYTIME))
 # define MS_LAZYTIME (1<<25)
 #endif
+#if !(defined(MS_NOREMOTELOCK) || (defined(HAVE_DECL_MS_NOREMOTELOCK) && HAVE_DECL_MS_NOREMOTELOCK))
+# define MS_NOREMOTELOCK (1<<27)
+#endif
 #if !(defined(MS_NOSEC) || (defined(HAVE_DECL_MS_NOSEC) && HAVE_DECL_MS_NOSEC))
 # define MS_NOSEC (1<<28)
 #endif
@@ -116,6 +119,7 @@ const struct xlat mount_flags[] = {
  XLAT(MS_I_VERSION),
  XLAT(MS_STRICTATIME),
  XLAT(MS_LAZYTIME),
+ XLAT(MS_NOREMOTELOCK),
  XLAT(MS_NOSEC),
  XLAT(MS_BORN),
  XLAT(MS_ACTIVE),

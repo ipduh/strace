@@ -1,0 +1,70 @@
+#include <inttypes.h>
+typedef uint32_t mpers_ptr_t;
+typedef
+struct {
+struct {
+int32_t tv_sec;
+int32_t tv_usec;
+} ATTRIBUTE_PACKED ru_utime;
+struct {
+int32_t tv_sec;
+int32_t tv_usec;
+} ATTRIBUTE_PACKED ru_stime;
+union {
+int32_t ru_maxrss;
+int32_t __ru_maxrss_word;
+} ;
+union {
+int32_t ru_ixrss;
+int32_t __ru_ixrss_word;
+} ;
+union {
+int32_t ru_idrss;
+int32_t __ru_idrss_word;
+} ;
+union {
+int32_t ru_isrss;
+int32_t __ru_isrss_word;
+} ;
+union {
+int32_t ru_minflt;
+int32_t __ru_minflt_word;
+} ;
+union {
+int32_t ru_majflt;
+int32_t __ru_majflt_word;
+} ;
+union {
+int32_t ru_nswap;
+int32_t __ru_nswap_word;
+} ;
+union {
+int32_t ru_inblock;
+int32_t __ru_inblock_word;
+} ;
+union {
+int32_t ru_oublock;
+int32_t __ru_oublock_word;
+} ;
+union {
+int32_t ru_msgsnd;
+int32_t __ru_msgsnd_word;
+} ;
+union {
+int32_t ru_msgrcv;
+int32_t __ru_msgrcv_word;
+} ;
+union {
+int32_t ru_nsignals;
+int32_t __ru_nsignals_word;
+} ;
+union {
+int32_t ru_nvcsw;
+int32_t __ru_nvcsw_word;
+} ;
+union {
+int32_t ru_nivcsw;
+int32_t __ru_nivcsw_word;
+} ;
+} ATTRIBUTE_PACKED m32_rusage_t;
+#define MPERS_m32_rusage_t m32_rusage_t

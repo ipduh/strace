@@ -50,7 +50,7 @@ print_pollfd(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 static void
 decode_poll_entering(struct tcb *tcp)
 {
-	const unsigned long addr = tcp->u_arg[0];
+	const kernel_ulong_t addr = tcp->u_arg[0];
 	const unsigned int nfds = tcp->u_arg[1];
 	struct pollfd fds;
 
@@ -60,16 +60,17 @@ decode_poll_entering(struct tcb *tcp)
 }
 
 static int
-decode_poll_exiting(struct tcb *tcp, const long pts)
+decode_poll_exiting(struct tcb *const tcp, const kernel_ulong_t pts)
 {
 	struct pollfd fds;
 	const unsigned int nfds = tcp->u_arg[1];
 	const unsigned long size = sizeof(fds) * nfds;
-	const unsigned long start = tcp->u_arg[0];
-	const unsigned long end = start + size;
-	const unsigned long max_printed =
-		abbrev(tcp) ? max_strlen : (unsigned int) -1;
-	unsigned long printed, cur;
+	const kernel_ulong_t start = tcp->u_arg[0];
+	const kernel_ulong_t end = start + size;
+	kernel_ulong_t cur;
+	const unsigned int max_printed =
+		abbrev(tcp) ? max_strlen : -1U;
+	unsigned int printed;
 
 	static char outstr[1024];
 	char *outptr;
@@ -94,7 +95,7 @@ decode_poll_exiting(struct tcb *tcp, const long pts)
 				*outptr++ = '[';
 			else
 				outptr = stpcpy(outptr, ", ");
-			outptr += sprintf(outptr, "%#lx", cur);
+			outptr += sprintf(outptr, "%#" PRI_klx, cur);
 			break;
 		}
 		if (!fds.revents)
@@ -175,9 +176,9 @@ SYS_FUNC(ppoll)
 
 		print_timespec(tcp, tcp->u_arg[2]);
 		tprints(", ");
-		/* NB: kernel requires arg[4] == NSIG / 8 */
+		/* NB: kernel requires arg[4] == NSIG_BYTES */
 		print_sigset_addr_len(tcp, tcp->u_arg[3], tcp->u_arg[4]);
-		tprintf(", %lu", tcp->u_arg[4]);
+		tprintf(", %" PRI_klu, tcp->u_arg[4]);
 
 		return 0;
 	} else {

@@ -35,7 +35,6 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
-#include <sys/sysmacros.h>
 
 static void
 decode_mknod(struct tcb *tcp, int offset)
@@ -50,7 +49,8 @@ decode_mknod(struct tcb *tcp, int offset)
 	case S_IFCHR:
 	case S_IFBLK:
 		dev = tcp->u_arg[offset + 2];
-		tprintf(", makedev(%u, %u)", major(dev), minor(dev));
+		tprints(", ");
+		print_dev_t(dev);
 		break;
 	}
 }

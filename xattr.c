@@ -40,32 +40,25 @@
 #endif
 
 static void
-print_xattr_val(struct tcb *tcp,
-		unsigned long addr,
-		unsigned long insize,
-		unsigned long size)
+print_xattr_val(struct tcb *const tcp,
+		const kernel_ulong_t addr,
+		const kernel_ulong_t insize,
+		const kernel_ulong_t size)
 {
-	static char buf[XATTR_SIZE_MAX];
-
 	tprints(", ");
 
-	if (!addr || size > sizeof(buf))
+	if (size > XATTR_SIZE_MAX)
 		printaddr(addr);
-	else if (!size || !umoven_or_printaddr(tcp, addr, size, buf)) {
-		/* Don't print terminating NUL if there is one. */
-		if (size && buf[size - 1] == '\0')
-			--size;
-
-		print_quoted_string(buf, size, 0);
-	}
-	tprintf(", %lu", insize);
+	else
+		printstr_ex(tcp, addr, size, QUOTE_OMIT_TRAILING_0);
+	tprintf(", %" PRI_klu, insize);
 }
 
 SYS_FUNC(setxattr)
 {
 	printpath(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], -1);
+	printstr(tcp, tcp->u_arg[1]);
 	print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[3]);
 	tprints(", ");
 	printflags(xattrflags, tcp->u_arg[4], "XATTR_???");
@@ -76,7 +69,7 @@ SYS_FUNC(fsetxattr)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], -1);
+	printstr(tcp, tcp->u_arg[1]);
 	print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_arg[3]);
 	tprints(", ");
 	printflags(xattrflags, tcp->u_arg[4], "XATTR_???");
@@ -88,7 +81,7 @@ SYS_FUNC(getxattr)
 	if (entering(tcp)) {
 		printpath(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
+		printstr(tcp, tcp->u_arg[1]);
 	} else {
 		print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_rval);
 	}
@@ -100,7 +93,7 @@ SYS_FUNC(fgetxattr)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		printstr(tcp, tcp->u_arg[1], -1);
+		printstr(tcp, tcp->u_arg[1]);
 	} else {
 		print_xattr_val(tcp, tcp->u_arg[2], tcp->u_arg[3], tcp->u_rval);
 	}
@@ -108,14 +101,15 @@ SYS_FUNC(fgetxattr)
 }
 
 static void
-print_xattr_list(struct tcb *tcp, unsigned long addr, unsigned long size)
+print_xattr_list(struct tcb *const tcp, const kernel_ulong_t addr,
+		 const kernel_ulong_t size)
 {
 	if (!size || syserror(tcp)) {
 		printaddr(addr);
 	} else {
-		printstr(tcp, addr, tcp->u_rval);
+		printstrn(tcp, addr, tcp->u_rval);
 	}
-	tprintf(", %lu", size);
+	tprintf(", %" PRI_klu, size);
 }
 
 SYS_FUNC(listxattr)
@@ -144,7 +138,7 @@ SYS_FUNC(removexattr)
 {
 	printpath(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], -1);
+	printstr(tcp, tcp->u_arg[1]);
 	return RVAL_DECODED;
 }
 
@@ -152,6 +146,6 @@ SYS_FUNC(fremovexattr)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	printstr(tcp, tcp->u_arg[1], -1);
+	printstr(tcp, tcp->u_arg[1]);
 	return RVAL_DECODED;
 }

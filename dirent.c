@@ -33,14 +33,12 @@
 
 #include DEF_MPERS_TYPE(kernel_dirent)
 
-#include "kernel_types.h"
-
 #include MPERS_DEFS
 
 #define D_NAME_LEN_MAX 256
 
 static void
-print_old_dirent(struct tcb *tcp, long addr)
+print_old_dirent(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	kernel_dirent d;
 
@@ -68,7 +66,7 @@ SYS_FUNC(readdir)
 			print_old_dirent(tcp, tcp->u_arg[1]);
 		/* Not much point in printing this out, it is always 1. */
 		if (tcp->u_arg[2] != 1)
-			tprintf(", %lu", tcp->u_arg[2]);
+			tprintf(", %" PRI_klu, tcp->u_arg[2]);
 	}
 	return 0;
 }
