@@ -17,6 +17,18 @@
 #if !(defined(BPF_PROG_LOAD) || (defined(HAVE_DECL_BPF_PROG_LOAD) && HAVE_DECL_BPF_PROG_LOAD))
 # define BPF_PROG_LOAD 5
 #endif
+#if !(defined(BPF_OBJ_PIN) || (defined(HAVE_DECL_BPF_OBJ_PIN) && HAVE_DECL_BPF_OBJ_PIN))
+# define BPF_OBJ_PIN 6
+#endif
+#if !(defined(BPF_OBJ_GET) || (defined(HAVE_DECL_BPF_OBJ_GET) && HAVE_DECL_BPF_OBJ_GET))
+# define BPF_OBJ_GET 7
+#endif
+#if !(defined(BPF_PROG_ATTACH) || (defined(HAVE_DECL_BPF_PROG_ATTACH) && HAVE_DECL_BPF_PROG_ATTACH))
+# define BPF_PROG_ATTACH 8
+#endif
+#if !(defined(BPF_PROG_DETACH) || (defined(HAVE_DECL_BPF_PROG_DETACH) && HAVE_DECL_BPF_PROG_DETACH))
+# define BPF_PROG_DETACH 9
+#endif
 
 #ifdef IN_MPERS
 
@@ -32,6 +44,10 @@ const struct xlat bpf_commands[] = {
  XLAT(BPF_MAP_DELETE_ELEM),
  XLAT(BPF_MAP_GET_NEXT_KEY),
  XLAT(BPF_PROG_LOAD),
+ XLAT(BPF_OBJ_PIN),
+ XLAT(BPF_OBJ_GET),
+ XLAT(BPF_PROG_ATTACH),
+ XLAT(BPF_PROG_DETACH),
  XLAT_END
 };
 

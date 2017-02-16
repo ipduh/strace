@@ -37,49 +37,49 @@ typedef struct rusage rusage_t;
 
 #include MPERS_DEFS
 
-MPERS_PRINTER_DECL(void, printrusage, struct tcb *tcp, long addr)
+MPERS_PRINTER_DECL(void, printrusage,
+		   struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	rusage_t ru;
 
 	if (umove_or_printaddr(tcp, addr, &ru))
 		return;
 
-	tprintf("{ru_utime={%llu, %llu}, ru_stime={%llu, %llu}, ",
-		zero_extend_signed_to_ull(ru.ru_utime.tv_sec),
-		zero_extend_signed_to_ull(ru.ru_utime.tv_usec),
-		zero_extend_signed_to_ull(ru.ru_stime.tv_sec),
-		zero_extend_signed_to_ull(ru.ru_stime.tv_usec));
+	tprints("{ru_utime=");
+	MPERS_FUNC_NAME(print_struct_timeval)(&ru.ru_utime);
+	tprints(", ru_stime=");
+	MPERS_FUNC_NAME(print_struct_timeval)(&ru.ru_stime);
 	if (abbrev(tcp))
-		tprints("...}");
+		tprints(", ...");
 	else {
-		tprintf("ru_maxrss=%llu, ", zero_extend_signed_to_ull(ru.ru_maxrss));
-		tprintf("ru_ixrss=%llu, ", zero_extend_signed_to_ull(ru.ru_ixrss));
-		tprintf("ru_idrss=%llu, ", zero_extend_signed_to_ull(ru.ru_idrss));
-		tprintf("ru_isrss=%llu, ", zero_extend_signed_to_ull(ru.ru_isrss));
-		tprintf("ru_minflt=%llu, ", zero_extend_signed_to_ull(ru.ru_minflt));
-		tprintf("ru_majflt=%llu, ", zero_extend_signed_to_ull(ru.ru_majflt));
-		tprintf("ru_nswap=%llu, ", zero_extend_signed_to_ull(ru.ru_nswap));
-		tprintf("ru_inblock=%llu, ", zero_extend_signed_to_ull(ru.ru_inblock));
-		tprintf("ru_oublock=%llu, ", zero_extend_signed_to_ull(ru.ru_oublock));
-		tprintf("ru_msgsnd=%llu, ", zero_extend_signed_to_ull(ru.ru_msgsnd));
-		tprintf("ru_msgrcv=%llu, ", zero_extend_signed_to_ull(ru.ru_msgrcv));
-		tprintf("ru_nsignals=%llu, ", zero_extend_signed_to_ull(ru.ru_nsignals));
-		tprintf("ru_nvcsw=%llu, ", zero_extend_signed_to_ull(ru.ru_nvcsw));
-		tprintf("ru_nivcsw=%llu}", zero_extend_signed_to_ull(ru.ru_nivcsw));
+#define PRINT_RUSAGE_MEMBER(member) \
+		tprintf(", " #member "=%llu", zero_extend_signed_to_ull(ru.member))
+		PRINT_RUSAGE_MEMBER(ru_maxrss);
+		PRINT_RUSAGE_MEMBER(ru_ixrss);
+		PRINT_RUSAGE_MEMBER(ru_idrss);
+		PRINT_RUSAGE_MEMBER(ru_isrss);
+		PRINT_RUSAGE_MEMBER(ru_minflt);
+		PRINT_RUSAGE_MEMBER(ru_majflt);
+		PRINT_RUSAGE_MEMBER(ru_nswap);
+		PRINT_RUSAGE_MEMBER(ru_inblock);
+		PRINT_RUSAGE_MEMBER(ru_oublock);
+		PRINT_RUSAGE_MEMBER(ru_msgsnd);
+		PRINT_RUSAGE_MEMBER(ru_msgrcv);
+		PRINT_RUSAGE_MEMBER(ru_nsignals);
+		PRINT_RUSAGE_MEMBER(ru_nvcsw);
+		PRINT_RUSAGE_MEMBER(ru_nivcsw);
+#undef PRINT_RUSAGE_MEMBER
 	}
+	tprints("}");
 }
 
 #ifdef ALPHA
 void
-printrusage32(struct tcb *tcp, long addr)
+printrusage32(struct tcb *const tcp, const kernel_ulong_t addr)
 {
-	struct timeval32 {
-		unsigned tv_sec;
-		unsigned tv_usec;
-	};
 	struct rusage32 {
-		struct timeval32 ru_utime;	/* user time used */
-		struct timeval32 ru_stime;	/* system time used */
+		timeval32_t ru_utime;		/* user time used */
+		timeval32_t ru_stime;		/* system time used */
 		long	ru_maxrss;		/* maximum resident set size */
 		long	ru_ixrss;		/* integral shared memory size */
 		long	ru_idrss;		/* integral unshared data size */
@@ -99,26 +99,31 @@ printrusage32(struct tcb *tcp, long addr)
 	if (umove_or_printaddr(tcp, addr, &ru))
 		return;
 
-	tprintf("{ru_utime={%lu, %lu}, ru_stime={%lu, %lu}, ",
-		(long) ru.ru_utime.tv_sec, (long) ru.ru_utime.tv_usec,
-		(long) ru.ru_stime.tv_sec, (long) ru.ru_stime.tv_usec);
+	tprints("{ru_utime=");
+	print_timeval32_t(&ru.ru_utime);
+	tprints(", ru_stime=");
+	print_timeval32_t(&ru.ru_stime);
 	if (abbrev(tcp))
-		tprints("...}");
+		tprints(", ...");
 	else {
-		tprintf("ru_maxrss=%lu, ", ru.ru_maxrss);
-		tprintf("ru_ixrss=%lu, ", ru.ru_ixrss);
-		tprintf("ru_idrss=%lu, ", ru.ru_idrss);
-		tprintf("ru_isrss=%lu, ", ru.ru_isrss);
-		tprintf("ru_minflt=%lu, ", ru.ru_minflt);
-		tprintf("ru_majflt=%lu, ", ru.ru_majflt);
-		tprintf("ru_nswap=%lu, ", ru.ru_nswap);
-		tprintf("ru_inblock=%lu, ", ru.ru_inblock);
-		tprintf("ru_oublock=%lu, ", ru.ru_oublock);
-		tprintf("ru_msgsnd=%lu, ", ru.ru_msgsnd);
-		tprintf("ru_msgrcv=%lu, ", ru.ru_msgrcv);
-		tprintf("ru_nsignals=%lu, ", ru.ru_nsignals);
-		tprintf("ru_nvcsw=%lu, ", ru.ru_nvcsw);
-		tprintf("ru_nivcsw=%lu}", ru.ru_nivcsw);
+# define PRINT_RUSAGE_MEMBER(member) \
+		tprintf(", " #member "=%lu", ru.member)
+		PRINT_RUSAGE_MEMBER(ru_maxrss);
+		PRINT_RUSAGE_MEMBER(ru_ixrss);
+		PRINT_RUSAGE_MEMBER(ru_idrss);
+		PRINT_RUSAGE_MEMBER(ru_isrss);
+		PRINT_RUSAGE_MEMBER(ru_minflt);
+		PRINT_RUSAGE_MEMBER(ru_majflt);
+		PRINT_RUSAGE_MEMBER(ru_nswap);
+		PRINT_RUSAGE_MEMBER(ru_inblock);
+		PRINT_RUSAGE_MEMBER(ru_oublock);
+		PRINT_RUSAGE_MEMBER(ru_msgsnd);
+		PRINT_RUSAGE_MEMBER(ru_msgrcv);
+		PRINT_RUSAGE_MEMBER(ru_nsignals);
+		PRINT_RUSAGE_MEMBER(ru_nvcsw);
+		PRINT_RUSAGE_MEMBER(ru_nivcsw);
+# undef PRINT_RUSAGE_MEMBER
 	}
+	tprints("}");
 }
 #endif

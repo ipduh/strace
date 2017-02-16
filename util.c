@@ -39,23 +39,42 @@
 # include <sys/xattr.h>
 #endif
 #include <sys/uio.h>
+#include <asm/unistd.h>
 
+#include "scno.h"
 #include "regs.h"
 #include "ptrace.h"
 
 int
-string_to_uint(const char *str)
+string_to_uint_ex(const char *const str, char **const endptr,
+		  const unsigned int max_val, const char *const accepted_ending)
 {
-	char *error;
-	long value;
+	char *end;
+	long val;
 
 	if (!*str)
 		return -1;
+
 	errno = 0;
-	value = strtol(str, &error, 10);
-	if (errno || *error || value < 0 || (long)(int)value != value)
+	val = strtol(str, &end, 10);
+
+	if (str == end || val < 0 || (unsigned long) val > max_val
+	    || (val == LONG_MAX && errno == ERANGE))
 		return -1;
-	return (int)value;
+
+	if (*end && (!accepted_ending || !strchr(accepted_ending, *end)))
+		return -1;
+
+	if (endptr)
+		*endptr = end;
+
+	return (int) val;
+}
+
+int
+string_to_uint(const char *const str)
+{
+	return string_to_uint_upto(str, INT_MAX);
 }
 
 int
@@ -204,10 +223,18 @@ next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits)
 		pos++;
 	}
 }
-/*
+
+/**
  * Print entry in struct xlat table, if there.
+ *
+ * @param val  Value to search a literal representation for.
+ * @param dflt String (abbreviated in comment syntax) which should be emitted
+ *             if no appropriate xlat value has been found.
+ * @param xlat (And the following arguments) Pointers to arrays of xlat values.
+ *             The last argument should be NULL.
+ * @return     1 if appropriate xlat value has been found, 0 otherwise.
  */
-void
+int
 printxvals(const uint64_t val, const char *dflt, const struct xlat *xlat, ...)
 {
 	va_list args;
@@ -219,13 +246,49 @@ printxvals(const uint64_t val, const char *dflt, const struct xlat *xlat, ...)
 		if (str) {
 			tprints(str);
 			va_end(args);
-			return;
+			return 1;
 		}
 	}
 	/* No hits -- print raw # instead. */
-	tprintf("%#" PRIx64 " /* %s */", val, dflt);
+	tprintf("%#" PRIx64, val);
+	if (dflt)
+		tprintf(" /* %s */", dflt);
 
 	va_end(args);
+
+	return 0;
+}
+
+/**
+ * Print entry in sorted struct xlat table, if it is there.
+ *
+ * @param xlat      Pointer to an array of xlat values (not terminated with
+ *                  XLAT_END).
+ * @param xlat_size Number of xlat elements present in array (usually ARRAY_SIZE
+ *                  if array is declared in the unit's scope and not
+ *                  terminated with XLAT_END).
+ * @param val       Value to search literal representation for.
+ * @param dflt      String (abbreviated in comment syntax) which should be
+ *                  emitted if no appropriate xlat value has been found.
+ * @return          1 if appropriate xlat value has been found, 0
+ *                  otherwise.
+ */
+int
+printxval_searchn(const struct xlat *xlat, size_t xlat_size, uint64_t val,
+	const char *dflt)
+{
+	const char *s = xlat_search(xlat, xlat_size, val);
+
+	if (s) {
+		tprints(s);
+		return 1;
+	}
+
+	tprintf("%#" PRIx64, val);
+	if (dflt)
+		tprintf(" /* %s */", dflt);
+
+	return 0;
 }
 
 /*
@@ -235,40 +298,22 @@ printxvals(const uint64_t val, const char *dflt, const struct xlat *xlat, ...)
 int
 getllval(struct tcb *tcp, unsigned long long *val, int arg_no)
 {
-#if SIZEOF_LONG > 4 && SIZEOF_LONG == SIZEOF_LONG_LONG
-# if SUPPORTED_PERSONALITIES > 1
-#  ifdef X86_64
-	if (current_personality != 1) {
-#  else
-	if (current_wordsize > 4) {
-#  endif
-# endif
-		*val = tcp->u_arg[arg_no];
-		arg_no++;
-# if SUPPORTED_PERSONALITIES > 1
-	} else {
+#if SIZEOF_KERNEL_LONG_T > 4
+# ifndef current_klongsize
+	if (current_klongsize < SIZEOF_KERNEL_LONG_T) {
 #  if defined(AARCH64) || defined(POWERPC64)
 		/* Align arg_no to the next even number. */
 		arg_no = (arg_no + 1) & 0xe;
 #  endif /* AARCH64 || POWERPC64 */
-		*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
-		arg_no += 2;
-	}
-# endif /* SUPPORTED_PERSONALITIES > 1 */
-#elif SIZEOF_LONG > 4
-#  error Unsupported configuration: SIZEOF_LONG > 4 && SIZEOF_LONG_LONG > SIZEOF_LONG
-#elif HAVE_STRUCT_TCB_EXT_ARG
-# if SUPPORTED_PERSONALITIES > 1
-	if (current_personality == 1) {
-		*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
+		*val = ULONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 		arg_no += 2;
 	} else
-# endif
+# endif /* !current_klongsize */
 	{
-		*val = tcp->ext_arg[arg_no];
+		*val = tcp->u_arg[arg_no];
 		arg_no++;
 	}
-#else
+#else /* SIZEOF_KERNEL_LONG_T == 4 */
 # if defined __ARM_EABI__ || \
      defined LINUX_MIPSO32 || \
      defined POWERPC || \
@@ -286,7 +331,7 @@ getllval(struct tcb *tcp, unsigned long long *val, int arg_no)
 	if (arg_no == 3)
 		arg_no++;
 # endif /* __ARM_EABI__ || LINUX_MIPSO32 || POWERPC || XTENSA || SH */
-	*val = LONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
+	*val = ULONG_LONG(tcp->u_arg[arg_no], tcp->u_arg[arg_no + 1]);
 	arg_no += 2;
 #endif
 
@@ -406,17 +451,18 @@ printflags64(const struct xlat *xlat, uint64_t flags, const char *dflt)
 }
 
 void
-printaddr(const long addr)
+printaddr(const kernel_ulong_t addr)
 {
 	if (!addr)
 		tprints("NULL");
 	else
-		tprintf("%#lx", addr);
+		tprintf("%#" PRI_klx, addr);
 }
 
 #define DEF_PRINTNUM(name, type) \
 bool									\
-printnum_ ## name(struct tcb *tcp, const long addr, const char *fmt)	\
+printnum_ ## name(struct tcb *const tcp, const kernel_ulong_t addr,	\
+		  const char *const fmt)				\
 {									\
 	type num;							\
 	if (umove_or_printaddr(tcp, addr, &num))			\
@@ -427,9 +473,23 @@ printnum_ ## name(struct tcb *tcp, const long addr, const char *fmt)	\
 	return true;							\
 }
 
+#define DEF_PRINTNUM_ADDR(name, type) \
+bool									\
+printnum_addr_ ## name(struct tcb *tcp, const kernel_ulong_t addr)	\
+{									\
+	type num;							\
+	if (umove_or_printaddr(tcp, addr, &num))			\
+		return false;						\
+	tprints("[");							\
+	printaddr(num);							\
+	tprints("]");							\
+	return true;							\
+}
+
 #define DEF_PRINTPAIR(name, type) \
 bool									\
-printpair_ ## name(struct tcb *tcp, const long addr, const char *fmt)	\
+printpair_ ## name(struct tcb *const tcp, const kernel_ulong_t addr,	\
+		   const char *const fmt)				\
 {									\
 	type pair[2];							\
 	if (umove_or_printaddr(tcp, addr, &pair))			\
@@ -443,15 +503,17 @@ printpair_ ## name(struct tcb *tcp, const long addr, const char *fmt)	\
 }
 
 DEF_PRINTNUM(int, int)
+DEF_PRINTNUM_ADDR(int, unsigned int)
 DEF_PRINTPAIR(int, int)
 DEF_PRINTNUM(short, short)
 DEF_PRINTNUM(int64, uint64_t)
+DEF_PRINTNUM_ADDR(int64, uint64_t)
 DEF_PRINTPAIR(int64, uint64_t)
 
-#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
+#ifndef current_wordsize
 bool
-printnum_long_int(struct tcb *tcp, const long addr,
-		  const char *fmt_long, const char *fmt_int)
+printnum_long_int(struct tcb *const tcp, const kernel_ulong_t addr,
+		  const char *const fmt_long, const char *const fmt_int)
 {
 	if (current_wordsize > sizeof(int)) {
 		return printnum_int64(tcp, addr, fmt_long);
@@ -459,13 +521,35 @@ printnum_long_int(struct tcb *tcp, const long addr,
 		return printnum_int(tcp, addr, fmt_int);
 	}
 }
-#endif
+
+bool
+printnum_addr_long_int(struct tcb *tcp, const kernel_ulong_t addr)
+{
+	if (current_wordsize > sizeof(int)) {
+		return printnum_addr_int64(tcp, addr);
+	} else {
+		return printnum_addr_int(tcp, addr);
+	}
+}
+#endif /* !current_wordsize */
+
+#ifndef current_klongsize
+bool
+printnum_addr_klong_int(struct tcb *tcp, const kernel_ulong_t addr)
+{
+	if (current_klongsize > sizeof(int)) {
+		return printnum_addr_int64(tcp, addr);
+	} else {
+		return printnum_addr_int(tcp, addr);
+	}
+}
+#endif /* !current_klongsize */
 
 const char *
 sprinttime(time_t t)
 {
 	struct tm *tmp;
-	static char buf[sizeof(int) * 3 * 6];
+	static char buf[sizeof(int) * 3 * 6 + sizeof("+0000")];
 
 	if (t == 0) {
 		strcpy(buf, "0");
@@ -473,11 +557,9 @@ sprinttime(time_t t)
 	}
 	tmp = localtime(&t);
 	if (tmp)
-		snprintf(buf, sizeof buf, "%02d/%02d/%02d-%02d:%02d:%02d",
-			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday,
-			tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+		strftime(buf, sizeof(buf), "%FT%T%z", tmp);
 	else
-		snprintf(buf, sizeof buf, "%lu", (unsigned long) t);
+		snprintf(buf, sizeof(buf), "%lu", (unsigned long) t);
 
 	return buf;
 }
@@ -572,9 +654,9 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
 		eol = 0x100; /* this can never match a char */
 
 	usehex = 0;
-	if (xflag > 1)
+	if ((xflag > 1) || (style & QUOTE_FORCE_HEX)) {
 		usehex = 1;
-	else if (xflag) {
+	} else if (xflag) {
 		/* Check for presence of symbol which require
 		   to hex-quote the whole string. */
 		for (i = 0; i < size; ++i) {
@@ -759,7 +841,7 @@ print_quoted_string(const char *str, unsigned int size,
  * If path length exceeds `n', append `...' to the output.
  */
 void
-printpathn(struct tcb *tcp, long addr, unsigned int n)
+printpathn(struct tcb *const tcp, const kernel_ulong_t addr, unsigned int n)
 {
 	char path[PATH_MAX + 1];
 	int nul_seen;
@@ -786,7 +868,7 @@ printpathn(struct tcb *tcp, long addr, unsigned int n)
 }
 
 void
-printpath(struct tcb *tcp, long addr)
+printpath(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	/* Size must correspond to char path[] size in printpathn */
 	printpathn(tcp, addr, PATH_MAX);
@@ -794,16 +876,21 @@ printpath(struct tcb *tcp, long addr)
 
 /*
  * Print string specified by address `addr' and length `len'.
- * If `len' < 0, treat the string as a NUL-terminated string.
- * If string length exceeds `max_strlen', append `...' to the output.
+ * If `user_style' has QUOTE_0_TERMINATED bit set, treat the string
+ * as a NUL-terminated string.
+ * Pass `user_style' on to `string_quote'.
+ * Append `...' to the output if either the string length exceeds `max_strlen',
+ * or QUOTE_0_TERMINATED bit is set and the string length exceeds `len'.
  */
 void
-printstr_ex(struct tcb *tcp, long addr, long len, unsigned int user_style)
+printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
+	    const kernel_ulong_t len, const unsigned int user_style)
 {
 	static char *str = NULL;
 	static char *outstr;
 	unsigned int size;
-	unsigned int style;
+	unsigned int style = user_style;
+	int rc;
 	int ellipsis;
 
 	if (!addr) {
@@ -820,35 +907,33 @@ printstr_ex(struct tcb *tcp, long addr, long len, unsigned int user_style)
 		outstr = xmalloc(outstr_size);
 	}
 
-	size = max_strlen;
-	if (len == -1) {
-		/*
-		 * Treat as a NUL-terminated string: fetch one byte more
-		 * because string_quote may look one byte ahead.
-		 */
-		if (umovestr(tcp, addr, size + 1, str) < 0) {
-			printaddr(addr);
-			return;
-		}
-		style = QUOTE_0_TERMINATED;
-	}
-	else {
-		if (size > (unsigned long)len)
-			size = (unsigned long)len;
-		if (umoven(tcp, addr, size, str) < 0) {
-			printaddr(addr);
-			return;
-		}
-		style = 0;
+	/* Fetch one byte more because string_quote may look one byte ahead. */
+	size = max_strlen + 1;
+
+	if (size > len)
+		size = len;
+	if (style & QUOTE_0_TERMINATED)
+		rc = umovestr(tcp, addr, size, str);
+	else
+		rc = umoven(tcp, addr, size, str);
+
+	if (rc < 0) {
+		printaddr(addr);
+		return;
 	}
 
-	style |= user_style;
+	if (size > max_strlen)
+		size = max_strlen;
+	else
+		str[size] = '\xff';
 
 	/* If string_quote didn't see NUL and (it was supposed to be ASCIZ str
 	 * or we were requested to print more than -s NUM chars)...
 	 */
-	ellipsis = (string_quote(str, outstr, size, style) &&
-			(len < 0 || (unsigned long) len > max_strlen));
+	ellipsis = string_quote(str, outstr, size, style)
+		   && len
+		   && ((style & QUOTE_0_TERMINATED)
+		       || len > max_strlen);
 
 	tprints(outstr);
 	if (ellipsis)
@@ -856,9 +941,10 @@ printstr_ex(struct tcb *tcp, long addr, long len, unsigned int user_style)
 }
 
 void
-dumpiov_upto(struct tcb *tcp, int len, long addr, unsigned long data_size)
+dumpiov_upto(struct tcb *const tcp, const int len, const kernel_ulong_t addr,
+	     kernel_ulong_t data_size)
 {
-#if SUPPORTED_PERSONALITIES > 1
+#if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG
 	union {
 		struct { uint32_t base; uint32_t len; } *iov32;
 		struct { uint64_t base; uint64_t len; } *iov64;
@@ -873,7 +959,7 @@ dumpiov_upto(struct tcb *tcp, int len, long addr, unsigned long data_size)
 #else
 	struct iovec *iov;
 #define sizeof_iov sizeof(*iov)
-#define iov_iov_base(i) iov[i].iov_base
+#define iov_iov_base(i) ptr_to_kulong(iov[i].iov_base)
 #define iov_iov_len(i) iov[i].iov_len
 #endif
 	int i;
@@ -888,7 +974,7 @@ dumpiov_upto(struct tcb *tcp, int len, long addr, unsigned long data_size)
 	}
 	if (umoven(tcp, addr, size, iov) >= 0) {
 		for (i = 0; i < len; i++) {
-			unsigned long iov_len = iov_iov_len(i);
+			kernel_ulong_t iov_len = iov_iov_len(i);
 			if (iov_len > data_size)
 				iov_len = data_size;
 			if (!iov_len)
@@ -896,8 +982,8 @@ dumpiov_upto(struct tcb *tcp, int len, long addr, unsigned long data_size)
 			data_size -= iov_len;
 			/* include the buffer number to make it easy to
 			 * match up the trace with the source */
-			tprintf(" * %lu bytes in buffer %d\n", iov_len, i);
-			dumpstr(tcp, (long) iov_iov_base(i), iov_len);
+			tprintf(" * %" PRI_klu " bytes in buffer %d\n", iov_len, i);
+			dumpstr(tcp, iov_iov_base(i), iov_len);
 		}
 	}
 	free(iov);
@@ -908,7 +994,7 @@ dumpiov_upto(struct tcb *tcp, int len, long addr, unsigned long data_size)
 }
 
 void
-dumpstr(struct tcb *tcp, long addr, int len)
+dumpstr(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 {
 	static int strsize = -1;
 	static unsigned char *str;
@@ -979,27 +1065,13 @@ dumpstr(struct tcb *tcp, long addr, int len)
 	}
 }
 
-#ifdef HAVE_PROCESS_VM_READV
-/* C library supports this, but the kernel might not. */
 static bool process_vm_readv_not_supported = 0;
-#else
-
-/* Need to do this since process_vm_readv() is not yet available in libc.
+#ifndef HAVE_PROCESS_VM_READV
+/*
+ * Need to do this since process_vm_readv() is not yet available in libc.
  * When libc is be updated, only "static bool process_vm_readv_not_supported"
  * line should remain.
  */
-#if !defined(__NR_process_vm_readv)
-# if defined(I386)
-#  define __NR_process_vm_readv  347
-# elif defined(X86_64)
-#  define __NR_process_vm_readv  310
-# elif defined(POWERPC)
-#  define __NR_process_vm_readv  351
-# endif
-#endif
-
-#if defined(__NR_process_vm_readv)
-static bool process_vm_readv_not_supported = 0;
 /* Have to avoid duplicating with the C library headers. */
 static ssize_t strace_process_vm_readv(pid_t pid,
 		 const struct iovec *lvec,
@@ -1010,23 +1082,26 @@ static ssize_t strace_process_vm_readv(pid_t pid,
 {
 	return syscall(__NR_process_vm_readv, (long)pid, lvec, liovcnt, rvec, riovcnt, flags);
 }
-#define process_vm_readv strace_process_vm_readv
-#else
-static bool process_vm_readv_not_supported = 1;
-# define process_vm_readv(...) (errno = ENOSYS, -1)
-#endif
-
-#endif /* end of hack */
+# define process_vm_readv strace_process_vm_readv
+#endif /* !HAVE_PROCESS_VM_READV */
 
 static ssize_t
-vm_read_mem(pid_t pid, void *laddr, long raddr, size_t len)
+vm_read_mem(const pid_t pid, void *const laddr,
+	    const kernel_ulong_t raddr, const size_t len)
 {
+	const unsigned long truncated_raddr = raddr;
+
+	if (raddr != (kernel_ulong_t) truncated_raddr) {
+		errno = EIO;
+		return -1;
+	}
+
 	const struct iovec local = {
 		.iov_base = laddr,
 		.iov_len = len
 	};
 	const struct iovec remote = {
-		.iov_base = (void *) raddr,
+		.iov_base = (void *) truncated_raddr,
 		.iov_len = len
 	};
 
@@ -1038,7 +1113,8 @@ vm_read_mem(pid_t pid, void *laddr, long raddr, size_t len)
  * at address `addr' to our space at `our_addr'
  */
 int
-umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
+umoven(struct tcb *const tcp, kernel_ulong_t addr, unsigned int len,
+       void *const our_addr)
 {
 	char *laddr = our_addr;
 	int pid = tcp->pid;
@@ -1048,9 +1124,11 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 		char x[sizeof(long)];
 	} u;
 
-#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
-	if (current_wordsize < sizeof(addr))
-		addr &= (1ul << 8 * current_wordsize) - 1;
+#if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG
+	if (current_wordsize < sizeof(addr)
+	    && (addr & (~ (kernel_ulong_t) -1U))) {
+		return -1;
+	}
 #endif
 
 	if (!process_vm_readv_not_supported) {
@@ -1058,7 +1136,7 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 		if ((unsigned int) r == len)
 			return 0;
 		if (r >= 0) {
-			error_msg("umoven: short read (%u < %u) @0x%lx",
+			error_msg("umoven: short read (%u < %u) @0x%" PRI_klx,
 				  (unsigned int) r, len, addr);
 			return -1;
 		}
@@ -1088,7 +1166,7 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 		n = addr & (sizeof(long) - 1);	/* residue */
 		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1100,7 +1178,7 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 				return -1;
 			default:
 				/* all the rest is strange and should be reported */
-				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%lx",
+				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%" PRI_klx,
 					    pid, addr);
 				return -1;
 		}
@@ -1113,7 +1191,7 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 	}
 	while (len) {
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1123,13 +1201,13 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 			case EFAULT: case EIO: case EPERM:
 				/* address space is inaccessible */
 				if (nread) {
-					perror_msg("umoven: short read (%u < %u) @0x%lx",
+					perror_msg("umoven: short read (%u < %u) @0x%" PRI_klx,
 						   nread, nread + len, addr - nread);
 				}
 				return -1;
 			default:
 				/* all the rest is strange and should be reported */
-				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%lx",
+				perror_msg("umoven: PTRACE_PEEKDATA pid:%d @0x%" PRI_klx,
 					    pid, addr);
 				return -1;
 		}
@@ -1145,11 +1223,24 @@ umoven(struct tcb *tcp, long addr, unsigned int len, void *our_addr)
 }
 
 int
-umoven_or_printaddr(struct tcb *tcp, const long addr, const unsigned int len,
-		    void *our_addr)
+umoven_or_printaddr(struct tcb *const tcp, const kernel_ulong_t addr,
+		    const unsigned int len, void *const our_addr)
 {
 	if (!addr || !verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
 	    umoven(tcp, addr, len, our_addr) < 0) {
+		printaddr(addr);
+		return -1;
+	}
+	return 0;
+}
+
+int
+umoven_or_printaddr_ignore_syserror(struct tcb *const tcp,
+				    const kernel_ulong_t addr,
+				    const unsigned int len,
+				    void *const our_addr)
+{
+	if (!addr || !verbose(tcp) || umoven(tcp, addr, len, our_addr) < 0) {
 		printaddr(addr);
 		return -1;
 	}
@@ -1169,17 +1260,10 @@ umoven_or_printaddr(struct tcb *tcp, const long addr, const unsigned int len,
  * we never write past laddr[len-1]).
  */
 int
-umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
+umovestr(struct tcb *const tcp, kernel_ulong_t addr, unsigned int len, char *laddr)
 {
-#if SIZEOF_LONG == 4
-	const unsigned long x01010101 = 0x01010101ul;
-	const unsigned long x80808080 = 0x80808080ul;
-#elif SIZEOF_LONG == 8
-	const unsigned long x01010101 = 0x0101010101010101ul;
-	const unsigned long x80808080 = 0x8080808080808080ul;
-#else
-# error SIZEOF_LONG > 8
-#endif
+	const unsigned long x01010101 = (unsigned long) 0x0101010101010101ULL;
+	const unsigned long x80808080 = (unsigned long) 0x8080808080808080ULL;
 
 	int pid = tcp->pid;
 	unsigned int n, m, nread;
@@ -1188,9 +1272,11 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 		char x[sizeof(long)];
 	} u;
 
-#if SUPPORTED_PERSONALITIES > 1 && SIZEOF_LONG > 4
-	if (current_wordsize < sizeof(addr))
-		addr &= (1ul << 8 * current_wordsize) - 1;
+#if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG
+	if (current_wordsize < sizeof(addr)
+	    && (addr & (~ (kernel_ulong_t) -1U))) {
+		return -1;
+	}
 #endif
 
 	nread = 0;
@@ -1237,7 +1323,7 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 				case EFAULT: case EIO:
 					/* address space is inaccessible */
 					if (nread) {
-						perror_msg("umovestr: short read (%d < %d) @0x%lx",
+						perror_msg("umovestr: short read (%d < %d) @0x%" PRI_klx,
 							   nread, nread + len, addr - nread);
 					}
 					return -1;
@@ -1256,7 +1342,7 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 		n = addr & (sizeof(long) - 1);	/* residue */
 		addr &= -sizeof(long);		/* aligned address */
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1268,7 +1354,7 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 				return -1;
 			default:
 				/* all the rest is strange and should be reported */
-				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%lx",
+				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%" PRI_klx,
 					    pid, addr);
 				return -1;
 		}
@@ -1285,7 +1371,7 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 
 	while (len) {
 		errno = 0;
-		u.val = ptrace(PTRACE_PEEKDATA, pid, (void *) addr, 0);
+		u.val = ptrace(PTRACE_PEEKDATA, pid, addr, 0);
 		switch (errno) {
 			case 0:
 				break;
@@ -1295,13 +1381,13 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
 			case EFAULT: case EIO: case EPERM:
 				/* address space is inaccessible */
 				if (nread) {
-					perror_msg("umovestr: short read (%d < %d) @0x%lx",
+					perror_msg("umovestr: short read (%d < %d) @0x%" PRI_klx,
 						   nread, nread + len, addr - nread);
 				}
 				return -1;
 			default:
 				/* all the rest is strange and should be reported */
-				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%lx",
+				perror_msg("umovestr: PTRACE_PEEKDATA pid:%d @0x%" PRI_klx,
 					   pid, addr);
 				return -1;
 		}
@@ -1353,13 +1439,13 @@ umovestr(struct tcb *tcp, long addr, unsigned int len, char *laddr)
  * - umoven_func has not returned false.
  */
 bool
-print_array(struct tcb *tcp,
-	    const unsigned long start_addr,
+print_array(struct tcb *const tcp,
+	    const kernel_ulong_t start_addr,
 	    const size_t nmemb,
 	    void *const elem_buf,
 	    const size_t elem_size,
 	    int (*const umoven_func)(struct tcb *,
-				     long,
+				     kernel_ulong_t,
 				     unsigned int,
 				     void *),
 	    bool (*const print_func)(struct tcb *,
@@ -1379,17 +1465,17 @@ print_array(struct tcb *tcp,
 	}
 
 	const size_t size = nmemb * elem_size;
-	const unsigned long end_addr = start_addr + size;
+	const kernel_ulong_t end_addr = start_addr + size;
 
 	if (end_addr <= start_addr || size / elem_size != nmemb) {
 		printaddr(start_addr);
 		return false;
 	}
 
-	const unsigned long abbrev_end =
+	const kernel_ulong_t abbrev_end =
 		(abbrev(tcp) && max_strlen < nmemb) ?
 			start_addr + elem_size * max_strlen : end_addr;
-	unsigned long cur;
+	kernel_ulong_t cur;
 
 	for (cur = start_addr; cur < end_addr; cur += elem_size) {
 		if (cur != start_addr)
@@ -1418,46 +1504,14 @@ print_array(struct tcb *tcp,
 	return cur >= end_addr;
 }
 
-long long
-getarg_ll(struct tcb *tcp, int argn)
-{
-#if HAVE_STRUCT_TCB_EXT_ARG
-# if SUPPORTED_PERSONALITIES > 1
-	if (current_personality == 1)
-		return (long) tcp->u_arg[argn];
-	else
-# endif
-	return (long long) tcp->ext_arg[argn];
-#else
-	return (long) tcp->u_arg[argn];
-#endif
-}
-
-unsigned long long
-getarg_ull(struct tcb *tcp, int argn)
-{
-#if HAVE_STRUCT_TCB_EXT_ARG
-# if SUPPORTED_PERSONALITIES > 1
-	if (current_personality == 1)
-		return (unsigned long) tcp->u_arg[argn];
-	else
-# endif
-	return (unsigned long long) tcp->ext_arg[argn];
-#else
-	return (unsigned long) tcp->u_arg[argn];
-#endif
-}
-
 int
 printargs(struct tcb *tcp)
 {
-	if (entering(tcp)) {
-		int i;
-		int n = tcp->s_ent->nargs;
-		for (i = 0; i < n; i++)
-			tprintf("%s%#llx", i ? ", " : "", getarg_ull(tcp, i));
-	}
-	return 0;
+	const int n = tcp->s_ent->nargs;
+	int i;
+	for (i = 0; i < n; ++i)
+		tprintf("%s%#" PRI_klx, i ? ", " : "", tcp->u_arg[i]);
+	return RVAL_DECODED;
 }
 
 int

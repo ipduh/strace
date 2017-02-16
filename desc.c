@@ -69,17 +69,17 @@ SYS_FUNC(dup3)
 }
 
 static int
-decode_select(struct tcb *tcp, long *args,
-	      void (*print_tv_ts) (struct tcb *, const long),
-	      const char * (*sprint_tv_ts) (struct tcb *, const long))
+decode_select(struct tcb *const tcp, const kernel_ulong_t *const args,
+	      void (*const print_tv_ts) (struct tcb *, kernel_ulong_t),
+	      const char * (*const sprint_tv_ts) (struct tcb *, kernel_ulong_t))
 {
 	int i, j;
 	int nfds, fdsize;
 	fd_set *fds = NULL;
 	const char *sep;
-	long arg;
+	kernel_ulong_t addr;
 
-	/* Kernel truncates arg[0] to int, we do the same. */
+	/* Kernel truncates args[0] to int, we do the same. */
 	nfds = (int) args[0];
 
 	/* Kernel rejects negative nfds, so we don't parse it either. */
@@ -102,13 +102,13 @@ decode_select(struct tcb *tcp, long *args,
 		if (verbose(tcp) && fdsize > 0)
 			fds = malloc(fdsize);
 		for (i = 0; i < 3; i++) {
-			arg = args[i+1];
+			addr = args[i+1];
 			tprints(", ");
 			if (!fds) {
-				printaddr(arg);
+				printaddr(addr);
 				continue;
 			}
-			if (umoven_or_printaddr(tcp, arg, fdsize, fds))
+			if (umoven_or_printaddr(tcp, addr, fdsize, fds))
 				continue;
 			tprints("[");
 			for (j = 0, sep = "";; j++) {
@@ -146,8 +146,8 @@ decode_select(struct tcb *tcp, long *args,
 		for (i = 0; i < 3 && ready_fds > 0; i++) {
 			int first = 1;
 
-			arg = args[i+1];
-			if (!arg || !fds || umoven(tcp, arg, fdsize, fds) < 0)
+			addr = args[i+1];
+			if (!addr || !fds || umoven(tcp, addr, fdsize, fds) < 0)
 				continue;
 			for (j = 0;; j++) {
 				j = next_set_bit(fds, j, nfds);
@@ -192,26 +192,26 @@ decode_select(struct tcb *tcp, long *args,
 
 SYS_FUNC(oldselect)
 {
-	long long_args[5];
-#undef oldselect_args
-#if SIZEOF_LONG == 4
-# define oldselect_args long_args
-#else
+	kernel_ulong_t select_args[5];
 	unsigned int oldselect_args[5];
-	unsigned int i;
-#endif
 
-	if (umove(tcp, tcp->u_arg[0], &oldselect_args) < 0) {
-		printaddr(tcp->u_arg[0]);
-		return 0;
+	if (sizeof(*select_args) == sizeof(*oldselect_args)) {
+		if (umove_or_printaddr(tcp, tcp->u_arg[0], &select_args)) {
+			return 0;
+		}
+	} else {
+		unsigned int i;
+
+		if (umove_or_printaddr(tcp, tcp->u_arg[0], &oldselect_args)) {
+			return 0;
+		}
+
+		for (i = 0; i < 5; ++i) {
+			select_args[i] = oldselect_args[i];
+		}
 	}
-#ifndef oldselect_args
-	for (i = 0; i < 5; i++) {
-		long_args[i] = oldselect_args[i];
-	}
-#endif
-	return decode_select(tcp, long_args, print_timeval, sprint_timeval);
-#undef oldselect_args
+
+	return decode_select(tcp, select_args, print_timeval, sprint_timeval);
 }
 
 #ifdef ALPHA
@@ -226,27 +226,23 @@ SYS_FUNC(select)
 	return decode_select(tcp, tcp->u_arg, print_timeval, sprint_timeval);
 }
 
-#include "kernel_types.h"
-
 static int
-umove_kulong_array_or_printaddr(struct tcb *tcp, const long addr,
-				kernel_ulong_t *ptr, size_t n)
+umove_kulong_array_or_printaddr(struct tcb *const tcp, const kernel_ulong_t addr,
+				kernel_ulong_t *const ptr, const size_t n)
 {
-#if defined X86_64 || defined X32
-	if (current_personality == 1) {
-#else
-	if (current_wordsize < sizeof(*ptr)) {
-#endif
+#ifndef current_klongsize
+	if (current_klongsize < sizeof(*ptr)) {
 		uint32_t ptr32[n];
 		int r = umove_or_printaddr(tcp, addr, &ptr32);
 		if (!r) {
 			size_t i;
 
 			for (i = 0; i < n; ++i)
-				ptr[i] = (kernel_ulong_t) ptr32[i];
+				ptr[i] = ptr32[i];
 		}
 		return r;
 	}
+#endif /* !current_klongsize */
 	return umoven_or_printaddr(tcp, addr, n * sizeof(*ptr), ptr);
 }
 
@@ -260,10 +256,9 @@ SYS_FUNC(pselect6)
 		if (!umove_kulong_array_or_printaddr(tcp, tcp->u_arg[5],
 						     data, ARRAY_SIZE(data))) {
 			tprints("{");
-			/* NB: kernel requires data[1] == NSIG / 8 */
-			print_sigset_addr_len(tcp, (unsigned long) data[0],
-					      (unsigned long) data[1]);
-			tprintf(", %llu}", (unsigned long long) data[1]);
+			/* NB: kernel requires data[1] == NSIG_BYTES */
+			print_sigset_addr_len(tcp, data[0], data[1]);
+			tprintf(", %" PRI_klu "}", data[1]);
 		}
 	}
 

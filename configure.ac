@@ -32,11 +32,15 @@
 AC_PREREQ(2.57)
 AC_INIT([strace],
 	m4_esyscmd([./git-version-gen .tarball-version]),
-	[strace-devel@lists.sourceforge.net])
+	[strace-devel@lists.sourceforge.net],
+	[strace],
+	[https://strace.io])
+AC_COPYRIGHT([Copyright (C) 1999-2017 The strace developers.])
 AC_CONFIG_SRCDIR([strace.c])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([foreign nostdinc dist-xz silent-rules parallel-tests])
+AM_EXTRA_RECURSIVE_TARGETS([check-valgrind])
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
 
@@ -47,6 +51,7 @@ AC_SUBST(DEB_CHANGELOGTIME)
 
 AC_PROG_CC
 AC_PROG_CPP
+st_WARN_CFLAGS
 AX_PROG_CC_FOR_BUILD
 AC_PROG_INSTALL
 AC_PROG_RANLIB
@@ -210,29 +215,26 @@ AC_SUBST(arch_mx32)
 MIPS_ABI=
 if test "$arch" = mips; then
 	AC_CACHE_CHECK([for _MIPS_SIM], [st_cv__MIPS_SIM],
-		       [AC_COMPUTE_INT([st_cv__MIPS_SIM], [_MIPS_SIM],
-				       [#include <sgidefs.h>],
+		       [AC_COMPUTE_INT([st_cv__MIPS_SIM], [_MIPS_SIM], ,
 				       [AC_MSG_ERROR([_MIPS_SIM cannot be determined])])])
 
+	# requires GCC >= 3.4
 	AC_CACHE_CHECK([for MIPS ABI], [st_cv_mips_abi],
 		[AC_COMPILE_IFELSE(
-			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
-					 [[int i[_MIPS_SIM == _MIPS_SIM_ABI32 ? 1 : - 1];]])],
+			[AC_LANG_PROGRAM(, [[int i[_MIPS_SIM == _ABIO32 ? 1 : - 1];]])],
 			[st_cv_mips_abi=o32],
 		[AC_COMPILE_IFELSE(
-			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
-					 [[int i[_MIPS_SIM == _MIPS_SIM_NABI32 ? 1 : - 1];]])],
+			[AC_LANG_PROGRAM(, [[int i[_MIPS_SIM == _ABIN32 ? 1 : - 1];]])],
 			[st_cv_mips_abi=n32],
 		[AC_COMPILE_IFELSE(
-			[AC_LANG_PROGRAM([[#include <sgidefs.h>]],
-					 [[int i[_MIPS_SIM == _MIPS_SIM_ABI64 ? 1 : - 1];]])],
+			[AC_LANG_PROGRAM(, [[int i[_MIPS_SIM == _ABI64 ? 1 : - 1];]])],
 			[st_cv_mips_abi=n64],
 			[st_cv_mips_abi=unknown])])])])
 
 	case "$st_cv_mips_abi" in
-		o32) AC_DEFINE([LINUX_MIPSO32], [1], [Define for _MIPS_SIM_ABI32.]);;
-		n32) AC_DEFINE([LINUX_MIPSN32], [1], [Define for _MIPS_SIM_NABI32.]);;
-		n64) AC_DEFINE([LINUX_MIPSN64], [1], [Define for _MIPS_SIM_ABI64.]);;
+		o32) AC_DEFINE([LINUX_MIPSO32], [1], [Define for _ABIO32.]);;
+		n32) AC_DEFINE([LINUX_MIPSN32], [1], [Define for _ABIN32.]);;
+		n64) AC_DEFINE([LINUX_MIPSN64], [1], [Define for _ABI64.]);;
 		*) AC_MSG_ERROR([Unsupported _MIPS_SIM]);;
 	esac
 	MIPS_ABI="$st_cv_mips_abi"
@@ -251,29 +253,6 @@ esac
 AC_DEFINE_UNQUOTED([ENABLE_ARM_OABI], [$enable_arm_oabi],
 		   [Define to 1 if you want OABI support on ARM EABI.])
 
-gl_WARN_ADD([-Wall])
-gl_WARN_ADD([-Wempty-body])
-gl_WARN_ADD([-Wformat-security])
-gl_WARN_ADD([-Wignored-qualifiers])
-gl_WARN_ADD([-Winit-self])
-gl_WARN_ADD([-Wlogical-op])
-gl_WARN_ADD([-Wmissing-parameter-type])
-gl_WARN_ADD([-Wnested-externs])
-gl_WARN_ADD([-Wold-style-declaration])
-gl_WARN_ADD([-Wold-style-definition])
-gl_WARN_ADD([-Wsign-compare])
-gl_WARN_ADD([-Wtype-limits])
-gl_WARN_ADD([-Wwrite-strings])
-AC_ARG_ENABLE([gcc-Werror],
-  [AS_HELP_STRING([--enable-gcc-Werror], [turn on gcc's -Werror option])],
-  [case $enableval in
-     yes) gl_WARN_ADD([-Werror]) ;;
-     no)  ;;
-     *)   AC_MSG_ERROR([bad value $enableval for gcc-Werror option]) ;;
-   esac]
-)
-AC_SUBST([WARN_CFLAGS])
-
 AC_C_BIGENDIAN
 AC_C_TYPEOF
 
@@ -291,7 +270,6 @@ AC_CHECK_FUNCS(m4_normalize([
 	futimens
 	if_indextoname
 	open64
-	pipe2
 	prctl
 	preadv
 	process_vm_readv
@@ -316,11 +294,11 @@ AC_CHECK_TYPES([struct stat64, struct __old_kernel_stat],,,
 [#include <sys/types.h>
 #include <asm/stat.h>])
 
+AC_CHECK_TYPES([struct user_desc],,, [#include <asm/ldt.h>])
+
 AC_CHECK_MEMBERS([struct stat.st_mtime_nsec, struct stat64.st_mtime_nsec],,,
 [#include <sys/types.h>
 #include <asm/stat.h>])
-
-AC_CHECK_MEMBERS([struct stat.st_mtim.tv_nsec])
 
 AC_CHECK_TYPES(m4_normalize([
 	struct pt_all_user_regs,
@@ -347,6 +325,30 @@ AC_CHECK_MEMBERS(m4_normalize([
 	siginfo_t.si_overrun
 ]),,, [#include <signal.h>])
 
+AC_CHECK_MEMBERS(m4_normalize([
+	struct perf_event_attr.precise_ip,
+	struct perf_event_attr.mmap_data,
+	struct perf_event_attr.sample_id_all,
+	struct perf_event_attr.exclude_host,
+	struct perf_event_attr.exclude_guest,
+	struct perf_event_attr.exclude_callchain_kernel,
+	struct perf_event_attr.exclude_callchain_user,
+	struct perf_event_attr.mmap2,
+	struct perf_event_attr.comm_exec,
+	struct perf_event_attr.use_clockid,
+	struct perf_event_attr.context_switch,
+	struct perf_event_attr.write_backward,
+	struct perf_event_attr.bp_type,
+	struct perf_event_attr.config1,
+	struct perf_event_attr.config2,
+	struct perf_event_attr.branch_sample_type,
+	struct perf_event_attr.sample_regs_user,
+	struct perf_event_attr.sample_stack_user,
+	struct perf_event_attr.sample_regs_intr,
+	struct perf_event_attr.aux_watermark,
+	struct perf_event_attr.sample_max_stack
+]),,, [#include <linux/perf_event.h>])
+
 AC_CHECK_HEADERS(m4_normalize([
 	asm/cachectl.h
 	asm/sysmips.h
@@ -354,6 +356,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	elf.h
 	inttypes.h
 	linux/bsg.h
+	linux/dm-ioctl.h
 	linux/dqblk_xfs.h
 	linux/falloc.h
 	linux/fiemap.h
@@ -387,6 +390,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	sys/shm.h
 	sys/signalfd.h
 	sys/xattr.h
+	ustat.h
 ]))
 
 AC_CHECK_HEADERS([asm/sigcontext.h],,, [#include <signal.h>])
@@ -418,6 +422,28 @@ AC_CHECK_HEADERS([linux/bpf.h], [
 	if test $st_cv_have_union_bpf_attr_log_buf = yes; then
 		AC_DEFINE(HAVE_UNION_BPF_ATTR_LOG_BUF, [1],
 			  [Define to 1 if union bpf_attr.log_buf initialization works])
+	fi
+	AC_CACHE_CHECK([whether union bpf_attr.bpf_fd initialization works],
+		       [st_cv_have_union_bpf_attr_bpf_fd],
+		[AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM([[#include <linux/bpf.h>]],
+					 [[union bpf_attr a = { .bpf_fd = 0 };]])],
+			[st_cv_have_union_bpf_attr_bpf_fd=yes],
+			[st_cv_have_union_bpf_attr_bpf_fd=no])])
+	if test $st_cv_have_union_bpf_attr_bpf_fd = yes; then
+		AC_DEFINE(HAVE_UNION_BPF_ATTR_BPF_FD, [1],
+			  [Define to 1 if union bpf_attr.bpf_fd initialization works])
+	fi
+	AC_CACHE_CHECK([whether union bpf_attr.attach_type initialization works],
+		       [st_cv_have_union_bpf_attr_attach_type],
+		[AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM([[#include <linux/bpf.h>]],
+					 [[union bpf_attr a = { .attach_type = 0 };]])],
+			[st_cv_have_union_bpf_attr_attach_type=yes],
+			[st_cv_have_union_bpf_attr_attach_type=no])])
+	if test $st_cv_have_union_bpf_attr_attach_type = yes; then
+		AC_DEFINE(HAVE_UNION_BPF_ATTR_ATTACH_TYPE, [1],
+			  [Define to 1 if union bpf_attr.attach_type initialization works])
 	fi
 ])
 
@@ -479,8 +505,10 @@ AC_CHECK_DECLS(m4_normalize([
 
 AC_CHECK_DECLS(m4_normalize([
 	LO_FLAGS_READ_ONLY,
+	LO_FLAGS_USE_AOPS,
 	LO_FLAGS_AUTOCLEAR,
-	LO_FLAGS_PARTSCAN
+	LO_FLAGS_PARTSCAN,
+	LO_FLAGS_DIRECT_IO
 ]),,, [#include <linux/loop.h>])
 
 AC_CHECK_DECLS(m4_normalize([
@@ -631,6 +659,7 @@ AC_CACHE_CHECK([for BLKGETSIZE64], [ac_cv_have_blkgetsize64],
 AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
 AC_CHECK_SIZEOF([off_t],,[#include <sys/types.h>])
+AC_CHECK_SIZEOF([kernel_long_t],,[#include "$srcdir/kernel_types.h"])
 AC_CHECK_SIZEOF([struct i64_i32],,[struct i64_i32 {long long i64; int i32;};])
 
 AC_CACHE_CHECK([for SIGRTMIN], [st_cv_SIGRTMIN],
@@ -769,6 +798,9 @@ fi
 
 st_MPERS([m32], [aarch64|powerpc64|sparc64|tile|x32|x86_64])
 st_MPERS([mx32], [x86_64])
+
+AX_VALGRIND_DFLT([sgcheck], [off])
+AX_VALGRIND_CHECK
 
 AC_CONFIG_FILES([Makefile
 		 tests/Makefile

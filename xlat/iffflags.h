@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat iffflags in mpers mode
+extern const struct xlat iffflags[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat iffflags[] = {
 #if defined(IFF_UP) || (defined(HAVE_DECL_IFF_UP) && HAVE_DECL_IFF_UP)
   XLAT(IFF_UP),

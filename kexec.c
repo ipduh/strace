@@ -40,8 +40,8 @@
 static bool
 print_seg(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 {
-	const unsigned long *seg;
-	unsigned long seg_buf[4];
+	const kernel_ulong_t *seg;
+	kernel_ulong_t seg_buf[4];
 
         if (elem_size < sizeof(seg_buf)) {
 		unsigned int i;
@@ -53,25 +53,25 @@ print_seg(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 		seg = elem_buf;
 	}
 
-	tprints("{");
+	tprints("{buf=");
 	printaddr(seg[0]);
-	tprintf(", %lu, ", seg[1]);
+	tprintf(", bufsz=%" PRI_klu ", mem=", seg[1]);
 	printaddr(seg[2]);
-	tprintf(", %lu}", seg[3]);
+	tprintf(", memsz=%" PRI_klu "}", seg[3]);
 
 	return true;
 }
 
 static void
-print_kexec_segments(struct tcb *tcp, const unsigned long addr,
-		     const unsigned long len)
+print_kexec_segments(struct tcb *const tcp, const kernel_ulong_t addr,
+		     const kernel_ulong_t len)
 {
 	if (len > KEXEC_SEGMENT_MAX) {
 		printaddr(addr);
 		return;
 	}
 
-	unsigned long seg[4];
+	kernel_ulong_t seg[4];
 	const size_t sizeof_seg = ARRAY_SIZE(seg) * current_wordsize;
 
 	print_array(tcp, addr, len, seg, sizeof_seg,
@@ -82,19 +82,19 @@ SYS_FUNC(kexec_load)
 {
 	/* entry, nr_segments */
 	printaddr(tcp->u_arg[0]);
-	tprintf(", %lu, ", tcp->u_arg[1]);
+	tprintf(", %" PRI_klu ", ", tcp->u_arg[1]);
 
 	/* segments */
 	print_kexec_segments(tcp, tcp->u_arg[2], tcp->u_arg[1]);
 	tprints(", ");
 
 	/* flags */
-	unsigned long n = tcp->u_arg[3];
-	printxval_long(kexec_arch_values, n & KEXEC_ARCH_MASK, "KEXEC_ARCH_???");
-	n &= ~KEXEC_ARCH_MASK;
+	kernel_ulong_t n = tcp->u_arg[3];
+	printxval64(kexec_arch_values, n & KEXEC_ARCH_MASK, "KEXEC_ARCH_???");
+	n &= ~(kernel_ulong_t) KEXEC_ARCH_MASK;
 	if (n) {
 		tprints("|");
-		printflags_long(kexec_load_flags, n, "KEXEC_???");
+		printflags64(kexec_load_flags, n, "KEXEC_???");
 	}
 
 	return RVAL_DECODED;
@@ -111,12 +111,12 @@ SYS_FUNC(kexec_file_load)
 	printfd(tcp, tcp->u_arg[1]);
 	tprints(", ");
 	/* cmdline_len */
-	tprintf("%lu, ", tcp->u_arg[2]);
+	tprintf("%" PRI_klu ", ", tcp->u_arg[2]);
 	/* cmdline */
-	printstr(tcp, tcp->u_arg[3], tcp->u_arg[2]);
+	printstrn(tcp, tcp->u_arg[3], tcp->u_arg[2]);
 	tprints(", ");
 	/* flags */
-	printflags_long(kexec_file_load_flags, tcp->u_arg[4], "KEXEC_FILE_???");
+	printflags64(kexec_file_load_flags, tcp->u_arg[4], "KEXEC_FILE_???");
 
 	return RVAL_DECODED;
 }
