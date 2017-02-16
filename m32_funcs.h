@@ -14,6 +14,8 @@
 #define sys_sysinfo m32_sys_sysinfo
 #undef sys_times
 #define sys_times m32_sys_times
+#undef sys_ustat
+#define sys_ustat m32_sys_ustat
 #undef sys_utime
 #define sys_utime m32_sys_utime
 #include "sys_func.h"

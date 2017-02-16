@@ -34,7 +34,7 @@
 #include "defs.h"
 
 static void
-printargv(struct tcb *tcp, long addr)
+printargv(struct tcb *const tcp, kernel_ulong_t addr)
 {
 	if (!addr || !verbose(tcp)) {
 		printaddr(addr);
@@ -49,8 +49,8 @@ printargv(struct tcb *tcp, long addr)
 	for (n = 0; addr; sep = ", ", addr += wordsize, ++n) {
 		union {
 			unsigned int p32;
-			unsigned long p64;
-			char data[sizeof(long)];
+			kernel_ulong_t p64;
+			char data[sizeof(kernel_ulong_t)];
 		} cp;
 
 		if (umoven(tcp, addr, wordsize, cp.data)) {
@@ -70,13 +70,13 @@ printargv(struct tcb *tcp, long addr)
 			break;
 		}
 		tprints(sep);
-		printstr(tcp, wordsize < sizeof(cp.p64) ? cp.p32 : cp.p64, -1);
+		printstr(tcp, wordsize < sizeof(cp.p64) ? cp.p32 : cp.p64);
 	}
 	tprints("]");
 }
 
 static void
-printargc(struct tcb *tcp, long addr)
+printargc(struct tcb *const tcp, kernel_ulong_t addr)
 {
 	if (!addr || !verbose(tcp)) {
 		printaddr(addr);

@@ -80,10 +80,6 @@
 #include "xlat/socketlayers.h"
 
 #include "xlat/inet_protocols.h"
-
-#if !defined NETLINK_SOCK_DIAG && defined NETLINK_INET_DIAG
-# define NETLINK_SOCK_DIAG NETLINK_INET_DIAG
-#endif
 #include "xlat/netlink_protocols.h"
 
 #ifdef HAVE_BLUETOOTH_BLUETOOTH_H
@@ -108,7 +104,8 @@ print_ifindex(unsigned int ifindex)
 }
 
 static void
-decode_sockbuf(struct tcb *tcp, int fd, long addr, long addrlen)
+decode_sockbuf(struct tcb *const tcp, const int fd, const kernel_ulong_t addr,
+	       const kernel_ulong_t addrlen)
 {
 
 	switch (verbose(tcp) ? getfdproto(tcp, fd) : SOCK_PROTO_UNKNOWN) {
@@ -116,7 +113,7 @@ decode_sockbuf(struct tcb *tcp, int fd, long addr, long addrlen)
 		decode_netlink(tcp, addr, addrlen);
 		break;
 	default:
-		printstr(tcp, addr, addrlen);
+		printstrn(tcp, addr, addrlen);
 	}
 }
 
@@ -162,7 +159,7 @@ SYS_FUNC(socket)
 #endif
 
 	default:
-		tprintf("%lu", tcp->u_arg[2]);
+		tprintf("%" PRI_klu, tcp->u_arg[2]);
 		break;
 	}
 
@@ -184,14 +181,14 @@ SYS_FUNC(listen)
 {
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	tprintf("%lu", tcp->u_arg[1]);
+	tprintf("%" PRI_klu, tcp->u_arg[1]);
 
 	return RVAL_DECODED;
 }
 
 static bool
-fetch_socklen(struct tcb *tcp, int *plen,
-	      const unsigned long sockaddr, const unsigned long socklen)
+fetch_socklen(struct tcb *const tcp, int *const plen,
+	      const kernel_ulong_t sockaddr, const kernel_ulong_t socklen)
 {
 	return verbose(tcp) && sockaddr && socklen
 	       && umove(tcp, socklen, plen) == 0;
@@ -254,7 +251,7 @@ SYS_FUNC(send)
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
 	decode_sockbuf(tcp, tcp->u_arg[0], tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu, ", tcp->u_arg[2]);
+	tprintf(", %" PRI_klu ", ", tcp->u_arg[2]);
 	/* flags */
 	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
 
@@ -266,7 +263,7 @@ SYS_FUNC(sendto)
 	printfd(tcp, tcp->u_arg[0]);
 	tprints(", ");
 	decode_sockbuf(tcp, tcp->u_arg[0], tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu, ", tcp->u_arg[2]);
+	tprintf(", %" PRI_klu ", ", tcp->u_arg[2]);
 	/* flags */
 	printflags(msg_flags, tcp->u_arg[3], "MSG_???");
 	/* to address */
@@ -292,7 +289,7 @@ SYS_FUNC(recv)
 				     tcp->u_rval);
 		}
 
-		tprintf(", %lu, ", tcp->u_arg[2]);
+		tprintf(", %" PRI_klu ", ", tcp->u_arg[2]);
 		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
 	}
 	return 0;
@@ -317,7 +314,7 @@ SYS_FUNC(recvfrom)
 				     tcp->u_rval);
 		}
 		/* size */
-		tprintf(", %lu, ", tcp->u_arg[2]);
+		tprintf(", %" PRI_klu ", ", tcp->u_arg[2]);
 		/* flags */
 		printflags(msg_flags, tcp->u_arg[3], "MSG_???");
 		tprints(", ");
@@ -377,7 +374,7 @@ printpair_fd(struct tcb *tcp, const int i0, const int i1)
 }
 
 static void
-decode_pair_fd(struct tcb *tcp, const long addr)
+decode_pair_fd(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	int pair[2];
 
@@ -422,7 +419,7 @@ SYS_FUNC(socketpair)
 		printxval(addrfams, tcp->u_arg[0], "AF_???");
 		tprints(", ");
 		tprint_sock_type(tcp->u_arg[1]);
-		tprintf(", %lu", tcp->u_arg[2]);
+		tprintf(", %" PRI_klu, tcp->u_arg[2]);
 	} else {
 		tprints(", ");
 		decode_pair_fd(tcp, tcp->u_arg[3]);
@@ -490,7 +487,7 @@ print_sockopt_fd_level_name(struct tcb *tcp, int fd, unsigned int level,
 }
 
 static void
-print_linger(struct tcb *tcp, long addr, int len)
+print_linger(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 {
 	struct linger linger;
 
@@ -507,7 +504,7 @@ print_linger(struct tcb *tcp, long addr, int len)
 
 #ifdef SO_PEERCRED
 static void
-print_ucred(struct tcb *tcp, long addr, int len)
+print_ucred(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 {
 	struct ucred uc;
 
@@ -525,7 +522,8 @@ print_ucred(struct tcb *tcp, long addr, int len)
 
 #ifdef PACKET_STATISTICS
 static void
-print_tpacket_stats(struct tcb *tcp, long addr, int len)
+print_tpacket_stats(struct tcb *const tcp, const kernel_ulong_t addr,
+		    const int len)
 {
 	struct tpacket_stats stats;
 
@@ -543,7 +541,7 @@ print_tpacket_stats(struct tcb *tcp, long addr, int len)
 #include "xlat/icmpfilterflags.h"
 
 static void
-print_icmp_filter(struct tcb *tcp, const long addr, int len)
+print_icmp_filter(struct tcb *const tcp, const kernel_ulong_t addr, int len)
 {
 	struct icmp_filter filter = {};
 
@@ -563,8 +561,9 @@ print_icmp_filter(struct tcb *tcp, const long addr, int len)
 }
 
 static void
-print_getsockopt(struct tcb *tcp, unsigned int level, unsigned int name,
-		 long addr, int len)
+print_getsockopt(struct tcb *const tcp, const unsigned int level,
+		 const unsigned int name, const kernel_ulong_t addr,
+		 const int len)
 {
 	if (addr && verbose(tcp))
 	switch (level) {
@@ -606,7 +605,7 @@ print_getsockopt(struct tcb *tcp, unsigned int level, unsigned int name,
 		if (len == sizeof(int)) {
 			printnum_int(tcp, addr, "%d");
 		} else {
-			printstr(tcp, addr, len);
+			printstrn(tcp, addr, len);
 		}
 	} else {
 		printaddr(addr);
@@ -637,12 +636,13 @@ SYS_FUNC(getsockopt)
 
 #ifdef IP_ADD_MEMBERSHIP
 static void
-print_mreq(struct tcb *tcp, long addr, unsigned int len)
+print_mreq(struct tcb *const tcp, const kernel_ulong_t addr,
+	   const unsigned int len)
 {
 	struct ip_mreq mreq;
 
 	if (len < sizeof(mreq)) {
-		printstr(tcp, addr, len);
+		printstrn(tcp, addr, len);
 		return;
 	}
 	if (umove_or_printaddr(tcp, addr, &mreq))
@@ -660,7 +660,8 @@ print_mreq(struct tcb *tcp, long addr, unsigned int len)
 
 #ifdef IPV6_ADD_MEMBERSHIP
 static void
-print_mreq6(struct tcb *tcp, long addr, unsigned int len)
+print_mreq6(struct tcb *const tcp, const kernel_ulong_t addr,
+	    const unsigned int len)
 {
 	struct ipv6_mreq mreq;
 
@@ -684,13 +685,13 @@ print_mreq6(struct tcb *tcp, long addr, unsigned int len)
 	return;
 
 fail:
-	printstr(tcp, addr, len);
+	printstrn(tcp, addr, len);
 }
 #endif /* IPV6_ADD_MEMBERSHIP */
 
 #ifdef MCAST_JOIN_GROUP
 static void
-print_group_req(struct tcb *tcp, long addr, int len)
+print_group_req(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 {
 	struct group_req greq;
 
@@ -709,7 +710,7 @@ print_group_req(struct tcb *tcp, long addr, int len)
 
 #ifdef PACKET_RX_RING
 static void
-print_tpacket_req(struct tcb *tcp, long addr, int len)
+print_tpacket_req(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 {
 	struct tpacket_req req;
 
@@ -731,7 +732,7 @@ print_tpacket_req(struct tcb *tcp, long addr, int len)
 # include "xlat/packet_mreq_type.h"
 
 static void
-print_packet_mreq(struct tcb *tcp, long addr, int len)
+print_packet_mreq(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 {
 	struct packet_mreq mreq;
 
@@ -754,8 +755,9 @@ print_packet_mreq(struct tcb *tcp, long addr, int len)
 #endif /* PACKET_ADD_MEMBERSHIP */
 
 static void
-print_setsockopt(struct tcb *tcp, unsigned int level, unsigned int name,
-		 long addr, int len)
+print_setsockopt(struct tcb *const tcp, const unsigned int level,
+		 const unsigned int name, const kernel_ulong_t addr,
+		 const int len)
 {
 	if (addr && verbose(tcp))
 	switch (level) {
@@ -835,7 +837,7 @@ print_setsockopt(struct tcb *tcp, unsigned int level, unsigned int name,
 		if (len == sizeof(int)) {
 			printnum_int(tcp, addr, "%d");
 		} else {
-			printstr(tcp, addr, len);
+			printstrn(tcp, addr, len);
 		}
 	} else {
 		printaddr(addr);

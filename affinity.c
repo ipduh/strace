@@ -35,10 +35,21 @@ get_cpuset_size(void)
 	static unsigned int cpuset_size;
 
 	if (!cpuset_size) {
-		pid_t pid = getpid();
+		/*
+		 * If the cpuset size passed to sched_getaffinity is less
+		 * than necessary to store the bitmask, the kernel does not
+		 * look at the mask pointer and fails with EINVAL.
+		 *
+		 * If the cpuset size is large enough, the kernel fails with
+		 * EFAULT on inaccessible mask pointers.
+		 *
+		 * This undocumented kernel feature can be used to probe
+		 * the kernel and find out the minimal valid cpuset size
+		 * without allocating any memory for the CPU affinity mask.
+		 */
 		cpuset_size = 128;
 		while (cpuset_size &&
-		       sched_getaffinity(pid, cpuset_size, NULL) == -1 &&
+		       sched_getaffinity(0, cpuset_size, NULL) == -1 &&
 		       EINVAL == errno) {
 			cpuset_size <<= 1;
 		}
@@ -50,7 +61,8 @@ get_cpuset_size(void)
 }
 
 static void
-print_affinitylist(struct tcb *tcp, const unsigned long addr, const unsigned int len)
+print_affinitylist(struct tcb *const tcp, const kernel_ulong_t addr,
+		   const unsigned int len)
 {
 	const unsigned int max_size = get_cpuset_size();
 	const unsigned int umove_size = len < max_size ? len : max_size;
@@ -75,7 +87,7 @@ print_affinitylist(struct tcb *tcp, const unsigned long addr, const unsigned int
 			if (i < 0)
 				break;
 			tprintf("%s%d", sep, i);
-			sep = " ";
+			sep = ", ";
 		}
 		if (size < len)
 			tprintf("%s...", sep);

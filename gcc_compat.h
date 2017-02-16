@@ -53,6 +53,16 @@
 #endif
 
 #if GNUC_PREREQ(3, 0)
+# define SAME_TYPE(x, y)	__builtin_types_compatible_p(typeof(x), typeof(y))
+# define FAIL_BUILD_ON_ZERO(expr) (sizeof(int[-1 + 2 * !!(expr)]) * 0)
+/* &(a)[0] is a pointer and not an array, shouldn't be treated as the same */
+# define MUST_BE_ARRAY(a) FAIL_BUILD_ON_ZERO(!SAME_TYPE((a), &(a)[0]))
+#else
+# define SAME_TYPE(x, y)	0
+# define MUST_BE_ARRAY(a)	0
+#endif
+
+#if GNUC_PREREQ(3, 0)
 # define ATTRIBUTE_MALLOC	__attribute__((__malloc__))
 #else
 # define ATTRIBUTE_MALLOC	/* empty */
@@ -68,6 +78,12 @@
 # define ATTRIBUTE_SENTINEL	__attribute__((__sentinel__))
 #else
 # define ATTRIBUTE_SENTINEL	/* empty */
+#endif
+
+#if GNUC_PREREQ(4, 1)
+# define ALIGNOF(t_)	__alignof__(t_)
+#else
+# define ALIGNOF(t_)	(sizeof(struct {char x_; t_ y_;}) - sizeof(t_))
 #endif
 
 #if GNUC_PREREQ(4, 3)
