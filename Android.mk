@@ -192,6 +192,7 @@ LOCAL_SRC_FILES := \
     umount.c \
     uname.c \
     upeek.c \
+    upoke.c \
     userfaultfd.c \
     ustat.c \
     util.c \
