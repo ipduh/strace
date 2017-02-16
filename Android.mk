@@ -39,8 +39,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-strace_version := $(shell grep strace $(LOCAL_PATH)/debian/changelog.in | \
-                          head -2 | tail -1 | cut -d " " -f 2)
+strace_version := $(shell grep strace $(LOCAL_PATH)/debian/changelog | \
+                          head -1 | cut -d " " -f 2)
 
 LOCAL_SRC_FILES := \
     access.c \
@@ -64,7 +64,6 @@ LOCAL_SRC_FILES := \
     evdev.c \
     eventfd.c \
     execve.c \
-    exit.c \
     fadvise.c \
     fallocate.c \
     fanotify.c \
@@ -127,14 +126,18 @@ LOCAL_SRC_FILES := \
     pathtrace.c \
     perf.c \
     personality.c \
+    pkeys.c \
     poll.c \
     prctl.c \
+    print_dev_t.c \
     print_mq_attr.c \
     print_msgbuf.c \
     print_sigevent.c \
     print_statfs.c \
     print_struct_stat.c \
     print_time.c \
+    print_timespec.c \
+    print_timeval.c \
     print_timex.c \
     printmode.c \
     printrusage.c \
@@ -142,6 +145,7 @@ LOCAL_SRC_FILES := \
     process.c \
     process_vm.c \
     ptp.c \
+    qualify.c \
     quota.c \
     readahead.c \
     readlink.c \
@@ -153,6 +157,8 @@ LOCAL_SRC_FILES := \
     scsi.c \
     seccomp.c \
     sendfile.c \
+    sg_io_v3.c \
+    sg_io_v4.c \
     sigaltstack.c \
     signal.c \
     signalfd.c \
@@ -187,11 +193,11 @@ LOCAL_SRC_FILES := \
     uname.c \
     upeek.c \
     userfaultfd.c \
+    ustat.c \
     util.c \
     utime.c \
     utimes.c \
     v4l2.c \
-    vsprintf.c \
     wait.c \
     xattr.c \
     xmalloc.c \
@@ -283,7 +289,9 @@ LOCAL_CFLAGS := \
     \
     -DMAJOR_IN_SYSMACROS \
     -DPACKAGE_NAME='"strace"' \
-    -DVERSION='"$(strace_version)"' \
+    -DPACKAGE_URL='"https://strace.io"' \
+    -DPACKAGE_VERSION='"$(strace_version)"' \
+    -DSIZEOF_KERNEL_LONG_T=SIZEOF_LONG \
     -DSIZEOF_OFF_T=SIZEOF_LONG \
     -DSIZEOF_LONG_LONG=8 \
     -DSTDC_HEADERS=1 \

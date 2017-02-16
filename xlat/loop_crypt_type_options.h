@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat loop_crypt_type_options in mpers mode
+extern const struct xlat loop_crypt_type_options[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat loop_crypt_type_options[] = {
 #if defined(LO_CRYPT_NONE) || (defined(HAVE_DECL_LO_CRYPT_NONE) && HAVE_DECL_LO_CRYPT_NONE)
   XLAT(LO_CRYPT_NONE),

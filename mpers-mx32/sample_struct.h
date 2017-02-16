@@ -1,0 +1,39 @@
+#include <inttypes.h>
+typedef uint32_t mpers_ptr_t;
+typedef
+struct {
+struct {
+mpers_ptr_t p;
+char sc;
+unsigned char mpers_filler_1[1];
+int16_t ss;
+unsigned char uc;
+unsigned char mpers_filler_2[3];
+int32_t si;
+uint32_t ui;
+int32_t sl;
+uint16_t us;
+unsigned char mpers_filler_3[6];
+int64_t sll;
+uint64_t ull;
+uint32_t ul;
+int32_t asl[3];
+char f;
+unsigned char mpers_end_filler_4[7];
+} ATTRIBUTE_PACKED s;
+union {
+int64_t sll;
+uint64_t ull;
+mpers_ptr_t p;
+int32_t sl;
+uint32_t ul;
+int32_t si;
+uint32_t ui;
+int16_t ss;
+uint16_t us;
+char sc;
+unsigned char uc;
+} u[3];
+int16_t f[0];
+} ATTRIBUTE_PACKED mx32_sample_struct;
+#define MPERS_mx32_sample_struct mx32_sample_struct

@@ -6,7 +6,7 @@ License: BSD
 Group: Development/Debuggers
 URL: http://sourceforge.net/projects/strace/
 Source: http://downloads.sourceforge.net/strace/%{name}-%{version}.tar.xz
-%if 0%{?fedora_version} >= 20 || 0%{?centos_version} >= 800 || 0%{?rhel_version} >= 800 || 0%{?scientificlinux_version} >= 800 || 0%{?suse_version} >= 1300
+%if 0%{?fedora} >= 20 || 0%{?centos} >= 8 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1300
 %define buildrequires_libunwind_devel BuildRequires: libunwind-devel
 %endif
 %ifarch x86_64
@@ -102,6 +102,18 @@ echo 'END OF TEST SUITE INFORMATION'
 %changelog
 * @RPM_CHANGELOGTIME@ @PACKAGE_BUGREPORT@ - @PACKAGE_VERSION@-1
 - @PACKAGE_STRING@ snapshot.
+
+* Wed Dec 14 2016 Dmitry V. Levin <ldv@altlinux.org> - 4.15-1
+- v4.14-100-g622af42 -> v4.15.
+
+* Wed Nov 16 2016 Dmitry V. Levin <ldv@altlinux.org> - 4.14.0.100.622a-1
+- v4.14 -> v4.14-100-g622af42:
+  + implemented syscall fault injection.
+
+* Tue Oct 04 2016 Dmitry V. Levin <ldv@altlinux.org> - 4.14-1
+- v4.13 -> v4.14:
+  + added printing of the mode argument of open and openat syscalls
+    when O_TMPFILE flag is set (#1377846).
 
 * Tue Jul 26 2016 Dmitry V. Levin <ldv@altlinux.org> - 4.13-1
 - v4.12 -> v4.13.

@@ -11,19 +11,19 @@
 static void
 arch_sigreturn(struct tcb *tcp)
 {
-	long fp = sparc_regs.u_regs[U_REG_FP] +
-		  SIZEOF_STRUCT_SPARC_STACKF + SIZEOF_STRUCT_PT_REGS;
+	unsigned long addr = sparc_regs.u_regs[U_REG_FP] +
+		SIZEOF_STRUCT_SPARC_STACKF + SIZEOF_STRUCT_PT_REGS;
 	struct {
 		unsigned int mask;
 		char fpu_save[PERSONALITY_WORDSIZE];
 		char insns[PERSONALITY_WORDSIZE * 2] ATTRIBUTE_ALIGNED(8);
-		unsigned int extramask[NSIG / 8 / sizeof(int) - 1];
+		unsigned int extramask[NSIG_BYTES / sizeof(int) - 1];
 	} frame;
 
-	if (umove(tcp, fp, &frame) < 0) {
-		tprintf("{mask=%#lx}", fp);
+	if (umove(tcp, addr, &frame) < 0) {
+		tprintf("{mask=%#lx}", addr);
 	} else {
-		unsigned int mask[NSIG / 8 / sizeof(int)];
+		unsigned int mask[NSIG_BYTES / sizeof(int)];
 
 		mask[0] = frame.mask;
 		memcpy(mask + 1, frame.extramask, sizeof(frame.extramask));

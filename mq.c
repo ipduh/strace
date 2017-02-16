@@ -40,27 +40,33 @@ SYS_FUNC(mq_open)
 		tprints(", ");
 		print_numeric_umode_t(tcp->u_arg[2]);
 		tprints(", ");
-		printmqattr(tcp, tcp->u_arg[3]);
+		printmqattr(tcp, tcp->u_arg[3], false);
 	}
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(mq_timedsend)
 {
-	tprintf("%ld, ", tcp->u_arg[0]);
-	printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-	tprintf(", %lu, %ld, ", tcp->u_arg[2], tcp->u_arg[3]);
+	tprintf("%d, ", (int) tcp->u_arg[0]);
+	printstrn(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+	tprintf(", %" PRI_klu ", %u, ", tcp->u_arg[2],
+		(unsigned int) tcp->u_arg[3]);
 	print_timespec(tcp, tcp->u_arg[4]);
 	return RVAL_DECODED;
 }
 
 SYS_FUNC(mq_timedreceive)
 {
-	if (entering(tcp))
-		tprintf("%ld, ", tcp->u_arg[0]);
-	else {
-		printstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %lu, %ld, ", tcp->u_arg[2], tcp->u_arg[3]);
+	if (entering(tcp)) {
+		tprintf("%d, ", (int) tcp->u_arg[0]);
+	} else {
+		if (syserror(tcp))
+			printaddr(tcp->u_arg[1]);
+		else
+			printstrn(tcp, tcp->u_arg[1], tcp->u_rval);
+		tprintf(", %" PRI_klu ", ", tcp->u_arg[2]);
+		printnum_int(tcp, tcp->u_arg[3], "%u");
+		tprintf(", ");
 		/*
 		 * Since the timeout parameter is read by the kernel
 		 * on entering syscall, it has to be decoded the same way
@@ -75,7 +81,7 @@ SYS_FUNC(mq_timedreceive)
 
 SYS_FUNC(mq_notify)
 {
-	tprintf("%ld, ", tcp->u_arg[0]);
+	tprintf("%d, ", (int) tcp->u_arg[0]);
 	print_sigevent(tcp, tcp->u_arg[1]);
 	return RVAL_DECODED;
 }
@@ -83,10 +89,11 @@ SYS_FUNC(mq_notify)
 SYS_FUNC(mq_getsetattr)
 {
 	if (entering(tcp)) {
-		tprintf("%ld, ", tcp->u_arg[0]);
-		printmqattr(tcp, tcp->u_arg[1]);
+		tprintf("%d, ", (int) tcp->u_arg[0]);
+		printmqattr(tcp, tcp->u_arg[1], true);
 		tprints(", ");
-	} else
-		printmqattr(tcp, tcp->u_arg[2]);
+	} else {
+		printmqattr(tcp, tcp->u_arg[2], true);
+	}
 	return 0;
 }
