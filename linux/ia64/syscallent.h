@@ -30,16 +30,17 @@
  * IA-32 syscalls that have pointer arguments which are incompatible
  * with 64-bit layout get redirected to printargs.
  */
-#undef SYS_FUNC_NAME
-#define SYS_FUNC_NAME(syscall_name) printargs
-#include "../i386/syscallent.h"
-#undef SYS_FUNC_NAME
-#define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
+#if CST > 0
+# undef SYS_FUNC_NAME
+# define SYS_FUNC_NAME(syscall_name) printargs
+# include "../i386/syscallent.h"
+# undef SYS_FUNC_NAME
+# define SYS_FUNC_NAME(syscall_name) MPERS_FUNC_NAME(syscall_name)
+#endif
 
 /* You must be careful to check ../i386/syscallent.h so that this table
    starts where that one leaves off.
 */
-[(SYS_ipc_subcall + SYS_ipc_nsubcalls) ... 1023] = { },
 [1024] = { 0,	0,		SEN(printargs),			"ni_syscall"		},
 [1025] = { 1,	TP|SE,		SEN(exit),			"exit"			},
 [1026] = { 3,	TD,		SEN(read),			"read"			},
@@ -355,12 +356,12 @@
 [1336] = { 3,	0,		SEN(sched_setattr),		"sched_setattr"		},
 [1337] = { 4,	0,		SEN(sched_getattr),		"sched_getattr"		},
 [1338] = { 5,	TD|TF,		SEN(renameat2),			"renameat2"		},
-[1339] = { 3,	0,		SEN(getrandom),			"getrandom",		},
-[1340] = { 2,	TD,		SEN(memfd_create),		"memfd_create",		},
-[1341] = { 3,	TD,		SEN(bpf),			"bpf",			},
-[1342] = { 5,	TD|TF|TP|SE|SI,	SEN(execveat),			"execveat",		},
-[1343] = { 1,	TD,		SEN(userfaultfd),		"userfaultfd",		},
-[1344] = { 2,	0,		SEN(membarrier),		"membarrier",		},
+[1339] = { 3,	0,		SEN(getrandom),			"getrandom"		},
+[1340] = { 2,	TD,		SEN(memfd_create),		"memfd_create"		},
+[1341] = { 3,	TD,		SEN(bpf),			"bpf"			},
+[1342] = { 5,	TD|TF|TP|SE|SI,	SEN(execveat),			"execveat"		},
+[1343] = { 1,	TD,		SEN(userfaultfd),		"userfaultfd"		},
+[1344] = { 2,	0,		SEN(membarrier),		"membarrier"		},
 [1345] = { 5,	0,		SEN(kcmp),			"kcmp"			},
 [1346] = { 3,	TM,		SEN(mlock2),			"mlock2"		},
 [1347] = { 6,	TD,		SEN(copy_file_range),		"copy_file_range"	},

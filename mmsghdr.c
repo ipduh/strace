@@ -33,7 +33,8 @@
 #include <limits.h>
 
 static int
-fetch_struct_mmsghdr_or_printaddr(struct tcb *tcp, const long addr,
+fetch_struct_mmsghdr_or_printaddr(struct tcb *const tcp,
+				  const kernel_ulong_t addr,
 				  const unsigned int len, void *const mh)
 {
 	if ((entering(tcp) || !syserror(tcp))
@@ -67,7 +68,7 @@ print_struct_mmsghdr(struct tcb *tcp, void *elem_buf,
 
 	tprints("{msg_hdr=");
 	print_struct_msghdr(tcp, &mmsg->msg_hdr, c->p_user_msg_namelen,
-			    c->use_msg_len ? mmsg->msg_len : -1UL);
+			    c->use_msg_len ? mmsg->msg_len : (kernel_ulong_t) -1);
 	if (c->msg_len_vlen) {
 		tprintf(", msg_len=%u", mmsg->msg_len);
 		--c->msg_len_vlen;
@@ -97,7 +98,7 @@ struct mmsgvec_data {
 };
 
 static void
-save_mmsgvec_namelen(struct tcb *tcp, unsigned long addr,
+save_mmsgvec_namelen(struct tcb *const tcp, kernel_ulong_t addr,
 		     unsigned int len, const char *const timeout)
 {
 	if (len > IOV_MAX)
@@ -124,7 +125,7 @@ save_mmsgvec_namelen(struct tcb *tcp, unsigned long addr,
 }
 
 static void
-decode_mmsgvec(struct tcb *tcp, const unsigned long addr,
+decode_mmsgvec(struct tcb *const tcp, const kernel_ulong_t addr,
 	       const unsigned int vlen, const unsigned int msg_len_vlen,
 	       const bool use_msg_len)
 {
@@ -148,7 +149,7 @@ decode_mmsgvec(struct tcb *tcp, const unsigned long addr,
 }
 
 void
-dumpiov_in_mmsghdr(struct tcb *tcp, long addr)
+dumpiov_in_mmsghdr(struct tcb *const tcp, kernel_ulong_t addr)
 {
 	unsigned int len = tcp->u_rval;
 	unsigned int i, fetched;
@@ -158,10 +159,11 @@ dumpiov_in_mmsghdr(struct tcb *tcp, long addr)
 		fetched = fetch_struct_mmsghdr(tcp, addr, &mmsg);
 		if (!fetched)
 			break;
-		tprintf(" = %lu buffers in vector %u\n",
-			(unsigned long) mmsg.msg_hdr.msg_iovlen, i);
+		tprintf(" = %" PRI_klu " buffers in vector %u\n",
+			(kernel_ulong_t) mmsg.msg_hdr.msg_iovlen, i);
 		dumpiov_upto(tcp, mmsg.msg_hdr.msg_iovlen,
-			(long) mmsg.msg_hdr.msg_iov, mmsg.msg_len);
+			     ptr_to_kulong(mmsg.msg_hdr.msg_iov),
+			     mmsg.msg_len);
 	}
 }
 

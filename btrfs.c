@@ -204,7 +204,7 @@ btrfs_print_balance_args(const char *name, const struct btrfs_balance_args *bba)
 }
 
 static void
-btrfs_print_balance(struct tcb *tcp, const long arg, bool out)
+btrfs_print_balance(struct tcb *const tcp, const kernel_ulong_t arg, bool out)
 {
 	struct btrfs_ioctl_balance_args balance_args;
 
@@ -376,7 +376,7 @@ print_uint64(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 }
 
 static void
-btrfs_print_qgroup_inherit(struct tcb *tcp, const unsigned long qgi_addr)
+btrfs_print_qgroup_inherit(struct tcb *const tcp, const kernel_ulong_t qgi_addr)
 {
 	struct btrfs_qgroup_inherit inherit;
 
@@ -512,7 +512,8 @@ print_btrfs_ioctl_space_info(struct tcb *tcp, void *elem_buf,
 }
 
 MPERS_PRINTER_DECL(int, btrfs_ioctl,
-		   struct tcb *tcp, const unsigned int code, const long arg)
+		   struct tcb *const tcp, const unsigned int code,
+		   const kernel_ulong_t arg)
 {
 	switch (code) {
 	/* Take no arguments; command only. */
@@ -1216,7 +1217,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 			tprints("...");
 		else {
 			uint64_t record;
-			print_array(tcp, (unsigned long) args.clone_sources,
+			print_array(tcp, ptr_to_kulong(args.clone_sources),
 				    args.clone_sources_count,
 				    &record, sizeof(record),
 				    umoven_or_printaddr,
@@ -1316,11 +1317,11 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 			printflags64(btrfs_snap_flags_v2, args.flags,
 				     "BTRFS_SUBVOL_???");
 			if (args.flags & BTRFS_SUBVOL_QGROUP_INHERIT) {
-				tprintf(", size=%llu, qgroup_inherit=",
-					(unsigned long long) args.size);
+				tprintf(", size=%" PRIu64 ", qgroup_inherit=",
+					(uint64_t) args.size);
 
 				btrfs_print_qgroup_inherit(tcp,
-					(unsigned long) args.qgroup_inherit);
+					ptr_to_kulong(args.qgroup_inherit));
 			}
 			tprints(", name=");
 			print_quoted_string(args.name, sizeof(args.name),
@@ -1328,7 +1329,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 			tprints("}");
 			return 0;
 		}
-		tprintf("{transid=%llu}", (unsigned long long) args.transid);
+		tprintf("{transid=%" PRIu64 "}", (uint64_t) args.transid);
 		break;
 	}
 

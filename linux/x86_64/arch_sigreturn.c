@@ -18,15 +18,15 @@ arch_sigreturn(struct tcb *tcp)
 #define	X86_64_SIGMASK_OFFSET	offsetof(struct ucontext, uc_sigmask)
 #define	X32_SIGMASK_OFFSET	sizeof(ucontext_x32_header)
 
-	const unsigned long offset =
+	const kernel_ulong_t offset =
 #ifdef X32
 		X32_SIGMASK_OFFSET;
 #else
 		current_personality == 2 ? X32_SIGMASK_OFFSET :
 					   X86_64_SIGMASK_OFFSET;
 #endif
-	const unsigned long addr = (unsigned long) *x86_64_rsp_ptr + offset;
+	const kernel_ulong_t addr = (kernel_ulong_t) *x86_64_rsp_ptr + offset;
 	tprints("{mask=");
-	print_sigset_addr_len(tcp, addr, NSIG / 8);
+	print_sigset_addr_len(tcp, addr, NSIG_BYTES);
 	tprints("}");
 }

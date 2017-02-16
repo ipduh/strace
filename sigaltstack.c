@@ -41,7 +41,7 @@
 #include "xlat/sigaltstack_flags.h"
 
 static void
-print_stack_t(struct tcb *tcp, unsigned long addr)
+print_stack_t(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	stack_t ss;
 
@@ -49,10 +49,10 @@ print_stack_t(struct tcb *tcp, unsigned long addr)
 		return;
 
 	tprints("{ss_sp=");
-	printaddr((unsigned long) ss.ss_sp);
+	printaddr(ptr_to_kulong(ss.ss_sp));
 	tprints(", ss_flags=");
 	printflags(sigaltstack_flags, ss.ss_flags, "SS_???");
-	tprintf(", ss_size=%lu}", (unsigned long) ss.ss_size);
+	tprintf(", ss_size=%" PRI_klu "}", (kernel_ulong_t) ss.ss_size);
 }
 
 SYS_FUNC(sigaltstack)

@@ -32,44 +32,45 @@ SYS_FUNC(process_vm_readv)
 {
 	if (entering(tcp)) {
 		/* arg 1: pid */
-		tprintf("%ld, ", tcp->u_arg[0]);
+		tprintf("%d, ", (int) tcp->u_arg[0]);
 	} else {
+		kernel_ulong_t local_iovcnt = tcp->u_arg[2];
+		kernel_ulong_t remote_iovcnt = tcp->u_arg[4];
+		kernel_ulong_t flags = tcp->u_arg[5];
+
 		/* arg 2: local iov */
-		if (syserror(tcp)) {
-			printaddr(tcp->u_arg[1]);
-		} else {
-			tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1],
-				   IOV_DECODE_STR);
-		}
+		tprint_iov_upto(tcp, local_iovcnt, tcp->u_arg[1],
+			   syserror(tcp) ? IOV_DECODE_ADDR : IOV_DECODE_STR,
+			   tcp->u_rval);
 		/* arg 3: local iovcnt */
-		tprintf(", %lu, ", tcp->u_arg[2]);
+		tprintf(", %" PRI_klu ", ", local_iovcnt);
 		/* arg 4: remote iov */
-		if (syserror(tcp)) {
-			printaddr(tcp->u_arg[3]);
-		} else {
-			tprint_iov(tcp, tcp->u_arg[4], tcp->u_arg[3],
-				   IOV_DECODE_ADDR);
-		}
+		tprint_iov(tcp, remote_iovcnt, tcp->u_arg[3],
+			   IOV_DECODE_ADDR);
 		/* arg 5: remote iovcnt */
 		/* arg 6: flags */
-		tprintf(", %lu, %lu", tcp->u_arg[4], tcp->u_arg[5]);
+		tprintf(", %" PRI_klu ", %" PRI_klu, remote_iovcnt, flags);
 	}
 	return 0;
 }
 
 SYS_FUNC(process_vm_writev)
 {
+	kernel_ulong_t local_iovcnt = tcp->u_arg[2];
+	kernel_ulong_t remote_iovcnt = tcp->u_arg[4];
+	kernel_ulong_t flags = tcp->u_arg[5];
+
 	/* arg 1: pid */
-	tprintf("%ld, ", tcp->u_arg[0]);
+	tprintf("%d, ", (int) tcp->u_arg[0]);
 	/* arg 2: local iov */
-	tprint_iov(tcp, tcp->u_arg[2], tcp->u_arg[1], IOV_DECODE_STR);
+	tprint_iov(tcp, local_iovcnt, tcp->u_arg[1], IOV_DECODE_STR);
 	/* arg 3: local iovcnt */
-	tprintf(", %lu, ", tcp->u_arg[2]);
+	tprintf(", %" PRI_klu ", ", local_iovcnt);
 	/* arg 4: remote iov */
-	tprint_iov(tcp, tcp->u_arg[4], tcp->u_arg[3], IOV_DECODE_ADDR);
+	tprint_iov(tcp, remote_iovcnt, tcp->u_arg[3], IOV_DECODE_ADDR);
 	/* arg 5: remote iovcnt */
 	/* arg 6: flags */
-	tprintf(", %lu, %lu", tcp->u_arg[4], tcp->u_arg[5]);
+	tprintf(", %" PRI_klu ", %" PRI_klu, remote_iovcnt, flags);
 
 	return RVAL_DECODED;
 }

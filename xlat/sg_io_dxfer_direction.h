@@ -2,11 +2,13 @@
 
 #ifdef IN_MPERS
 
-# error static const struct xlat sg_io_dxfer_direction in mpers mode
+extern const struct xlat sg_io_dxfer_direction[];
 
 #else
 
+# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
+# endif
 const struct xlat sg_io_dxfer_direction[] = {
 #if defined(SG_DXFER_NONE) || (defined(HAVE_DECL_SG_DXFER_NONE) && HAVE_DECL_SG_DXFER_NONE)
   XLAT(SG_DXFER_NONE),
