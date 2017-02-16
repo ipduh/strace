@@ -43,11 +43,11 @@
 
 SYS_FUNC(futex)
 {
-	const long uaddr = tcp->u_arg[0];
+	const kernel_ulong_t uaddr = tcp->u_arg[0];
 	const int op = tcp->u_arg[1];
 	const int cmd = op & 127;
-	const long timeout = tcp->u_arg[3];
-	const long uaddr2 = tcp->u_arg[4];
+	const kernel_ulong_t timeout = tcp->u_arg[3];
+	const kernel_ulong_t uaddr2 = tcp->u_arg[4];
 	const unsigned int val = tcp->u_arg[2];
 	const unsigned int val2 = tcp->u_arg[3];
 	const unsigned int val3 = tcp->u_arg[5];
@@ -91,13 +91,19 @@ SYS_FUNC(futex)
 		tprintf(", %u", val);
 		tprintf(", %u, ", val2);
 		printaddr(uaddr2);
-		tprints(", {");
+		tprints(", ");
 		if ((val3 >> 28) & 8)
-			tprints("FUTEX_OP_OPARG_SHIFT|");
-		printxval(futexwakeops, (val3 >> 28) & 0x7, "FUTEX_OP_???");
-		tprintf(", %u, ", (val3 >> 12) & 0xfff);
-		printxval(futexwakecmps, (val3 >> 24) & 0xf, "FUTEX_OP_CMP_???");
-		tprintf(", %u}", val3 & 0xfff);
+			tprints("FUTEX_OP_OPARG_SHIFT<<28|");
+		if (printxval(futexwakeops, (val3 >> 28) & 0x7, NULL))
+			tprints("<<28");
+		else
+			tprints("<<28 /* FUTEX_OP_??? */");
+		tprintf("|%#x<<12|", (val3 >> 12) & 0xfff);
+		if (printxval(futexwakecmps, (val3 >> 24) & 0xf, NULL))
+			tprints("<<24");
+		else
+			tprints("<<24 /* FUTEX_OP_CMP_??? */");
+		tprintf("|%#x", val3 & 0xfff);
 		break;
 	case FUTEX_WAIT_REQUEUE_PI:
 		tprintf(", %u", val);
@@ -115,7 +121,8 @@ SYS_FUNC(futex)
 		break;
 	default:
 		tprintf(", %u", val);
-		tprintf(", %#lx", timeout);
+		tprints(", ");
+		printaddr(timeout);
 		tprints(", ");
 		printaddr(uaddr2);
 		tprintf(", %#x", val3);

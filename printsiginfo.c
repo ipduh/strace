@@ -77,7 +77,7 @@ static void
 printsigval(const siginfo_t *sip)
 {
 	tprintf(", si_value={int=%d, ptr=", sip->si_int);
-	printaddr((unsigned long) sip->si_ptr);
+	printaddr(ptr_to_kulong(sip->si_ptr));
 	tprints("}");
 }
 
@@ -178,7 +178,7 @@ print_si_info(const siginfo_t *sip)
 		case SIGILL: case SIGFPE:
 		case SIGSEGV: case SIGBUS:
 			tprints(", si_addr=");
-			printaddr((unsigned long) sip->si_addr);
+			printaddr(ptr_to_kulong(sip->si_addr));
 			break;
 		case SIGPOLL:
 			switch (sip->si_code) {
@@ -189,13 +189,21 @@ print_si_info(const siginfo_t *sip)
 			}
 			break;
 #ifdef HAVE_SIGINFO_T_SI_SYSCALL
-		case SIGSYS:
+		case SIGSYS: {
+			const char *scname =
+				syscall_name((unsigned) sip->si_syscall);
+
 			tprints(", si_call_addr=");
-			printaddr((unsigned long) sip->si_call_addr);
-			tprintf(", si_syscall=__NR_%s, si_arch=",
-				syscall_name((unsigned) sip->si_syscall));
+			printaddr(ptr_to_kulong(sip->si_call_addr));
+			tprints(", si_syscall=");
+			if (scname)
+				tprintf("__NR_%s", scname);
+			else
+				tprintf("%u", (unsigned) sip->si_syscall);
+			tprints(", si_arch=");
 			printxval(audit_arch, sip->si_arch, "AUDIT_ARCH_???");
 			break;
+		}
 #endif
 		default:
 			if (sip->si_pid || sip->si_uid)
@@ -231,7 +239,7 @@ printsiginfo(const siginfo_t *sip)
 }
 
 MPERS_PRINTER_DECL(void, printsiginfo_at,
-		   struct tcb *tcp, long addr)
+		   struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	siginfo_t si;
 
@@ -246,8 +254,8 @@ print_siginfo_t(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 	return true;
 }
 
-MPERS_PRINTER_DECL(void, print_siginfo_array,
-		   struct tcb *tcp, unsigned long addr, unsigned long len)
+MPERS_PRINTER_DECL(void, print_siginfo_array, struct tcb *const tcp,
+		   const kernel_ulong_t addr, const kernel_ulong_t len)
 {
 	siginfo_t si;
 

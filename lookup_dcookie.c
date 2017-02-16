@@ -40,10 +40,10 @@ SYS_FUNC(lookup_dcookie)
 	if (syserror(tcp))
 		printaddr(tcp->u_arg[argn]);
 	else
-		printstr(tcp, tcp->u_arg[argn], tcp->u_rval);
+		printstrn(tcp, tcp->u_arg[argn], tcp->u_rval);
 
 	/* len */
-	tprintf(", %lu", tcp->u_arg[argn + 1]);
+	tprintf(", %" PRI_klu, tcp->u_arg[argn + 1]);
 
 	return 0;
 }

@@ -46,15 +46,15 @@ print_struct_flock64(const struct_kernel_flock64 *fl, const int getlk)
 	printxval(lockfcmds, (unsigned short) fl->l_type, "F_???");
 	tprints(", l_whence=");
 	printxval(whence_codes, (unsigned short) fl->l_whence, "SEEK_???");
-	tprintf(", l_start=%lld, l_len=%lld",
-		(long long) fl->l_start, (long long) fl->l_len);
+	tprintf(", l_start=%" PRId64 ", l_len=%" PRId64,
+		(int64_t) fl->l_start, (int64_t) fl->l_len);
 	if (getlk)
 		tprintf(", l_pid=%lu", (unsigned long) fl->l_pid);
 	tprints("}");
 }
 
 static void
-printflock64(struct tcb *tcp, const long addr, const int getlk)
+printflock64(struct tcb *const tcp, const kernel_ulong_t addr, const int getlk)
 {
 	struct_kernel_flock64 fl;
 
@@ -63,7 +63,7 @@ printflock64(struct tcb *tcp, const long addr, const int getlk)
 }
 
 static void
-printflock(struct tcb *tcp, const long addr, const int getlk)
+printflock(struct tcb *const tcp, const kernel_ulong_t addr, const int getlk)
 {
 	struct_kernel_flock64 fl;
 
@@ -72,7 +72,7 @@ printflock(struct tcb *tcp, const long addr, const int getlk)
 }
 
 static void
-print_f_owner_ex(struct tcb *tcp, const long addr)
+print_f_owner_ex(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	struct { int type, pid; } owner;
 
@@ -96,11 +96,11 @@ print_fcntl(struct tcb *tcp)
 		break;
 	case F_SETOWN:
 	case F_SETPIPE_SZ:
-		tprintf(", %ld", tcp->u_arg[2]);
+		tprintf(", %" PRI_kld, tcp->u_arg[2]);
 		break;
 	case F_DUPFD:
 	case F_DUPFD_CLOEXEC:
-		tprintf(", %ld", tcp->u_arg[2]);
+		tprintf(", %" PRI_kld, tcp->u_arg[2]);
 		return RVAL_DECODED | RVAL_FD;
 	case F_SETFL:
 		tprints(", ");
@@ -122,15 +122,15 @@ print_fcntl(struct tcb *tcp)
 		break;
 	case F_NOTIFY:
 		tprints(", ");
-		printflags_long(notifyflags, tcp->u_arg[2], "DN_???");
+		printflags64(notifyflags, tcp->u_arg[2], "DN_???");
 		break;
 	case F_SETLEASE:
 		tprints(", ");
-		printxval_long(lockfcmds, tcp->u_arg[2], "F_???");
+		printxval64(lockfcmds, tcp->u_arg[2], "F_???");
 		break;
 	case F_ADD_SEALS:
 		tprints(", ");
-		printflags_long(f_seals, tcp->u_arg[2], "F_SEAL_???");
+		printflags64(f_seals, tcp->u_arg[2], "F_SEAL_???");
 		break;
 	case F_SETSIG:
 		tprints(", ");
@@ -143,7 +143,7 @@ print_fcntl(struct tcb *tcp)
 		if (entering(tcp) || syserror(tcp) || tcp->u_rval == 0)
 			return 0;
 		tcp->auxstr = sprintflags("flags ", fdflags,
-					  (unsigned long) tcp->u_rval);
+					  (kernel_ulong_t) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	case F_GETFL:
 		if (entering(tcp) || syserror(tcp))
@@ -171,13 +171,13 @@ print_fcntl(struct tcb *tcp)
 	case F_GETLEASE:
 		if (entering(tcp) || syserror(tcp))
 			return 0;
-		tcp->auxstr = xlookup(lockfcmds, (unsigned long) tcp->u_rval);
+		tcp->auxstr = xlookup(lockfcmds, (kernel_ulong_t) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	case F_GET_SEALS:
 		if (entering(tcp) || syserror(tcp) || tcp->u_rval == 0)
 			return 0;
 		tcp->auxstr = sprintflags("seals ", f_seals,
-					  (unsigned long) tcp->u_rval);
+					  (kernel_ulong_t) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	case F_GETSIG:
 		if (entering(tcp) || syserror(tcp) || tcp->u_rval == 0)
@@ -185,7 +185,7 @@ print_fcntl(struct tcb *tcp)
 		tcp->auxstr = signame(tcp->u_rval);
 		return RVAL_STR;
 	default:
-		tprintf(", %#lx", tcp->u_arg[2]);
+		tprintf(", %#" PRI_klx, tcp->u_arg[2]);
 		break;
 	}
 	return RVAL_DECODED;

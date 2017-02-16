@@ -167,6 +167,9 @@ const struct xlat sockipv6options[] = {
 #if defined(IPV6_UNICAST_IF) || (defined(HAVE_DECL_IPV6_UNICAST_IF) && HAVE_DECL_IPV6_UNICAST_IF)
   XLAT(IPV6_UNICAST_IF),
 #endif
+#if defined(IPV6_RECVFRAGSIZE) || (defined(HAVE_DECL_IPV6_RECVFRAGSIZE) && HAVE_DECL_IPV6_RECVFRAGSIZE)
+  XLAT(IPV6_RECVFRAGSIZE),
+#endif
  XLAT_END
 };
 

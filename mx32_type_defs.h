@@ -16,6 +16,9 @@
 #ifdef MPERS_mx32_struct_btrfs_ioctl_received_subvol_args
 # define struct_btrfs_ioctl_received_subvol_args MPERS_mx32_struct_btrfs_ioctl_received_subvol_args
 #endif
+#ifdef MPERS_mx32_struct_btrfs_ioctl_vol_args_v2
+# define struct_btrfs_ioctl_vol_args_v2 MPERS_mx32_struct_btrfs_ioctl_vol_args_v2
+#endif
 #ifdef MPERS_mx32_kernel_dirent
 # define kernel_dirent MPERS_mx32_kernel_dirent
 #endif
@@ -37,6 +40,12 @@
 #ifdef MPERS_mx32_struct_msghdr
 # define struct_msghdr MPERS_mx32_struct_msghdr
 #endif
+#ifdef MPERS_mx32_struct_stat
+# define struct_stat MPERS_mx32_struct_stat
+#endif
+#ifdef MPERS_mx32_struct_stat64
+# define struct_stat64 MPERS_mx32_struct_stat64
+#endif
 #ifdef MPERS_mx32_struct_statfs
 # define struct_statfs MPERS_mx32_struct_statfs
 #endif
@@ -52,6 +61,9 @@
 #ifdef MPERS_mx32_shmid_ds_t
 # define shmid_ds_t MPERS_mx32_shmid_ds_t
 #endif
+#ifdef MPERS_mx32_struct_loop_info
+# define struct_loop_info MPERS_mx32_struct_loop_info
+#endif
 #ifdef MPERS_mx32_struct_mtd_oob_buf
 # define struct_mtd_oob_buf MPERS_mx32_struct_mtd_oob_buf
 #endif
@@ -60,6 +72,9 @@
 #endif
 #ifdef MPERS_mx32_msgbuf_t
 # define msgbuf_t MPERS_mx32_msgbuf_t
+#endif
+#ifdef MPERS_mx32_struct_sg_req_info
+# define struct_sg_req_info MPERS_mx32_struct_sg_req_info
 #endif
 #ifdef MPERS_mx32_struct_sigevent
 # define struct_sigevent MPERS_mx32_struct_sigevent
@@ -85,14 +100,26 @@
 #ifdef MPERS_mx32_struct_rtc_pll_info
 # define struct_rtc_pll_info MPERS_mx32_struct_rtc_pll_info
 #endif
+#ifdef MPERS_mx32_struct_sg_io_hdr
+# define struct_sg_io_hdr MPERS_mx32_struct_sg_io_hdr
+#endif
 #ifdef MPERS_mx32_stack_t
 # define stack_t MPERS_mx32_stack_t
+#endif
+#ifdef MPERS_mx32_struct_ifconf
+# define struct_ifconf MPERS_mx32_struct_ifconf
+#endif
+#ifdef MPERS_mx32_struct_ifreq
+# define struct_ifreq MPERS_mx32_struct_ifreq
 #endif
 #ifdef MPERS_mx32_sysinfo_t
 # define sysinfo_t MPERS_mx32_sysinfo_t
 #endif
 #ifdef MPERS_mx32_tms_t
 # define tms_t MPERS_mx32_tms_t
+#endif
+#ifdef MPERS_mx32_struct_ustat
+# define struct_ustat MPERS_mx32_struct_ustat
 #endif
 #ifdef MPERS_mx32_utimbuf_t
 # define utimbuf_t MPERS_mx32_utimbuf_t

@@ -33,12 +33,12 @@
 
 #include "defs.h"
 
-#if defined I386 || defined X86_64 || defined X32
+#ifdef HAVE_STRUCT_USER_DESC
 
 # include <asm/ldt.h>
 
 void
-print_user_desc(struct tcb *tcp, const long addr)
+print_user_desc(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	struct user_desc desc;
 
@@ -67,12 +67,12 @@ print_user_desc(struct tcb *tcp, const long addr)
 
 SYS_FUNC(modify_ldt)
 {
-	tprintf("%ld, ", tcp->u_arg[0]);
+	tprintf("%" PRI_kld ", ", tcp->u_arg[0]);
 	if (tcp->u_arg[2] != sizeof(struct user_desc))
 		printaddr(tcp->u_arg[1]);
 	else
 		print_user_desc(tcp, tcp->u_arg[1]);
-	tprintf(", %lu", tcp->u_arg[2]);
+	tprintf(", %" PRI_klu, tcp->u_arg[2]);
 
 	return RVAL_DECODED;
 }
@@ -105,7 +105,7 @@ SYS_FUNC(get_thread_area)
 	return 0;
 }
 
-#endif /* I386 || X86_64 || X32 */
+#endif /* HAVE_STRUCT_USER_DESC */
 
 #if defined(M68K) || defined(MIPS)
 SYS_FUNC(set_thread_area)

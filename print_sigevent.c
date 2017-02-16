@@ -35,7 +35,8 @@
 #include <signal.h>
 #include "xlat/sigev_value.h"
 
-MPERS_PRINTER_DECL(void, print_sigevent, struct tcb *tcp, const long addr)
+MPERS_PRINTER_DECL(void, print_sigevent,
+		   struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	struct_sigevent sev;
 
@@ -44,9 +45,9 @@ MPERS_PRINTER_DECL(void, print_sigevent, struct tcb *tcp, const long addr)
 
 	tprints("{");
 	if (sev.sigev_value.sival_ptr) {
-		tprintf("sigev_value={int=%d, ptr=",
+		tprintf("sigev_value={sival_int=%d, sival_ptr=",
 			sev.sigev_value.sival_int);
-		printaddr((unsigned long) sev.sigev_value.sival_ptr);
+		printaddr(sev.sigev_value.sival_ptr);
 		tprints("}, ");
 	}
 
