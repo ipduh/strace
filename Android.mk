@@ -37,8 +37,6 @@ LOCAL_PATH := $(call my-dir)
 
 # -------------------------------------------------------------------------
 
-ifneq ($(strip $(TARGET_ARCH)),mips)
-
 include $(CLEAR_VARS)
 
 strace_version := $(shell grep strace $(LOCAL_PATH)/debian/changelog | \
@@ -351,5 +349,3 @@ LOCAL_MODULE_TAGS := debug
 LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/Android.mk
 
 include $(BUILD_EXECUTABLE)
-
-endif
