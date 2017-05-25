@@ -3,6 +3,7 @@
 # Check decoding and dumping of readv and writev syscalls.
 #
 # Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+# Copyright (c) 2016-2017 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,7 +39,7 @@ run_strace_match_diff -a16 -e trace=readv,writev \
 run_strace_match_diff -a16 -e trace=readv,writev \
 	-eread='!all' -ewrite=none -eread='!0,1,2' -ewrite='!0,1,2'
 
-wfd="$(./print_maxfd)"
+wfd="$(../print_maxfd)"
 rfd="$(($wfd - 1))"
 run_strace_match_diff -a16 -e trace=readv,writev \
 	-eread="$rfd" -ewrite="$wfd"

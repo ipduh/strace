@@ -2,6 +2,7 @@
  * This file is part of execve strace test.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,13 +63,15 @@ main(void)
 #if VERBOSE
 	       ", [\"%s\", \"%s\", %p, %p, %p, ???]"
 #else
-	       ", [/* 5 vars, unterminated */]"
+	       ", %p /* 5 vars, unterminated */"
 #endif
 	       ") = -1 ENOENT (%m)\n",
 	       Q_FILENAME, q_argv[0], q_argv[1], q_argv[2],
 	       argv[3], argv[4], argv[5]
 #if VERBOSE
 	       , q_envp[0], q_envp[1], envp[2], envp[3], envp[4]
+#else
+	       , tail_envp
 #endif
 	       );
 
@@ -80,12 +83,14 @@ main(void)
 #if VERBOSE
 	       ", [\"%s\", \"%s\"]"
 #else
-	       ", [/* 2 vars */]"
+	       ", %p /* 2 vars */"
 #endif
 	       ") = -1 ENOENT (%m)\n",
 	       Q_FILENAME, q_argv[0], q_argv[1], q_argv[2]
 #if VERBOSE
 	       , q_envp[0], q_envp[1]
+#else
+	       , tail_envp
 #endif
 	       );
 
@@ -94,16 +99,18 @@ main(void)
 #if VERBOSE
 	       ", [\"%s\"]"
 #else
-	       ", [/* 1 var */]"
+	       ", %p /* 1 var */"
 #endif
 	       ") = -1 ENOENT (%m)\n",
 	       Q_FILENAME, q_argv[2]
 #if VERBOSE
 	       , q_envp[1]
+#else
+	       , tail_envp + 1
 #endif
 	       );
 
-	char **const empty = tail_alloc(sizeof(*empty));
+	TAIL_ALLOC_OBJECT_CONST_PTR(char *, empty);
 	char **const efault = empty + 1;
 	*empty = NULL;
 
@@ -112,9 +119,13 @@ main(void)
 #if VERBOSE
 	       ", []"
 #else
-	       ", [/* 0 vars */]"
+	       ", %p /* 0 vars */"
 #endif
-	       ") = -1 ENOENT (%m)\n", Q_FILENAME);
+	       ") = -1 ENOENT (%m)\n", Q_FILENAME
+#if !VERBOSE
+	       , empty
+#endif
+	       );
 
 	char str_a[] = "012345678901234567890123456789012";
 	char str_b[] = "_abcdefghijklmnopqrstuvwxyz()[]{}";
@@ -141,10 +152,11 @@ main(void)
 	printf("], [\"%.*s\"...", DEFAULT_STRLEN, b[0]);
 	for (i = 1; i <= DEFAULT_STRLEN; ++i)
 		printf(", \"%s\"", b[i]);
+	printf("]");
 #else
-	printf("], [/* %u vars */", DEFAULT_STRLEN + 1);
+	printf("], %p /* %u vars */", b, DEFAULT_STRLEN + 1);
 #endif
-	printf("]) = -1 ENOENT (%m)\n");
+	printf(") = -1 ENOENT (%m)\n");
 
 	execve(FILENAME, a + 1, b + 1);
 	printf("execve(\"%s\", [\"%s\"", Q_FILENAME, a[1]);
@@ -154,10 +166,11 @@ main(void)
 	printf("], [\"%s\"", b[1]);
 	for (i = 2; i <= DEFAULT_STRLEN; ++i)
 		printf(", \"%s\"", b[i]);
+	printf("]");
 #else
-	printf("], [/* %d vars */", DEFAULT_STRLEN);
+	printf("], %p /* %d vars */", b + 1, DEFAULT_STRLEN);
 #endif
-	printf("]) = -1 ENOENT (%m)\n");
+	printf(") = -1 ENOENT (%m)\n");
 
 	execve(FILENAME, (char **) tail_argv[ARRAY_SIZE(q_argv)], efault);
 	printf("execve(\"%s\", NULL, %p) = -1 ENOENT (%m)\n",

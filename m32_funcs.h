@@ -8,6 +8,8 @@
 #define sys_shmctl m32_sys_shmctl
 #undef sys_time
 #define sys_time m32_sys_time
+#undef sys_rt_sigreturn
+#define sys_rt_sigreturn m32_sys_rt_sigreturn
 #undef sys_sigaltstack
 #define sys_sigaltstack m32_sys_sigaltstack
 #undef sys_sysinfo

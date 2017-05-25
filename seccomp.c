@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,8 +76,10 @@ decode_bpf_code(uint16_t code)
 			break;
 		case BPF_ST:
 		case BPF_STX:
-			if (i)
-				tprintf("|%#x /* %s */", i, "BPF_???");
+			if (i) {
+				tprintf("|%#x", i);
+				tprints_comment("BPF_???");
+			}
 			break;
 		case BPF_ALU:
 			tprints("|");
@@ -94,15 +97,19 @@ decode_bpf_code(uint16_t code)
 			tprints("|");
 			printxval(bpf_rval, BPF_RVAL(code), "BPF_???");
 			i &= ~BPF_RVAL(code);
-			if (i)
-				tprintf("|%#x /* %s */", i, "BPF_???");
+			if (i) {
+				tprintf("|%#x", i);
+				tprints_comment("BPF_???");
+			}
 			break;
 		case BPF_MISC:
 			tprints("|");
 			printxval(bpf_miscop, BPF_MISCOP(code), "BPF_???");
 			i &= ~BPF_MISCOP(code);
-			if (i)
-				tprintf("|%#x /* %s */", i, "BPF_???");
+			if (i) {
+				tprintf("|%#x", i);
+				tprints_comment("BPF_???");
+			}
 			break;
 	}
 

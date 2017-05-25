@@ -2,6 +2,7 @@
  * Check decoding of move_pages syscall.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -126,7 +127,7 @@ print_status_array(const int *const status, const unsigned long count)
 			printf("%d", status[i]);
 		} else {
 			errno = -status[i];
-			printf("%s", errno2name());
+			printf("-%s", errno2name());
 		}
 	}
 	printf("]");
@@ -190,9 +191,9 @@ main(void)
 	const unsigned page_size = get_page_size();
 	const void *const page = tail_alloc(page_size);
 	const void *const efault = page + page_size;
-	const void **pages = tail_alloc(sizeof(*pages));
-	int *nodes = tail_alloc(sizeof(*nodes));
-	int *status = tail_alloc(sizeof(*status));
+	TAIL_ALLOC_OBJECT_VAR_PTR(const void *, pages);
+	TAIL_ALLOC_OBJECT_VAR_PTR(int, nodes);
+	TAIL_ALLOC_OBJECT_VAR_PTR(int, status);
 
 	print_stat_pages(pid, 0, pages, status);
 	print_move_pages(pid, 0, 0, pages, nodes, status);

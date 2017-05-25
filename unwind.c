@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2013 Luca Clementi <luca.clementi@gmail.com>
+ * Copyright (c) 2013-2017 The strace developers.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +42,7 @@
 #define DPRINTF(F, A, ...) if (debug_flag) error_msg("[unwind(" A ")] " F, __VA_ARGS__)
 
 /*
- * Кeep a sorted array of cache entries,
+ * Keep a sorted array of cache entries,
  * so that we can binary search through it.
  */
 struct mmap_cache_t {
@@ -159,7 +160,7 @@ build_mmap_cache(struct tcb* tcp)
 		struct mmap_cache_t *entry;
 		unsigned long start_addr, end_addr, mmap_offset;
 		char exec_bit;
-		char binary_path[PATH_MAX];
+		char binary_path[sizeof(buffer)];
 
 		if (sscanf(buffer, "%lx-%lx %*c%*c%c%*c %lx %*x:%*x %*d %[^\n]",
 			   &start_addr, &end_addr, &exec_bit,

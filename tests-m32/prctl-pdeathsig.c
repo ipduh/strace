@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2016 JingPiao Chen <chenjingpiao@foxmail.com>
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +45,7 @@ main(void)
 	static const kernel_ulong_t bogus_signal =
 		(kernel_ulong_t) 0xbadc0deddeadfeedULL;
 
-	int *pdeathsig = tail_alloc(sizeof(*pdeathsig));
+	TAIL_ALLOC_OBJECT_CONST_PTR(int, pdeathsig);
 	long rc;
 
 	rc = syscall(__NR_prctl, PR_SET_PDEATHSIG, bogus_signal);

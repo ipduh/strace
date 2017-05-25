@@ -2,6 +2,7 @@
  * Check verbose decoding of perf_event_open syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -681,7 +682,7 @@ main(void)
 		ATTR_REC(attr_big_size),
 	};
 
-	struct perf_event_attr *small_attr = tail_alloc(sizeof(*small_attr));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct perf_event_attr, small_attr);
 
 	struct {
 		struct perf_event_attr *attr;

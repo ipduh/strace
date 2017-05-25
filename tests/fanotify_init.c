@@ -2,6 +2,7 @@
  * Check decoding of fanotify_init syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,7 +61,7 @@ int
 main(void)
 {
 	static const struct strval flags[] = {
-		{ (kernel_ulong_t) 0xffffffff00000000ULL, "FAN_CLASS_NOTIF" },
+		{ F8ILL_KULONG_MASK, "FAN_CLASS_NOTIF" },
 		{ (kernel_ulong_t) 0xffffffff0000000cULL,
 			"0xc /* FAN_CLASS_??? */" },
 		{ (kernel_ulong_t) 0xdec0deddefaced04ULL,
@@ -70,7 +71,7 @@ main(void)
 			"FAN_UNLIMITED_QUEUE|FAN_UNLIMITED_MARKS|0xffffffc0" },
 	};
 	static const struct strval event_f_flags[] = {
-		{ (kernel_ulong_t) 0xffffffff00000000ULL, "O_RDONLY" },
+		{ F8ILL_KULONG_MASK, "O_RDONLY" },
 		{ (kernel_ulong_t) 0xdeadbeef80000001ULL,
 			"O_WRONLY|0x80000000" }
 	};

@@ -2,6 +2,7 @@
  * Check decoding of signalfd4 syscall.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,8 +32,7 @@
 #include <fcntl.h>
 #include <asm/unistd.h>
 
-#if defined __NR_rt_sigprocmask \
- && defined HAVE_SYS_SIGNALFD_H \
+#if defined HAVE_SYS_SIGNALFD_H \
  && defined HAVE_SIGNALFD \
  && defined O_CLOEXEC
 
@@ -40,24 +40,6 @@
 # include <stdio.h>
 # include <unistd.h>
 # include <sys/signalfd.h>
-
-static unsigned int
-get_sigset_size(void)
-{
-	const unsigned int big_size = 1024 / 8;
-	unsigned int set_size;
-
-	for (set_size = big_size; set_size; set_size >>= 1) {
-		if (!syscall(__NR_rt_sigprocmask, SIG_SETMASK,
-			     NULL, NULL, set_size))
-			break;
-	}
-
-	if (!set_size)
-		perror_msg_and_fail("rt_sigprocmask");
-
-	return set_size;
-}
 
 int
 main(void)
@@ -80,7 +62,6 @@ main(void)
 
 #else
 
-SKIP_MAIN_UNDEFINED("__NR_rt_sigprocmask && HAVE_SYS_SIGNALFD_H"
-		    " && HAVE_SIGNALFD && O_CLOEXEC")
+SKIP_MAIN_UNDEFINED("HAVE_SYS_SIGNALFD_H && HAVE_SIGNALFD && O_CLOEXEC")
 
 #endif

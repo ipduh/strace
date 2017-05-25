@@ -2,6 +2,7 @@
  * Check decoding of seccomp SECCOMP_SET_MODE_FILTER.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +50,7 @@ main(void)
 {
 	struct sock_filter *const filter = tail_alloc(sizeof(*filter) * N);
 	const void *const efault = tail_alloc(1);
-	struct sock_fprog *const prog = tail_alloc(sizeof(*prog));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct sock_fprog, prog);
 	long rc;
 
 	prog->filter = filter;

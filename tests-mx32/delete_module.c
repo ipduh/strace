@@ -2,6 +2,7 @@
  * Check decoding of delete_module syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,8 +49,7 @@ main(void)
 		unsigned int val_prefix, val_suffix;
 	} flags[] = {
 		{ ARG_STR(0), 0, 0 },
-		{ (kernel_ulong_t) 0xffffffff00000000ULL | O_NONBLOCK,
-			"O_NONBLOCK", 0, 0 },
+		{ F8ILL_KULONG_MASK | O_NONBLOCK, "O_NONBLOCK", 0, 0 },
 		{ (kernel_ulong_t) 0xbadc0dedfacef157ULL & ~(O_NONBLOCK | O_TRUNC),
 			" /* O_??? */", 0xfacef157U & ~(O_NONBLOCK | O_TRUNC), 0},
 		{ (kernel_ulong_t) (0xfacef157deade71cULL & ~O_NONBLOCK) | O_TRUNC,
@@ -65,7 +65,7 @@ main(void)
 	fill_memory_ex(bogus_param1, PARAM1_LEN, PARAM1_BASE, PARAM1_LEN);
 	fill_memory_ex(bogus_param2, PARAM2_LEN, PARAM2_BASE, PARAM2_LEN);
 
-	rc = syscall(__NR_delete_module, NULL, bogus_zero);
+	rc = syscall(__NR_delete_module, NULL, F8ILL_KULONG_MASK);
 	printf("delete_module(NULL, 0) = %s\n", sprintrc(rc));
 
 	rc = syscall(__NR_delete_module, bogus_param1, flags[0].val);
