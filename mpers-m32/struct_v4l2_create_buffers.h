@@ -59,8 +59,8 @@ uint32_t reserved[2];
 } ATTRIBUTE_PACKED vbi;
 struct {
 uint16_t service_set;
-uint16_t service_lines[24];
-unsigned char mpers_filler_2[50];
+uint16_t service_lines[2][24];
+unsigned char mpers_filler_2[2];
 uint32_t io_size;
 uint32_t reserved[2];
 } ATTRIBUTE_PACKED sliced;

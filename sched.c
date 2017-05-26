@@ -2,6 +2,7 @@
  * Copyright (c) 2004 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2005 Roland McGrath <roland@redhat.com>
  * Copyright (c) 2012-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2014-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +31,7 @@
 #include "defs.h"
 
 #include <sched.h>
+#include "sched_attr.h"
 
 #include "xlat/schedulers.h"
 #include "xlat/sched_flags.h"
@@ -95,42 +97,73 @@ SYS_FUNC(sched_rr_get_interval)
 
 static void
 print_sched_attr(struct tcb *const tcp, const kernel_ulong_t addr,
-		 unsigned int size)
+		 unsigned int usize)
 {
-	struct {
-		uint32_t size;
-		uint32_t sched_policy;
-		uint64_t sched_flags;
-		uint32_t sched_nice;
-		uint32_t sched_priority;
-		uint64_t sched_runtime;
-		uint64_t sched_deadline;
-		uint64_t sched_period;
-	} attr = {};
+	struct sched_attr attr = {};
+	unsigned int size;
 
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return;
+	if (usize) {
+		/* called from sched_getattr */
+		size = usize <= sizeof(attr) ? usize : (unsigned) sizeof(attr);
+		if (umoven_or_printaddr(tcp, addr, size, &attr))
+			return;
+		/* the number of bytes written by the kernel */
+		size = attr.size;
+	} else {
+		/* called from sched_setattr */
+		if (umove_or_printaddr(tcp, addr, &attr.size))
+			return;
+		usize = attr.size;
+		if (!usize)
+			usize = SCHED_ATTR_MIN_SIZE;
+		size = usize <= sizeof(attr) ? usize : (unsigned) sizeof(attr);
+		if (size >= SCHED_ATTR_MIN_SIZE) {
+			if (umoven_or_printaddr(tcp, addr, size, &attr))
+				return;
+		}
+	}
 
-	tprintf("{size=%u, sched_policy=", attr.size);
-	printxval(schedulers, attr.sched_policy, "SCHED_???");
-	tprints(", sched_flags=");
-	printflags64(sched_flags, attr.sched_flags, "SCHED_FLAG_???");
-	tprintf(", sched_nice=%d", attr.sched_nice);
-	tprintf(", sched_priority=%u", attr.sched_priority);
-	tprintf(", sched_runtime=%" PRIu64, attr.sched_runtime);
-	tprintf(", sched_deadline=%" PRIu64, attr.sched_deadline);
-	tprintf(", sched_period=%" PRIu64 "}", attr.sched_period);
+	tprintf("{size=%u", attr.size);
+
+	if (size >= SCHED_ATTR_MIN_SIZE) {
+		tprints(", sched_policy=");
+		printxval(schedulers, attr.sched_policy, "SCHED_???");
+		tprints(", sched_flags=");
+		printflags64(sched_flags, attr.sched_flags, "SCHED_FLAG_???");
+
+#define PRINT_SCHED_FIELD(field, fmt)			\
+		tprintf(", " #field "=%" fmt, attr.field)
+
+		PRINT_SCHED_FIELD(sched_nice, "d");
+		PRINT_SCHED_FIELD(sched_priority, "u");
+		PRINT_SCHED_FIELD(sched_runtime, PRIu64);
+		PRINT_SCHED_FIELD(sched_deadline, PRIu64);
+		PRINT_SCHED_FIELD(sched_period, PRIu64);
+
+		if (usize > size)
+			tprints(", ...");
+	}
+
+	tprints("}");
 }
 
 SYS_FUNC(sched_setattr)
 {
-	tprintf("%d, ", (int) tcp->u_arg[0]);
-	print_sched_attr(tcp, tcp->u_arg[1], 0x100);
-	tprintf(", %u", (unsigned int) tcp->u_arg[2]);
+	if (entering(tcp)) {
+		tprintf("%d, ", (int) tcp->u_arg[0]);
+		print_sched_attr(tcp, tcp->u_arg[1], 0);
+	} else {
+		struct sched_attr attr;
 
-	return RVAL_DECODED;
+		if (verbose(tcp) && tcp->u_error == E2BIG
+		    && umove(tcp, tcp->u_arg[1], &attr.size) == 0) {
+			tprintf(" => {size=%u}", attr.size);
+		}
+
+		tprintf(", %u", (unsigned int) tcp->u_arg[2]);
+	}
+
+	return 0;
 }
 
 SYS_FUNC(sched_getattr)
@@ -138,10 +171,25 @@ SYS_FUNC(sched_getattr)
 	if (entering(tcp)) {
 		tprintf("%d, ", (int) tcp->u_arg[0]);
 	} else {
-		print_sched_attr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-		tprintf(", %u, %u",
-			(unsigned int) tcp->u_arg[2],
-			(unsigned int) tcp->u_arg[3]);
+		const unsigned int size = tcp->u_arg[2];
+
+		if (size)
+			print_sched_attr(tcp, tcp->u_arg[1], size);
+		else
+			printaddr(tcp->u_arg[1]);
+		tprints(", ");
+#ifdef AARCH64
+		/*
+		 * Due to a subtle gcc bug that leads to miscompiled aarch64
+		 * kernels, the 3rd argument of sched_getattr is not quite 32-bit
+		 * as on other architectures.  For more details see
+		 * https://sourceforge.net/p/strace/mailman/message/35721703/
+		 */
+		if (syserror(tcp))
+			print_abnormal_hi(tcp->u_arg[2]);
+#endif
+		tprintf("%u", size);
+		tprintf(", %u", (unsigned int) tcp->u_arg[3]);
 	}
 
 	return 0;

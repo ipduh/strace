@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2014-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,11 +45,11 @@ int main(int ac, const char **av)
 	void *data = tail_alloc(data_size);
 	memcpy(data, sample, data_size);
 
-	struct iovec *iov = tail_alloc(sizeof(struct iovec));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct iovec, iov);
 	iov->iov_base = data;
 	iov->iov_len = data_size;
 
-	struct msghdr *mh = tail_alloc(sizeof(struct msghdr));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct msghdr, mh);
 	memset(mh, 0, sizeof(*mh));
 	mh->msg_iov = iov;
 	mh->msg_iovlen = 1;

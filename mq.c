@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2004 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2005-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,7 +67,7 @@ SYS_FUNC(mq_timedreceive)
 			printstrn(tcp, tcp->u_arg[1], tcp->u_rval);
 		tprintf(", %" PRI_klu ", ", tcp->u_arg[2]);
 		printnum_int(tcp, tcp->u_arg[3], "%u");
-		tprintf(", ");
+		tprints(", ");
 		/*
 		 * Since the timeout parameter is read by the kernel
 		 * on entering syscall, it has to be decoded the same way

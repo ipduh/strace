@@ -6,6 +6,7 @@
  * Copyright (c) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *                     Linux for s390 port by D.J. Barrow
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
+ * Copyright (c) 1999-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,6 +77,13 @@
 #define TP TRACE_PROCESS
 #define TS TRACE_SIGNAL
 #define TM TRACE_MEMORY
+#define TST TRACE_STAT
+#define TLST TRACE_LSTAT
+#define TFST TRACE_FSTAT
+#define TSTA TRACE_STAT_LIKE
+#define TSF TRACE_STATFS
+#define TFSF TRACE_FSTATFS
+#define TSFA TRACE_STATFS_LIKE
 #define NF SYSCALL_NEVER_FAILS
 #define MA MAX_ARGS
 #define SI STACKTRACE_INVALIDATE_CACHE
@@ -111,6 +119,13 @@ static const struct_sysent sysent2[] = {
 #undef TP
 #undef TS
 #undef TM
+#undef TST
+#undef TLST
+#undef TFST
+#undef TSTA
+#undef TSF
+#undef TFSF
+#undef TSFA
 #undef NF
 #undef MA
 #undef SI
@@ -553,6 +568,7 @@ clear_regs(void)
 	get_regs_error = -1;
 }
 
+static void get_regs(pid_t pid);
 static int get_syscall_args(struct tcb *);
 static int get_syscall_result(struct tcb *);
 static int arch_get_scno(struct tcb *tcp);
@@ -638,11 +654,11 @@ tamper_with_syscall_exiting(struct tcb *tcp)
 static int
 trace_syscall_entering(struct tcb *tcp, unsigned int *sig)
 {
-	int res, scno_good;
-
-	scno_good = res = get_scno(tcp);
+	int res = get_scno(tcp);
 	if (res == 0)
 		return res;
+
+	int scno_good = res;
 	if (res == 1)
 		res = get_syscall_args(tcp);
 
@@ -747,14 +763,10 @@ syscall_tampered(struct tcb *tcp)
 static int
 trace_syscall_exiting(struct tcb *tcp)
 {
-	int sys_res;
 	struct timeval tv;
-	int res;
-	unsigned long u_error;
-	const char *u_error_str;
 
 	/* Measure the exit time as early as possible to avoid errors. */
-	if (Tflag || cflag)
+	if ((Tflag || cflag) && !(filtered(tcp) || hide_log(tcp)))
 		gettimeofday(&tv, NULL);
 
 #ifdef USE_LIBUNWIND
@@ -764,12 +776,14 @@ trace_syscall_exiting(struct tcb *tcp)
 	}
 #endif
 
+	if (filtered(tcp) || hide_log(tcp))
+		goto ret;
+
+	get_regs(tcp->pid);
 #if SUPPORTED_PERSONALITIES > 1
 	update_personality(tcp, tcp->currpers);
 #endif
-	res = (get_regs_error ? -1 : get_syscall_result(tcp));
-	if (filtered(tcp) || hide_log(tcp))
-		goto ret;
+	int res = (get_regs_error ? -1 : get_syscall_result(tcp));
 
 	if (syserror(tcp) && syscall_tampered(tcp))
 		tamper_with_syscall_exiting(tcp);
@@ -811,7 +825,7 @@ trace_syscall_exiting(struct tcb *tcp)
 	}
 	tcp->s_prev_ent = tcp->s_ent;
 
-	sys_res = 0;
+	int sys_res = 0;
 	if (tcp->qual_flg & QUAL_RAW) {
 		/* sys_res = printargs(tcp); - but it's nop on sysexit */
 	} else {
@@ -833,7 +847,7 @@ trace_syscall_exiting(struct tcb *tcp)
 
 	tprints(") ");
 	tabto();
-	u_error = tcp->u_error;
+	unsigned long u_error = tcp->u_error;
 
 	if (tcp->qual_flg & QUAL_RAW) {
 		if (u_error) {
@@ -845,6 +859,8 @@ trace_syscall_exiting(struct tcb *tcp)
 			tprints(" (INJECTED)");
 	}
 	else if (!(sys_res & RVAL_NONE) && u_error) {
+		const char *u_error_str;
+
 		switch (u_error) {
 		/* Blocked signals do not interrupt any syscalls.
 		 * In this case syscalls don't return ERESTARTfoo codes.
@@ -910,7 +926,7 @@ trace_syscall_exiting(struct tcb *tcp)
 			break;
 		}
 		if (syscall_tampered(tcp))
-			tprintf(" (INJECTED)");
+			tprints(" (INJECTED)");
 		if ((sys_res & RVAL_STR) && tcp->auxstr)
 			tprintf(" (%s)", tcp->auxstr);
 	}
@@ -1061,6 +1077,7 @@ print_pc(struct tcb *tcp)
 #else
 # error Neither ARCH_PC_REG nor ARCH_PC_PEEK_ADDR is defined
 #endif
+	get_regs(tcp->pid);
 	if (get_regs_error || ARCH_GET_PC)
 		tprints(current_wordsize == 4 ? "[????????] "
 					      : "[????????????????] ");
@@ -1146,11 +1163,14 @@ ptrace_setregs(pid_t pid)
 
 #endif /* ARCH_REGS_FOR_GETREGSET || ARCH_REGS_FOR_GETREGS */
 
-void
+static void
 get_regs(pid_t pid)
 {
 #undef USE_GET_SYSCALL_RESULT_REGS
 #ifdef ptrace_getregset_or_getregs
+
+	if (get_regs_error != -1)
+		return;
 
 # ifdef HAVE_GETREGS_OLD
 	/*
@@ -1218,6 +1238,8 @@ free_sysent_buf(void *ptr)
 int
 get_scno(struct tcb *tcp)
 {
+	get_regs(tcp->pid);
+
 	if (get_regs_error)
 		return -1;
 

@@ -2,6 +2,7 @@
  * Check decoding of getresuid/getresgid/getresuid32/getresgid32 syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +35,9 @@
 int
 main(void)
 {
-	unsigned UGID_TYPE *const r = tail_alloc(sizeof(*r));
-	unsigned UGID_TYPE *const e = tail_alloc(sizeof(*e));
-	unsigned UGID_TYPE *const s = tail_alloc(sizeof(*s));
+	TAIL_ALLOC_OBJECT_CONST_PTR(unsigned UGID_TYPE, r);
+	TAIL_ALLOC_OBJECT_CONST_PTR(unsigned UGID_TYPE, e);
+	TAIL_ALLOC_OBJECT_CONST_PTR(unsigned UGID_TYPE, s);
 
 	if (syscall(SYSCALL_NR, r, e, s))
 		perror_msg_and_fail(SYSCALL_NAME);

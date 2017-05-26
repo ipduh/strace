@@ -2,6 +2,7 @@
  * Copyright (c) 1991, 1992 Paul Kranenburg <pk@cs.few.eur.nl>
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
+ * Copyright (C) 2001-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -292,12 +293,15 @@ struct tcb {
 
 extern const struct xlat addrfams[];
 extern const struct xlat at_flags[];
+extern const struct xlat clocknames[];
 extern const struct xlat dirent_types[];
 extern const struct xlat evdev_abs[];
 extern const struct xlat msg_flags[];
+extern const struct xlat netlink_protocols[];
 extern const struct xlat open_access_modes[];
 extern const struct xlat open_mode_flags[];
 extern const struct xlat resource_flags[];
+extern const struct xlat setns_types[];
 extern const struct xlat sg_io_info[];
 extern const struct xlat socketlayers[];
 extern const struct xlat whence_codes[];
@@ -409,8 +413,9 @@ extern void count_syscall(struct tcb *, const struct timeval *);
 extern void call_summary(FILE *);
 
 extern void clear_regs(void);
-extern void get_regs(pid_t pid);
-extern int get_scno(struct tcb *tcp);
+extern int get_scno(struct tcb *);
+extern kernel_ulong_t get_rt_sigframe_addr(struct tcb *);
+
 /**
  * Convert syscall number to syscall name.
  *
@@ -542,11 +547,14 @@ extern int printargs_d(struct tcb *);
 extern void addflags(const struct xlat *, uint64_t);
 extern int printflags64(const struct xlat *, uint64_t, const char *);
 extern const char *sprintflags(const char *, const struct xlat *, uint64_t);
-extern const char *sprinttime(time_t);
+extern const char *sprinttime(long long sec);
+extern const char *sprinttime_nsec(long long sec, unsigned long long nsec);
+extern const char *sprinttime_usec(long long sec, unsigned long long usec);
 extern void print_symbolic_mode_t(unsigned int);
 extern void print_numeric_umode_t(unsigned short);
 extern void print_numeric_long_umask(unsigned long);
 extern void print_dev_t(unsigned long long dev);
+extern void print_abnormal_hi(kernel_ulong_t);
 
 extern void
 dumpiov_in_msghdr(struct tcb *, kernel_ulong_t addr, kernel_ulong_t data_size);
@@ -571,7 +579,7 @@ extern void
 printpath(struct tcb *, kernel_ulong_t addr);
 
 #define TIMESPEC_TEXT_BUFSIZE \
-		(sizeof(intmax_t)*3 * 2 + sizeof("{tv_sec=%jd, tv_nsec=%jd}"))
+		(sizeof(long long) * 3 * 2 + sizeof("{tv_sec=-, tv_nsec=}"))
 extern void printfd(struct tcb *, int);
 extern void print_sockaddr(struct tcb *tcp, const void *, int);
 extern bool print_sockaddr_by_inode(const unsigned long, const enum sock_proto);
@@ -585,6 +593,8 @@ extern void printuid(const char *, const unsigned int);
 
 extern void
 print_sigset_addr_len(struct tcb *, kernel_ulong_t addr, kernel_ulong_t len);
+extern void
+print_sigset_addr(struct tcb *, kernel_ulong_t addr);
 
 extern const char *sprintsigmask_n(const char *, const void *, unsigned int);
 #define tprintsigmask_addr(prefix, mask) \
@@ -635,6 +645,7 @@ name ## _ioctl(struct tcb *, unsigned int request, kernel_ulong_t arg)
 DECL_IOCTL(dm);
 DECL_IOCTL(file);
 DECL_IOCTL(fs_x);
+DECL_IOCTL(nsfs);
 DECL_IOCTL(ptp);
 DECL_IOCTL(scsi);
 DECL_IOCTL(term);
@@ -707,7 +718,7 @@ extern void print_timeval32_t(const timeval32_t *);
 extern void printrusage32(struct tcb *, kernel_ulong_t);
 extern const char *sprint_timeval32(struct tcb *tcp, kernel_ulong_t);
 extern void print_timeval32(struct tcb *tcp, kernel_ulong_t);
-extern void print_timeval32_pair(struct tcb *tcp, kernel_ulong_t);
+extern void print_timeval32_utimes(struct tcb *tcp, kernel_ulong_t);
 extern void print_itimerval32(struct tcb *tcp, kernel_ulong_t);
 #endif
 
@@ -738,6 +749,8 @@ extern void line_ended(void);
 extern void tabto(void);
 extern void tprintf(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
 extern void tprints(const char *str);
+extern void tprintf_comment(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2));
+extern void tprints_comment(const char *str);
 
 #if SUPPORTED_PERSONALITIES > 1
 extern void set_personality(int personality);

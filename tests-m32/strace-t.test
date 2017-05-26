@@ -5,16 +5,14 @@
 . "${srcdir=.}/init.sh"
 
 run_prog_skip_if_failed date +%T > /dev/null
-run_prog ./sleep 0
+run_prog ../sleep 0
 
 t0="$(date +%T)"
 run_strace -t -eexecve $args
 t1="$(date +%T)"
 
-EXPECTED="$LOG.expected"
-cat > "$EXPECTED" << __EOF__
-($t0|$t1) execve\\("\\./sleep", \\["\\./sleep", "0"\\], \\[/\\* [[:digit:]]+ vars \\*/\\]\\) = 0
+cat > "$EXP" << __EOF__
+($t0|$t1) execve\\("\\.\\./sleep", \\["\\.\\./sleep", "0"\\], 0x[[:xdigit:]]* /\\* [[:digit:]]* vars \\*/\\) = 0
 __EOF__
 
-match_grep "$LOG" "$EXPECTED"
-rm -f "$EXPECTED"
+match_grep "$LOG" "$EXP"

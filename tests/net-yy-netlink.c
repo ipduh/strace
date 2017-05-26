@@ -1,7 +1,7 @@
 /*
  * This file is part of net-yy-netlink strace test.
  *
- * Copyright (c) 2013-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2013-2017 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * All rights reserved.
  *
@@ -47,13 +47,14 @@
 int
 main(void)
 {
-	unsigned magic = 1234;
+	skip_if_unavailable("/proc/self/fd/");
+
 	struct sockaddr_nl addr = {
 		.nl_family = AF_NETLINK,
-		.nl_pid = 1234
+		.nl_pid = getpid()
 	};
 	struct sockaddr *const sa = tail_memdup(&addr, sizeof(addr));
-	socklen_t * const len = tail_alloc(sizeof(socklen_t));
+	TAIL_ALLOC_OBJECT_CONST_PTR(socklen_t, len);
 	*len = sizeof(addr);
 
 	const int fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_SOCK_DIAG);
@@ -67,17 +68,17 @@ main(void)
 		perror_msg_and_skip("bind");
 	printf("bind(%d<NETLINK:[%lu]>, {sa_family=AF_NETLINK"
 	       ", nl_pid=%u, nl_groups=00000000}, %u) = 0\n",
-	       fd, inode, magic, (unsigned) *len);
+	       fd, inode, addr.nl_pid, (unsigned) *len);
 
 	if (getsockname(fd, sa, len))
 		perror_msg_and_fail("getsockname");
 	printf("getsockname(%d<NETLINK:[SOCK_DIAG:%u]>, {sa_family=AF_NETLINK"
 	       ", nl_pid=%u, nl_groups=00000000}, [%u]) = 0\n",
-	       fd, magic, magic, (unsigned) *len);
+	       fd, addr.nl_pid, addr.nl_pid, (unsigned) *len);
 
 	if (close(fd))
 		perror_msg_and_fail("close");
-	printf("close(%d<NETLINK:[SOCK_DIAG:%u]>) = 0\n", fd, magic);
+	printf("close(%d<NETLINK:[SOCK_DIAG:%u]>) = 0\n", fd, addr.nl_pid);
 
 	puts("+++ exited with 0 +++");
 	return 0;

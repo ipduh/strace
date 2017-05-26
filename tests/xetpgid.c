@@ -2,6 +2,7 @@
  * This file is part of xetpgid strace test.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,13 +40,10 @@ int
 main(void)
 {
 	const int pid = getpid();
-	long rc = syscall(__NR_getpgid,
-			  (unsigned long) 0xffffffff00000000ULL | pid);
+	long rc = syscall(__NR_getpgid, F8ILL_KULONG_MASK | pid);
 	printf("getpgid(%d) = %ld\n", pid, rc);
 
-	rc = syscall(__NR_setpgid,
-		     (unsigned long) 0xffffffff00000000ULL,
-		     (unsigned long) 0xffffffff00000000ULL | pid);
+	rc = syscall(__NR_setpgid, F8ILL_KULONG_MASK, F8ILL_KULONG_MASK | pid);
 	printf("setpgid(0, %d) = %ld\n", pid, rc);
 
 	puts("+++ exited with 0 +++");

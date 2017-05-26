@@ -41,6 +41,7 @@ include $(CLEAR_VARS)
 
 strace_version := $(shell grep strace $(LOCAL_PATH)/debian/changelog | \
                           head -1 | cut -d " " -f 2)
+strace_year := $(shell cat $(LOCAL_PATH)/.year)
 
 LOCAL_SRC_FILES := \
     access.c \
@@ -120,6 +121,7 @@ LOCAL_SRC_FILES := \
     mtd.c \
     net.c \
     netlink.c \
+    nsfs.c \
     numa.c \
     oldstat.c \
     open.c \
@@ -133,6 +135,7 @@ LOCAL_SRC_FILES := \
     print_mq_attr.c \
     print_msgbuf.c \
     print_sigevent.c \
+    print_sg_req_info.c \
     print_statfs.c \
     print_struct_stat.c \
     print_time.c \
@@ -153,6 +156,8 @@ LOCAL_SRC_FILES := \
     renameat.c \
     resource.c \
     rtc.c \
+    rt_sigframe.c \
+    rt_sigreturn.c \
     sched.c \
     scsi.c \
     seccomp.c \
@@ -172,6 +177,7 @@ LOCAL_SRC_FILES := \
     stat64.c \
     statfs.c \
     statfs64.c \
+    statx.c \
     strace.c \
     swapon.c \
     sync_file_range.c \
@@ -247,6 +253,7 @@ LOCAL_CFLAGS := \
     -DHAVE_POLL_H=1 \
     -DHAVE_PRCTL=1 \
     -DHAVE_PWRITEV=1 \
+    -DHAVE_SCSI_SG_H=1 \
     -DHAVE_SENDMSG=1 \
     -DHAVE_SIGACTION=1 \
     -DHAVE_SIG_ATOMIC_T=1 \
@@ -292,6 +299,7 @@ LOCAL_CFLAGS := \
     -DPACKAGE_NAME='"strace"' \
     -DPACKAGE_URL='"https://strace.io"' \
     -DPACKAGE_VERSION='"$(strace_version)"' \
+    -DCOPYRIGHT_YEAR='"$(strace_year)"' \
     -DSIZEOF_KERNEL_LONG_T=SIZEOF_LONG \
     -DSIZEOF_OFF_T=SIZEOF_LONG \
     -DSIZEOF_LONG_LONG=8 \
@@ -337,6 +345,9 @@ LOCAL_C_INCLUDES_mips := $(LOCAL_PATH)/linux/mips $(LOCAL_PATH)/linux
 LOCAL_C_INCLUDES_mips64 := $(LOCAL_PATH)/linux/mips $(LOCAL_PATH)/linux
 LOCAL_C_INCLUDES_x86 := $(LOCAL_PATH)/linux/i386 $(LOCAL_PATH)/linux
 LOCAL_C_INCLUDES_x86_64 := $(LOCAL_PATH)/linux/x86_64 $(LOCAL_PATH)/linux
+
+# For <scsi/sg.h>. TODO: export this properly from bionic (without breaking the NDK).
+LOCAL_C_INCLUDES += bionic/libc/kernel/android/
 
 LOCAL_CLANG := true
 

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011, Comtrol Corp.
+ * Copyright (c) 2011 Comtrol Corp.
+ * Copyright (c) 2011-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -183,6 +184,7 @@ pathtrace_match(struct tcb *tcp)
 	case SEN_newfstatat:
 	case SEN_openat:
 	case SEN_readlinkat:
+	case SEN_statx:
 	case SEN_unlinkat:
 	case SEN_utimensat:
 		/* fd, path */

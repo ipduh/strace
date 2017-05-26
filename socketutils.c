@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2014 Zubin Mithra <zubin.mithra@gmail.com>
  * Copyright (c) 2014-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2014-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,11 +37,14 @@
 #include <linux/unix_diag.h>
 #include <linux/netlink_diag.h>
 #include <linux/rtnetlink.h>
-#include "xlat/netlink_protocols.h"
 
 #include <sys/un.h>
 #ifndef UNIX_PATH_MAX
 # define UNIX_PATH_MAX sizeof(((struct sockaddr_un *) 0)->sun_path)
+#endif
+
+#ifndef NETLINK_SOCK_DIAG
+# define NETLINK_SOCK_DIAG 4
 #endif
 
 typedef struct {

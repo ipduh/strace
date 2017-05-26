@@ -44,8 +44,8 @@
 [ 40] = { 5,	TF,		SEN(mount),			"mount"			},
 [ 41] = { 2,	TF,		SEN(pivotroot),			"pivot_root"		},
 [ 42] = { 3,	0,		SEN(nfsservctl),		"nfsservctl"		},
-[ 43] = { 3,	TF,		SEN(statfs64),			"statfs64"		},
-[ 44] = { 3,	TD,		SEN(fstatfs64),			"fstatfs64"		},
+[ 43] = { 3,	TF|TSF|TSFA,	SEN(statfs64),			"statfs64"		},
+[ 44] = { 3,	TD|TFSF|TSFA,	SEN(fstatfs64),			"fstatfs64"		},
 [ 45] = { 3,	TF,		SEN(truncate64),		"truncate64"		},
 [ 46] = { 3,	TD,		SEN(ftruncate64),		"ftruncate64"		},
 [ 47] = { 6,	TD,		SEN(fallocate),			"fallocate"		},
@@ -80,8 +80,8 @@
 [ 76] = { 6,	TD,		SEN(splice),			"splice"		},
 [ 77] = { 4,	TD,		SEN(tee),			"tee"			},
 [ 78] = { 4,	TD|TF,		SEN(readlinkat),		"readlinkat"		},
-[ 79] = { 4,	TD|TF,		SEN(fstatat64),			"fstatat64"		},
-[ 80] = { 2,	TD,		SEN(fstat64),			"fstat64"		},
+[ 79] = { 4,	TD|TF|TFST|TSTA,SEN(fstatat64),			"fstatat64"		},
+[ 80] = { 2,	TD|TFST|TSTA,	SEN(fstat64),			"fstat64"		},
 [ 81] = { 0,	0,		SEN(sync),			"sync"			},
 [ 82] = { 1,	TD,		SEN(fsync),			"fsync"			},
 [ 83] = { 1,	TD,		SEN(fdatasync),			"fdatasync"		},
@@ -281,6 +281,7 @@
 [288] = { 4,	TM|SI,		SEN(pkey_mprotect),		"pkey_mprotect"		},
 [289] = { 2,	0,		SEN(pkey_alloc),		"pkey_alloc"		},
 [290] = { 1,	0,		SEN(pkey_free),			"pkey_free"		},
+[291] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
 
 #undef sys_ARCH_mmap
 #undef ARCH_WANT_SYNC_FILE_RANGE2

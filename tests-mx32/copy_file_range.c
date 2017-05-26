@@ -2,6 +2,7 @@
  * This file is part of copy_file_range strace test.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,8 +42,8 @@ main(void)
 {
 	const long int fd_in = (long int) 0xdeadbeefffffffff;
 	const long int fd_out = (long int) 0xdeadbeeffffffffe;
-	long long int *const off_in = tail_alloc(sizeof(*off_in));
-	long long int *const off_out = tail_alloc(sizeof(*off_out));
+	TAIL_ALLOC_OBJECT_CONST_PTR(long long int, off_in);
+	TAIL_ALLOC_OBJECT_CONST_PTR(long long int, off_out);
 	*off_in = 0xdeadbef1facefed1;
 	*off_out = 0xdeadbef2facefed2;
 	const size_t len = (size_t) 0xdeadbef3facefed3ULL;

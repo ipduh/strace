@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2004 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2005-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,7 +55,7 @@ MPERS_PRINTER_DECL(void, printmqattr, struct tcb *const tcp,
 	if (decode_flags)
 		printflags64(mq_attr_flags,
 			     zero_extend_signed_to_ull(attr.mq_flags),
-			     "/* O_??? */");
+			     "O_???");
 	else
 		tprintf("%#llx", zero_extend_signed_to_ull(attr.mq_flags));
 	tprintf(", mq_maxmsg=%lld, mq_msgsize=%lld, mq_curmsgs=%lld}",

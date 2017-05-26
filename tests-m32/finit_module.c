@@ -2,6 +2,7 @@
  * Check decoding of finit_module syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +69,8 @@ main(void)
 	fill_memory_ex(bogus_param1, PARAM1_LEN, PARAM1_BASE, PARAM1_LEN);
 	fill_memory_ex(bogus_param2, PARAM2_LEN, PARAM2_BASE, PARAM2_LEN);
 
-	rc = syscall(__NR_finit_module, bogus_zero, NULL, bogus_zero);
+	rc = syscall(__NR_finit_module, F8ILL_KULONG_MASK, NULL,
+		     F8ILL_KULONG_MASK);
 	printf("finit_module(0, NULL, 0) = %s\n", sprintrc(rc));
 
 	rc = syscall(__NR_finit_module, bogus_fd, bogus_param1, flags[0].val);
