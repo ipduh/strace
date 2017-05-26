@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +45,9 @@
 /* Cached sysconf(_SC_PAGESIZE). */
 size_t get_page_size(void);
 
+/* The size of kernel's sigset_t. */
+unsigned int get_sigset_size(void);
+
 /* Print message and strerror(errno) to stderr, then exit(1). */
 void perror_msg_and_fail(const char *, ...)
 	ATTRIBUTE_FORMAT((printf, 1, 2)) ATTRIBUTE_NORETURN;
@@ -57,6 +61,9 @@ void error_msg_and_skip(const char *, ...)
 void perror_msg_and_skip(const char *, ...)
 	ATTRIBUTE_FORMAT((printf, 1, 2)) ATTRIBUTE_NORETURN;
 
+/* Stat the specified file and skip the test if the stat call failed. */
+void skip_if_unavailable(const char *);
+
 /*
  * Allocate memory that ends on the page boundary.
  * Pages allocated by this call are preceeded by an unmapped page
@@ -67,6 +74,22 @@ void *tail_alloc(const size_t)
 /* Allocate memory using tail_alloc, then memcpy. */
 void *tail_memdup(const void *, const size_t)
 	ATTRIBUTE_MALLOC ATTRIBUTE_ALLOC_SIZE((2));
+
+/*
+ * Allocate an object of the specified type at the end
+ * of a mapped memory region.
+ * Assign its address to the specified constant pointer.
+ */
+#define TAIL_ALLOC_OBJECT_CONST_PTR(type_name, type_ptr)	\
+	type_name *const type_ptr = tail_alloc(sizeof(*type_ptr))
+
+/*
+ * Allocate an object of the specified type at the end
+ * of a mapped memory region.
+ * Assign its address to the specified variable pointer.
+ */
+#define TAIL_ALLOC_OBJECT_VAR_PTR(type_name, type_ptr)		\
+	type_name *type_ptr = tail_alloc(sizeof(*type_ptr))
 
 /*
  * Fill memory (pointed by ptr, having size bytes) with different bytes (with
@@ -99,6 +122,12 @@ void print_quoted_string(const char *);
 
 /* Print memory in a quoted form. */
 void print_quoted_memory(const char *, size_t);
+
+/* Print time_t and nanoseconds in symbolic format. */
+void print_time_t_nsec(time_t, unsigned long long, int);
+
+/* Print time_t and microseconds in symbolic format. */
+void print_time_t_usec(time_t, unsigned long long, int);
 
 /* Read an int from the file. */
 int read_int_from_file(const char *, int *);

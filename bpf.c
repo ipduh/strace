@@ -37,6 +37,7 @@
 #include "xlat/bpf_prog_types.h"
 #include "xlat/bpf_map_update_elem_flags.h"
 #include "xlat/bpf_attach_type.h"
+#include "xlat/bpf_attach_flags.h"
 
 static int
 bpf_map_create(struct tcb *const tcp, const kernel_ulong_t addr,
@@ -197,21 +198,21 @@ bpf_obj_manage(struct tcb *const tcp, const kernel_ulong_t addr,
 	if (umoven_or_printaddr(tcp, addr, size, &attr))
 		return RVAL_DECODED | RVAL_FD;
 
-	tprintf("{pathname=");
+	tprints("{pathname=");
 	printpath(tcp, attr.pathname);
 	tprints(", bpf_fd=");
 	printfd(tcp, attr.bpf_fd);
-	tprintf("}");
+	tprints("}");
 
 	return RVAL_DECODED | RVAL_FD;
 }
 
 static int
 bpf_prog_attach_detach(struct tcb *const tcp, const kernel_ulong_t addr,
-		       unsigned int size, bool print_attach_bpf_fd)
+		       unsigned int size, bool print_attach)
 {
 	struct {
-		uint32_t target_fd, attach_bpf_fd, attach_type;
+		uint32_t target_fd, attach_bpf_fd, attach_type, attach_flags;
 	} attr = {};
 
 	if (!size) {
@@ -223,15 +224,19 @@ bpf_prog_attach_detach(struct tcb *const tcp, const kernel_ulong_t addr,
 	if (umoven_or_printaddr(tcp, addr, size, &attr))
 		return RVAL_DECODED;
 
-	tprintf("{target_fd=");
+	tprints("{target_fd=");
 	printfd(tcp, attr.target_fd);
-	if (print_attach_bpf_fd) {
-		tprintf(", attach_bpf_fd=");
+	if (print_attach) {
+		tprints(", attach_bpf_fd=");
 		printfd(tcp, attr.attach_bpf_fd);
 	}
-	tprintf(", attach_type=");
+	tprints(", attach_type=");
 	printxval(bpf_attach_type, attr.attach_type, "BPF_???");
-	tprintf("}");
+	if (print_attach) {
+		tprints(", attach_flags=");
+		printflags(bpf_attach_flags, attr.attach_flags, "BPF_F_???");
+	}
+	tprints("}");
 
 	return RVAL_DECODED;
 }

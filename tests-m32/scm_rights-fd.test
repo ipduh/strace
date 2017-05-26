@@ -3,6 +3,7 @@
 # Check how SCM_RIGHTS and SCM_CREDENTIALS control messages are decoded in -y mode.
 #
 # Copyright (c) 2014-2015 Dmitry V. Levin <ldv@altlinux.org>
+# Copyright (c) 2014-2017 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,22 +35,19 @@
 	framework_skip_ '/proc/self/fd/ is not available'
 
 check_prog mkdir
-check_prog rm
 check_prog seq
 check_prog touch
 
-dir="$LOG.dir"
-rm -rf -- "$dir"
-mkdir -- "$dir" ||
+mkdir dir ||
 	framework_skip_ 'failed to create a directory'
 
-file="$dir/$(for i in $(seq 1 127); do echo A; done; echo Z)"
+file="dir/$(for i in $(seq 1 127); do echo A; done; echo Z)"
 
 touch -- "$file" ||
 	framework_skip_ 'failed to create a file'
 
-run_prog ./scm_rights /dev/zero
-run_strace -y -x -enetwork $args "$file"
+run_prog ../scm_rights /dev/zero
+run_strace -y -x -e%network $args "$file"
 
 hex='[[:xdigit:]]'
 n='[1-9][0-9]*'
@@ -66,15 +64,9 @@ msg_tail=', msg_controllen='"$n"', msg_flags=0'
 rights='\{cmsg_len='"$n"', cmsg_level=SOL_SOCKET, cmsg_type=SCM_RIGHTS, cmsg_data='"$rights_data"'\}'
 creds='\{cmsg_len='"$n"', cmsg_level=SOL_SOCKET, cmsg_type=SCM_CREDENTIALS, cmsg_data='"$ids"'\}'
 
-EXPECTED="$LOG.expected"
-
-cat > "$EXPECTED" << __EOF__
+cat > "$EXP" << __EOF__
 sendmsg\\(3$socket, $msg_head\\[$rights\\]$msg_tail\\}, 0\\) = 15
 recvmsg\\(0$socket, $msg_head\\[$creds, $rights\\]$msg_tail\\}, 0\\) = 15
 __EOF__
 
-match_grep "$LOG" "$EXPECTED"
-rm -f "$EXPECTED"
-rm -rf -- "$dir"
-
-exit 0
+match_grep "$LOG" "$EXP"

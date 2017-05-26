@@ -21,13 +21,8 @@
 # define CLONE_NEWNET 0x40000000
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat setns_types in mpers mode
-
-#else
-
-static
 const struct xlat setns_types[] = {
  XLAT(0),
  XLAT(CLONE_NEWNS),

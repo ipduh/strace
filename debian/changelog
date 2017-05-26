@@ -1,14 +1,20 @@
-strace (4.16-1) experimental; urgency=low
+strace (4.17-1) experimental; urgency=low
 
-  * strace 4.16 snapshot.
+  * strace 4.17 snapshot.
 
- -- Strace <strace-devel@lists.sourceforge.net>  Wed, 15 Feb 2017 11:38:25 -0800
+ -- Strace <strace-devel@lists.sourceforge.net>  Thu, 25 May 2017 15:09:49 -0700
+
+strace (4.16-1) unstable; urgency=medium
+
+  * New upstream version.
+
+ -- Dmitry V. Levin <ldv@altlinux.org>  Tue, 14 Feb 2017 10:11:12 +0000
 
 strace (4.15-1) unstable; urgency=medium
 
   * New upstream version.
 
- -- Dmitry V. Levin <ldv@altlinux.org>  Tue, 14 Dec 2016 08:09:10 +0000
+ -- Dmitry V. Levin <ldv@altlinux.org>  Wed, 14 Dec 2016 08:09:10 +0000
 
 strace (4.14-1) unstable; urgency=medium
 

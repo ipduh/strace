@@ -4,6 +4,7 @@
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +71,7 @@ main(void)
 		{ 11, "PR_GET_FPEXC" },
 	};
 
-	unsigned int *ptr = tail_alloc(sizeof(*ptr));
+	TAIL_ALLOC_OBJECT_CONST_PTR(unsigned int, ptr);
 	long rc;
 	unsigned int i;
 

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2000 IBM Deutschland Entwicklung GmbH, IBM Coporation
+ * Copyright (c) 2000-2017 The strace developers.
  * Authors: Ulrich Weigand <Ulrich.Weigand@de.ibm.com>
  *          D.J. Barrow  <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
  * All rights reserved.
@@ -90,7 +91,7 @@
 [ 59] = { },
 [ 60] = { 1,	NF,		SEN(umask),			"umask"			},
 [ 61] = { 1,	TF,		SEN(chroot),			"chroot"		},
-[ 62] = { 2,	0,		SEN(ustat),			"ustat"			},
+[ 62] = { 2,	TSFA,		SEN(ustat),			"ustat"			},
 [ 63] = { 2,	TD,		SEN(dup2),			"dup2"			},
 [ 64] = { 0,	NF,		SEN(getppid),			"getppid"		},
 [ 65] = { 0,	0,		SEN(getpgrp),			"getpgrp"		},
@@ -127,16 +128,16 @@
 [ 96] = { 2,	0,		SEN(getpriority),		"getpriority"		},
 [ 97] = { 3,	0,		SEN(setpriority),		"setpriority"		},
 [ 98] = { },
-[ 99] = { 2,	TF,		SEN(statfs),			"statfs"		},
-[100] = { 2,	TD,		SEN(fstatfs),			"fstatfs"		},
+[ 99] = { 2,	TF|TSF|TSFA,	SEN(statfs),			"statfs"		},
+[100] = { 2,	TD|TFSF|TSFA,	SEN(fstatfs),			"fstatfs"		},
 [101] = { 3,	0,		SEN(ioperm),			"ioperm"		},
 [102] = { 2,	TD,		SEN(socketcall),		"socketcall"		},
 [103] = { 3,	0,		SEN(syslog),			"syslog"		},
 [104] = { 3,	0,		SEN(setitimer),			"setitimer"		},
 [105] = { 2,	0,		SEN(getitimer),			"getitimer"		},
-[106] = { 2,	TF,		SEN(stat),			"stat"			},
-[107] = { 2,	TF,		SEN(lstat),			"lstat"			},
-[108] = { 2,	TD,		SEN(fstat),			"fstat"			},
+[106] = { 2,	TF|TST|TSTA,	SEN(stat),			"stat"			},
+[107] = { 2,	TF|TLST|TSTA,	SEN(lstat),			"lstat"			},
+[108] = { 2,	TD|TFST|TSTA,	SEN(fstat),			"fstat"			},
 [109] = { },
 [110] = { 4,	0,		SEN(lookup_dcookie),		"lookup_dcookie"	},
 [111] = { 0,	0,		SEN(vhangup),			"vhangup"		},
@@ -201,7 +202,7 @@
 [170] = { 3,	0,		SEN(setresgid16),		"setresgid"		},
 [171] = { 3,	0,		SEN(getresgid16),		"getresgid"		},
 [172] = { 5,	0,		SEN(prctl),			"prctl"			},
-[173] = { 0,	TS,		SEN(sigreturn),			"rt_sigreturn"		},
+[173] = { 0,	TS,		SEN(rt_sigreturn),		"rt_sigreturn"		},
 [174] = { 4,	TS,		SEN(rt_sigaction),		"rt_sigaction"		},
 [175] = { 4,	TS,		SEN(rt_sigprocmask),		"rt_sigprocmask"	},
 [176] = { 2,	TS,		SEN(rt_sigpending),		"rt_sigpending"		},
@@ -223,9 +224,9 @@
 [192] = { 1,	TD|TM|SI,	SEN(old_mmap_pgoff),		"mmap2"			},
 [193] = { 3,	TF,		SEN(truncate64),		"truncate64"		},
 [194] = { 3,	TD,		SEN(ftruncate64),		"ftruncate64"		},
-[195] = { 2,	TF,		SEN(stat64),			"stat64"		},
-[196] = { 2,	TF,		SEN(lstat64),			"lstat64"		},
-[197] = { 2,	TD,		SEN(fstat64),			"fstat64"		},
+[195] = { 2,	TF|TST|TSTA,	SEN(stat64),			"stat64"		},
+[196] = { 2,	TF|TLST|TSTA,	SEN(lstat64),			"lstat64"		},
+[197] = { 2,	TD|TFST|TSTA,	SEN(fstat64),			"fstat64"		},
 [198] = { 3,	TF,		SEN(chown),			"lchown32"		},
 [199] = { 0,	NF,		SEN(getuid),			"getuid32"		},
 [200] = { 0,	NF,		SEN(getgid),			"getgid32"		},
@@ -293,8 +294,8 @@
 [262] = { 4,	0,		SEN(clock_nanosleep),		"clock_nanosleep"	},
 [263] = { 5,	0,		SEN(vserver),			"vserver"		},
 [264] = { 6,	TD,		SEN(fadvise64_64),		"fadvise64_64"		},
-[265] = { 3,	TF,		SEN(statfs64),			"statfs64"		},
-[266] = { 3,	TD,		SEN(fstatfs64),			"fstatfs64"		},
+[265] = { 3,	TF|TSF|TSFA,	SEN(statfs64),			"statfs64"		},
+[266] = { 3,	TD|TFSF|TSFA,	SEN(fstatfs64),			"fstatfs64"		},
 [267] = { 5,	TM|SI,		SEN(remap_file_pages),		"remap_file_pages"	},
 [268] = { 6,	TM,		SEN(mbind),			"mbind"			},
 [269] = { 5,	TM,		SEN(get_mempolicy),		"get_mempolicy"		},
@@ -321,7 +322,7 @@
 [290] = { 4,	TD|TF,		SEN(mknodat),			"mknodat"		},
 [291] = { 5,	TD|TF,		SEN(fchownat),			"fchownat"		},
 [292] = { 3,	TD|TF,		SEN(futimesat),			"futimesat"		},
-[293] = { 4,	TD|TF,		SEN(fstatat64),			"fstatat64"		},
+[293] = { 4,	TD|TF|TFST|TSTA,SEN(fstatat64),			"fstatat64"		},
 [294] = { 3,	TD|TF,		SEN(unlinkat),			"unlinkat"		},
 [295] = { 4,	TD|TF,		SEN(renameat),			"renameat"		},
 [296] = { 5,	TD|TF,		SEN(linkat),			"linkat"		},
@@ -406,6 +407,8 @@
 [375] = { 6,	TD,		SEN(copy_file_range),		"copy_file_range"	},
 [376] = { 6,	TD,		SEN(preadv2),			"preadv2"		},
 [377] = { 6,	TD,		SEN(pwritev2),			"pwritev2"		},
+[378] = { },
+[379] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
 
 #define SYS_socket_subcall	400
 #include "subcall.h"

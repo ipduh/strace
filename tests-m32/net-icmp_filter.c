@@ -2,6 +2,7 @@
  * Check decoding of ICMP_FILTER.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,9 +44,9 @@ main(void)
 	printf("setsockopt(-1, SOL_RAW, ICMP_FILTER, NULL, 0) = -1 %s (%m)\n",
 	       errno2name());
 
-	socklen_t *const plen = tail_alloc(sizeof(*plen));
+	TAIL_ALLOC_OBJECT_CONST_PTR(socklen_t, plen);
 	void *const efault = plen + 1;
-	struct icmp_filter *const f = tail_alloc(sizeof(*f));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct icmp_filter, f);
 
 	getsockopt(-1, SOL_RAW, ICMP_FILTER, f, plen);
 	printf("getsockopt(-1, SOL_RAW, ICMP_FILTER, %p, %p) = -1 %s (%m)\n",

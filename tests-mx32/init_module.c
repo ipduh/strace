@@ -2,6 +2,7 @@
  * Check decoding of init_module syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,9 +56,9 @@ main(void)
 	fill_memory_ex(bogus_param1, PARAM1_LEN, PARAM1_BASE, PARAM1_LEN);
 	fill_memory_ex(bogus_param2, PARAM2_LEN, PARAM2_BASE, PARAM2_LEN);
 
-	rc = syscall(__NR_init_module, NULL, bogus_zero, NULL);
+	rc = syscall(__NR_init_module, NULL, F8ILL_KULONG_MASK, NULL);
 	printf("init_module(NULL, %llu, NULL) = %s\n",
-	       (unsigned long long) bogus_zero, sprintrc(rc));
+	       (unsigned long long) F8ILL_KULONG_MASK, sprintrc(rc));
 
 	rc = syscall(__NR_init_module, bogus_addr, 0, bogus_param1);
 	errstr = sprintrc(rc);

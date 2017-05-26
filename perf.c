@@ -2,6 +2,7 @@
  * Copyright (c) 2013 Ben Noordhuis <info@bnoordhuis.nl>
  * Copyright (c) 2013-2015 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +32,6 @@
 
 #include "perf_event_struct.h"
 
-#include "xlat/clocknames.h"
 #include "xlat/hw_breakpoint_len.h"
 #include "xlat/hw_breakpoint_type.h"
 #include "xlat/perf_attr_size.h"
@@ -160,7 +160,7 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 	}
 
 	PRINT_XLAT("{type=", perf_type_id, attr->type, "PERF_TYPE_???");
-	tprintf(", size=");
+	tprints(", size=");
 	printxval(perf_attr_size, attr->size, "PERF_ATTR_SIZE_???");
 
 	if (use_new_size) {
@@ -217,11 +217,11 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 		PRINT_XLAT("<<8|", perf_hw_cache_op_result_id,
 		           (attr->config >> 16) & 0xFF,
 		           "PERF_COUNT_HW_CACHE_RESULT_???");
-		tprintf("<<16");
-		if (attr->config >> 24)
-			tprintf("|%#" PRIx64 "<<24 "
-			        "/* PERF_COUNT_HW_CACHE_??? */",
-			        attr->config >> 24);
+		tprints("<<16");
+		if (attr->config >> 24) {
+			tprintf("|%#" PRIx64 "<<24", attr->config >> 24);
+			tprints_comment("PERF_COUNT_HW_CACHE_???");
+		}
 		break;
 	case PERF_TYPE_RAW:
 		/*
@@ -253,11 +253,11 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 	else
 		tprintf(", sample_period=%" PRIu64, attr->sample_period);
 
-	tprintf(", sample_type=");
+	tprints(", sample_type=");
 	printflags64(perf_event_sample_format, attr->sample_type,
 		"PERF_SAMPLE_???");
 
-	tprintf(", read_format=");
+	tprints(", read_format=");
 	printflags64(perf_event_read_format, attr->read_format,
 		"PERF_FORMAT_???");
 
@@ -276,18 +276,7 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 	        ", enable_on_exec=%u"
 	        ", task=%u"
 	        ", watermark=%u"
-	        ", precise_ip=%u /* %s */"
-	        ", mmap_data=%u"
-	        ", sample_id_all=%u"
-	        ", exclude_host=%u"
-	        ", exclude_guest=%u"
-	        ", exclude_callchain_kernel=%u"
-	        ", exclude_callchain_user=%u"
-	        ", mmap2=%u"
-	        ", comm_exec=%u"
-	        ", use_clockid=%u"
-	        ", context_switch=%u"
-	        ", write_backward=%u",
+	        ", precise_ip=%u",
 	        attr->disabled,
 	        attr->inherit,
 	        attr->pinned,
@@ -303,7 +292,19 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 	        attr->enable_on_exec,
 	        attr->task,
 	        attr->watermark,
-	        attr->precise_ip, precise_ip_desc[attr->precise_ip],
+	        attr->precise_ip);
+	tprints_comment(precise_ip_desc[attr->precise_ip]);
+	tprintf(", mmap_data=%u"
+	        ", sample_id_all=%u"
+	        ", exclude_host=%u"
+	        ", exclude_guest=%u"
+	        ", exclude_callchain_kernel=%u"
+	        ", exclude_callchain_user=%u"
+	        ", mmap2=%u"
+	        ", comm_exec=%u"
+	        ", use_clockid=%u"
+	        ", context_switch=%u"
+	        ", write_backward=%u",
 	        attr->mmap_data,
 	        attr->sample_id_all,
 	        attr->exclude_host,
@@ -320,9 +321,11 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 	 * Print it only in case it is non-zero, since it may contain flags we
 	 * are not aware about.
 	 */
-	if (attr->__reserved_1)
-		tprintf(", __reserved_1=%#" PRIx64 " /* Bits 63..28 */",
+	if (attr->__reserved_1) {
+		tprintf(", __reserved_1=%#" PRIx64,
 		        (uint64_t) attr->__reserved_1);
+		tprints_comment("Bits 63..28");
+	}
 
 	if (attr->watermark)
 		tprintf(", wakeup_watermark=%u", attr->wakeup_watermark);
@@ -355,7 +358,7 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 
 	_PERF_CHECK_FIELD(branch_sample_type);
 	if (attr->sample_type & PERF_SAMPLE_BRANCH_STACK) {
-		tprintf(", branch_sample_type=");
+		tprints(", branch_sample_type=");
 		printflags64(perf_branch_sample_type, attr->branch_sample_type,
 		             "PERF_SAMPLE_BRANCH_???");
 	}
@@ -380,7 +383,7 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 
 	if (attr->use_clockid) {
 		_PERF_CHECK_FIELD(clockid);
-		tprintf(", clockid=");
+		tprints(", clockid=");
 		printxval(clocknames, attr->clockid, "CLOCK_???");
 	}
 
@@ -399,9 +402,9 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 print_perf_event_attr_out:
 	if ((attr->size && (attr->size > size)) ||
 	    (!attr->size && (size < PERF_ATTR_SIZE_VER0)))
-		tprintf(", ...");
+		tprints(", ...");
 
-	tprintf("}");
+	tprints("}");
 }
 
 SYS_FUNC(perf_event_open)

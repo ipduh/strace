@@ -2,6 +2,7 @@
  * Check decoding of perf_event_open syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,7 +63,7 @@ static const char *printaddr(void *ptr)
 int
 main(void)
 {
-	struct perf_event_attr *attr = tail_alloc(sizeof(*attr));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct perf_event_attr, attr);
 
 	attr->type = PERF_TYPE_HARDWARE;
 	attr->size = sizeof(*attr);

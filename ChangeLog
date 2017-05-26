@@ -1,3 +1,2972 @@
+2017-05-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Prepare for 4.17 release.
+	* NEWS: Update for 4.17 release.
+
+	powerpc64, sparc, sparc64: wire up statx syscall.
+	* linux/powerpc64/syscallent.h [383]: Add statx entry.
+	* linux/sparc/syscallent.h [360]: Likewise.
+	* linux/sparc64/syscallent.h [360]: Likewise.
+
+2017-05-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix compat personality support for sgetmask syscall.
+	* signal.c (SYS_FUNC(sgetmask)): Replace sprintsigmask_val
+	with sprint_old_sigmask_val.
+	* tests/sxetmask.c (main): Check decoding of signal mask containing
+	RT signals.
+
+2017-05-22  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix decoding of sgetmask and ssetmask syscalls.
+	Old ssetmask syscall takes an argument and returns a value of type int.
+	Old sgetmask syscall may return an error.
+
+	* signal.c (SYS_FUNC(ssetmask)): Explicitly convert the argument
+	and return value to unsigned int, print it using sprint_old_sigmask_val.
+	(SYS_FUNC(sgetmask)): Do not print the mask in case of syserror.
+	* tests/sxetmask.c: New file.
+	* tests/gen_tests.in (sxetmask): New entry.
+	* tests/pure_executables.list: Add sxetmask.
+	* tests/.gitignore: Likewise.
+	* NEWS: Mention this fix.
+
+2017-05-22  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add copyright headers.
+
+2017-05-22  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Elvira Khabirova  <lineprinter0@gmail.com>
+
+	Add scripts for automating copyright notices update.
+	* maint/update_copyright_years.awk: New file.
+	* maint/update_copyright_years.sh: Likewise.
+
+2017-05-22  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Fix typos in copyright notices.
+
+	unwind.c: remove non-ASCII character from comment.
+
+2017-05-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Rename sys_sig[gs]etmask to sys_s[gs]etmask to match syscall names.
+	* signal.c (SYS_FUNC(sigsetmask)): Rename to SYS_FUNC(ssetmask).
+	(SYS_FUNC(siggetmask)): Rename to SYS_FUNC(sgetmask).
+	* linux/arm/syscallent.h (sgetmask, ssetmask): Update sys_func.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+
+	tests: enhance sigsuspend.test.
+	* tests/sigsuspend.c (sigtxt): New variable.
+	(main): Change signal masks to contain all signals except USR1 and USR2.
+
+2017-05-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix compat personality support for old sigsuspend syscall.
+	* signal.c (sprint_old_sigmask_val): New function.
+	(tprint_old_sigmask_val): New macro.
+	(SYS_FUNC(sigsuspend)): Use it.
+
+2017-05-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move errnoent.sh, signalent.sh, and syscallent.sh to maint subdirectory.
+	Also do not include them into release tarballs.  These files are
+	intended for developers who are expected to use a git repository.
+
+	* errnoent.sh: Move to maint subdirectory.
+	* signalent.sh: Likewise.
+	* syscallent.sh: Likewise.
+	* HACKING-scripts: Update.
+	* Makefile.am (EXTRA_DIST): Remove errnoent.sh, signalent.sh,
+	and syscallent.sh.
+
+2017-05-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Do not include maint subdirectory into release tarballs.
+	These files are intended for developers who are expected to use
+	a git repository.
+
+	* Makefile.am (EXTRA_DIST): Remove maint/ioctls_gen.sh,
+	maint/ioctls_hex.sh, maint/ioctls_sym.sh, and maint/print_ioctlent.c.
+
+2017-05-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	linux/ia64/syscallent.h: remove tabulation, add spaces in file comment.
+
+	linux/mtd-abi.h: remove non-ASCII character from file comment.
+
+2017-05-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	alpha, cris, mips, ppc, sh, sparc: fix decoding of sigsuspend syscall.
+	On some architectures old sigsuspend syscall takes the signal mask from
+	the 3rd argument, on some from the 1st.  And, if it wasn't peculiar
+	enough, the signal mask is passed by value on all architectures except
+	mips where it's passed by reference.
+
+	* signal.c (SYS_FUNC(sigsuspend)): Take the signal mask from the last
+	argument.
+	* linux/alpha/syscallent.h (sigsuspend): Set nargs to 1.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* tests/sigsuspend.c: New file.
+	* tests/gen_tests.in (sigsuspend): New entry.
+	* tests/pure_executables.list: Add sigsuspend.
+	* tests/.gitignore: Likewise.
+	* NEWS: Mention this fix.
+
+2017-05-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: raise default timeout for individual tests.
+	Recently added tests based on pure_executables.list are quite slow
+	by their nature, the one minute default timeout is no longer enough
+	for some of not so fast architectures.
+
+	* tests/init.sh (TIMEOUT_DURATION): Raise from 60 to 120.
+
+2017-05-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update NEWS.
+
+2017-04-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update TCP_* constants.
+	* xlat/socktcpoptions.in: Add TCP_FASTOPEN_CONNECT introduced
+	by linux kernel commit v4.11-rc1~124^2~321^2.
+
+2017-04-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update AF_* constants.
+	* xlat/addrfams.in: Add AF_SMC introduced by linux kernel
+	commit v4.11-rc1~94^2~43^2~13.
+
+2017-04-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: enhance madvise decoder check.
+	* tests/mmap.c (main): Remove madvise check.
+	* tests/madvise.c: New file.
+	* tests/gen_tests.in (madvise): New entry.
+	* tests/.gitignore: Add madvise.
+	* tests/pure_executables.list: Likewise.
+
+2017-04-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add -etrace=?... test.
+	Check for some architecture-specific syscalls which are not present
+	on most architectures.
+
+	* gen_tests.in: Add trace_question test.
+	* tests/trace_question.in: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+
+2017-04-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add more information to generated header comments.
+	* tests/gen_tests.sh: Update header comment with the source string
+	used for test generation.
+
+	tests: move generated common header comment into a variable.
+	* tests/gen_tests.sh: Move generated file header comment
+	into a variable, use it in all cases.
+
+2017-04-25  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use TAIL_ALLOC_OBJECT_CONST_PTR in v4l2 test.
+	* tests/ioctl_v4l2.c (main): Use TAIL_ALLOC_OBJECT_CONST_PTR.
+
+2017-04-25  Edgar Kaziahmedov  <edos@linux.com>
+
+	tests: Check decoding of VIDIOC_G/S_TUNER's arg.
+	* tests/ioctl_v4l2.c (main): Add checks for VIDIOC_G/S_TUNER's arg.
+
+	v4l2: Add decoding for VIDIOC_G/S_TUNER's arg.
+	* v4l2.c: Include "xlat/v4l2_tuner_types.h", "xlat/v4l2_tuner_capabilities.h",
+	"xlat/v4l2_tuner_rxsubchanses.h", and "xlat/v4l2_tuner_audmodes.h".
+	(print_v4l2_tuner): New function. Add decoding for VIDIOC_G/S_TUNER's arg.
+	(v4l2_ioctl): Add new cases for decoding VIDIOC_G/S_TUNER's arg.
+	* xlat/v4l2_tuner_types.in: Add V4L2_TUNER_RADIO and
+	V4L2_TUNER_ANALOG_TV introduced by linux kernel commit
+	2.5.46~39^2~23^2~4.
+	Add V4L2_TUNER_DIGITAL_TV introduced by linux kernel
+	commit v2.6.11-rc4~55^2~20.
+	Add V4L2_TUNER_ADC and V4L2_TUNER_RF introduced by linux kernel commit
+	v3.15-rc1~85^2~215.
+	Add V4L2_TUNER_SDR introduced by linux kernel commit v4.4-rc1~118^2~17
+	(as the replacement of V4L2_TUNER_ADC).
+	* xlat/v4l2_tuner_capabilities.in: Add V4L2_TUNER_CAP_LOW,
+	V4L2_TUNER_CAP_NORM, V4L2_TUNER_CAP_STEREO, V4L2_TUNER_CAP_LANG2,
+	V4L2_TUNER_CAP_SAP, and V4L2_TUNER_CAP_LANG1 introduced by linux kernel
+	commit 2.5.46~39^2~23^2~4.
+	Add V4L2_TUNER_CAP_HWSEEK_BOUNDED and V4L2_TUNER_CAP_HWSEEK_WRAP
+	introduced by linux kernel commit v3.6-rc1~28^2~306.
+	Add V4L2_TUNER_CAP_RDS introduced by linux commit v2.6.32-rc1~679^2~189.
+	Add V4L2_TUNER_CAP_RDS_BLOCK_IO and V4L2_TUNER_CAP_RDS_CONTROLS
+	introduced by linux kernel commit v2.6.37-rc1~64^2~110.
+	Add V4L2_TUNER_CAP_FREQ_BANDS introduced by linux kernel commit
+	v3.6-rc1~28^2~46.
+	Add V4L2_TUNER_CAP_HWSEEK_PROG_LIM introduced by linux kernel commit
+	v3.6-rc1~28^2~40.
+	Add V4L2_TUNER_CAP_1HZ introduced by linux kernel commit
+	v3.15-rc1~85^2~214.
+	* xlat/v4l2_tuner_audmodes.in: Add V4L2_TUNER_MODE_MONO,
+	V4L2_TUNER_MODE_STEREO, V4L2_TUNER_MODE_LANG2, V4L2_TUNER_MODE_SAP, and
+	V4L2_TUNER_MODE_LANG1 introduced by linux kernel commit
+	2.5.46~39^2~23^2~4.
+	Add V4L2_TUNER_MODE_LANG1_LANG2 introduced by linux kernel commit
+	v2.6.17-rc1~739^2~9.
+	* xlat/v4l2_tuner_rxsubchanses.in: Add V4L2_TUNER_SUB_MONO,
+	V4L2_TUNER_SUB_STEREO, V4L2_TUNER_SUB_LANG2, V4L2_TUNER_SUB_SAP, and
+	V4L2_TUNER_SUB_LANG1 introduced by linux kernel commit
+	2.5.46~39^2~23^2~4.
+	Add V4L2_TUNER_SUB_RDS introduced by linux kernel commit
+	v2.6.32-rc1~679^2~189.
+
+2017-04-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of invalid tv_sec and tv_usec values.
+	* tests/futimesat.c (main): Check decoding of invalid tv_sec and tv_usec
+	values.
+	* tests/xetitimer.c (main): Likewise.
+	* tests/xettimeofday.c (main): Likewise.
+	* tests/xselect.c (main): Likewise.
+	* tests/xutimes.c (main): Likewise.
+
+	tests: check decoding of invalid tv_sec and tv_nsec values.
+	* tests/aio.c (main): Check decoding of invalid tv_sec and tv_nsec
+	values.
+	* tests/clock_nanosleep.c (main): Likewise.
+	* tests/clock_xettime.c (main): Likewise.
+	* tests/futex.c (main): Likewise.
+	* tests/nanosleep.c (main): Likewise.
+	* tests/ppoll.c (main): Likewise.
+	* tests/pselect6.c (main): Likewise.
+	* tests/recvmmsg-timeout.c (main): Likewise.
+	* tests/rt_sigtimedwait.c (main): Likewise.
+	* tests/semop.c (main): Likewise.
+	* tests/timer_xettime.c (main): Likewise.
+	* tests/timerfd_xettime.c (main): Likewise.
+	* tests/utimensat.c (main): Likewise.
+
+2017-04-24  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Print time in ISO 8601 format in time syscall decoder.
+	* print_time.c (SYS_FUNC(time)): Print timestamp stringification
+	(via sprinttime) for the value stored in the argument and return value
+	(return RVAL_STR in the latter case).
+	* tests/time.c (main): Update expected output.
+
+2017-04-24  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	Print string representation of timestamps in parsers of *utime* syscalls
+	* print_timespec.c (print_timespec_t_utime): Use sprinttime_nsec
+	to format a string representation of time, use tprints_comment
+	to print it as a comment.
+	* print_timeval.c (print_timeval_t_utime): New function.
+	(print_timeval_utimes): Use it instead of print_timeval_t.
+	[ALPHA] (print_timeval32_t_utime): New function.
+	[ALPHA] (print_timeval32_utimes): Use it instead of print_timeval32_t.
+	* tests/futimesat.c (print_tv): Update expected output.
+	* tests/utimensat.c (print_ts): Likewise.
+	* tests/xutimes.c (print_tv): Likewise.
+
+2017-04-24  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add support for printing timestamp with microsecond precision.
+	It will be needed later.
+
+	* tests/tests.h (print_time_t_usec): New prototype.
+	* tests/print_time.c (print_time_t_usec): New function, a thin wrapper
+	around print_time_t_ex.
+
+2017-04-24  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	Print microseconds/nanoseconds as non-negative.
+	Negative micro/nanoseconds values are treated as invalid by kernel
+	anyway, and in one case (timespec_valid in include/linux/time.h)
+	it is even checked by conversion to unsigned long.
+
+	* print_timespec.c (timespec_fmt): Change tv_sec format to %lld and
+	tv_nsec format to %llu.
+	(print_timespec_t): Cast tv_sec to long long and process tv_nsec with
+	zero_extend_signed_to_ull.
+	(sprint_timespec): Likewise.
+	* print_timeval.c (timeval_fmt): Change tv_sec format to %lld and
+	tv_usec format to %llu.
+	(print_timeval_t): Cast tv_sec to long long and process tv_nsec with
+	zero_extend_signed_to_ull.
+	(sprint_timeval, print_timeval32_t, sprint_timeval32): Likewise.
+	* defs.h (TIMESPEC_TEXT_BUFSIZE): Update.
+	* tests/adjtimex.c (main): Change tv_sec printing format to %lld, cast
+	it to long long; change tv_usec printing format to %llu, process it with
+	zero_extend_signed_to_ull.
+	* tests/clock_nanosleep.c (main): Change tv_sec printing format to %lld,
+	cast it to long long; change tv_nsec printing format to %llu, process it
+	with zero_extend_signed_to_ull.
+	* tests/clock_xettime.c (main): Likewise.
+	* tests/futex.c (main): Likewise.
+	* tests/futimesat.c (print_tv): Likewise.
+	* tests/getrusage.c (invoke_print): Likewise.
+	* tests/mq_sendrecv.c (do_send, do_recv, main): Likewise.
+	* tests/nanosleep.c (main): Likewise.
+	* tests/pselect6.c (main): Likewise.
+	* tests/restart_syscall.c (main): Likewise.
+	* tests/rt_sigtimedwait.c (iterate, main): Likewise.
+	* tests/sched_rr_get_interval.c (main): Likewise.
+	* tests/semop.c (main): Likewise.
+	* tests/timer_xettime.c (main): Likewise.
+	* tests/timerfd_xettime.c (main): Likewise.
+	* tests/waitid.c (main): Likewise.
+	* tests/xetitimer.c (main): Likewise.
+	* tests/xettimeofday.c (main): Likewise.
+	* tests/xselect.c (main): Likewise.
+	* tests/xutimes.c (print_tv): Likewise.
+	* tests/wait4.c (sprint_rusage): Likewise.
+	* tests/waitid.c (sprint_rusage): Likewise.
+	* tests/utimensat.c (print_ts): Likewise.
+	(main): Add check for higher bits of tv_sec/tv_nsec.
+
+2017-04-24  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	Always print raw values of time data fields.
+	Refactor sprinttime: implement sprinttime_nsec and sprinttime_usec
+	that handle nanoseconds and microseconds, respectively.
+	Always print raw values of time data fields, format string
+	representations of time as comments.
+
+	* defs.h (sprinttime): Change argument type from time_t to long long.
+	(sprinttime_nsec, sprinttime_usec): New prototypes.
+	* util.c (sprinttime_ex, sprinttime_nsec, sprinttime_usec): New
+	functions.
+	(sprinttime): Turn into a thin wrapper around sprinttime_ex.
+	* stat.h (struct strace_stat): Add has_nsec field.
+	* fetch_struct_stat.c (HAVE_NSEC): New macro.
+	(fetch_struct_stat): Initialize has_nsec field with HAVE_NSEC.
+	* fetch_struct_stat64.c (HAVE_NSEC): New macro.
+	(fetch_struct_stat64): Initialize has_nsec field with HAVE_NSEC.
+	* print_struct_stat.c (print_struct_stat) <PRINT_ST_TIME>:
+	Print raw values of time fields, use sprinttime_nsec to format a string
+	representation of time, use tprints_comment to print it as a comment.
+	* statx.c (SYS_FUNC(statx)) <PRINT_FIELD_TIME>: Likewise.
+	* utime.c (SYS_FUNC(utime)): Print raw values of struct utimbuf.actime
+	and struct utimbuf.modtime fields, use sprinttime to format a string
+	representation of time, use tprints_comment to print it as a comment.
+	* tests/tests.h (print_time_t_nsec): Add int argument.
+	* tests/print_time.c (print_time_t_ex): New function.
+	(print_time_t_nsec): Add int argument, turn into a thin wrapper around
+	print_time_t_ex.
+	* tests/utime.c (main): Update expected output.
+	* tests/xstatx.c [!IS_STATX] (HAVE_NSEC): New macro.
+	[!IS_STATX] (PRINT_ST_TIME), [IS_STATX] (PRINT_FIELD_TIME): Update
+	expected output.
+	* NEWS: Mention this timestamps representation improvement.
+
+2017-04-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce tprintf_comment and tprints_comment functions.
+	* defs.h (tprintf_comment, tprints_comment): New prototypes.
+	* strace.c (tvprintf): New function.
+	(tprintf): Use it.
+	(tprintf_comment, tprints_comment): New functions.
+	* aio.c (tprint_lio_opcode): Use tprints_comment.
+	* dm.c (dm_decode_dm_target_spec, dm_decode_dm_target_deps,
+	dm_decode_dm_name_list, dm_decode_dm_target_versions,
+	dm_decode_dm_target_msg, dm_decode_string, dm_known_ioctl): Likewise.
+	* futex.c (SYS_FUNC(futex)): Likewise.
+	* perf.c (print_perf_event_attr): Likewise.
+	* seccomp.c (decode_bpf_code): Likewise.
+	* util.c (printxvals, printxval_searchn, printflags64): Likewise.
+	* btrfs.c (print_u64, btrfs_print_key_type, btrfs_print_objectid,
+	print_key_value_internal): Likewise.
+	(btrfs_ioctl): Use tprints_comment and tprintf_comment.
+	* dirent.c (SYS_FUNC(getdents)): Likewise.
+	* dirent64.c (SYS_FUNC(getdents64)): Likewise.
+	* execve.c (printargc): Use tprintf_comment.
+	* tests/btrfs.c (btrfs_test_get_dev_stats_ioctl,
+	btrfs_test_features_ioctls): Update expected output.
+
+	Make output of execve/execveat syscall parsers more structured.
+	* execve.c (printargc): Always print the address, format the number
+	of variables as a comment.
+	* tests/execve.c: Update expected output.
+	* tests/execveat.c: Likewise.
+	* tests/qual_syscall.test: Likewise.
+	* tests/strace-r.expected: Likewise.
+	* tests/strace-t.test: Likewise.
+	* tests/strace-tt.test: Likewise.
+	* tests/strace-ttt.test: Likewise.
+	* tests/threads-execve.c: Likewise.
+	* tests/threads-execve.test: Likewise.
+
+	dm: fix diagnostics about misplaced parts of struct dm_ioctl.
+	* dm.c (dm_decode_dm_target_spec, dm_decode_dm_target_deps,
+	dm_decode_dm_name_list, dm_decode_dm_target_versions,
+	dm_decode_dm_target_msg, dm_decode_string, dm_known_ioctl): Fix
+	diagnostics about various misplaced parts of struct dm_ioctl.
+	* tests/ioctl_dm.c: Update expected output.
+
+	print_mq_attr: fix typo.
+	* print_mq_attr.c (printmqattr): Fix the last argument of printflags64.
+
+2017-04-23  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add faulty pointer check to time test.
+	* tests/time.c (main): Add check for an inaccessible pointer.
+
+2017-04-22  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix print_time_t_nsec usage in xstatx.c.
+	* tests/xstatx.c (print_stat): Pass tv_nsec field through
+	zero_extend_signed_to_ull before feeding it to print_time_t_nsec.
+
+2017-04-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix netlink_protocol on sparc.
+	* tests/netlink_protocol.c (test_nlmsgerr): Do not access fields of an
+	unaligned structure, this makes architectures like sparc very unhappy.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util: return pointer to string literal directly in sprinttime.
+	There is no sense to copy it to static buffer first.
+
+	* util.c (sprinttime): Just return "0", do not copy it to internal
+	buffer first.
+
+2017-04-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: remove stat.sample creation from gen_tests.in.
+	stat.sample is created by appropriate executables and never removed.
+
+	* tests/gen_tests.in (trace_fstat, trace_lstat, trace_stat,
+	trace_stat_like): Remove stat.sample creation.
+
+2017-04-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: tabulate fstat.test.
+	* tests/gen_tests.in (fstat): New entry.
+	(fstat64, oldfstat): Update.
+	* tests/fstat.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove fstat.test.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement -e trace=%stat option.
+	linux/*/syscallent*.h part is updated automatically by:
+
+	    sed -i '/statx/! s/TF|TSTA,/TF|TST|TSTA,/' linux/*/syscallent*.h
+
+	* sysent.h (TRACE_STAT): New macro.
+	* syscall.c: Alias LST to TRACE_STAT around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add TRACE_STAT for "%stat".
+	* strace.1 (.SS Filtering): Add information about %stat syscall class.
+	* NEWS: Mention this change.
+	* linux/aarch64/syscallent.h (stat): Add TST flag.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/arm/syscallent.h (oldstat, stat, stat64): Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h (stat, stat64): Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h (oldstat, stat): Likewise.
+	* linux/alpha/syscallent.h (osf_old_stat, osf_stat, stat, stat64): Likewise.
+	* linux/mips/syscallent-compat.h (bsd43_oldstat, bsd43_stat, posix_stat,
+	svr4_stat, svr4_xstat, sysv_stat, sysv_xstat): Likewise.
+	* tests/gen_tests.in (trace_stat): New entry.
+	* tests/trace_stat.in: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	* tests/ksysent.c (TST): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement -e trace=%lstat option.
+	linux/*/syscallent*.h part is updated automatically by:
+
+	    sed -i '/TSTA,.*lx\?stat/ s/TSTA,/TLST|&/' linux/*/syscallent*.h
+
+	* sysent.h (TRACE_LSTAT): New macro.
+	* syscall.c: Alias TLST to TRACE_LSTAT around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add TRACE_LSTAT for "%lstat".
+	* strace.1 (.SS Filtering): Add information about %lstat syscall class.
+	* NEWS: Mention this change.
+	* linux/aarch64/syscallent.h (lstat): Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/arm/syscallent.h (lstat, lstat64, oldlstat): Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h (lstat, lstat64): Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h (lstat, lstat64, osf_lstat, osf_old_lstat): Likewise.
+	* linux/mips/syscallent-compat.h (bsd43_lstat, posix_lstat, svr4_lstat,
+	sysv_lstat): Likewise.
+	* tests/gen_tests.in (trace_lstat): New entry.
+	* tests/trace_lstat.in: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	* tests/ksysent.c (TLST): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement -e trace=%fstat option.
+	linux/*/syscallent*.h part is updated automatically by:
+
+	    sed -i -e '/TSTA.*fx\?stat/ s/TSTA,/TFST|&/' \
+	           -e 's/\(TD|TF|TFST|TSTA,\)[[:space:]]/\1/' linux/*/syscallent*.h
+
+	* sysent.h (TRACE_FSTAT): New macro.
+	* syscall.c: Alias TFST to TRACE_FSTAT around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add TRACE_FSTAT for "%fstat".
+	* strace.1 (.SS Filtering): Add information about %fstat syscall class.
+	* NEWS: Mention this change.
+	* linux/32/syscallent.h (fstat64, fstatat64): Add TFST flag.
+	* linux/64/syscallent.h (fstat, newfstatat): Likewise.
+	* linux/aarch64/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/arm/syscallent.h (fstat, fstat64, fstatat64, oldfstat): Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h (fstat, fstat64, fstatat64): Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h (fstat, fstat64, fstatat64, osf_fstat,
+	osf_old_fstat): Likewise.
+	* linux/powerpc64/syscallent.h (fstat, newfstatat, oldfstat): Likewise.
+	* linux/mips/syscallent-compat.h (bsd43_fstat, bsd43_oldfstat, posix_fstat,
+	svr4_fstat, sysv_fstat): Likewise.
+	* tests/gen_tests.in (trace_fstat): New entry.
+	* tests/trace_fstat.in: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	* tests/ksysent.c (TFST): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement -e trace=%%stat option.
+	linux/*/syscallent*.h part is updated automatically by:
+
+	    sed -i '/TSFA\|stat[iu]s/! s/,[[:space:]]\?\([[:space:]]*SEN(.*stat\)/|TSTA,\1/' \
+	        linux/*/syscallent*.h
+
+	* sysent.h (TRACE_STAT_LIKE): New macro.
+	* syscall.c: Alias TSTA to TRACE_STAT_LIKE around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add TRACE_STAT_LIKE for "%%stat".
+	* strace.1 (.SS Filtering): Add information about %%stat syscall class.
+	* NEWS: Mention this change.
+	* linux/32/syscallent.h (fstat64, fstatat64, statx): Add TSTA flag.
+	* linux/64/syscallent.h (fstat, newfstatat, statx): Likewise.
+	* linux/aarch64/syscallent.h (fstat, lstat, newfstatat, stat): Likewise.
+	* linux/alpha/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	osf_fstat, osf_lstat, osf_old_fstat, osf_old_lstat, osf_old_stat, osf_stat,
+	stat, stat64): Likewise.
+	* linux/arm/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, oldfstat,
+	oldlstat, oldstat, stat, stat64, statx): Likewise.
+	* linux/avr32/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, stat,
+	stat64): Likewise.
+	* linux/bfin/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	oldfstat, oldlstat, oldstat, stat, stat64): Likewise.
+	* linux/crisv10/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	oldfstat, oldlstat, oldstat, stat, stat64): Likewise.
+	* linux/hppa/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, stat,
+	stat64): Likewise.
+	* linux/i386/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, oldfstat,
+	oldlstat, oldstat, stat, stat64, statx): Likewise.
+	* linux/ia64/syscallent.h (fstat, lstat, newfstatat, stat): Likewise.
+	* linux/m68k/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, oldfstat,
+	oldlstat, oldstat, stat, stat64, statx): Likewise.
+	* linux/microblaze/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	oldfstat, oldlstat, oldstat, stat, stat64): Likewise.
+	* linux/mips/syscallent-compat.h (bsd43_fstat, bsd43_lstat, bsd43_oldfstat,
+	bsd43_oldstat, bsd43_stat, posix_fstat, posix_lstat, posix_stat, svr4_fstat,
+	svr4_fxstat, svr4_lstat, svr4_lxstat, svr4_stat, svr4_xstat, sysv_fstat,
+	sysv_fxstat, sysv_lstat, sysv_lxstat, sysv_stat, sysv_xstat): Likewise.
+	* linux/mips/syscallent-n32.h (fstat, lstat, newfstatat, stat, statx): Likewise.
+	* linux/mips/syscallent-n64.h (fstat, lstat, newfstatat, stat, statx): Likewise.
+	* linux/mips/syscallent-o32.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	oldfstat, oldlstat, oldstat, stat, stat64, statx): Likewise.
+	* linux/powerpc64/syscallent.h (fstat, lstat, newfstatat, oldfstat, oldlstat,
+	oldstat, stat): Likewise.
+	* linux/powerpc/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	oldfstat, oldlstat, oldstat, stat, stat64, statx): Likewise.
+	* linux/s390/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, stat,
+	stat64, statx): Likewise.
+	* linux/s390x/syscallent.h (fstat, lstat, newfstatat, stat, statx): Likewise.
+	* linux/sh64/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, oldfstat,
+	oldlstat, oldstat, stat, stat64): Likewise.
+	* linux/sh/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, oldfstat,
+	oldlstat, oldstat, stat, stat64): Likewise.
+	* linux/sparc64/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	oldlstat, stat, stat64): Likewise.
+	* linux/sparc/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64,
+	oldlstat, stat, stat64): Likewise.
+	* linux/x32/syscallent.h (fstat, lstat, newfstatat, stat, statx): Likewise.
+	* linux/x86_64/syscallent.h (fstat, lstat, newfstatat, stat, statx): Likewise.
+	* linux/xtensa/syscallent.h (fstat, fstat64, fstatat64, lstat, lstat64, stat,
+	stat64, statx): Likewise.
+	* tests/gen_tests.in (trace_stat_like): New entry.
+	* tests/trace_stat_like.in: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	* tests/ksysent.c (TSTA): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	qualify: add syntax for optional non-matching syscall qualification.
+	It may be useful in case syscall is not present on the target
+	architecture.
+
+	* qualify.c (qualify_syscall): Add ignore_fail flag, set it to true
+	in case syscall qualification is led by a question mark(s).
+	* strace.1 (.SS Filtering): Document ability to use question marks
+	in syscall qualification.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	linux/alpha/syscallent.h: add TSFA flag to osf_getfsstat.
+	In accordance with [1].
+
+	[1] https://www.freebsd.org/cgi/man.cgi?query=getfsstat&sektion=2
+
+	* linux/alpha/syscallent.h (osf_getfsstat): Add TSFA flag.
+	* strace.1 (.SS Filtering) <%%statfs>: Update equivalent regexp.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	linux/mips/syscallent-compat.h: add some TD/TF flags for *stat* variants
+	*xstat syscalls are, according to [1], like their *stat counterparts,
+	but with additional argument with fixed value.
+
+	[1] http://math-atlas.sourceforge.net/devel/assembly/mipsabi32.pdf
+
+	* linux/mips/syscallent-compat.h (*_xstat, *_lxstat, bsd43_oldstat):
+	Add TF flag.
+	(*_fxstat, bsd43_oldfstat): Add TD flag.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement -e trace=%%statfs option.
+	linux/*/syscallent*.h part is updated automatically by:
+
+	    sed -i 's/\(TSF\),[[:space:]]\?/\1|TSFA,/' linux/*/syscallent*.h
+	    sed -i 's/\(TFSF\),/\1|TSFA,/' linux/*/syscallent*.h
+	    sed -i 's/0\(,.*ustat\)/TSFA\1/' linux/*/syscallent*.h
+
+	* sysent.h (TRACE_STATFS_LIKE): New macro.
+	* syscall.c: Alias TSFA to TRACE_STATFS_LIKE around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add SCHED_STATFS_LIKE for "%%statfs".
+	* strace.1 (.SS Filtering): Add information about %%statfs syscall class.
+	* NEWS: Mention this change.
+	* linux/32/syscallent.h (statfs64, fstatfs64): Add TSFA flag.
+	* linux/64/syscallent.h (statfs, fstatfs): Likewise.
+	* linux/aarch64/syscallent.h (statfs, fstatfs, ustat): Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/arm/syscallent.h (statfs, statfs64, fstatfs, fstatfs64, ustat):
+	Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h (osf_statfs, osf_statfs64, statfs,
+	ofs_fstatfs, osf_fstatfs64, ustat): Likewise.
+	* linux/mips/syscallent-compat.h (*_statfs, *_statvfs, *_fstatfs): Likewise.
+	* tests/gen_tests.in (trace_statfs_like): New entry.
+	* tests/trace_statfs_like.in: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	* tests/ksysent.c (TSFA): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement -e trace=%fstatfs option.
+	linux/*/syscallent*.h part is updated automatically by:
+
+	    sed -i 's/TD,[[:space:]]\([[:space:]]*SEN.*[_"]fstatv\?fs\)/TD|TFSF,\1/' \
+	           linux/*/syscallent*.h
+
+	* sysent.h (TRACE_FSTATFS): New macro.
+	* syscall.c: Alias TFSF to TRACE_FSTATFS around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add SCHED_FSTATFS for "%fstatfs".
+	* strace.1 (.SS Filtering): Add information about %fstatfs syscall class.
+	* NEWS: Mention this change.
+	* linux/32/syscallent.h (fstatfs64): Add TFSF flag.
+	* linux/64/syscallent.h (fstatfs): Likewise.
+	* linux/aarch64/syscallent.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/arm/syscallent.h (fstatfs, fstatfs64):
+	Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h (ofs_fstatfs, osf_fstatfs64): Likewise.
+	* linux/mips/syscallent-compat.h (*_fstatfs, *_fstatvfs): Likewise.
+	* tests/gen_tests.in (trace_fstatfs): New entry.
+	* tests/trace_fstatfs.in: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	* tests/ksysent.c (TFSF): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	sysent.h: format syscall flag macros.
+	Add some tabulation and leading zeroes to the values.
+
+2017-04-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: tabulate sched.test.
+	Rewrite sched.test using test_trace_expr().
+
+	* tests/gen_tests.in (sched): New entry.
+	* tests/sched.in: New file, derived from a set of tests in sched.test.
+	* tests/sched.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove sched.test.
+	(EXTRA_DIST): Add sched.in.
+
+2017-04-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: tabulate regex.test.
+	Rewrite regex.test using test_trace_expr().
+
+	* tests/gen_tests.in (regex): New entry.
+	* tests/regex.in: New file, derived from a set of tests in regex.test.
+	* tests/regex.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove regex.test.
+	(EXTRA_DIST): Add regex.in.
+
+2017-04-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: tabulate clock.test.
+	Rewrite clock.test using test_trace_expr().
+
+	* tests/gen_tests.in (clock): New entry.
+	* tests/clock.in: New file, derived from a set of tests in clock.test.
+	* tests/clock.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove clock.test.
+	(EXTRA_DIST): Add clock.in.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: tabulate trace_statfs.test.
+	Rewrite trace_statfs.test using test_trace_expr().
+
+	* tests/gen_tests.in (trace_statfs): New entry.
+	* tests/trace_statfs.in: New file, derived from a set of tests
+	in trace_statfs.test.
+	* tests/trace_statfs.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove trace_statfs.test.
+	(EXTRA_DIST): Add trace_statfs.in.
+
+2017-04-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/init.sh: add helpers for running set of programs.
+	This introduces three new helpers:
+	prog_set_subtract subtracts one program set from another,
+	test_pure_prog_set runs strace check on a set of programs,
+	test_trace_expr tests trace expressions.
+
+	* tests/init.sh (prog_set_subtract, test_pure_prog_set,
+	test_trace_expr): New functions.
+
+2017-04-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: extend gen_tests.sh further.
+	* tests/gen_tests.sh: Extend support of arbitrary rules.
+
+2017-04-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/xstat.c: do not remove sample file after test.
+	As tests are executed in separate directories now, there is no need to
+	remove sample file.
+
+	* tests/xstat.c (main): Remove unlink calls.
+
+2017-04-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: use fixed name for stat tests sample file.
+	As tests are now run in separate directories.
+
+	* tests/xstatx.c: Use fixed "stat.sample" name for sample file.
+	* tests/fstat.test: Use it as an argument for -P option.
+	* tests/gen_tests.in (fstat64, lstat, lstat64, newfstatat, oldlstat,
+	oldstat, stat, stat64, statx): Likewise.
+
+2017-04-19  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Derive copyright year from the git commit date.
+	This solves problems like the need to update test suite on every
+	New Year's Eve.
+
+	* Makefile.am (dist-hook): Generate .year.
+	* copyright-year-gen: New file.
+	* configure.ac (copyright_year): New m4 variable, defined as the output
+	of copyright-year-gen script.
+	(AC_COPYRIGHT): Use it.
+	(COPYRIGHT_YEAR): New output variable and preprocessor macro.
+	* strace.c (print_version): Use COPYRIGHT_YEAR.
+	* strace.spec.in (%prep): Save the value of COPYRIGHT_YEAR autoconf
+	variable to .year file.
+	* tests/strace-V.test (config_year): New variable, derived from config.h.
+	Add sanity checks for $config_year and use it in expected output.
+
+	Reported-by: Andreas Schwab <schwab@suse.de>
+
+2017-04-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: move /proc/ checks from scripts to executables.
+	Move most of /proc/self/task/ and /proc/self/fd/ checks from scripts
+	to xecutables.
+
+	* tests/attach-f-p.test: Move /proc/self/task/ check ...
+	* tests/attach-f-p-cmd.c (main): ... here.
+	* tests/fstat.test: Move /proc/self/fd/ check ...
+	* tests/xstatx.c (main): ... here.
+	* tests/net-y-unix.test: Move /proc/self/fd/ check ...
+	* tests/net-y-unix.c (main): ... here.
+	* tests/net-yy-inet.test: Move /proc/self/fd/ check ...
+	* tests/net-yy-inet.c (main): ... here.
+	* tests/net-yy-netlink.test: Move /proc/self/fd/ check ...
+	* tests/net-yy-netlink.c (main): ... here.
+	* tests/net-yy-unix.test: Move /proc/self/fd/ check ...
+	* tests/net-yy-unix.c (main): ... here.
+
+2017-04-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: tabulate pread64-pwrite64.test.
+	* tests/gen_tests.in (pread64-pwrite64): New entry.
+	* tests/pread64-pwrite64.c: (main): Skip the test if /proc/self/fd/
+	is not available.
+	* tests/pread64-pwrite64.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove pread64-pwrite64.test.
+
+	tests: tabulate read-write.test.
+	* tests/gen_tests.in (read-write): New entry.
+	* tests/read-write.c: (main): Skip the test if /proc/self/fd/
+	is not available.
+	* tests/read-write.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove read-write.test.
+
+	tests: add skip_if_unavailable function to libtests.
+	* tests/skip_unavailable.c: New file.
+	* tests/tests.h (skip_if_unavailable): New prototype.
+	* tests/Makefile.am (libtests_a_SOURCES): Add skip_unavailable.c.
+
+	tests: tabulate netlink_protocol.test.
+	* tests/gen_tests.in (netlink_protocol): New entry.
+	* tests/netlink_protocol.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove netlink_protocol.test.
+
+	tests: tabulate statfs.test.
+	* tests/gen_tests.in (statfs): New entry.
+	(fstatfs, fstatfs64, statfs64): Update.
+	* tests/statfs.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove statfs.test.
+
+2017-04-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: skip statfs related tests if their sample files are not available
+	* tests/xstatfsx.c (print_statfs): Skip the test if open failed.
+
+	tests: extend gen_tests.sh to support arbitrary test_* rules.
+	* tests/gen_tests.sh: Add support of arbitrary test_* rules.
+
+	tests: change gen_tests.sh to read its input as raw input.
+	* tests/gen_tests.sh: Specify -r option to read.
+	* tests/gen_tests.in (shmxt): Update.
+
+2017-04-18  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.1: s/regex expression/regular expression/
+
+2017-04-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.1: enhance %statfs description.
+	* strace.1 (.SS Filtering) <%statfs>: Fix the list of syscalls,
+	add an equivalent regex expression.
+
+	netlink: decode NLMSG_ERROR messages.
+	* netlink.c (decode_nlmsgerr, decode_payload): New functions.
+	(decode_nlmsghdr_with_payload): Use decode_payload.
+	* tests/netlink_protocol.c (send_query): Check decoding
+	of NLMSG_ERROR messages.
+	* NEWS: Mention this change.
+
+	netlink: avoid using unaligned sizeof(struct nlmsghdr) unnecessarily.
+	* netlink.c (NLMSG_HDRLEN): Redefine.
+	(decode_nlmsghdr_with_payload, decode_netlink): Use it instead
+	of sizeof(struct nlmsghdr).
+
+	Fix the length argument passed from print_iovec to decode_netlink.
+	* io.c (print_iovec): Pass the actual length to decode_netlink
+	instead of the original length.
+	* NEWS: Mention this fix.
+
+	numa: fix printing of error values in move_pages status array.
+	* numa.c (print_status): Do not lose a minus sign when printing
+	a symbolic error code.
+	* tests/move_pages.c (print_status_array): Update expected output.
+
+	tests: generate pure_executables part of check_PROGRAMS automatically.
+	* tests/gen_pure_executables.sh: New file.
+	* bootstrap: Invoke it.
+	* tests/Makefile.am: Include pure_executables.am.
+	(check_PROGRAMS): Add $(PURE_EXECUTABLES).  Remove everything listed
+	in pure_executables.list.
+	(EXTRA_DIST): Add gen_pure_executables.sh.
+	* tests/.gitignore: Add pure_executables.am.
+
+	tests: make EXTRA_DIST sorted.
+	* tests/Makefile.am (EXTRA_DIST): Sort.
+
+	tests: check decoding of alpha specific osf_utimes syscall.
+	* tests/osf_utimes.c: New file.
+	* tests/gen_tests.in (osf_utimes): New entry.
+	* tests/Makefile.am (check_PROGRAMS): Add osf_utimes.
+	* tests/pure_executables.list: Likewise.
+	* tests/.gitignore: Likewise.
+
+	tests: parametrize utimes.c.
+	* tests/xutimes.c: New file, based on utimes.c.
+	* tests/utimes.c [__NR_utimes] (TEST_SYSCALL_NR, TEST_SYSCALL_STR,
+	TEST_STRUCT): New macros.
+	[__NR_utimes]: Replace all the rest with include "xutimes.c".
+	* tests/Makefile.am (EXTRA_DIST): Add xutimes.c.
+
+2017-04-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	alpha: fix tracing flags of osf_select and osf_utimes syscalls.
+	* linux/alpha/syscallent.h (osf_select): Add TD flag.
+	(osf_utimes): Add TF flag.
+	* NEWS: Mention alpha specific fixes.
+
+2017-04-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	alpha: rename print_timeval32_pair to print_timeval32_utimes.
+	This follows the rename of print_timeval_item to print_timeval_utimes.
+
+	* defs.h [ALPHA] (print_timeval32_pair): Rename
+	to print_timeval32_utimes.
+	* print_timeval.c [ALPHA] (print_timeval32_pair): Likewise.
+	* utimes.c [ALPHA] (SYS_FUNC(osf_utimes)): Replace print_timeval32_pair
+	with print_timeval32_utimes.
+
+2017-04-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: do more rigorous testing of utimes syscall parser.
+	* tests/utimes.c (errstr): New variable.
+	(print_ts, k_utimes): New functions.
+	(main): Use them to do more rigorous testing of utimes syscall parser.
+	* tests/gen_tests.in (utimes): Update -a option.
+
+	tests: do more rigorous testing of futimesat syscall parser.
+	* tests/futimesat.c (errstr): New variable.
+	(print_ts, k_futimesat): New functions.
+	(main): Use them to do more rigorous testing of futimesat syscall parser.
+
+2017-04-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix printing of inaccessible times argument of utimes and futimesat syscalls
+	When the whole pair of struct timeval structures cannot be fetched from
+	tracee's memory, print the address.  This behavior follows the kernel's
+	that uses copy_from_user for the whole pair, too.
+
+	* print_timeval.c (print_timeval_item): Remove.
+	(print_timeval_pair): Rename to print_timeval_utimes, all callers
+	updated.  Fetch the whole timeval_t array with a single
+	umove_or_printaddr call.
+	* tests/futimesat.c (main): Update expected output.
+	* tests/utimes.c (main): Likewise.
+
+2017-04-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: rewrite utimensat.test without relying on libc utimensat wrapper.
+	The new test also does more rigorous testing.
+
+	* tests/utimensat.c: Stop including <assert.h> and <errno.h>, include
+	<unistd.h> and <asm/unistd.h>, check __NR_utimensat instead
+	of HAVE_UTIMENSAT.
+	(errstr): New variable.
+	(k_utimensat): New function, a thin wrapper around
+	syscall(__NR_utimensat).
+	(main): Use them instead of utimensat.
+	* tests/gen_tests.in (utimensat): New entry.
+	* tests/utimensat.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove it.
+
+2017-04-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use fixed timestamps in utime related tests.
+	* tests/clock.test: Remove futimesat, utime, utimensat, and utimes tests
+	from the list of exceptions.
+	* tests/utime.c (main): Do not use time(), use fixed timestamp instead.
+	* tests/futimesat.c (main): Do not use gettimeofday(), use fixed
+	timestamps instead.
+	* tests/utimensat.c (main): Likewise.
+	* tests/utimes.c (main): Likewise.
+
+2017-04-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	xtensa: wire up new syscalls.
+	* linux/xtensa/syscallent.h [348..350]: New pkey_* entries.
+
+	Reported-by: Victor Krapivensky <krapivenskiy.va@phystech.edu>
+
+2017-04-15  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	Update statx parser and syscall entries lists to the upstream.
+	* linux/32/syscallent.h [291]: Add statx entry.
+	* linux/64/syscallent.h [291]: Likewise.
+	* linux/arm/syscallent.h [397]: Likewise.
+	* linux/m68k/syscallent.h [379]: Likewise.
+	* linux/mips/syscallent-n32.h [6330]: Likewise.
+	* linux/mips/syscallent-n64.h [5326]: Likewise.
+	* linux/mips/syscallent-o32.h [4366]: Likewise.
+	* linux/powerpc/syscallent.h [383]: Likewise.
+	* linux/s390/syscallent.h [379]: Likewise.
+	* linux/s390x/syscallent.h [379]: Likewise.
+	* linux/xtensa/syscallent.h [351]: Likewise.
+	* statx.h (struct_statx): Update.
+	* statx.c (SYS_FUNC(statx)): Print struct_statx.stx_attributes_mask.
+	* tests/xstatx.c (print_stat, main): Update to test decoding
+	of struct_statx.stx_attributes_mask.
+
+2017-04-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: add more regex match checks.
+	* tests/qual_syscall.test: Add regex match checks.
+
+	tests: make mq_sendrecv* test executables reenterable.
+	* tests/mq_sendrecv.c (MQ_NAME): Remove.
+	(mq_name): New static variable.
+	(cleanup): Use it instead of MQ_NAME.
+	(main): Initialize it dynamically using the pid of process.  Use it
+	instead of MQ_NAME.
+
+	tests: make mq test executable reenterable.
+	* tests/mq.c (NAME): Remove.
+	(main): Replace the fixed message queue name with a dynamically
+	made name containing the pid of process.
+	* tests/gen_tests.in (mq): Update -a option.
+
+	tests: make net-yy-netlink test executable reenterable.
+	* tests/net-yy-netlink.c (main): Use getpid() instead of a fixed
+	magic number.
+
+	tests: tabulate shmxt.test.
+	* tests/gen_tests.in (shmxt): New entry.
+	* tests/shmxt.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove shmxt.test.
+
+2017-04-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Revert "Implement -e trace=%sched option"
+	-e trace=%sched became redundant as -e trace=/sched does the same.
+
+	This reverts commit 811638e9c1805438a63c14f9704b8b00ac922623.
+
+	* syscall.c (TSC): Remove.
+	* sysent.h (TRACE_SCHED): Remove.
+	* qualify.c (lookup_class): Remove %sched.
+	* strace.1 (.SS Filtering): Likewise.
+	* NEWS: Likewise.
+	* linux/32/syscallent.h: Remove TSC flag from sched* syscalls.
+	* linux/64/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/arm/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* tests/sched.test: Replace trace=%sched with trace=/sched.
+	* tests/ksysent.c (TSC): Remove.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Revert "Implement -e trace=%clock option"
+	-e trace=%clock became redundant as -e trace=/clock does the same.
+
+	This reverts commit 0a13d2391c413e3847b71ec0c1d38f56e353b1b5.
+
+	* syscall.c (TCL): Remove.
+	* sysent.h (TRACE_CLOCK): Remove.
+	* qualify.c (lookup_class): Remove %clock.
+	* strace.1 (.SS Filtering): Likewise.
+	* NEWS: Likewise.
+	* linux/32/syscallent.h: Remove TCL flag from clock_* syscalls.
+	* linux/64/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/arm/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* tests/clock.test: Replace trace=%clock with trace=/clock.
+	* tests/ksysent.c (TCL): Remove.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify regex.test.
+	* tests/regex.test: Use trace_statfs.test as a template instead
+	of clock.test and sched.test, not because of more interesting
+	regular expressions but to fix build on platforms where
+	clock.test and sched.test are not reenterable.
+
+2017-04-14  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	Implement -e trace=/regex option.
+	* qualify.c: Include <regex.h>.
+	(qualify_syscall_regex): New function.
+	(qualify_syscall): Use it.
+	* strace.1: Document -e trace=/regex option.
+	* NEWS: Mention -e trace=/regex option.
+	* tests/regex.test: New test.
+	* tests/Makefile.am (DECODER_TESTS): Add it.
+	* tests/options-syntax.test: Add checks for invaild regexp
+	and for regexp that doesn't match a syscall.
+
+2017-04-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix ioctl_nsfs.test on hppa.
+	* tests/ioctl_nsfs.c (test_user_namespace): Specify an address
+	in the middle of a mapped page as child_stack address argument
+	of the clone call.
+	[IA64] (clone): Update.
+
+2017-04-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix ioctl_nsfs.test on ia64.
+	glibc on ia64 provides no clone() function, but there is a __clone2
+	function instead.  It is documented but no prototype is provided by
+	glibc.
+
+	* tests/ioctl_nsfs.c [IA64] (__clone2): New prototype.
+	[IA64] (clone): New macro wrapper around __clone2.
+
+2017-04-13  Edgar Kaziahmedov  <edos@linux.com>
+
+	tests: check decoding of the remaining V4L2_BUF_TYPE_* types.
+	* tests/ioctl_v4l2.c (init_v4l2_format, print_ioctl_v4l2): New functions
+	to avoid code duplication in VIDIOC_S_FMT and VIDIOC_TRY_FMT tests.
+	(main) <VIDIOC_G_FMT, VIDIOC_S_FMT, VIDIOC_TRY_FMT>: Use them.  Add
+	checks for remaining V4L2_BUF_TYPE_* types.
+
+	v4l2: Implement decoding of the remaining V4L2_BUF_TYPE_* types.
+	* v4l2.c: Include "xlat/v4l2_vbi_flags.h" and "xlat/v4l2_sliced_flags.h".
+	(struct_v4l2_clip): New typedef.  Mpersify it.
+	(print_v4l2_clip): New function.
+	(print_v4l2_format_fmt): Use it.  Add struct tcb argument.  Implement
+	decoding of the remaining V4L2_BUF_TYPE_* types.
+	* xlat/v4l2_vbi_flags.in: Add V4L2_VBI_UNSYNC and V4L2_VBI_INTERLACED
+	introduced by linux kernel commit v2.5.46~39^2~23^2~4.
+	Add V4L2_VBI_ITU_525_F1_START, V4L2_VBI_ITU_525_F2_START,
+	V4L2_VBI_ITU_625_F1_START, and V4L2_VBI_ITU_625_F2_START introduced by
+	linux kernel commit v3.17-rc1~112^2~217.
+	* xlat/v4l2_sliced_flags.in: Add V4L2_SLICED_TELETEXT_B, V4L2_SLICED_VPS,
+	V4L2_SLICED_CAPTION_525, V4L2_SLICED_WSS_625, V4L2_SLICED_VBI_525, and
+	V4L2_SLICED_VBI_625 introduced by linux kernel commit v2.6.14-rc2~64.
+	* configure.ac (AC_CHECK_DECLS): Add V4L2_BUF_TYPE_SDR_CAPTURE and
+	V4L2_BUF_TYPE_SDR_OUTPUT.
+	(AC_CHECK_MEMBERS): Add struct v4l2_window.global_alpha and
+	struct v4l2_sdr_format.buffersize.
+	* NEWS: Mention this change.
+
+2017-04-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	travis: use mainline kernel uapi headers for coverage.
+	* .travis.yml (matrix) <CHECK=coverage>: Add KHEADERS=torvalds/linux.
+	* travis-build.sh: Handle $KHEADERS.
+	* travis-install.sh: Likewise.
+
+	travis: switch from clang-3.6 to clang-3.8.
+	* .travis.yml (matrix): Change clang-3.6 to clang-3.8.
+
+2017-04-13  Nikolay Marchuk  <marchuk.nikolay.a@gmail.com>
+
+	Implement decoding of NS_* ioctl commands.
+	* configure.ac (AC_CHECK_HEADERS): Add linux/nsfs.h.
+	* defs.h (DECL_IOCTL(nsfs)): New prototype.
+	(setns_types): Make global.
+	* ioctl.c (ioctl_decode): Call nsfs_ioctl for 0xb7 code.
+	* nsfs.c: New file.
+	* nsfs.h: Likewise.
+	* Makefile.am (strace_SOURCES): Add them.
+	* tests/ioctl_nsfs.c: New file.
+	* tests/ioctl_nsfs.test: Likewise.
+	* tests/.gitignore: Add ioctl_nsfs.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(DECODER_TESTS): Add ioctl_nsfs.test.
+	* NEWS: Mention this change.
+
+2017-04-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	travis: copy coverage test suite log to the travis log.
+	* travis-build.sh (coverage): Print tests*/test-suite.log
+	and tests*/ksysent.log.
+
+2017-04-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	travis: add gcc-6.
+	* .travis.yml (matrix): Add gcc-6 entries.
+	* travis-build.sh: Handle gcc*.
+	* travis-install.sh: Handle gcc-*.
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify gen_tests.sh against in-tree builds.
+	* tests/gen_tests.sh: Use abs_srcdir instead of srcdir to construct
+	a path to gen_tests.sh in implicit make rules.
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	trace_syscall_exiting: do not call get_regs for filtered syscalls.
+	This saves up to 25% of ptrace syscalls in case of trace filtering.
+
+	* syscall.c (trace_syscall_exiting): Do not call gettimeofday
+	and get_regs for filtered syscalls.
+	* NEWS: Mention this change.
+	* tests/get_regs.test: New test.
+	* tests/Makefile.am (MISC_TESTS): Add it.
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Delay get_regs invocation.
+	strace used to call get_regs on every stop of a tracee, including cases
+	when the result is going to be discarded.  Prepare to change this lavish
+	practice by delaying get_regs invocation until its result is actually
+	needed.
+
+	* defs.h (get_regs): Remove.
+	* strace.c (trace): Do not call get_regs.
+	* syscall.c (get_regs): Add static qualifier.
+	(trace_syscall_exiting, print_pc, get_scno): Call get_regs.
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	startup_tcb: move get_scno invocation to a more convenient place.
+	* strace.c (trace): Move get_scno invocation ...
+	(startup_tcb): ... here.  This is a no-op change that slightly improves
+	readability.
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	get_regs: guard against subsequent invocations.
+	At this moment there is only one call to get_regs,
+	but there is going to be more of them, so a guard is needed.
+
+	This change also adds a clear_regs call before get_regs,
+	which essentially reverts commit v4.9-288-ge9bfff6.
+
+	* strace.c (trace): Call clear_regs before get_regs.
+	* syscall.c (get_regs): Skip if get_regs_error != -1.
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	syscall: move definitions of automatic variables closer to their use.
+	* syscall.c (trace_syscall_entering, trace_syscall_exiting): Move
+	definitions of automatic variables closer to their first use.  This
+	change slightly improves readability.
+
+	tests: check decoding of gettid syscall.
+	* tests/gettid.c: New file.
+	* tests/.gitignore: Add gettid.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	* tests/gen_tests.in (gettid): New entry.
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix build on alpha.
+	* tests/getpid.c: Skip if __NR_getpid is not defined.
+	* tests/getppid.c: Skip if __NR_getppid is not defined.
+
+	Fixes: fd1041f6 ("tests: add tests for getpid and getppid syscalls")
+
+2017-04-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix build with old linux/netlink.h.
+	* socketutils.c: Provide a fallback definition of NETLINK_SOCK_DIAG.
+
+	Fixes: 5c256356 ("Do not include xlat/netlink_protocols.h twice")
+
+2017-04-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Do not include xlat/netlink_protocols.h twice.
+	Make netlink_protocols a global xlat array defined in net.c file.
+
+	* defs.h (netlink_protocols): New prototype.
+	* socketutils.c: Stop including "xlat/netlink_protocols.h".
+
+2017-04-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Do not include xlat/clocknames.h twice.
+	Make clocknames a global xlat array defined in time.c file.
+
+	* defs.h (clocknames): New prototype.
+	* perf.c: Stop including "xlat/clocknames.h".
+
+2017-04-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove unused xlat/openmodessol.in.
+	* xlat/openmodessol.in: Remove file unused since commit
+	v4.10-45-gdf4dd8b.
+
+	Remove unused xlat/aclipc.in.
+	* xlat/aclipc.in: Remove file unused since commit v4.9-46-g681452b.
+
+2017-04-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: remove statfs.expected.
+	statfs.expected is unused since commit v4.11-515-g67c2f67.
+
+	* tests/statfs.expected: Remove.
+	* tests/Makefile.am (EXTRA_DIST): Remove it.
+
+2017-04-07  Sandhya Bankar  <bankarsandhya512@gmail.com>
+
+	tests: add tests for getpid and getppid syscalls.
+
+	[ldv: rewritten everything]
+
+	* tests/getpid.c: New file.
+	* tests/getppid.c: Likewise.
+	* tests/.gitignore: Add getpid and getppid.
+	* tests/pure_executables.list: Likewise.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	* tests/gen_tests.in (getpid, getppid): New entries.
+
+2017-04-07  Edgar Kaziahmedov  <edos@linux.com>
+
+	Update V4L2_* constants.
+	* xlat/v4l2_buf_flags.in: Add V4L2_BUF_FLAG_PREPARED,
+	V4L2_BUF_FLAG_NO_CACHE_INVALIDATE, and V4L2_BUF_FLAG_NO_CACHE_CLEAN
+	introduced by linux kernel commit v3.2-rc1~63^2~55.
+	Add V4L2_BUF_FLAG_TIMESTAMP_MASK, V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN,
+	and V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC introduced by linux kernel commit
+	v3.9-rc1~93^2~536.
+	Add V4L2_BUF_FLAG_TIMESTAMP_COPY introduced by linux kernel commit
+	v3.10-rc1~136^2~560.
+	Add V4L2_BUF_FLAG_TSTAMP_SRC_MASK, V4L2_BUF_FLAG_TSTAMP_SRC_EOF,
+	and V4L2_BUF_FLAG_TSTAMP_SRC_SOE introduced by linux kernel commit
+	v3.15-rc1~85^2~186.
+	Add V4L2_BUF_FLAG_LAST introduced by linux kernel commit
+	v4.2-rc1~107^2~389.
+	* xlat/v4l2_buf_types.in: Add V4L2_BUF_TYPE_SDR_CAPTURE
+	and V4L2_BUF_TYPE_SDR_OUTPUT introduced by linux kernel commits
+	v3.15-rc1~85^2~213 and v4.4-rc1~118^2~14, respectively.
+	* xlat/xlat/v4l2_colorspaces.in: Add V4L2_COLORSPACE_ADOBERGB
+	and V4L2_COLORSPACE_BT2020 introduced by linux kernel commit
+	v3.19-rc1~29^2~72.
+	Add V4L2_COLORSPACE_RAW and V4L2_COLORSPACE_DCI_P3 introduced by linux
+	kernel commits v4.2-rc1~107^2~182 and v4.4-rc1~118^2~120, respectively.
+	* xlat/v4l2_device_capabilities_flags.in: Add V4L2_CAP_SDR_CAPTURE,
+	V4L2_CAP_EXT_PIX_FORMAT, and V4L2_CAP_SDR_OUTPUT introduced by linux
+	kernel commits v3.15-rc1~85^2~210, v3.17-rc1~112^2~327,
+	and v4.4-rc1~118^2~14, respectively.
+	* xlat/v4l2_memories.in: Add V4L2_MEMORY_OVERLAY introduced
+	in linux 2.5.46.  Add V4L2_MEMORY_DMABUF introduced by linux kernel
+	commit v3.8-rc1~115^2^2~52.
+
+2017-04-07  Abhishek Tiwari  <erabhishektiwarics@gmail.com>
+
+	Implement -e trace=%statfs option.
+	linux/*/syscallent*.h part is modified automatically by:
+
+		sed -i 's/TF\(,[[:space:]]*SEN.*[_"]statv\?fs\)/TF|TSF\1/' \
+			linux/*/syscallent*.h
+
+	[ldv: rewritten trace_statfs.test using sched.test as a template]
+
+	* sysent.h (TRACE_STATFS): New macro.
+	* syscall.c: Alias TSF to TRACE_STATFS around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add SCHED_STATFS for "%statfs".
+	* strace.1 (.SS Filtering): Add information about %statfs syscall class.
+	* NEWS: Mention this change.
+	* linux/64/syscallent.h (statfs): Add TSF flag.
+	* linux/aarch64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/32/syscallent.h (statfs64): Likewise.
+	* linux/arm/syscallent.h (statfs, statfs64): Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h (osf_statfs, osf_statfs64, statfs): Likewise.
+	* linux/mips/syscallent-compat.h (*_statfs, *_statvfs): Likewise.
+	* tests/trace_statfs.test: New test.
+	* tests/Makefile.am (DECODER_TESTS): Add it.
+	* tests/ksysent.c (TSF): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-06  Rishi Bhatt  <bhatt.rishi062@gmail.com>
+
+	Implement -e trace=%clock option.
+	linux/*/syscallent.h part is modified automatically by
+	sed -i 's/0\(,[[:space:]]*SEN(clock_\)/TCL\1/' linux/*/syscallent*.h
+
+	[ldv: rewritten clock.test using sched.test as a template]
+
+	* sysent.h (TRACE_CLOCK): New macro.
+	* syscall.c: Alias TCL to TRACE_CLOCK around syscallent.h inclusion.
+	* qualify.c (lookup_class): Add TRACE_CLOCK for "%clock".
+	* strace.1 (.SS Filtering): Add information about %clock syscall class.
+	* NEWS: Mention this change.
+	* linux/32/syscallent.h: Add TCL flag for clock_* syscalls.
+	* linux/64/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/arm/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* tests/clock.test: New test.
+	* tests/Makefile.am (DECODER_TESTS): Add it.
+	* tests/ksysent.c (TCL): New macro, defined to 0.
+	* tests/nsyscalls.c: Likewise.
+
+2017-04-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: tabulate xattr.test.
+	* tests/gen_tests.in (xattr): New entry.
+	* tests/xattr.test: Remove.
+	* tests/Makefile.am (DECODER_TESTS): Remove xattr.test.
+
+2017-04-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: generalize scripts that check non-abbreviated decoding of ioctls.
+	* tests/ioctl-v.sh: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	(DECODER_TESTS): Remove ioctl_evdev-v.test, ioctl_loop-v.test,
+	and ioctl_rtc-v.test.
+	* tests/gen_tests.in (ioctl_evdev-v, ioctl_loop-v, ioctl_rtc-v):
+	New entries.
+	* tests/ioctl_evdev-v.test: Remove.
+	* tests/ioctl_loop-v.test: Ditto.
+	* tests/ioctl_rtc-v.test: Ditto.
+
+2017-04-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: tabulate stereotypical test scripts.
+	Convert test scripts that follow simple testing patterns to a table.
+	Generate all these scripts from gen_tests.in file using gen_tests.sh
+	script at bootstrap time.
+
+	The largest set of test scripts has been converted using
+	the following command:
+
+	grep -l ^run_strace_match_diff *.test |while read f; do
+		n="${f%.test}"
+		grep '^[^#]' "$f" |
+		grep -Evq '^(\. "\${srcdir=\.}/init\.sh"|run_strace_match_diff)' ||
+		sed -n 's/^run_strace_match_diff\(.*\)/'$n'\1/p' "$f"
+	done
+
+	The second largest set of test scripts has been converted using
+	the following command:
+
+	grep -l srcdir= *.test |while read f; do
+		n="${f%.test}"
+		grep '^[^#]' "$f" |
+		grep -Fvq srcdir= ||
+		sed -n 's/^. "\${srcdir=.}\/\([^"]\+\)".*/'$n'\t+\1/p' "$f"
+	done
+
+	* tests/gen_tests.in: New file.
+	* tests/gen_tests.sh: New file.
+	* bootstrap: Invoke it.
+	* tests/.gitignore: Add *.gen.test and gen_tests.am.
+	* tests/_newselect.test: Remove.
+	* tests/accept.test: Ditto.
+	* tests/accept4.test: Ditto.
+	* tests/access.test: Ditto.
+	* tests/acct.test: Ditto.
+	* tests/add_key.test: Ditto.
+	* tests/adjtimex.test: Ditto.
+	* tests/aio.test: Ditto.
+	* tests/alarm.test: Ditto.
+	* tests/bpf.test: Ditto.
+	* tests/btrfs.test: Ditto.
+	* tests/chmod.test: Ditto.
+	* tests/chown.test: Ditto.
+	* tests/chown32.test: Ditto.
+	* tests/chroot.test: Ditto.
+	* tests/clock_adjtime.test: Ditto.
+	* tests/clock_nanosleep.test: Ditto.
+	* tests/clock_xettime.test: Ditto.
+	* tests/copy_file_range.test: Ditto.
+	* tests/creat.test: Ditto.
+	* tests/delete_module.test: Ditto.
+	* tests/dup.test: Ditto.
+	* tests/dup2.test: Ditto.
+	* tests/dup3.test: Ditto.
+	* tests/epoll_create.test: Ditto.
+	* tests/epoll_create1.test: Ditto.
+	* tests/epoll_ctl.test: Ditto.
+	* tests/epoll_pwait.test: Ditto.
+	* tests/epoll_wait.test: Ditto.
+	* tests/erestartsys.test: Ditto.
+	* tests/execveat-v.test: Ditto.
+	* tests/execveat.test: Ditto.
+	* tests/faccessat.test: Ditto.
+	* tests/fadvise64_64.test: Ditto.
+	* tests/fallocate.test: Ditto.
+	* tests/fanotify_init.test: Ditto.
+	* tests/fanotify_mark.test: Ditto.
+	* tests/fchdir.test: Ditto.
+	* tests/fchmod.test: Ditto.
+	* tests/fchmodat.test: Ditto.
+	* tests/fchown.test: Ditto.
+	* tests/fchown32.test: Ditto.
+	* tests/fchownat.test: Ditto.
+	* tests/fcntl.test: Ditto.
+	* tests/fcntl64.test: Ditto.
+	* tests/fdatasync.test: Ditto.
+	* tests/file_handle.test: Ditto.
+	* tests/file_ioctl.test: Ditto.
+	* tests/finit_module.test: Ditto.
+	* tests/flock.test: Ditto.
+	* tests/fork-f.test: Ditto.
+	* tests/fstat64.test: Ditto.
+	* tests/fstatat64.test: Ditto.
+	* tests/fstatfs.test: Ditto.
+	* tests/fstatfs64.test: Ditto.
+	* tests/fsync.test: Ditto.
+	* tests/ftruncate.test: Ditto.
+	* tests/ftruncate64.test: Ditto.
+	* tests/futimesat.test: Ditto.
+	* tests/get_mempolicy.test: Ditto.
+	* tests/getcpu.test: Ditto.
+	* tests/getcwd.test: Ditto.
+	* tests/getdents.test: Ditto.
+	* tests/getdents64.test: Ditto.
+	* tests/getegid.test: Ditto.
+	* tests/getegid32.test: Ditto.
+	* tests/geteuid.test: Ditto.
+	* tests/geteuid32.test: Ditto.
+	* tests/getgid.test: Ditto.
+	* tests/getgid32.test: Ditto.
+	* tests/getgroups.test: Ditto.
+	* tests/getgroups32.test: Ditto.
+	* tests/getpeername.test: Ditto.
+	* tests/getpgrp.test: Ditto.
+	* tests/getrandom.test: Ditto.
+	* tests/getresgid.test: Ditto.
+	* tests/getresgid32.test: Ditto.
+	* tests/getresuid.test: Ditto.
+	* tests/getresuid32.test: Ditto.
+	* tests/getrlimit.test: Ditto.
+	* tests/getrusage.test: Ditto.
+	* tests/getsid.test: Ditto.
+	* tests/getsockname.test: Ditto.
+	* tests/getuid32.test: Ditto.
+	* tests/getxxid.test: Ditto.
+	* tests/inet-cmsg.test: Ditto.
+	* tests/init_module.test: Ditto.
+	* tests/inotify.test: Ditto.
+	* tests/inotify_init1.test: Ditto.
+	* tests/int_0x80.test: Ditto.
+	* tests/ioctl_block.test: Ditto.
+	* tests/ioctl_evdev.test: Ditto.
+	* tests/ioctl_loop.test: Ditto.
+	* tests/ioctl_mtd.test: Ditto.
+	* tests/ioctl_rtc.test: Ditto.
+	* tests/ioctl_scsi.test: Ditto.
+	* tests/ioctl_sg_io_v3.test: Ditto.
+	* tests/ioctl_sg_io_v4.test: Ditto.
+	* tests/ioctl_uffdio.test: Ditto.
+	* tests/ioctl_v4l2.test: Ditto.
+	* tests/ioperm.test: Ditto.
+	* tests/iopl.test: Ditto.
+	* tests/ioprio.test: Ditto.
+	* tests/ip_mreq.test: Ditto.
+	* tests/ipc.test: Ditto.
+	* tests/ipc_msg.test: Ditto.
+	* tests/ipc_sem.test: Ditto.
+	* tests/ipc_shm.test: Ditto.
+	* tests/kcmp.test: Ditto.
+	* tests/kexec_file_load.test: Ditto.
+	* tests/kexec_load.test: Ditto.
+	* tests/keyctl.test: Ditto.
+	* tests/kill.test: Ditto.
+	* tests/lchown.test: Ditto.
+	* tests/lchown32.test: Ditto.
+	* tests/link.test: Ditto.
+	* tests/linkat.test: Ditto.
+	* tests/lookup_dcookie.test: Ditto.
+	* tests/lstat.test: Ditto.
+	* tests/lstat64.test: Ditto.
+	* tests/mbind.test: Ditto.
+	* tests/membarrier.test: Ditto.
+	* tests/memfd_create.test: Ditto.
+	* tests/migrate_pages.test: Ditto.
+	* tests/mincore.test: Ditto.
+	* tests/mkdir.test: Ditto.
+	* tests/mkdirat.test: Ditto.
+	* tests/mknod.test: Ditto.
+	* tests/mknodat.test: Ditto.
+	* tests/mlock.test: Ditto.
+	* tests/mlock2.test: Ditto.
+	* tests/mlockall.test: Ditto.
+	* tests/mmap64.test: Ditto.
+	* tests/mmsg-silent.test: Ditto.
+	* tests/mmsg.test: Ditto.
+	* tests/mmsg_name-v.test: Ditto.
+	* tests/mmsg_name.test: Ditto.
+	* tests/mount.test: Ditto.
+	* tests/move_pages.test: Ditto.
+	* tests/mq.test: Ditto.
+	* tests/mq_sendrecv-read.test: Ditto.
+	* tests/mq_sendrecv-write.test: Ditto.
+	* tests/mq_sendrecv.test: Ditto.
+	* tests/msg_control-v.test: Ditto.
+	* tests/msg_control.test: Ditto.
+	* tests/msg_name.test: Ditto.
+	* tests/munlockall.test: Ditto.
+	* tests/nanosleep.test: Ditto.
+	* tests/net-icmp_filter.test: Ditto.
+	* tests/net-sockaddr.test: Ditto.
+	* tests/newfstatat.test: Ditto.
+	* tests/old_mmap.test: Ditto.
+	* tests/oldfstat.test: Ditto.
+	* tests/oldlstat.test: Ditto.
+	* tests/oldstat.test: Ditto.
+	* tests/open.test: Ditto.
+	* tests/openat.test: Ditto.
+	* tests/pause.test: Ditto.
+	* tests/perf_event_open.test: Ditto.
+	* tests/perf_event_open_nonverbose.test: Ditto.
+	* tests/perf_event_open_unabbrev.test: Ditto.
+	* tests/pipe2.test: Ditto.
+	* tests/pkey_alloc.test: Ditto.
+	* tests/pkey_free.test: Ditto.
+	* tests/pkey_mprotect.test: Ditto.
+	* tests/ppoll-v.test: Ditto.
+	* tests/ppoll.test: Ditto.
+	* tests/preadv-pwritev.test: Ditto.
+	* tests/preadv.test: Ditto.
+	* tests/preadv2-pwritev2.test: Ditto.
+	* tests/printstr.test: Ditto.
+	* tests/prlimit64.test: Ditto.
+	* tests/process_vm_readv.test: Ditto.
+	* tests/process_vm_writev.test: Ditto.
+	* tests/pselect6.test: Ditto.
+	* tests/ptrace.test: Ditto.
+	* tests/pwritev.test: Ditto.
+	* tests/quotactl-v.test: Ditto.
+	* tests/quotactl-xfs-v.test: Ditto.
+	* tests/quotactl-xfs.test: Ditto.
+	* tests/quotactl.test: Ditto.
+	* tests/readahead.test: Ditto.
+	* tests/readdir.test: Ditto.
+	* tests/readlink.test: Ditto.
+	* tests/readlinkat.test: Ditto.
+	* tests/reboot.test: Ditto.
+	* tests/recvfrom.test: Ditto.
+	* tests/recvmmsg-timeout.test: Ditto.
+	* tests/recvmsg.test: Ditto.
+	* tests/remap_file_pages.test: Ditto.
+	* tests/rename.test: Ditto.
+	* tests/renameat.test: Ditto.
+	* tests/renameat2.test: Ditto.
+	* tests/request_key.test: Ditto.
+	* tests/rmdir.test: Ditto.
+	* tests/rt_sigpending.test: Ditto.
+	* tests/rt_sigprocmask.test: Ditto.
+	* tests/rt_sigqueueinfo.test: Ditto.
+	* tests/rt_sigreturn.test: Ditto.
+	* tests/rt_sigsuspend.test: Ditto.
+	* tests/rt_sigtimedwait.test: Ditto.
+	* tests/rt_tgsigqueueinfo.test: Ditto.
+	* tests/sched_get_priority_mxx.test: Ditto.
+	* tests/sched_rr_get_interval.test: Ditto.
+	* tests/sched_xetaffinity.test: Ditto.
+	* tests/sched_xetattr.test: Ditto.
+	* tests/sched_xetparam.test: Ditto.
+	* tests/sched_xetscheduler.test: Ditto.
+	* tests/sched_yield.test: Ditto.
+	* tests/seccomp-filter-v.test: Ditto.
+	* tests/seccomp-filter.test: Ditto.
+	* tests/select.test: Ditto.
+	* tests/semop.test: Ditto.
+	* tests/sendfile.test: Ditto.
+	* tests/sendfile64.test: Ditto.
+	* tests/set_mempolicy.test: Ditto.
+	* tests/setdomainname.test: Ditto.
+	* tests/setfsgid.test: Ditto.
+	* tests/setfsgid32.test: Ditto.
+	* tests/setfsuid.test: Ditto.
+	* tests/setfsuid32.test: Ditto.
+	* tests/setgid.test: Ditto.
+	* tests/setgid32.test: Ditto.
+	* tests/setgroups.test: Ditto.
+	* tests/setgroups32.test: Ditto.
+	* tests/sethostname.test: Ditto.
+	* tests/setns.test: Ditto.
+	* tests/setregid.test: Ditto.
+	* tests/setregid32.test: Ditto.
+	* tests/setresgid.test: Ditto.
+	* tests/setresgid32.test: Ditto.
+	* tests/setresuid.test: Ditto.
+	* tests/setresuid32.test: Ditto.
+	* tests/setreuid.test: Ditto.
+	* tests/setreuid32.test: Ditto.
+	* tests/setrlimit.test: Ditto.
+	* tests/setuid.test: Ditto.
+	* tests/setuid32.test: Ditto.
+	* tests/shutdown.test: Ditto.
+	* tests/siginfo.test: Ditto.
+	* tests/signal_receive.test: Ditto.
+	* tests/signalfd4.test: Ditto.
+	* tests/sigreturn.test: Ditto.
+	* tests/socketcall.test: Ditto.
+	* tests/splice.test: Ditto.
+	* tests/stat.test: Ditto.
+	* tests/stat64.test: Ditto.
+	* tests/statfs64.test: Ditto.
+	* tests/statx.sh: Ditto.
+	* tests/statx.test: Ditto.
+	* tests/swap.test: Ditto.
+	* tests/symlink.test: Ditto.
+	* tests/symlinkat.test: Ditto.
+	* tests/sync.test: Ditto.
+	* tests/sync_file_range.test: Ditto.
+	* tests/sync_file_range2.test: Ditto.
+	* tests/sysinfo.test: Ditto.
+	* tests/syslog.test: Ditto.
+	* tests/tee.test: Ditto.
+	* tests/time.test: Ditto.
+	* tests/timer_create.test: Ditto.
+	* tests/timer_xettime.test: Ditto.
+	* tests/timerfd_xettime.test: Ditto.
+	* tests/times-fail.test: Ditto.
+	* tests/times.test: Ditto.
+	* tests/truncate.test: Ditto.
+	* tests/truncate64.test: Ditto.
+	* tests/ugetrlimit.test: Ditto.
+	* tests/umask.test: Ditto.
+	* tests/umoven-illptr.test: Ditto.
+	* tests/umovestr-illptr.test: Ditto.
+	* tests/umovestr3.test: Ditto.
+	* tests/unlink.test: Ditto.
+	* tests/unlinkat.test: Ditto.
+	* tests/unshare.test: Ditto.
+	* tests/userfaultfd.test: Ditto.
+	* tests/ustat.test: Ditto.
+	* tests/utime.test: Ditto.
+	* tests/utimes.test: Ditto.
+	* tests/vfork-f.test: Ditto.
+	* tests/vhangup.test: Ditto.
+	* tests/vmsplice.test: Ditto.
+	* tests/wait4-v.test: Ditto.
+	* tests/wait4.test: Ditto.
+	* tests/waitid-v.test: Ditto.
+	* tests/waitid.test: Ditto.
+	* tests/waitpid.test: Ditto.
+	* tests/xattr-strings.test: Ditto.
+	* tests/xet_robust_list.test: Ditto.
+	* tests/xetitimer.test: Ditto.
+	* tests/xetpgid.test: Ditto.
+	* tests/xetpriority.test: Ditto.
+	* tests/xettimeofday.test: Ditto.
+	* tests/Makefile.am (DECODER_TESTS, MISC_TESTS): Remove them.
+	Include gen_tests.am.
+	(TESTS): Add $(GEN_TESTS).
+	(XFAIL_TESTS_x86_64, XFAIL_TESTS_x32): Rename int_0x80.test
+	to int_0x80.gen.test.
+	(EXTRA_DIST): Add gen_tests.in and gen_tests.sh, remove statx.sh.
+	(clean-local-check): Remove $(GEN_TESTS:.gen.test=.dir).
+
+2017-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: handle test scripts with .gen.test suffix.
+	* tests/init.sh: If script name ends with .gen.test,
+	set NAME variable with .gen.test suffix stripped.
+
+2017-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	mpers.awk: add support for multidimensional arrays.
+	* mpers.awk (update_upper_bound): New function, which maintains new "count"
+	property for storing total element count and updates "upper_bound"
+	property which now contains string with array dimensions.
+	(/^DW_AT_upper_bound/, /^DW_AT_count/): Use it.
+	(what_is) <case "array_type">: Use "count" property in order to calculate
+	returned_size, do not embody returned string in square brackets.
+	* mpers_test.sh: Add checks for multidimensional arrays.
+
+2017-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mpers.awk: prepare for adding support of multidimensional arrays.
+	* mpers.awk (what_is) <case "structure_type", case "union_type">:
+	Move formatting of array upper_bound ...
+	<case "array_type">: ... here.
+
+2017-04-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: cleanup temporary files removals.
+	As every test now runs in its own subdirectory, there is no need
+	to remove leftover files manually by each test.
+
+	* tests/init.sh (run_strace_match_diff): Do not remove $EXP.
+	* tests/brk.test: Likewise.
+	* tests/options-syntax.test: Likewise.
+	* tests/qual_inject-retval.test (check_injection): Likewise.
+	* tests/qual_signal.test (test_one_sig): Likewise.
+	* tests/sched.test: Likewise.
+	* tests/seccomp-strict.test: Likewise.
+	* tests/strace-V.test: Likewise.
+	* tests/strace-tt.test: Likewise.
+	* tests/strace-ttt.test: Likewise.
+	* tests/threads-execve.test: Likewise.
+	* tests/attach-f-p.test: Use $EXP instead of $OUT, do not remove it.
+	* tests/personality.test: Likewise.
+	* tests/poll.test: Likewise.
+	* tests/fstat.test: Likewise.
+	* tests/ipc.sh: Likewise.
+	* tests/restart_syscall.test: Likewise.
+	* tests/utimensat.test: Likewise.
+	* tests/attach-p-cmd.test: Likewise.  Do not remove
+	attach-p-cmd.test-lock.
+	* tests/detach-running.test: Do not remove $LOG.
+	* tests/detach-sleeping.test: Likewise.
+	* tests/detach-stopped.test: Likewise.
+	* tests/redirect.test: Do not remove $OUT.
+	* tests/strace-S.test: Likewise.
+	* tests/getdents.test: Do not remove $LOG.dir.
+	* tests/getdents64.test: Likewise.
+	* tests/readdir.test: Likewise.
+	* tests/btrfs-v.test: Do not remove $EXP and $OUT.
+	* tests/btrfs-vw.test: Likewise.
+	* tests/btrfs-w.test: Likewise.
+	* tests/execve-v.test: Likewise.
+	* tests/execve.test: Likewise.
+	* tests/fadvise64.test: Likewise.
+	* tests/getuid.test: Likewise.
+	* tests/ioctl.test: Likewise.
+	* tests/ioctl_dm-v.test: Likewise.
+	* tests/ioctl_dm.test: Likewise.
+	* tests/ioctl_evdev-v.test: Likewise.
+	* tests/ioctl_loop-nv.test: Likewise.
+	* tests/ioctl_loop-v.test: Likewise.
+	* tests/ioctl_loop.test: Likewise.
+	* tests/ioctl_rtc-v.test: Likewise.
+	* tests/ioctl_sock_gifconf.test: Likewise.
+	* tests/llseek.test: Likewise.
+	* tests/lseek.test: Likewise.
+	* tests/mmap.test: Likewise.
+	* tests/net-y-unix.test: Likewise.
+	* tests/net-yy-inet.test: Likewise.
+	* tests/net-yy-netlink.test: Likewise.
+	* tests/net-yy-unix.test: Likewise.
+	* tests/opipe.test: Likewise.
+	* tests/prctl-arg2-intptr.test: Likewise.
+	* tests/prctl-dumpable.test: Likewise.
+	* tests/prctl-name.test: Likewise.
+	* tests/prctl-no-args.test: Likewise.
+	* tests/prctl-pdeathsig.test: Likewise.
+	* tests/prctl-seccomp-filter-v.test: Likewise.
+	* tests/prctl-seccomp-strict.test: Likewise.
+	* tests/prctl-securebits.test: Likewise.
+	* tests/prctl-tid_address.test: Likewise.
+	* tests/prctl-tsc.test: Likewise.
+	* tests/umovestr2.test: Likewise.
+	* tests/uname.test: Likewise.
+	* tests/pread64-pwrite64.test: Do nore remove pread64-pwrite64-tmpfile.
+	* tests/read-write.test: Do nore remove read-write-tmpfile.
+	* tests/qual_fault.test (check_fault_injection): Do not remove $EXP,
+	$outexp, and $outgot.
+	* tests/redirect-fds.test (check_fd): Reorder removal of work files.
+	* tests/pc.test: Use $EXP instead of $EXPECTED, do not remove it.
+	* tests/strace-t.test: Likewise.
+	* tests/scm_rights-fd.test: Likewise.  Use dir instead of $LOG.dir,
+	do not remove it.
+	* tests/strace-ff.test: Do not remove $OUT and $LOG.* files.
+
+2017-04-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: enhance sched.test negative check.
+	* tests/sched.test: Test that trace=%sched doesn't match
+	anything besides sched_* syscalls by checking it against all test
+	executables without side effects listed in pure_executables.list
+	except sched_* and times.
+
+2017-04-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: add a list of executables without side effects.
+	These are executables that could be used by several different tests
+	simultaneously.
+
+	* tests/pure_executables.list: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+
+2017-04-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use fixed socket address in net-yy-unix.test.
+	This allows net-yy-unix invocation without arguments.
+
+	* tests/net-yy-unix.c (TEST_SOCKET): New macro.
+	(void): Use it instead of av[1].
+	* tests/net-yy-unix.test: Do not specify arguments for the test
+	executable.
+
+2017-04-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use fixed socket address in net-y-unix.test.
+	This allows net-y-unix invocation without arguments.
+
+	* tests/net-y-unix.c (TEST_SOCKET): New macro.
+	(void): Use it instead of av[1].
+	* tests/net-y-unix.test: Do not specify arguments for the test
+	executable.
+
+2017-04-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: run every test except ksysent.test in its own subdirectory.
+	Many test executables create temporary files in the current work
+	directory for the duration of their execution.
+	This level of test isolation allows more test executables to be invoked
+	several times simultaneously.
+
+	* tests/.gitignore: Add *.dir, remove *.log.*, *.tmp, *.tmp-*,
+	and *.tmp.* patterns.
+	* tests/Makefile.am (clean-local, clean-local-check): New rules.
+	(.PHONY): Add clean-local-check.
+	(CLEANFILES): Remove all but ksysent.h.
+	* tests/init.sh: Strip test-specific prefix from LOG, OUT, and EXP
+	variables.  When invoked from a test, create a new test-specific
+	directory, chdir into it, and add more ../ prefix to STRACE variable.
+	(run_prog): Replace "./" with "../".
+	* tests/attach-f-p.test: Replace "./" with "../".
+	* tests/attach-p-cmd.test: Likewise.
+	* tests/bexecve.test: Likewise.
+	* tests/btrfs-v.test: Likewise.
+	* tests/btrfs-vw.test: Likewise.
+	* tests/btrfs-w.test: Likewise.
+	* tests/count.test: Likewise.
+	* tests/detach-running.test: Likewise.
+	* tests/detach-sleeping.test: Likewise.
+	* tests/detach-stopped.test: Likewise.
+	* tests/mmap.test: Likewise.
+	* tests/net-y-unix.test: Likewise.
+	* tests/net-yy-inet.test: Likewise.
+	* tests/net-yy-netlink.test: Likewise.
+	* tests/net-yy-unix.test: Likewise.
+	* tests/net.test: Likewise.
+	* tests/opipe.test: Likewise.
+	* tests/poll.test: Likewise.
+	* tests/prctl-seccomp-strict.test: Likewise.
+	* tests/qual_fault-exit_group.test: Likewise.
+	* tests/qual_fault.test: Likewise.
+	* tests/qual_inject-error-signal.test: Likewise.
+	* tests/qual_inject-retval.test: Likewise.
+	* tests/qual_inject-signal.test: Likewise.
+	* tests/qual_signal.test: Likewise.
+	* tests/qual_syscall.test: Likewise.
+	* tests/readv.test: Likewise.
+	* tests/redirect-fds.test: Likewise.
+	* tests/sched.test: Likewise.
+	* tests/scm_rights-fd.test: Likewise.
+	* tests/seccomp-strict.test: Likewise.
+	* tests/strace-C.test: Likewise.
+	* tests/strace-E.expected: Likewise.
+	* tests/strace-E.test: Likewise.
+	* tests/strace-S.test: Likewise.
+	* tests/strace-T.test: Likewise.
+	* tests/strace-V.test: Likewise.
+	* tests/strace-ff.test: Likewise.
+	* tests/strace-k.test: Likewise.
+	* tests/strace-r.expected: Likewise.
+	* tests/strace-r.test: Likewise.
+	* tests/strace-t.test: Likewise.
+	* tests/strace-tt.test: Likewise.
+	* tests/strace-ttt.test: Likewise.
+	* tests/sun_path.test: Likewise.
+	* tests/uname.test: Likewise.
+	* tests/unix-pair-send-recv.test: Likewise.
+	* tests/unix-pair-sendto-recvfrom.test: Likewise.
+
+2017-04-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: make test executables invocable outside current work directory.
+	Most of test executables were ready for the upcoming change,
+	this change prepares all the rest.
+
+	* tests/getdents.c (main): Use fixed name for the sample directory.
+	* tests/getdents64.c (main): Likewise.
+	* tests/readdir.c (main): Likewise.
+	* tests/mknod.c (sample): Change to a pointer.
+	(main): Use av[0] as a sample.
+	* tests/symlink.c (main): Use av[0] as a linkpath.
+	* tests/umode_t.c (sample): Change to a pointer.
+	(test_syscall): Fix expected output.
+	(main): Use av[0] as a sample.
+
+2017-03-31  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: cleanup access.test.
+	* tests/access.test: Use run_strace_match_diff.
+	* tests/access.c (main): Update expected output.
+
+2017-03-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: cleanup oldfstat.test.
+	* tests/oldfstat.test: Use fstat.test.
+
+2017-03-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	aarch64: workaround gcc+kernel bug.
+	Due to a subtle gcc bug that leads to miscompiled aarch64 kernels,
+	the 3rd argument of sched_getattr syscall is not quite 32-bit
+	on aarch64 as on other architectures.  For more details see
+	https://sourceforge.net/p/strace/mailman/message/35721703/
+
+	* defs.h (print_abnormal_hi): New prototype.
+	* util.c (print_abnormal_hi): New function.
+	* sched.c (SYS_FUNC(sched_getattr)) [AARCH64]: Use it.
+	* tests/sched_xetattr.c (main) [__arm64__ || __aarch64__]: Test it.
+
+2017-03-29  Abhishek Tiwari  <erabhishektiwarics@gmail.com>
+
+	alpha, mips: fix missing flags in stat related compatibility syscalls.
+	Following commands do the fix:
+
+	Add TF flag, fixed by:
+		git grep -Fl '_stat' linux/*/syscallent* | xargs sed -i \
+	  		's/0\(,[[:space:]]*SEN(.*_l\?stat[^i]\)/TF\1/'
+
+	Add TD flag, fixed by:
+		git grep -Fl '_stat' linux/*/syscallent* | xargs sed -i \
+		  's/0\(,[[:space:]]*SEN(.*_fstat\)/TD\1/'
+
+	* linux/alpha/syscallent.h: Add TF and TD flags to stat related
+	compat syscall entries.
+	* linux/mips/syscallent-compat.h: Likewise.
+
+2017-03-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	alpha: fix the number of arguments in alpha specific syscalls.
+	* linux/alpha/syscallent.h (getxgid, osf_stat, osf_lstat, osf_fstat,
+	osf_sysinfo, sethae): Set nargs according to arch/alpha/kernel/osf_sys.c
+	from linux v4.10.
+
+	alpha: update comments about not implemented syscalls.
+	* linux/alpha/syscallent.h: Sync "not implemented" comments
+	with arch/alpha/kernel/systbls.S from linux v4.10.
+
+2017-03-23  Quentin Monnet  <quentin.monnet@6wind.com>
+
+	Update BPF_MAP_TYPE_* constants.
+	* xlat/bpf_map_types.in: Add BPF_MAP_TYPE_ARRAY_OF_MAPS
+	and BPF_MAP_TYPE_HASH_OF_MAPS constants.
+
+2017-03-23  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	Update ioctl entries from linux v4.11-rc3.
+	* linux/32/ioctls_inc_align16.h: Update from linux v4.11-rc3 using ioctls_gen.sh.
+	* linux/32/ioctls_inc_align32.h: Likewise.
+	* linux/32/ioctls_inc_align64.h: Likewise.
+	* linux/64/ioctls_inc.h: Likewise.
+	* linux/x32/ioctls_inc0.h: Likewise.
+	* linux/arm/ioctls_arch0.h: Likewise.
+	* linux/i386/ioctls_arch0.h: Likewise.
+	* linux/powerpc/ioctls_arch0.h: Likewise.
+	* linux/s390/ioctls_arch0.h: Likewise.
+	* linux/s390x/ioctls_arch0.h: Likewise.
+	* linux/x86_64/ioctls_arch0.h: Likewise.
+	* NEWS: Mention this.
+
+	maint: update for linux 4.11.
+	* maint/ioctls_sym.sh (ppc_list): Add KVM_PPC_GET_RMMU_INFO
+	and KVM_PPC_CONFIGURE_V3_MMU.
+
+2017-03-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	test: rename README to README.md.
+	* test/README: Rename to README.md, turn ../tests reference into an URL.
+
+	test: update README.
+	* test/README: Tell the reader what this directory is actually for.
+
+	test: rewrite skodic.c demo.
+	* test/skodic.c: Rewrite this demo to simplify its use.
+
+2017-03-18  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	Implement decoding of statx syscall.
+	* linux/i386/syscallent.h [383]: Add statx entry.
+	* linux/x32/syscallent.h [332]: Likewise.
+	* linux/x86_64/syscallent.h [332]: Likewise.
+	* pathtrace.c (pathtrace_match): Handle SEN_statx.
+	* statx.c: New file.
+	* statx.h: Likewise.
+	* Makefile.am (strace_SOURCES): Add them.
+	* tests/.gitignore: Add statx.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(DECODER_TESTS): Add statx.test.
+	* tests/statx.c: New file.
+	* tests/statx.test: Likewise.
+	* tests/xstatx.c: Modify to support statx.
+	* xlat/at_statx_sync_types.in: New file.
+	* xlat/statx_attrs.in: Likewise.
+	* xlat/statx_masks.in: Likewise.
+	* NEWS: Mention this change.
+
+2017-03-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check for out of bounds fetch in parsers of stat family syscalls.
+	* tests/xstatx.c (main): Create STRUCT_STAT object using
+	TAIL_ALLOC_OBJECT_CONST_PTR.
+
+	tests: check unexpected syscall errors returned by stat family syscalls.
+	* tests/xstatx.c (main) [!OLD_STAT]: Do not skip the test
+	in case of EOVERFLOW.
+	Treat errors other than ENOSYS and EOVERFLOW as fatal.
+
+2017-03-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: move try_run_prog to init.sh.
+	Looks like try_run_prog may be of general use by other syscall class
+	tests.
+
+	* tests/sched.test (try_run_prog): Move it...
+	* tests/init: ... here.
+
+2017-03-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/sched.test: rc should be a local variable in try_run_prog.
+	* tests/sched.test (try_run_prog): Add local rc.
+
+2017-03-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of int 0x80 on x86_64, x32, and x86.
+	* tests/int_0x80.c: New file.
+	* tests/int_0x80.test: New test.
+	* tests/.gitignore: Add int_0x80.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(MISC_TESTS, XFAIL_TESTS_x86_64, XFAIL_TESTS_x32): Add int_0x80.test.
+	(XFAIL_TESTS): Add $(XFAIL_TESTS_$(ARCH)).
+	(CLEANFILES): Add $(TESTS:=.tmp.out) and $(TESTS:=.tmp.exp).
+
+2017-03-16  Damien Profeta  <damien.profeta@amadeus.com>
+
+	strace-graph: handle pid looping.
+	* strace-graph: On long running process or heavily forking one (like
+	compilation), it can happen that a parent get 2 different children with
+	the same pid.  By tracking the currently runnig pid and adding the start
+	timestamp to the pid, the graph can now handle that case.
+
+	Closes: https://github.com/strace/strace/pull/7
+
+2017-03-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use TAIL_ALLOC_OBJECT_CONST_PTR.
+	Automatically convert tests to use TAIL_ALLOC_OBJECT_CONST_PTR macro
+	with the following sed expression:
+
+	sed -ri \
+	's/^([[:space:]]*)(([^*]+[[:alnum:]_])( \*)?) *\*( *const )?([^ =]+) = tail_alloc\(sizeof\((\2|\*\6)\)\);/\1TAIL_ALLOC_OBJECT_CONST_PTR(\2, \6);/' \
+	tests/*.c
+
+2017-03-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use TAIL_ALLOC_OBJECT_VAR_PTR.
+	Automatically convert tests to use TAIL_ALLOC_OBJECT_VAR_PTR macro
+	with the following sed expression:
+
+	sed -ri \
+	's/^([[:space:]]*)(([^*]+[[:alnum:]_])( \*)?) *\*([^ =]+) = tail_alloc\(sizeof\((\2|\*\5)\)\);/\1TAIL_ALLOC_OBJECT_VAR_PTR(\2, \5);/' \
+	tests/{move_pages,net-sockaddr,sendfile}.c
+
+2017-03-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: add TAIL_ALLOC_OBJECT_{CONST,VAR}_PTR to tests.h.
+	Introduce a new macros for the most widespread use of tail_alloc.
+
+	* tests/tests.h (TAIL_ALLOC_OBJECT_CONST_PTR,
+	TAIL_ALLOC_OBJECT_VAR_PTR): New macros.
+
+2017-03-16  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	Decode RUSAGE_THREAD.
+	* xlat/usagewho.in: Add values for existing entities, add
+	RUSAGE_THREAD.
+	* tests/getrusage.c: Test decoding of RUSAGE_THREAD.
+
+2017-03-15  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/sched.test: use heredoc in order to avoid spawning of subprocess.
+	Pipelined commands executed in subprocesses (some shells have special
+	provision for last command in the pipeline, but it is not guaranteed
+	and not POSIX), so exit codes of these subprocesses can be lost.
+	In order to avoid creating subprocesses, input for read commands
+	is better to supply via heredoc and not pipe.
+
+	* tests/sched.test: Move test cases to heredoc.
+
+2017-03-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: do not skip sched.test if one of its subtests skips.
+	* tests/sched.test (try_run_prog): New function.
+	Use it instead of run_prog.
+
+2017-03-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: do not check decoding of setitimer syscall outside xetitimer.test
+	xetitimer.test already implements a comprehensive test of setitimer
+	syscall parser, no need to duplicate its parts in other tests.
+
+	* tests/clock_nanosleep.c (main): Remove setitimer expected output.
+	* tests/nanosleep.c (main): Likewise.
+	* tests/clock_nanosleep.test: Remove setitimer from the trace set.
+	* tests/nanosleep.test: Likewise.
+
+2017-03-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of getitimer and setitimer corner cases.
+	* tests/sched_xetattr.c: Include <unistd.h> and <asm/unistd.h>.
+	(main): Check that pointer and integer arguments of getitimer
+	and setitimer syscalls are decoded properly.
+	* tests/xetitimer.test: Add -a option.
+
+2017-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: rewrite sigreturn syscall decoding check from match_grep to match_diff
+	Unlike the former test that was based on match_grep,
+	the new one uses match_diff and does more rigorous testing.
+
+	* tests/sigreturn.c: Rewrite.
+	* tests/sigreturn.test: Likewise.
+
+2017-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ia64, mips, x86_64: remove no longer used parsers of sigreturn syscalls.
+	As there is no sigreturn syscall on ia64, mips n32, mips n64, x32,
+	and x86_64, no longer used parsers could be safely removed.
+
+	* linux/ia64/arch_sigreturn.c: Remove.
+	* Makefile.am (EXTRA_DIST): Remove it.
+	* linux/mips/arch_sigreturn.c (arch_sigreturn): Remove [!LINUX_MIPSO32].
+	* linux/x86_64/arch_sigreturn.c (arch_sigreturn): Remove.
+
+2017-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move sigreturn parser to libstrace.
+	All architectures have rt_sigreturn, but only old ones also have
+	sigreturn.  Since not all architectures need a parser of sigreturn
+	syscall, remove the warning and move the parser to libstrace.
+
+	* Makefile.am (strace_SOURCES): Move sigreturn.c ...
+	(libstrace_a_SOURCES): ... here.
+	* linux/arch_sigreturn.c: Remove warning.
+
+2017-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of rt_sigreturn syscall.
+	* tests/rt_sigreturn.c: New file.
+	* tests/rt_sigreturn.test: New test.
+	* tests/.gitignore: Add rt_sigreturn.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(DECODER_TESTS): Add rt_sigreturn.test.
+
+	Implement proper decoding of rt_sigreturn syscall.
+	* rt_sigreturn.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* linux/dummy.h (sys_rt_sigreturn): Remove.
+	* linux/64/syscallent.h (rt_sigreturn): Change sys_func to rt_sigreturn.
+	* linux/hppa/syscallent.h (rt_sigreturn): Likewise.
+	* linux/ia64/syscallent.h (rt_sigreturn): Likewise.
+	* linux/s390/syscallent.h (rt_sigreturn): Likewise.
+	* linux/s390x/syscallent.h (rt_sigreturn): Likewise.
+	* linux/x86_64/syscallent.h (rt_sigreturn): Likewise.
+	* linux/x32/syscallent.h (rt_sigreturn, 64:rt_sigreturn): Likewise.
+	* NEWS: Mention this change.
+
+2017-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce get_rt_sigframe_addr function.
+	Add get_rt_sigframe_addr function for all supported architectures.
+	It is going to be used in a parser of rt_sigreturn syscall.
+
+	* defs.h (get_rt_sigframe_addr): New function prototype.
+	* rt_sigframe.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* linux/aarch64/arch_rt_sigframe.c: New file.
+	* linux/alpha/arch_rt_sigframe.c: Likewise.
+	* linux/arc/arch_rt_sigframe.c: Likewise.
+	* linux/arm/arch_rt_sigframe.c: Likewise.
+	* linux/avr32/arch_rt_sigframe.c: Likewise.
+	* linux/bfin/arch_rt_sigframe.c: Likewise.
+	* linux/crisv10/arch_rt_sigframe.c: Likewise.
+	* linux/crisv32/arch_rt_sigframe.c: Likewise.
+	* linux/hppa/arch_rt_sigframe.c: Likewise.
+	* linux/i386/arch_rt_sigframe.c: Likewise.
+	* linux/ia64/arch_rt_sigframe.c: Likewise.
+	* linux/m68k/arch_rt_sigframe.c: Likewise.
+	* linux/metag/arch_rt_sigframe.c: Likewise.
+	* linux/microblaze/arch_rt_sigframe.c: Likewise.
+	* linux/mips/arch_rt_sigframe.c: Likewise.
+	* linux/nios2/arch_rt_sigframe.c: Likewise.
+	* linux/or1k/arch_rt_sigframe.c: Likewise.
+	* linux/powerpc/arch_rt_sigframe.c: Likewise.
+	* linux/powerpc64/arch_rt_sigframe.c: Likewise.
+	* linux/riscv/arch_rt_sigframe.c: Likewise.
+	* linux/s390/arch_rt_sigframe.c: Likewise.
+	* linux/s390x/arch_rt_sigframe.c: Likewise.
+	* linux/sh/arch_rt_sigframe.c: Likewise.
+	* linux/sh64/arch_rt_sigframe.c: Likewise.
+	* linux/sparc/arch_rt_sigframe.c: Likewise.
+	* linux/sparc64/arch_rt_sigframe.c: Likewise.
+	* linux/tile/arch_rt_sigframe.c: Likewise.
+	* linux/x32/arch_rt_sigframe.c: Likewise.
+	* linux/x86_64/arch_rt_sigframe.c: Likewise.
+	* linux/xtensa/arch_rt_sigframe.c: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+
+2017-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce struct_rt_sigframe type.
+	Add rt_sigframe.h files with definitions of struct_rt_sigframe type
+	for all supported architectures.
+	These definitions are going to be used in a parser of rt_sigreturn
+	syscall.
+
+	* linux/rt_sigframe.h: New file.
+	* linux/bfin/rt_sigframe.h: Likewise.
+	* linux/crisv10/rt_sigframe.h: Likewise.
+	* linux/crisv32/rt_sigframe.h: Likewise.
+	* linux/hppa/rt_sigframe.h: Likewise.
+	* linux/i386/rt_sigframe.h: Likewise.
+	* linux/ia64/rt_sigframe.h: Likewise.
+	* linux/m68k/rt_sigframe.h: Likewise.
+	* linux/mips/rt_sigframe.h: Likewise.
+	* linux/powerpc64/rt_sigframe.h: Likewise.
+	* linux/s390/rt_sigframe.h: Likewise.
+	* linux/s390x/rt_sigframe.h: Likewise.
+	* linux/sh64/rt_sigframe.h: Likewise.
+	* linux/sparc/rt_sigframe.h: Likewise.
+	* linux/sparc64/rt_sigframe.h: Likewise.
+	* linux/tile/rt_sigframe.h: Likewise.
+	* linux/x32/rt_sigframe.h: Likewise.
+	* linux/x86_64/rt_sigframe.h: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+
+2017-03-13  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	unwind.c: fix a possible buffer overflow.
+	Linux does not prevent a user from creating a lot of nested directories
+	with length of the absolute path of the deepest one exceeding PATH_MAX,
+	then chdir'ing into it, creating a file there and mmap'ing it. Since the
+	length of the prefix preceding the pathname in /proc/[pid]/maps is not
+	necessary 80 (it's 73 on my machine), an overflow is possible.
+
+	* unwind.c (build_mmap_cache): Fix a possible buffer overflow.
+
+2017-03-13  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	util.c: remove a wrong comment.
+	4924dbd6d750665cf383b20ab4fd67e48219ab91 modified the return type, but
+	not the comment.
+
+2017-03-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	riscv: export riscv_sp_ptr.
+	Export SP register for later use by get_rt_sigframe_addr.
+
+	* linux/riscv/arch_regs.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* linux/riscv/arch_regs.c (riscv_sp_ptr): New variable.
+
+2017-03-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	or1k: export or1k_sp_ptr.
+	Export SP register for later use by get_rt_sigframe_addr.
+
+	* linux/or1k/arch_regs.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* linux/or1k/arch_regs.c (or1k_sp_ptr): New variable.
+
+2017-03-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	nios2: export nios2_sp_ptr.
+	Export SP register for later use by get_rt_sigframe_addr.
+
+	* linux/nios2/arch_regs.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* linux/nios2/arch_regs.c (nios2_sp_ptr): New variable.
+
+2017-03-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	metag: export metag_sp_ptr.
+	Export SP register for later use by get_rt_sigframe_addr.
+
+	* linux/metag/arch_regs.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* linux/metag/arch_regs.c (metag_sp_ptr): New variable.
+
+2017-03-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	avr32: export avr32_sp_ptr.
+	Export SP register for later use by get_rt_sigframe_addr.
+
+	* linux/avr32/arch_regs.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* linux/avr32/arch_regs.c (avr32_sp_ptr): New variable.
+
+2017-03-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	arc: export arc_sp_ptr.
+	Export SP register for later use by get_rt_sigframe_addr.
+
+	* linux/arc/arch_regs.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* linux/arc/arch_regs.c (arc_sp_ptr): New variable.
+
+2017-03-09  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce print_sigset_addr function.
+	As the definition of NSIG_BYTES is based on NSIG defined in <signal.h>,
+	NSIG_BYTES cannot be used in files that use kernel sigset_t.
+
+	Add another wrapper around print_sigset_addr_len_limit function that
+	takes one argument less than print_sigset_addr_len wrapper.  This new
+	wrapper is going to be used in cases when the length argument is equal
+	to NSIG_BYTES.
+
+	* defs.h (print_sigset_addr): New function prototype.
+	* signal.c (print_sigset_addr): New function.
+	* linux/alpha/arch_sigreturn.c (arch_sigreturn): Replace
+	print_sigset_addr_len with print_sigset_addr.
+	* linux/arm/arch_sigreturn.c (arch_sigreturn): Likewise.
+	* linux/crisv10/arch_sigreturn.c (arch_sigreturn): Likewise.
+	* linux/ia64/arch_sigreturn.c (arch_sigreturn): Likewise.
+	* linux/microblaze/arch_sigreturn.c (arch_sigreturn): Likewise.
+	* linux/mips/arch_sigreturn.c (arch_sigreturn): Likewise.
+	* linux/tile/arch_sigreturn.c (arch_sigreturn): Likewise.
+	* linux/x86_64/arch_sigreturn.c (arch_sigreturn): Likewise.
+
+2017-03-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	README.md: rework guidelines about sending bug reports.
+
+2017-03-08  Abhishek Tiwari  <erabhishektiwarics@gmail.com>
+
+	Update information on how to build strace from git repository.
+	* INSTALL-git.md: Describe how to build strace from git repository.
+	* README.md: Add reference to INSTALL-git.md.
+	* README-hacking: Likewise.
+
+2017-03-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	README.md: fix references to in-tree files.
+	* README.md: Change references to COPYING and NEWS files from absolute
+	to relative.
+
+2017-03-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	INSTALL: regenerate from install.texi.
+	Regenerate INSTALL from install.texi using the following command:
+	makeinfo --plaintext install.texi > INSTALL
+
+	* INSTALL: Regenerate from install.texi.
+
+2017-03-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	install.texi: remove irrelevant sections.
+	Remove "Multiple Architectures" and "Particular Systems" sections using
+	the following filter script:
+
+	awk '/^@node (Multiple Architectures|Particular Systems)/{skip=1;next}
+	/^@node/{skip=0} {if(!skip)print}'
+
+	* install.texi (Multiple Architectures, Particular Systems): Remove.
+
+2017-03-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	install.texi: import from GNU Autoconf.
+	install.texi from GNU Autoconf is the ultimate source of INSTALL file.
+	This edition of install.texi has been downloaded from
+	https://git.savannah.gnu.org/cgit/autoconf.git/plain/doc/install.texi?id=63f3c78cdb0ccc85751543e387ef2a7252d5f0a2
+
+	* install.texi: Import from GNU Autoconf.
+
+2017-03-05  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Md Haris Iqbal  <haris.phnx@gmail.com>
+
+	Implement -e trace=%sched option for tracing sched_* syscalls.
+	Based on the patch by Md Haris Iqbal
+	(https://sourceforge.net/p/strace/mailman/message/35111320/)
+
+	linux/*/syscallent.h part is modified automatically by:
+
+	    git grep -Fl 'SEN(sched_' linux/ | xargs sed -i \
+	        's/0\(,[[:space:]]*SEN(sched_\)/TSC\1/'
+
+	* sysent.h (TRACE_SCHED): New definition.
+	* syscall.c: Alias TSC to TRACE_SCHED around syscallent.h inclusion.
+	* linux/32/syscallent.h: Add TSC flag for sched_* sycalls.
+	* linux/64/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/arm/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+	* qualify.c (lookup_class): Add TRACE_SCHED for "%sched".
+	* tests/ksysent.c: Define TSC to 0.
+	* tests/nsyscalls.c: Likewise.
+	* tests/sched.test: New test.
+	* tests/Makefile.am (DECODER_TESTS): Add sched.test.
+	* strace.1 (.SS Filtering): Add information about %sched syscall class.
+	* NEWS: Mention this change.
+
+2017-03-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add "%" prefix for syscall classes in qualify.
+	(as suggested in
+	https://www.mail-archive.com/strace-devel@lists.sourceforge.net/msg05147.html )
+
+	In order to move them to a different namespace than syscall names. This is
+	already a problem in case of ipc class which shadows ipc syscall.
+
+	Old behaviour is retained in order to preserve backwards compatibility.
+
+	* qualify.c (lookup_class) <syscall_class>: Add %-prefixed class definitions.
+	* strace.1 (.SS Filtering): Add information regarding %-prefixed class
+	syntax, declare legacy class syntax deprecated.
+	* tests/net.test: Update to use %-prefixed syscall class name.
+	* tests/netlink_protocol.test: Likewise.
+	* tests/qual_fault-exit_group.test: Likewise.
+	* tests/qual_syscall.test: Likewise.
+	* tests/scm_rights-fd.test: Likewise.
+	* tests/sigreturn.test: Likewise.
+	* tests/uio.test: Likewise.
+	* NEWS: Mention this change.
+
+2017-02-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: simplify print_time_t.
+	* tests/print_time.c (print_time_t): Treat localtime errors as fatal.
+
+2017-02-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update homepage URL.
+	* README: Change homepage URL to https://strace.io
+	* debian/control: Likewise.
+	* strace.spec.in: Likewise.
+
+2017-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: transform print_time_t into print_time_t_nsec.
+	* tests/print_time.c (print_time_t): Rename to print_time_t_nsec,
+	take second argument and print it.
+	* tests/tests.h (print_time_t): Rename to print_time_t_nsec,
+	add second argument.
+	* tests/utime.c (main): Use print_time_t_nsec instead of print_time_t.
+	* tests/xstatx.c (print_stat): Likewise.  Pass nanoseconds
+	to print_time_t_nsec instead of printing them.
+
+	tests: use print_time_t in utime.test.
+	* tests/utime.c (print_tm): Remove.
+	(main): Use print_time_t instead of print_tm.
+
+2017-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: move print_time function to libtests.
+	Rename print_time function to print_time_t and move it to libtests.
+
+	* tests/print_time.c: New file.
+	* tests/Makefile.am (libtests_a_SOURCES): Add it.
+	* tests/tests.h (print_time_t): New prototype.
+	* tests/print_time.c (print_time): Remove.
+	(print_stat): Replace print_time with print_time_t.
+
+2017-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: macroize printing of atime, mtime, and ctime fields in xstatx.c.
+	Introduce a macro for printing similar time related fields.
+
+	* print_struct_stat.c (PRINT_ST_TIME): New macro.
+	(print_stat): Use it.
+
+2017-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	print_struct_stat.c: macroize printing of atime, mtime, and ctime fields
+	Introduce a macro for printing similar time related fields.
+
+	* print_struct_stat.c (PRINT_ST_TIME): New macro.
+	(print_struct_stat): Use it.
+
+2017-02-25  Dmitry V. Levin  <ldv@altlinux.org>
+
+	x32: fix decoding of flags argument of preadv2 and pwritev2 syscalls.
+	x32 is the only linux architecture where preadv2 and pwritev2 syscalls
+	take 5 arguments instead of 6.
+
+	* io.c (PREADV2_PWRITEV2_FLAGS_ARG_NO): New macro.
+	(SYS_FUNC(preadv2), SYS_FUNC(pwritev2)): Use it.
+	* linux/x32/syscallent.h (preadv2, pwritev2): Change nargs to 5.
+	* NEWS: Mention this fix.
+	* tests/preadv2-pwritev2.c (main): Fix invocation of preadv2
+	and pwritev2 syscalls on x32.
+
+2017-02-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: rewrite ppoll syscall decoding check from match_grep to match_diff
+	Unlike the former test that was based on match_grep,
+	the new one uses match_diff and does more rigorous testing.
+
+	* tests/ppoll-v.c: New file.
+	* tests/ppoll-v.test: New test.
+	* tests/ppoll.c: Rewrite.
+	* tests/ppoll.test: Likewise.
+	* tests/ppoll.expected: Remove.
+	* tests/ppoll-v.expected: Remove.
+	* tests/.gitignore: Add ppoll-v.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(DECODER_TESTS): Add ppoll-v.test.
+	(EXTRA_DIST): Remove ppoll.expected and ppoll-v.expected.
+
+2017-02-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: move get_sigset_size function to libtests.
+	* tests/get_sigset_size.c: New file.
+	* tests/Makefile.am (libtests_a_SOURCES): Add it.
+	* tests/tests.h (get_sigset_size): New prototype.
+	* tests/ptrace.c: Do not check for __NR_rt_sigprocmask.
+	(main): Use get_sigset_size.
+	* tests/signalfd4.c: Do not check for __NR_rt_sigprocmask.
+	(get_sigset_size): Remove.
+
+2017-02-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	sched: enhance decoding of sched_setattr syscall.
+	Implement read/write semantics of struct sched_attr.size argument
+	of sched_setattr syscall.  Do not print members of struct sched_attr
+	besides sched_attr.size when the specified structure size is less than
+	the minimal size allowed by the kernel.
+
+	* sched.c (print_sched_attr): Fetch struct sched_attr.size and use it
+	as the structure size.  Print struct sched_attr.size only when the
+	structure size is less than SCHED_ATTR_MIN_SIZE.
+	(SYS_FUNC(sched_setattr)): Call print_sched_attr with zero size
+	argument.  Print struct sched_attr.size returned by the kernel
+	on exiting syscall in case of E2BIG. Print the last syscall argument
+	on exiting syscall.
+	(SYS_FUNC(sched_getattr)): Do not call print_sched_attr with zero size
+	argument.
+	* NEWS: Mention it.
+	* tests/sched_xetattr.c (main): Check it.
+
+2017-02-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of sched_[gs]etattr corner cases.
+	* tests/sched_xetattr.c (main): Check that integer arguments
+	of sched_getattr and sched_setattr syscalls are decoded properly
+	by adding a few cases with filled higher 32 bits.
+	Check that pointer argument is decoded properly
+	on F8ILL_KULONG_SUPPORTED architectures.
+
+2017-02-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move definition of struct sched_attr to a separate header file.
+	Avoid multiple defintions of struct sched_attr by creating a separate
+	header file with its definition and using it in other places.
+
+	* sched_attr.h: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* sched.c: Include it.
+	(print_sched_attr): Use it.
+	* tests/sched_xetattr.c: Include it.
+	(main): Use it.
+
+2017-02-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: rewrite sched_xetattr.test from match_grep to match_diff.
+	Unlike the previous edition of the test that was based on match_grep,
+	the new one is match_diff based and does more rigorous testing.
+
+	* tests/adjtimex.c: Include "xlat.h" and "xlat/schedulers.h",
+	(sys_sched_getattr, sys_sched_setattr): New functions.
+	(main): Use them.  Update expected output.
+	* tests/adjtimex.test: Use run_strace_match_diff.
+
+2017-02-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Use tprints instead of tprintf in a few more places.
+	* bpf.c (bpf_obj_manage, bpf_prog_attach_detach): Replace tprintf
+	with tprints for printing strings without format specifiers.
+	* dm.c (dm_decode_dm_target_spec): Likewise.
+	* mq.c (SYS_FUNC(mq_timedreceive)): Likewise.
+	* perf.c (print_perf_event_attr): Likewise.
+	* syscall.c (trace_syscall_exiting): Likewise.
+
+2017-02-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	bpf: update BPF_PROG_ATTACH decoding.
+	Implement decoding of BPF_F_ALLOW_OVERRIDE flag of BPF_PROG_ATTACH
+	command introduced by linux kernel commit v4.10-rc7-174-g7f67763.
+
+	* configure.ac: Check for union bpf_attr.attach_flags
+	instead of union bpf_attr.attach_type.
+	* xlat/bpf_attach_flags.in: New file.
+	* bpf.c: Include "xlat/bpf_attach_flags.h".
+	(bpf_prog_attach_detach): Rename print_attach_bpf_fd argument
+	to print_attach.  Add attach_flags field to the structure,
+	print it in case of BPF_PROG_ATTACH.
+	* tests/bpf.c: Check for HAVE_UNION_BPF_ATTR_ATTACH_FLAGS
+	instead of HAVE_UNION_BPF_ATTR_ATTACH_TYPE.
+	(prog_cgroup): Initialize attach_flags field.
+	(main): Update expected output.
+
+2017-02-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: rewrite adjtimex.test from match_grep to match_diff.
+	Unlike the previous edition of the test that was based on match_grep,
+	the new one is match_diff based and does more rigorous testing.
+
+	* tests/adjtimex.c: Include "xlat.h", "xlat/adjtimex_state.h",
+	and "xlat/adjtimex_status.h".
+	(main): Update expected output.
+	* tests/adjtimex.test: Use run_strace_match_diff.
+
+2017-02-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: replace casts of 0xffffffff00000000ULL with F8ILL_KULONG_MASK.
+	* tests/init_delete_module.h (bogus_zero): Remove.
+	* tests/delete_module.c (main): Replace bogus_zero and
+	(kernel_ulong_t) 0xffffffff00000000ULL with F8ILL_KULONG_MASK.
+	* tests/finit_module.c (main): Replace bogus_zero
+	with F8ILL_KULONG_MASK.
+	* tests/init_module.c (main): Likewise.
+	* tests/pipe2.c (main): Likewise.
+	* tests/epoll_ctl.c (invoke_syscall): Replace
+	(unsigned long) 0xffffffff00000000ULL with F8ILL_KULONG_MASK.
+	* tests/rt_tgsigqueueinfo.c (k_tgsigqueueinfo): Likewise.
+	* tests/fanotify_init.c (main): Likewise.
+	* tests/xetpgid.c (main): Likewise.
+	* tests/xetpriority.c (main): Likewise.
+	(kernel_ulong_t) 0xffffffff00000000ULL with F8ILL_KULONG_MASK.
+	* tests/fanotify_mark.c (main): Likewise.
+	* tests/file_handle.c (main): Likewise.
+	* tests/kexec_load.c (main): Likewise.
+	* tests/setfsugid.c (main): Likewise.
+	* tests/getgroups.c (main): Replace (long) 0xffffffff00000000ULL
+	with F8ILL_KULONG_MASK.
+	* tests/setgroups.c (main): Replace (long) 0xffffffff00000000ULL
+	and (unsigned long) 0xffffffff00000000ULL with F8ILL_KULONG_MASK.
+
+2017-02-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fill higher bits of integer arguments of fcntl* syscalls.
+	Check that integer arguments of fcntl and fcntl64 syscalls are decoded
+	properly by casting them to kernel_ulong_t and filling higher bits.
+
+	* tests/struct_flock.c (invoke_test_syscall): Cast "fd" and "cmd"
+	syscall arguments to kernel_ulong_t, fill their higher 32 bits.
+
+2017-02-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use sprintrc in tests of fcntl and fcntl64 syscalls.
+	* tests/struct_flock.c (EINVAL_STR): Remove.
+	(test_flock_einval, test_flock): Use sprintrc instead of EINVAL_STR.
+	* tests/fcntl.c (test_flock64_einval): Likewise.
+	* tests/fcntl64.c (test_flock64_einval, test_flock64): Likewise.
+
+2017-02-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Post-release administrivia.
+	* NEWS: Add a header line for the next release.
+	* debian/changelog.in: Add a changelog entry for 4.16-1.
+	* strace.spec.in: Likewise.
+
 2017-02-14  Dmitry V. Levin  <ldv@altlinux.org>
 
 	Prepare for 4.16 release.

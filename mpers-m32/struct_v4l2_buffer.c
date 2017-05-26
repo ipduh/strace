@@ -2,6 +2,7 @@
  * Copyright (c) 2014 Philippe De Muyter <phdm@macqel.be>
  * Copyright (c) 2014 William Manley <will@williammanley.net>
  * Copyright (c) 2011 Peter Zotov <whitequark@whitequark.org>
+ * Copyright (c) 2014-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +37,7 @@
 #include <linux/videodev2.h>
 
 typedef struct v4l2_buffer struct_v4l2_buffer;
+typedef struct v4l2_clip struct_v4l2_clip;
 typedef struct v4l2_create_buffers struct_v4l2_create_buffers;
 typedef struct v4l2_ext_control struct_v4l2_ext_control;
 typedef struct v4l2_ext_controls struct_v4l2_ext_controls;

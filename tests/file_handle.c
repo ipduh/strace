@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -187,7 +188,7 @@ main(void)
 		(kernel_ulong_t) 0x12345678ffffff9cULL,
 	};
 	static const struct strval open_flags[] = {
-		{ (kernel_ulong_t) 0xffffffff00000000ULL, "O_RDONLY" },
+		{ F8ILL_KULONG_MASK, "O_RDONLY" },
 		{ (kernel_ulong_t) 0xdeadbeef80000001ULL,
 			"O_WRONLY|0x80000000" }
 	};
@@ -208,7 +209,7 @@ main(void)
 		tail_alloc(sizeof(struct file_handle) + 128);
 	struct file_handle *handle_256 =
 		tail_alloc(sizeof(struct file_handle) + 256);
-	int *bogus_mount_id = tail_alloc(sizeof(*bogus_mount_id));
+	TAIL_ALLOC_OBJECT_CONST_PTR(int, bogus_mount_id);
 
 	char handle_0_addr[sizeof("0x") + sizeof(void *) * 2];
 

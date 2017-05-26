@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c)      2016 Red Hat, Inc.
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,7 +55,7 @@ main(void)
 		perror_msg_and_skip("userfaultfd");
 
 	/* ---- API ---- */
-	struct uffdio_api *api_struct = tail_alloc(sizeof(*api_struct));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct uffdio_api, api_struct);
 
 	/* With a bad fd */
 	memset(api_struct, 0, sizeof(*api_struct));
@@ -127,7 +128,7 @@ main(void)
 	 * userfaultfd will cause us to stall.
 	 */
 	/* ---- COPY ---- */
-	struct uffdio_copy *copy_struct = tail_alloc(sizeof(*copy_struct));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct uffdio_copy, copy_struct);
 
 	memset(copy_struct, 0, sizeof(*copy_struct));
 	rc = ioctl(-1, UFFDIO_COPY, copy_struct);
@@ -148,7 +149,7 @@ main(void)
 	       fd, area2, area1, pagesize, pagesize, rc);
 
 	/* ---- ZEROPAGE ---- */
-	struct uffdio_zeropage *zero_struct = tail_alloc(sizeof(*zero_struct));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct uffdio_zeropage, zero_struct);
 	madvise(area2, pagesize, MADV_DONTNEED);
 
 	memset(zero_struct, 0, sizeof(*zero_struct));
@@ -169,7 +170,7 @@ main(void)
 	       fd, area2, pagesize, pagesize, rc);
 
 	/* ---- WAKE ---- */
-	struct uffdio_range *range_struct = tail_alloc(sizeof(*range_struct));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct uffdio_range, range_struct);
 	memset(range_struct, 0, sizeof(*range_struct));
 
 	rc = ioctl(-1, UFFDIO_WAKE, range_struct);

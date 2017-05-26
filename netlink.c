@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +32,9 @@
 #include <linux/netlink.h>
 #include "xlat/netlink_flags.h"
 #include "xlat/netlink_types.h"
+
+#undef NLMSG_HDRLEN
+#define NLMSG_HDRLEN NLMSG_ALIGN(sizeof(struct nlmsghdr))
 
 /*
  * Fetch a struct nlmsghdr from the given address.
@@ -70,6 +74,55 @@ static void
 decode_nlmsghdr_with_payload(struct tcb *const tcp,
 			     const struct nlmsghdr *const nlmsghdr,
 			     const kernel_ulong_t addr,
+			     const kernel_ulong_t len);
+
+static void
+decode_nlmsgerr(struct tcb *const tcp,
+	       kernel_ulong_t addr,
+	       kernel_ulong_t len)
+{
+	struct nlmsgerr err;
+
+	if (umove_or_printaddr(tcp, addr, &err.error))
+		return;
+
+	tprints("{error=");
+	if (err.error < 0 && (unsigned) -err.error < nerrnos) {
+		tprintf("-%s", errnoent[-err.error]);
+	} else {
+		tprintf("%d", err.error);
+	}
+
+	addr += offsetof(struct nlmsgerr, msg);
+	len -= offsetof(struct nlmsgerr, msg);
+
+	if (len) {
+		tprints(", msg=");
+		if (fetch_nlmsghdr(tcp, &err.msg, addr, len)) {
+			decode_nlmsghdr_with_payload(tcp, &err.msg, addr, len);
+		}
+	}
+
+	tprints("}");
+}
+
+static void
+decode_payload(struct tcb *const tcp,
+	       const struct nlmsghdr *const nlmsghdr,
+	       const kernel_ulong_t addr,
+	       const kernel_ulong_t len)
+{
+	if (nlmsghdr->nlmsg_type == NLMSG_ERROR && len >= sizeof(int)) {
+		decode_nlmsgerr(tcp, addr, len);
+	} else {
+		printstrn(tcp, addr, len);
+	}
+}
+
+static void
+decode_nlmsghdr_with_payload(struct tcb *const tcp,
+			     const struct nlmsghdr *const nlmsghdr,
+			     const kernel_ulong_t addr,
 			     const kernel_ulong_t len)
 {
 	tprints("{");
@@ -78,11 +131,10 @@ decode_nlmsghdr_with_payload(struct tcb *const tcp,
 
 	unsigned int nlmsg_len =
 		nlmsghdr->nlmsg_len > len ? len : nlmsghdr->nlmsg_len;
-	if (nlmsg_len > sizeof(struct nlmsghdr)) {
+	if (nlmsg_len > NLMSG_HDRLEN) {
 		tprints(", ");
-
-		printstrn(tcp, addr + sizeof(struct nlmsghdr),
-			  nlmsg_len - sizeof(struct nlmsghdr));
+		decode_payload(tcp, nlmsghdr, addr + NLMSG_HDRLEN,
+					 nlmsg_len - NLMSG_HDRLEN);
 	}
 
 	tprints("}");
@@ -105,7 +157,7 @@ decode_netlink(struct tcb *const tcp, kernel_ulong_t addr, kernel_ulong_t len)
 		kernel_ulong_t next_addr = 0;
 		kernel_ulong_t next_len = 0;
 
-		if (nlmsghdr.nlmsg_len >= sizeof(struct nlmsghdr)) {
+		if (nlmsghdr.nlmsg_len >= NLMSG_HDRLEN) {
 			next_len = (len >= nlmsg_len) ? len - nlmsg_len : 0;
 
 			if (next_len && addr + nlmsg_len > addr)

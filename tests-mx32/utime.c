@@ -2,6 +2,7 @@
  * Check decoding of utime syscall.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,17 +39,6 @@
 # include <stdio.h>
 # include <unistd.h>
 
-
-static void
-print_tm(const struct tm * const p)
-{
-	char buf[256];
-
-	strftime(buf, sizeof(buf), "%FT%T%z", p);
-
-	printf("%s", buf);
-}
-
 static long
 k_utime(const void *const filename, const void *const times)
 {
@@ -60,8 +50,7 @@ main(void)
 {
 	static const char *const dummy_str = "dummy filename";
 
-	const time_t t = time(NULL);
-	const struct tm * const p = localtime(&t);
+	const time_t t = 1492350678;
 	const struct utimbuf u = { .actime = t, .modtime = t };
 	const struct utimbuf *const tail_u = tail_memdup(&u, sizeof(u));
 	const char *const dummy_filename =
@@ -80,10 +69,10 @@ main(void)
 
 	rc = k_utime("utime\nfilename", tail_u);
 	const char *errstr = sprintrc(rc);
-	printf("utime(\"utime\\nfilename\", {actime=");
-	print_tm(p);
-	printf(", modtime=");
-	print_tm(p);
+	printf("utime(\"utime\\nfilename\", {actime=%lld", (long long) t);
+	print_time_t_nsec(t, 0, 1);
+	printf(", modtime=%lld", (long long) t);
+	print_time_t_nsec(t, 0, 1);
 	printf("}) = %s\n", errstr);
 
 	puts("+++ exited with 0 +++");

@@ -13,6 +13,7 @@ you'd prefer a different address be used, please send a note to the
 strace-devel@lists.sourceforge.net mailing list.
 
 	Aaron Ucko <ucko@vax1.rockhurst.edu>
+	Abhishek Tiwari <erabhishektiwarics@gmail.com>
 	Adrien Kunysz <adrien@kunysz.be>
 	Alexey Neyman <stilor@att.net>
 	Ali Polatel <alip@exherbo.org>
@@ -36,6 +37,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Chris Zankel <chris@zankel.net>
 	Christian Svensson <blue@cmd.nu>
 	D.J. Barrow <djbarrow@de.ibm.com>
+	Damien Profeta <damien.profeta@amadeus.com>
 	Damir Shayhutdinov <damir@altlinux.ru>
 	Daniel P. Berrange <berrange@redhat.com>
 	David Daney <ddaney@caviumnetworks.com>
@@ -48,6 +50,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Douglas Mencken <dougmencken@gmail.com>
 	Dr. David Alan Gilbert <dgilbert@redhat.com>
 	Edgar E. Iglesias <edgar.iglesias@gmail.com>
+	Edgar Kaziahmedov <edos@linux.com>
 	Elliott Hughes <enh@google.com>
 	Elvira Khabirova <lineprinter0@gmail.com>
 	Erik Johansson <erik@ejohansson.se>
@@ -126,6 +129,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Nate Eldredge <nate@cartsys.com>
 	Nate Sammons <nate@users.sourceforge.net>
 	Neil Campbell <lists@thebatcave.org.uk>
+	Nikolay Marchuk <marchuk.nikolay.a@gmail.com>
 	Paolo Bonzini <pbonzini@redhat.com>
 	Patrik Jakobsson <patrik.jakobsson@linux.intel.com>
 	Paul Mundt <lethal@linux-sh.org>
@@ -143,9 +147,11 @@ strace-devel@lists.sourceforge.net mailing list.
 	Richard Henderson <richard@twiddle.tamu.edu>
 	Richard Hirst <rhirst@linuxcare.com>
 	Richard W.M. Jones <rjones@redhat.com>
+	Rishi Bhatt <bhatt.rishi062@gmail.com>
 	Roland Borde <bo@uebemc.siemens.de>
 	Roland McGrath <roland@redhat.com>
 	Sami Farin <safari@u.safari.iki.fi>
+	Sandhya Bankar <bankarsandhya512@gmail.com>
 	Scott Tsai <scottt958@yahoo.com.tw>
 	Sean Stangl <sstangl@mozilla.com>
 	Sebastian Pipping <sebastian@pipping.org>
@@ -170,6 +176,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Topi Miettinen <Topi.Miettinen@nic.fi>
 	Ulrich Drepper <drepper@redhat.com>
 	Vicente Olivert Riera <vincent@gentoo.org>
+	Victor Krapivensky <krapivenskiy.va@phystech.edu>
 	Vineet Gupta <Vineet.Gupta1@synopsys.com>
 	Wang Chao <wang.chao@cn.fujitsu.com>
 	Wichert Akkerman <wichert@deephackmode.org>

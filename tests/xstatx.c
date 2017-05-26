@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,26 +48,7 @@
 # include <unistd.h>
 # include <sys/sysmacros.h>
 
-static void
-print_time(const time_t t)
-{
-	if (!t) {
-		printf("0");
-		return;
-	}
-
-	struct tm *p = localtime(&t);
-
-	if (p) {
-		char buf[256];
-
-		strftime(buf, sizeof(buf), "%FT%T%z", p);
-
-		printf("%s", buf);
-	} else {
-		printf("%llu", zero_extend_signed_to_ull(t));
-	}
-}
+# include "statx.h"
 
 # ifndef STRUCT_STAT
 #  define STRUCT_STAT struct stat
@@ -130,6 +112,10 @@ typedef off_t libc_off_t;
 #  define OLD_STAT 0
 # endif
 
+# ifndef IS_STATX
+#  define IS_STATX 0
+# endif
+
 static void
 print_ftype(const unsigned int mode)
 {
@@ -151,6 +137,8 @@ print_perms(const unsigned int mode)
 	printf("%#o", mode & ~S_IFMT);
 }
 
+# if !IS_STATX
+
 static void
 print_stat(const STRUCT_STAT *st)
 {
@@ -165,12 +153,12 @@ print_stat(const STRUCT_STAT *st)
 	printf(", st_nlink=%llu", zero_extend_signed_to_ull(st->st_nlink));
 	printf(", st_uid=%llu", zero_extend_signed_to_ull(st->st_uid));
 	printf(", st_gid=%llu", zero_extend_signed_to_ull(st->st_gid));
-# if OLD_STAT
+#  if OLD_STAT
 	printf(", st_blksize=0, st_blocks=0");
-# else /* !OLD_STAT */
+#  else /* !OLD_STAT */
 	printf(", st_blksize=%llu", zero_extend_signed_to_ull(st->st_blksize));
 	printf(", st_blocks=%llu", zero_extend_signed_to_ull(st->st_blocks));
-# endif /* OLD_STAT */
+#  endif /* OLD_STAT */
 
 	switch (st->st_mode & S_IFMT) {
 	case S_IFCHR: case S_IFBLK:
@@ -182,26 +170,86 @@ print_stat(const STRUCT_STAT *st)
 		printf(", st_size=%llu", zero_extend_signed_to_ull(st->st_size));
 	}
 
-	printf(", st_atime=");
-	print_time(sign_extend_unsigned_to_ll(st->st_atime));
-# if defined(HAVE_STRUCT_STAT_ST_MTIME_NSEC) && !OLD_STAT
-	if (st->st_atime_nsec)
-		printf(".%09llu", zero_extend_signed_to_ull(st->st_atime_nsec));
-# endif
-	printf(", st_mtime=");
-	print_time(sign_extend_unsigned_to_ll(st->st_mtime));
-# if defined(HAVE_STRUCT_STAT_ST_MTIME_NSEC) && !OLD_STAT
-	if (st->st_mtime_nsec)
-		printf(".%09llu", zero_extend_signed_to_ull(st->st_mtime_nsec));
-# endif
-	printf(", st_ctime=");
-	print_time(sign_extend_unsigned_to_ll(st->st_ctime));
-# if defined(HAVE_STRUCT_STAT_ST_MTIME_NSEC) && !OLD_STAT
-	if (st->st_ctime_nsec)
-		printf(".%09llu", zero_extend_signed_to_ull(st->st_ctime_nsec));
-# endif
+#  if defined(HAVE_STRUCT_STAT_ST_MTIME_NSEC) && !OLD_STAT
+#   define TIME_NSEC(val)	zero_extend_signed_to_ull(val)
+#   define HAVE_NSEC		1
+#  else
+#   define TIME_NSEC(val)	0ULL
+#   define HAVE_NSEC		0
+#  endif
+
+#define PRINT_ST_TIME(field)						\
+	printf(", st_" #field "=%lld",					\
+	       sign_extend_unsigned_to_ll(st->st_ ## field));		\
+	print_time_t_nsec(sign_extend_unsigned_to_ll(st->st_ ## field),	\
+			  TIME_NSEC(st->st_ ## field ## _nsec), 1);	\
+	if (HAVE_NSEC)							\
+		printf(", st_" #field "_nsec=%llu",			\
+		       TIME_NSEC(st->st_ ## field ## _nsec))
+
+	PRINT_ST_TIME(atime);
+	PRINT_ST_TIME(mtime);
+	PRINT_ST_TIME(ctime);
 	printf("}");
 }
+
+# else /* !IS_STATX */
+
+static void
+print_stat(const STRUCT_STAT *st)
+{
+#  define PRINT_FIELD_U(field) \
+	printf(", %s=%llu", #field, (unsigned long long) st->field)
+
+#  define PRINT_FIELD_U32_UID(field) \
+	if (st->field == (uint32_t) -1) \
+		printf(", %s=-1", #field); \
+	else \
+		printf(", %s=%llu", #field, (unsigned long long) st->field)
+
+#  define PRINT_FIELD_TIME(field)					\
+	printf(", %s={tv_sec=%lld, tv_nsec=%u}",			\
+	       #field, (long long) st->field.tv_sec,			\
+	       (unsigned) st->field.tv_nsec);				\
+	print_time_t_nsec(st->field.tv_sec,				\
+			  zero_extend_signed_to_ull(st->field.tv_nsec), 1);
+
+	printf("{stx_mask=");
+	printflags(statx_masks, st->stx_mask, "STATX_???");
+
+	PRINT_FIELD_U(stx_blksize);
+
+	printf(", stx_attributes=");
+	printflags(statx_attrs, st->stx_attributes, "STATX_ATTR_???");
+
+	PRINT_FIELD_U(stx_nlink);
+	PRINT_FIELD_U32_UID(stx_uid);
+	PRINT_FIELD_U32_UID(stx_gid);
+
+	printf(", stx_mode=");
+	print_ftype(st->stx_mode);
+	printf("|");
+	print_perms(st->stx_mode);
+
+	PRINT_FIELD_U(stx_ino);
+	PRINT_FIELD_U(stx_size);
+	PRINT_FIELD_U(stx_blocks);
+
+	printf(", stx_attributes_mask=");
+	printflags(statx_attrs, st->stx_attributes_mask, "STATX_ATTR_???");
+
+	PRINT_FIELD_TIME(stx_atime);
+	PRINT_FIELD_TIME(stx_btime);
+	PRINT_FIELD_TIME(stx_ctime);
+	PRINT_FIELD_TIME(stx_mtime);
+	PRINT_FIELD_U(stx_rdev_major);
+	PRINT_FIELD_U(stx_rdev_minor);
+	PRINT_FIELD_U(stx_dev_major);
+	PRINT_FIELD_U(stx_dev_minor);
+	printf("}");
+}
+
+# endif /* !IS_STATX */
 
 static int
 create_sample(const char *fname, const libc_off_t size)
@@ -229,19 +277,19 @@ create_sample(const char *fname, const libc_off_t size)
 int
 main(void)
 {
-# if !IS_FSTAT
+# if IS_FSTAT
+	skip_if_unavailable("/proc/self/fd/");
+# else
 	static const char full[] = "/dev/full";
 # endif
-	static const char sample[] = TEST_SYSCALL_STR ".sample";
-	STRUCT_STAT st[2];
+	static const char sample[] = "stat.sample";
+	TAIL_ALLOC_OBJECT_CONST_PTR(STRUCT_STAT, st);
 
 	int rc;
 
 	rc = create_sample(sample, SAMPLE_SIZE);
-	if (rc) {
-		(void) unlink(sample);
+	if (rc)
 		return rc;
-	}
 
 # if TEST_BOGUS_STRUCT_STAT
 	STRUCT_STAT *st_cut = tail_alloc(sizeof(long) * 4);
@@ -262,46 +310,71 @@ main(void)
 # endif
 
 	if ((rc = TEST_SYSCALL_INVOKE(sample, st))) {
-# if OLD_STAT
-		if (errno != EOVERFLOW)
-# endif
-		{
+		if (errno != EOVERFLOW) {
+			rc = (errno == ENOSYS) ? 77 : 1;
 			perror(TEST_SYSCALL_STR);
-			(void) unlink(sample);
-			return 77;
+			return rc;
 		}
 	}
-	(void) unlink(sample);
+
+# if IS_STATX
+#  define ST_SIZE_FIELD stx_size
+# else
+#  define ST_SIZE_FIELD st_size
+# endif
 	if (!rc && zero_extend_signed_to_ull(SAMPLE_SIZE) !=
-	    zero_extend_signed_to_ull(st[0].st_size)) {
+	    zero_extend_signed_to_ull(st->ST_SIZE_FIELD)) {
 		fprintf(stderr, "Size mismatch: "
 				"requested size(%llu) != st_size(%llu)\n",
 			zero_extend_signed_to_ull(SAMPLE_SIZE),
-			zero_extend_signed_to_ull(st[0].st_size));
+			zero_extend_signed_to_ull(st->ST_SIZE_FIELD));
 		fprintf(stderr, "The most likely reason for this is incorrect"
 				" definition of %s.\n"
 				"Here is some diagnostics that might help:\n",
 			STRUCT_STAT_STR);
 
-#define LOG_STAT_OFFSETOF_SIZEOF(object, member)			\
+# define LOG_STAT_OFFSETOF_SIZEOF(object, member)			\
 		fprintf(stderr, "offsetof(%s, %s) = %zu"		\
 				", sizeof(%s) = %zu\n",			\
 				STRUCT_STAT_STR, #member,		\
 				offsetof(STRUCT_STAT, member),		\
 				#member, sizeof((object).member))
 
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_dev);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_ino);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_mode);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_nlink);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_uid);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_gid);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_rdev);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_size);
-# if !OLD_STAT
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_blksize);
-		LOG_STAT_OFFSETOF_SIZEOF(st[0], st_blocks);
-# endif /* !OLD_STAT */
+# if IS_STATX
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_mask);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_blksize);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_attributes);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_nlink);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_uid);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_gid);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_mode);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_ino);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_size);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_blocks);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_attributes_mask);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_atime);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_btime);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_ctime);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_mtime);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_rdev_major);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_rdev_minor);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_dev_major);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, stx_dev_minor);
+# else
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_dev);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_ino);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_mode);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_nlink);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_uid);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_gid);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_rdev);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_size);
+#  if !OLD_STAT
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_blksize);
+		LOG_STAT_OFFSETOF_SIZEOF(*st, st_blocks);
+#  endif /* !OLD_STAT */
+
+# endif /* IS_STATX */
 
 		return 1;
 	}
@@ -312,6 +385,63 @@ main(void)
 	else
 		print_stat(st);
 	PRINT_SYSCALL_FOOTER(rc);
+
+# if IS_STATX
+
+#  define INVOKE() \
+	rc = TEST_SYSCALL_INVOKE(sample, st); \
+	PRINT_SYSCALL_HEADER(sample); \
+	if (rc) \
+		printf("%p", st); \
+	else \
+		print_stat(st); \
+	PRINT_SYSCALL_FOOTER(rc)
+
+#  define SET_FLAGS_INVOKE(flags, flags_str) \
+	TEST_SYSCALL_STATX_FLAGS = flags; \
+	TEST_SYSCALL_STATX_FLAGS_STR = flags_str; \
+	INVOKE()
+
+#  define SET_MASK_INVOKE(mask, mask_str) \
+	TEST_SYSCALL_STATX_MASK = mask; \
+	TEST_SYSCALL_STATX_MASK_STR = mask_str; \
+	INVOKE()
+
+	unsigned old_flags = TEST_SYSCALL_STATX_FLAGS;
+	const char *old_flags_str = TEST_SYSCALL_STATX_FLAGS_STR;
+	unsigned old_mask = TEST_SYSCALL_STATX_MASK;
+	const char *old_mask_str = TEST_SYSCALL_STATX_MASK_STR;
+
+	SET_FLAGS_INVOKE(AT_SYMLINK_FOLLOW | 0xffff0000U,
+		"AT_STATX_SYNC_AS_STAT|AT_SYMLINK_FOLLOW|0xffff0000");
+
+	SET_FLAGS_INVOKE(AT_STATX_SYNC_TYPE,
+		"AT_STATX_FORCE_SYNC|AT_STATX_DONT_SYNC");
+
+	SET_FLAGS_INVOKE(0xffffff,
+		"AT_STATX_FORCE_SYNC|AT_STATX_DONT_SYNC|AT_SYMLINK_NOFOLLOW|"
+		"AT_REMOVEDIR|AT_SYMLINK_FOLLOW|AT_NO_AUTOMOUNT|AT_EMPTY_PATH|"
+		"0xff80ff");
+
+	/* We're done playing with flags. */
+	TEST_SYSCALL_STATX_FLAGS = old_flags;
+	TEST_SYSCALL_STATX_FLAGS_STR = old_flags_str;
+
+	SET_MASK_INVOKE(0, "0");
+	SET_MASK_INVOKE(0xfffff000U, "0xfffff000 /* STATX_??? */");
+
+	SET_MASK_INVOKE(0xfffffffbU,
+		"STATX_TYPE|STATX_MODE|STATX_UID|STATX_GID|STATX_ATIME|"
+		"STATX_MTIME|STATX_CTIME|STATX_INO|STATX_SIZE|STATX_BLOCKS|"
+		"STATX_BTIME|0xfffff000");
+
+	SET_MASK_INVOKE(STATX_UID, "STATX_UID");
+
+	/* ...and with mask. */
+	TEST_SYSCALL_STATX_MASK = old_mask;
+	TEST_SYSCALL_STATX_MASK_STR = old_mask_str;
+
+# endif /* IS_STATX */
 
 	puts("+++ exited with 0 +++");
 	return 0;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -95,13 +96,13 @@ int main(int ac, char **av)
 	FD_SET(fds[0], set[1]);
 	FD_SET(fds[1], set[1]);
 	assert(syscall(__NR_pselect6, fds[1] + 1, NULL, set[1], NULL, &tm.ts, NULL) == 3);
-	printf("pselect6(%d, NULL, [1 2 %d %d], NULL, "
-	       "{tv_sec=%lld, tv_nsec=%lld}, NULL) = 3 (out [1 2 %d], left "
-	       "{tv_sec=%lld, tv_nsec=%lld})\n",
-	       fds[1] + 1, fds[0], fds[1],
-	       (long long) tm_in.ts.tv_sec, (long long) tm_in.ts.tv_nsec,
-	       fds[1],
-	       (long long) tm.ts.tv_sec, (long long) tm.ts.tv_nsec);
+	printf("pselect6(%d, NULL, [1 2 %d %d], NULL"
+	       ", {tv_sec=%lld, tv_nsec=%llu}, NULL) = 3 (out [1 2 %d]"
+	       ", left {tv_sec=%lld, tv_nsec=%llu})\n",
+	       fds[1] + 1, fds[0], fds[1], (long long) tm_in.ts.tv_sec,
+	       zero_extend_signed_to_ull(tm_in.ts.tv_nsec),
+	       fds[1], (long long) tm.ts.tv_sec,
+	       zero_extend_signed_to_ull(tm.ts.tv_nsec));
 
 	/*
 	 * Now the crash case that trinity found, negative nfds
@@ -122,21 +123,40 @@ int main(int ac, char **av)
 	tm.ts.tv_sec = 0;
 	tm.ts.tv_nsec = 123;
 	assert(pselect(FD_SETSIZE + 1, set[0], set[1], NULL, &tm.ts, &mask) == 0);
-	printf("pselect6(%d, [%d], [], NULL, {tv_sec=0, tv_nsec=123}, "
-	       "{[HUP CHLD], %u}) = 0 (Timeout)\n",
+	printf("pselect6(%d, [%d], [], NULL, {tv_sec=0, tv_nsec=123}"
+	       ", {[HUP CHLD], %u}) = 0 (Timeout)\n",
 	       FD_SETSIZE + 1, fds[0], NSIG_BYTES);
 
 	/*
 	 * See how timeouts are decoded.
 	 */
+	tm.ts.tv_sec = 0xdeadbeefU;
+	tm.ts.tv_nsec = 0xfacefeedU;
+	assert(pselect(0, NULL, NULL, NULL, &tm.ts, NULL) == -1);
+	printf("pselect6(0, NULL, NULL, NULL"
+	       ", {tv_sec=%lld, tv_nsec=%llu}, {NULL, %u}) = %s\n",
+	       (long long) tm.ts.tv_sec,
+	       zero_extend_signed_to_ull(tm.ts.tv_nsec),
+	       NSIG_BYTES, sprintrc(-1));
+
+	tm.ts.tv_sec = (time_t) 0xcafef00ddeadbeefLL;
+	tm.ts.tv_nsec = (long) 0xbadc0dedfacefeedLL;
+	assert(pselect(0, NULL, NULL, NULL, &tm.ts, NULL) == -1);
+	printf("pselect6(0, NULL, NULL, NULL"
+	       ", {tv_sec=%lld, tv_nsec=%llu}, {NULL, %u}) = %s\n",
+	       (long long) tm.ts.tv_sec,
+	       zero_extend_signed_to_ull(tm.ts.tv_nsec),
+	       NSIG_BYTES, sprintrc(-1));
+
 	assert(sigaction(SIGALRM, &act, NULL) == 0);
 	assert(setitimer(ITIMER_REAL, &itv, NULL) == 0);
 
+	tm.ts.tv_sec = 0;
 	tm.ts.tv_nsec = 222222222;
 	assert(pselect(0, NULL, NULL, NULL, &tm.ts, &mask) == -1);
-	printf("pselect6(0, NULL, NULL, NULL, {tv_sec=0, tv_nsec=222222222}, "
-	       "{[HUP CHLD], %u}) = "
-	       "? ERESTARTNOHAND (To be restarted if no handler)\n",
+	printf("pselect6(0, NULL, NULL, NULL, {tv_sec=0, tv_nsec=222222222}"
+	       ", {[HUP CHLD], %u})"
+	       " = ? ERESTARTNOHAND (To be restarted if no handler)\n",
 	       NSIG_BYTES);
 	puts("--- SIGALRM {si_signo=SIGALRM, si_code=SI_KERNEL} ---");
 
