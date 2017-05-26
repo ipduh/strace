@@ -27,6 +27,9 @@
 /* Define for the Blackfin architecture. */
 #undef BFIN
 
+/* Current copyright year. */
+#undef COPYRIGHT_YEAR
+
 /* Define for the CRISv10 architecture. */
 #undef CRISV10
 
@@ -390,6 +393,14 @@
    don't. */
 #undef HAVE_DECL_SYS_ERRLIST
 
+/* Define to 1 if you have the declaration of `V4L2_BUF_TYPE_SDR_CAPTURE', and
+   to 0 if you don't. */
+#undef HAVE_DECL_V4L2_BUF_TYPE_SDR_CAPTURE
+
+/* Define to 1 if you have the declaration of `V4L2_BUF_TYPE_SDR_OUTPUT', and
+   to 0 if you don't. */
+#undef HAVE_DECL_V4L2_BUF_TYPE_SDR_OUTPUT
+
 /* Define to 1 if you have the declaration of
    `V4L2_BUF_TYPE_SLICED_VBI_CAPTURE', and to 0 if you don't. */
 #undef HAVE_DECL_V4L2_BUF_TYPE_SLICED_VBI_CAPTURE
@@ -743,6 +754,9 @@
    file. */
 #undef HAVE_LINUX_NETFILTER_IPV6_IP6_TABLES_H
 
+/* Define to 1 if you have the <linux/nsfs.h> header file. */
+#undef HAVE_LINUX_NSFS_H
+
 /* Define to 1 if you have the <linux/perf_event.h> header file. */
 #undef HAVE_LINUX_PERF_EVENT_H
 
@@ -1038,6 +1052,12 @@
 /* Define to 1 if `domainname' is a member of `struct utsname'. */
 #undef HAVE_STRUCT_UTSNAME_DOMAINNAME
 
+/* Define to 1 if `buffersize' is a member of `struct v4l2_sdr_format'. */
+#undef HAVE_STRUCT_V4L2_SDR_FORMAT_BUFFERSIZE
+
+/* Define to 1 if `global_alpha' is a member of `struct v4l2_window'. */
+#undef HAVE_STRUCT_V4L2_WINDOW_GLOBAL_ALPHA
+
 /* Define to 1 if the system has the type `struct __kernel_flock'. */
 #undef HAVE_STRUCT___KERNEL_FLOCK
 
@@ -1092,8 +1112,8 @@
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF
 
-/* Define to 1 if union bpf_attr.attach_type initialization works */
-#undef HAVE_UNION_BPF_ATTR_ATTACH_TYPE
+/* Define to 1 if union bpf_attr.attach_flags initialization works */
+#undef HAVE_UNION_BPF_ATTR_ATTACH_FLAGS
 
 /* Define to 1 if union bpf_attr.bpf_fd initialization works */
 #undef HAVE_UNION_BPF_ATTR_BPF_FD

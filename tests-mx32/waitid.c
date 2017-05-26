@@ -2,6 +2,7 @@
  * Check decoding of waitid syscall.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,8 +43,8 @@ sprint_rusage(const struct rusage *const ru)
 {
 	static char buf[1024];
 	snprintf(buf, sizeof(buf),
-		 "{ru_utime={tv_sec=%lld, tv_usec=%lld}"
-		 ", ru_stime={tv_sec=%lld, tv_usec=%lld}"
+		 "{ru_utime={tv_sec=%lld, tv_usec=%llu}"
+		 ", ru_stime={tv_sec=%lld, tv_usec=%llu}"
 #if VERBOSE
 		 ", ru_maxrss=%llu"
 		 ", ru_ixrss=%llu"
@@ -63,9 +64,9 @@ sprint_rusage(const struct rusage *const ru)
 		 ", ...}"
 #endif
 		 , (long long) ru->ru_utime.tv_sec
-		 , (long long) ru->ru_utime.tv_usec
+		 , zero_extend_signed_to_ull(ru->ru_utime.tv_usec)
 		 , (long long) ru->ru_stime.tv_sec
-		 , (long long) ru->ru_stime.tv_usec
+		 , zero_extend_signed_to_ull(ru->ru_stime.tv_usec)
 #if VERBOSE
 		 , zero_extend_signed_to_ull(ru->ru_maxrss)
 		 , zero_extend_signed_to_ull(ru->ru_ixrss)
@@ -185,9 +186,9 @@ main(void)
 		perror_msg_and_fail("waitid #1");
 	tprintf("waitid(P_PID, %d, NULL, WNOHANG|WEXITED, NULL) = 0\n", pid);
 
-	siginfo_t *const sinfo = tail_alloc(sizeof(*sinfo));
+	TAIL_ALLOC_OBJECT_CONST_PTR(siginfo_t, sinfo);
 	memset(sinfo, 0, sizeof(*sinfo));
-	struct rusage *const rusage = tail_alloc(sizeof(*rusage));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct rusage, rusage);
 	if (do_waitid(P_PID, pid, sinfo, WNOHANG|WEXITED|WSTOPPED, rusage))
 		perror_msg_and_fail("waitid #2");
 	tprintf("waitid(P_PID, %d, {}, WNOHANG|WEXITED|WSTOPPED, %s) = 0\n",

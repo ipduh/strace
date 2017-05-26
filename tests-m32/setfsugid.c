@@ -2,6 +2,7 @@
  * Check decoding of setfsuid/setfsgid/setfsuid32/setfsgid32 syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +48,7 @@ main(void)
 	const kernel_ulong_t tests[] = {
 		ugid,
 		0xffff0000U | ugid,
-		(kernel_ulong_t) 0xffffffff00000000ULL | ugid,
+		F8ILL_KULONG_MASK | ugid,
 		0xffffU,
 		-1U,
 		-1L,

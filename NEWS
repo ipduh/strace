@@ -1,3 +1,58 @@
+Noteworthy changes in release 4.17 (2017-05-24)
+===============================================
+
+* Changes in command line syntax
+  * Syscall classes specified in -e trace= option now have % prefix (like
+    -e trace=%process).  Old style class names without leading % are still
+    supported, but considered deprecated now.
+
+* Improvements
+  * Optimized syscall filtering.
+  * Improved representation of timestamps.
+  * Enhanced decoding of sched_setattr syscall.
+  * Added -e trace=%stat option for tracing variants of stat syscall.
+  * Added -e trace=%lstat option for tracing variants of lstat syscall.
+  * Added -e trace=%fstat option for tracing variants of fstat and fstatat
+    syscalls.
+  * Added -e trace=%%stat option for tracing syscalls used for querying file
+    status information (stat, lstat, fstat, fstatat, statx, and their
+    variations).
+  * Added -e trace=%statfs option for tracing statfs, statfs64 and statvfs
+    syscalls.
+  * Added -e trace=%fstatfs option for tracing fstatfs, fstatfs64 and fstatvfs
+    syscalls.
+  * Added -e trace=%%statfs option for tracing syscalls used for querying file
+    system statistics information (statfs-like, fstatfs-like and ustat).
+  * Added -e trace=/regex option for filtering syscalls using regular
+    expressions.
+  * Added support for prepending of question mark before syscall qualification
+    in -e trace expressions in order to suppress error in case no syscalls
+    matched the provided qualification.
+  * Implemented decoding of signal mask in rt_sigreturn syscall on alpha, arc,
+    arm, avr32, bfin, cris, hppa, m68k, metag, microblaze, mips, nios2, or1k,
+    powerpc, powerpc64, riscv, sh, sh64, sparc, sparc64, tile, x86, and xtensa
+    architectures.
+  * Implemented decoding of statx syscall.
+  * Implemented decoding of NS_* ioctl commands.
+  * Implemented decoding of the remaining V4L2_BUF_TYPE_* types.
+  * Implemented decoding of VIDIOC_[SG]_TUNER ioctl commands.
+  * Implemented decoding of NLMSG_ERROR netlink messages.
+  * Improved decoding of BPF_PROG_ATTACH command of bpf syscall.
+  * Improved decoding of misplaced parts in DM_* ioctl commands.
+  * Updated lists of ioctl commands from Linux 4.11.
+
+* Bug fixes
+  * Fixed decoding of flags argument of preadv2 and pwritev2 syscalls on x32.
+  * Fixed the number of arguments and tracing flags of alpha specific syscalls.
+  * Fixed decoding of old sigsuspend syscall on alpha, cris, mips, powerpc,
+    powerpc64, sh, sh64, sparc, and sparc64.
+  * Fixed decoding of sgetmask and ssetmask syscalls on 64-bit architectures.
+  * Fixed decoding of netlink messages received within struct msghdr.
+  * Worked around a bug in miscompiled aarch64 kernels leading to the 3rd
+    argument of sched_getattr syscall being not quite 32-bit.
+  * Fixed corner cases of printing inaccessible times argument of utimes
+    and futimesat syscalls.
+
 Noteworthy changes in release 4.16 (2017-02-14)
 ===============================================
 

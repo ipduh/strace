@@ -97,6 +97,9 @@
 #ifdef MPERS_mx32_siginfo_t
 # define siginfo_t MPERS_mx32_siginfo_t
 #endif
+#ifdef MPERS_mx32_struct_rt_sigframe
+# define struct_rt_sigframe MPERS_mx32_struct_rt_sigframe
+#endif
 #ifdef MPERS_mx32_struct_rtc_pll_info
 # define struct_rtc_pll_info MPERS_mx32_struct_rtc_pll_info
 #endif
@@ -126,6 +129,9 @@
 #endif
 #ifdef MPERS_mx32_struct_v4l2_buffer
 # define struct_v4l2_buffer MPERS_mx32_struct_v4l2_buffer
+#endif
+#ifdef MPERS_mx32_struct_v4l2_clip
+# define struct_v4l2_clip MPERS_mx32_struct_v4l2_clip
 #endif
 #ifdef MPERS_mx32_struct_v4l2_create_buffers
 # define struct_v4l2_create_buffers MPERS_mx32_struct_v4l2_create_buffers

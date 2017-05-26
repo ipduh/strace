@@ -1,6 +1,7 @@
 #!/bin/sh
 #
 # Copyright (c) 2011-2016 Dmitry V. Levin <ldv@altlinux.org>
+# Copyright (c) 2011-2017 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,10 +27,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ME_="${0##*/}"
-LOG="$ME_.tmp"
-OUT="$LOG.out"
-EXP="$LOG.exp"
-NAME="${ME_%.test}"
+LOG="log"
+OUT="out"
+EXP="exp"
 
 warn_() { printf >&2 '%s\n' "$*"; }
 fail_() { warn_ "$ME_: failed test: $*"; exit 1; }
@@ -52,7 +52,7 @@ dump_log_and_fail_with()
 run_prog()
 {
 	if [ $# -eq 0 ]; then
-		set -- "./$NAME"
+		set -- "../$NAME"
 	fi
 	args="$*"
 	"$@" || {
@@ -70,6 +70,20 @@ run_prog_skip_if_failed()
 {
 	args="$*"
 	"$@" || framework_skip_ "$args failed with code $?"
+}
+
+try_run_prog()
+{
+	local rc
+
+	"$@" > /dev/null || {
+		rc=$?
+		if [ $rc -eq 77 ]; then
+			return 1
+		else
+			fail_ "$* failed with code $rc"
+		fi
+	}
 }
 
 run_strace()
@@ -213,7 +227,6 @@ run_strace_match_diff()
 	run_prog > /dev/null
 	run_strace "$@" $args > "$EXP"
 	match_diff "$LOG" "$EXP"
-	rm -f "$EXP"
 }
 
 # Print kernel version code.
@@ -250,22 +263,110 @@ grep_pid_status()
 	cat < "/proc/$pid/status" | grep "$@"
 }
 
+# Subtracts one program set from another.
+# If an optional regular expression is specified, the lines in the minuend file
+# that match this regular expression are elso excluded from the output.
+#
+# Usage: prog_set_subtract minuend_file subtrahend_file [subtrahend_regexp]
+prog_set_subtract()
+{
+	local min sub re pat
+	min="$1"; shift
+	sub="$1"; shift
+	re="${1-}"
+	pat="$re|$(sed 's/[[:space:]].*//' < "$sub" | tr -s '\n' '|')"
+	grep -E -v -x -e "$pat" < "$min"
+}
+
+# Usage: test_pure_prog_set [--expfile FILE] COMMON_ARGS < tests_file
+# stdin should consist of lines in "test_name strace_args..." format.
+test_pure_prog_set()
+{
+	local expfile
+
+	expfile="$EXP"
+
+	while [ -n "$1" ]; do
+		case "$1" in
+		--expfile)
+			shift
+			expfile="$1"
+			shift
+			;;
+		*)
+			break
+			;;
+		esac
+	done
+
+	while read -r t prog_args; do {
+		# skip lines beginning with "#" symbol
+		[ "${t###}" = "$t" ] || continue
+
+		try_run_prog "../$t" || continue
+		run_strace $prog_args "$@" "../$t" > "$expfile"
+		match_diff "$LOG" "$expfile"
+	} < /dev/null; done
+}
+
+# Run strace against list of programs put in "$NAME.in" and then against the
+# rest of pure_executables.list with the expectation of empty output in the
+# latter case.
+#
+# Usage: source this file after init.sh and call:
+#   test_trace_expr subtrahend_regexp strace_args
+# Environment:
+#   $NAME:	test name, used for "$NAME.in" file containing list of tests
+#		for positive trace expression match;
+#   $srcdir:	used to find pure_executables.list and "$NAME.in" files.
+# Files created:
+#   negative.list: File containing list of tests for negative match.
+test_trace_expr()
+{
+	local subtrahend_regexp
+	subtrahend_regexp="$1"; shift
+	test_pure_prog_set "$@" < "$srcdir/$NAME.in"
+	prog_set_subtract "$srcdir/pure_executables.list" "$srcdir/$NAME.in" \
+		"$subtrahend_regexp" > negative.list
+	test_pure_prog_set --expfile /dev/null -qq -esignal=none "$@" \
+		< negative.list
+}
+
 check_prog cat
 check_prog rm
 
-rm -f "$LOG"
+case "$ME_" in
+	*.gen.test) NAME="${ME_%.gen.test}" ;;
+	*.test) NAME="${ME_%.test}" ;;
+	*) NAME=
+esac
 
-[ -n "${STRACE-}" ] || {
-	STRACE=../strace
-	case "${LOG_COMPILER-} ${LOG_FLAGS-}" in
-		*--suppressions=*--error-exitcode=*--tool=*)
+if [ -n "$NAME" ]; then
+	TESTDIR="$NAME.dir"
+	rm -rf -- "$TESTDIR"
+	mkdir -- "$TESTDIR"
+	cd "$TESTDIR"
+
+	case "$srcdir" in
+		/*) ;;
+		*) srcdir="../$srcdir" ;;
+	esac
+
+	[ -n "${STRACE-}" ] || {
+		STRACE=../../strace
+		case "${LOG_COMPILER-} ${LOG_FLAGS-}" in
+			*--suppressions=*--error-exitcode=*--tool=*)
 			# add valgrind command prefix
 			STRACE="${LOG_COMPILER-} ${LOG_FLAGS-} $STRACE"
 			;;
-	esac
-}
+		esac
+	}
+else
+	[ -n "${STRACE-}" ] ||
+		STRACE=../strace
+fi
 
-: "${TIMEOUT_DURATION:=60}"
+: "${TIMEOUT_DURATION:=120}"
 : "${SLEEP_A_BIT:=sleep 1}"
 
 [ -z "${VERBOSE-}" ] ||

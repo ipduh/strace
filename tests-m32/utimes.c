@@ -1,7 +1,7 @@
 /*
  * Check decoding of utimes syscall.
  *
- * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,50 +32,10 @@
 
 #ifdef __NR_utimes
 
-# include <stdint.h>
-# include <stdio.h>
-# include <sys/time.h>
-# include <unistd.h>
-
-int
-main(void)
-{
-	struct timeval tv;
-	if (gettimeofday(&tv, NULL))
-		perror_msg_and_fail("gettimeofday");
-
-	static const char sample[] = "utimes_sample";
-
-	long rc = syscall(__NR_utimes, sample, 0);
-	printf("utimes(\"%s\", NULL) = %ld %s (%m)\n",
-	       sample, rc, errno2name());
-
-	struct timeval *const ts = tail_alloc(sizeof(*ts) * 2);
-
-	ts[0].tv_sec = tv.tv_sec;
-	ts[0].tv_usec = tv.tv_usec;
-	ts[1].tv_sec = tv.tv_sec - 1;
-	ts[1].tv_usec = tv.tv_usec + 1;
-
-	rc = syscall(__NR_utimes, 0, ts + 2);
-	printf("utimes(NULL, %p) = %ld %s (%m)\n", ts + 2, rc, errno2name());
-
-	rc = syscall(__NR_utimes, 0, ts + 1);
-	printf("utimes(NULL, [{tv_sec=%jd, tv_usec=%jd}, %p]) = "
-	       "%ld %s (%m)\n",
-	       (intmax_t) ts[1].tv_sec, (intmax_t) ts[1].tv_usec,
-	       ts + 2, rc, errno2name());
-
-	rc = syscall(__NR_utimes, "", ts);
-	printf("utimes(\"\", [{tv_sec=%jd, tv_usec=%jd}, "
-	       "{tv_sec=%jd, tv_usec=%jd}]) = %ld %s (%m)\n",
-	       (intmax_t) ts[0].tv_sec, (intmax_t) ts[0].tv_usec,
-	       (intmax_t) ts[1].tv_sec, (intmax_t) ts[1].tv_usec,
-	       rc, errno2name());
-
-	puts("+++ exited with 0 +++");
-	return 0;
-}
+# define TEST_SYSCALL_NR	__NR_utimes
+# define TEST_SYSCALL_STR	"utimes"
+# define TEST_STRUCT		struct timeval
+# include "xutimes.c"
 
 #else
 

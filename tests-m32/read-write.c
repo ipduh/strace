@@ -2,6 +2,7 @@
  * Check decoding and dumping of read and write syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -137,7 +138,9 @@ main(void)
 {
 	tprintf("%s", "");
 
-	static char tmp[] = "read-write-tmpfile";
+	skip_if_unavailable("/proc/self/fd/");
+
+	static const char tmp[] = "read-write-tmpfile";
 	if (open(tmp, O_CREAT|O_RDONLY|O_TRUNC, 0600) != 0)
 		perror_msg_and_fail("creat: %s", tmp);
 	if (open(tmp, O_WRONLY) != 1)

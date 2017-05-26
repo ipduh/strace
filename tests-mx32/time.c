@@ -2,6 +2,7 @@
  * This file is part of time strace test.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,15 +41,24 @@
 int
 main(void)
 {
-	time_t *p = tail_alloc(sizeof(time_t));
+	TAIL_ALLOC_OBJECT_CONST_PTR(time_t, p);
 
 	time_t t = syscall(__NR_time, NULL);
 	if ((time_t) -1 == t)
 		perror_msg_and_skip("time");
-	printf("time(NULL) = %jd\n", (intmax_t) t);
+	printf("time(NULL) = %lld (", (long long) t);
+	print_time_t_nsec(t, 0, 0);
+	puts(")");
+
+	t = syscall(__NR_time, p + 1);
+	printf("time(%p) = %s\n", p + 1, sprintrc(t));
 
 	t = syscall(__NR_time, p);
-	printf("time([%jd]) = %jd\n", (intmax_t) *p, (intmax_t) t);
+	printf("time([%lld", (long long) *p);
+	print_time_t_nsec((time_t) *p, 0, 1),
+	printf("]) = %lld (", (long long) t);
+	print_time_t_nsec(t, 0, 0);
+	puts(")");
 
 	puts("+++ exited with 0 +++");
 	return 0;

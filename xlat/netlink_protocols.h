@@ -63,13 +63,8 @@
 # define NETLINK_CRYPTO 21
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat netlink_protocols in mpers mode
-
-#else
-
-static
 const struct xlat netlink_protocols[] = {
  XLAT(NETLINK_ROUTE),
  XLAT(NETLINK_UNUSED),

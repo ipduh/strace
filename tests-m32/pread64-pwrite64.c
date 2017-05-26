@@ -2,6 +2,7 @@
  * Check decoding of pread64 and pwrite64 syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -123,7 +124,9 @@ main(void)
 {
 	tprintf("%s", "");
 
-	static char tmp[] = "pread64-pwrite64-tmpfile";
+	skip_if_unavailable("/proc/self/fd/");
+
+	static const char tmp[] = "pread64-pwrite64-tmpfile";
 	if (open(tmp, O_CREAT|O_RDONLY|O_TRUNC, 0600) != 0)
 		perror_msg_and_fail("creat: %s", tmp);
 	if (open(tmp, O_WRONLY) != 1)

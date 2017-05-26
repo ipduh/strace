@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +28,7 @@
 
 #include "defs.h"
 #include "nsig.h"
+#include <regex.h>
 
 typedef unsigned int number_slot_t;
 #define BITS_PER_SLOT (sizeof(number_slot_t) * 8)
@@ -198,6 +200,48 @@ qualify_syscall_number(const char *s, struct number_set *set)
 	return done;
 }
 
+static void
+regerror_msg_and_die(int errcode, const regex_t *preg,
+		     const char *str, const char *pattern)
+{
+	char buf[512];
+
+	regerror(errcode, preg, buf, sizeof(buf));
+	error_msg_and_die("%s: %s: %s", str, pattern, buf);
+}
+
+static bool
+qualify_syscall_regex(const char *s, struct number_set *set)
+{
+	regex_t preg;
+	int rc;
+
+	if ((rc = regcomp(&preg, s, REG_EXTENDED | REG_NOSUB)) != 0)
+		regerror_msg_and_die(rc, &preg, "regcomp", s);
+
+	unsigned int p;
+	bool found = false;
+	for (p = 0; p < SUPPORTED_PERSONALITIES; ++p) {
+		unsigned int i;
+
+		for (i = 0; i < nsyscall_vec[p]; ++i) {
+			if (!sysent_vec[p][i].sys_name)
+				continue;
+			rc = regexec(&preg, sysent_vec[p][i].sys_name,
+				     0, NULL, 0);
+			if (rc == REG_NOMATCH)
+				continue;
+			else if (rc)
+				regerror_msg_and_die(rc, &preg, "regexec", s);
+			add_number_to_set(i, &set[p]);
+			found = true;
+		}
+	}
+
+	regfree(&preg);
+	return found;
+}
+
 static unsigned int
 lookup_class(const char *s)
 {
@@ -212,6 +256,20 @@ lookup_class(const char *s)
 		{ "signal",	TRACE_SIGNAL	},
 		{ "ipc",	TRACE_IPC	},
 		{ "network",	TRACE_NETWORK	},
+		{ "%desc",	TRACE_DESC	},
+		{ "%file",	TRACE_FILE	},
+		{ "%memory",	TRACE_MEMORY	},
+		{ "%process",	TRACE_PROCESS	},
+		{ "%signal",	TRACE_SIGNAL	},
+		{ "%ipc",	TRACE_IPC	},
+		{ "%network",	TRACE_NETWORK	},
+		{ "%stat",	TRACE_STAT	},
+		{ "%lstat",	TRACE_LSTAT	},
+		{ "%fstat",	TRACE_FSTAT	},
+		{ "%%stat",	TRACE_STAT_LIKE	},
+		{ "%statfs",	TRACE_STATFS	},
+		{ "%fstatfs",	TRACE_FSTATFS	},
+		{ "%%statfs",	TRACE_STATFS_LIKE	},
 	};
 
 	unsigned int i;
@@ -272,10 +330,19 @@ qualify_syscall_name(const char *s, struct number_set *set)
 static bool
 qualify_syscall(const char *token, struct number_set *set)
 {
+	bool ignore_fail = false;
+
+	while (*token == '?') {
+		token++;
+		ignore_fail = true;
+	}
 	if (*token >= '0' && *token <= '9')
-		return qualify_syscall_number(token, set);
+		return qualify_syscall_number(token, set) || ignore_fail;
+	if (*token == '/')
+		return qualify_syscall_regex(token + 1, set) || ignore_fail;
 	return qualify_syscall_class(token, set)
-	       || qualify_syscall_name(token, set);
+	       || qualify_syscall_name(token, set)
+	       || ignore_fail;
 }
 
 /*

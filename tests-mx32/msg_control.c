@@ -2,6 +2,7 @@
  * Check decoding of struct msghdr ancillary data.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -689,7 +690,7 @@ int main(int ac, const char **av)
 	int rc = sendmsg(-1, 0, 0);
 	printf("sendmsg(-1, NULL, 0) = %d %s (%m)\n", rc, errno2name());
 
-	struct msghdr *mh = tail_alloc(sizeof(*mh));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct msghdr, mh);
 	memset(mh, 0, sizeof(*mh));
 	test_big_len(mh);
 
