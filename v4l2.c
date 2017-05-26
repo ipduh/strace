@@ -2,6 +2,7 @@
  * Copyright (c) 2014 Philippe De Muyter <phdm@macqel.be>
  * Copyright (c) 2014 William Manley <will@williammanley.net>
  * Copyright (c) 2011 Peter Zotov <whitequark@whitequark.org>
+ * Copyright (c) 2014-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +31,7 @@
 #include "defs.h"
 
 #include DEF_MPERS_TYPE(struct_v4l2_buffer)
+#include DEF_MPERS_TYPE(struct_v4l2_clip)
 #include DEF_MPERS_TYPE(struct_v4l2_create_buffers)
 #include DEF_MPERS_TYPE(struct_v4l2_ext_control)
 #include DEF_MPERS_TYPE(struct_v4l2_ext_controls)
@@ -44,6 +46,7 @@
 #include <linux/videodev2.h>
 
 typedef struct v4l2_buffer struct_v4l2_buffer;
+typedef struct v4l2_clip struct_v4l2_clip;
 typedef struct v4l2_create_buffers struct_v4l2_create_buffers;
 typedef struct v4l2_ext_control struct_v4l2_ext_control;
 typedef struct v4l2_ext_controls struct_v4l2_ext_controls;
@@ -200,10 +203,22 @@ print_v4l2_fmtdesc(struct tcb *const tcp, const kernel_ulong_t arg)
 
 #include "xlat/v4l2_fields.h"
 #include "xlat/v4l2_colorspaces.h"
+#include "xlat/v4l2_vbi_flags.h"
+#include "xlat/v4l2_sliced_flags.h"
 
-static void
-print_v4l2_format_fmt(const char *prefix, const struct_v4l2_format *f)
+static bool
+print_v4l2_clip(struct tcb *tcp, void *elem_buf, size_t elem_size, void* data)
 {
+	const struct_v4l2_clip *p = elem_buf;
+	tprintf(FMT_RECT, ARGS_RECT(p->c));
+	return true;
+}
+
+static bool
+print_v4l2_format_fmt(struct tcb *const tcp, const char *prefix,
+		      const struct_v4l2_format *f)
+{
+	bool ret = true;
 	switch (f->type) {
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
 	case V4L2_BUF_TYPE_VIDEO_OUTPUT:
@@ -244,42 +259,97 @@ print_v4l2_format_fmt(const char *prefix, const struct_v4l2_format *f)
 				f->fmt.pix_mp.plane_fmt[i].sizeimage,
 				f->fmt.pix_mp.plane_fmt[i].bytesperline);
 		}
-		tprintf("], num_planes=%u}", (unsigned) f->fmt.pix_mp.num_planes);
+		tprintf("], num_planes=%u}",
+			(unsigned) f->fmt.pix_mp.num_planes);
 		break;
 	}
 #endif
-
-	/* TODO: Complete this switch statement */
-#if 0
-	case V4L2_BUF_TYPE_VIDEO_OVERLAY:
+	/* OUTPUT_OVERLAY since Linux v2.6.22-rc1~1118^2~179 */
 #if HAVE_DECL_V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY
 	case V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY:
 #endif
+	case V4L2_BUF_TYPE_VIDEO_OVERLAY: {
+		struct_v4l2_clip clip;
 		tprints(prefix);
-		tprints("fmt.win={???}");
+		tprintf("fmt.win={left=%d, top=%d, width=%u, height=%u, field=",
+			ARGS_RECT(f->fmt.win.w));
+		printxval(v4l2_fields, f->fmt.win.field, "V4L2_FIELD_???");
+		tprintf(", chromakey=%#x, clips=", f->fmt.win.chromakey);
+		ret = print_array(tcp, ptr_to_kulong(f->fmt.win.clips),
+				  f->fmt.win.clipcount, &clip, sizeof(clip),
+				  umoven_or_printaddr, print_v4l2_clip, 0);
+		tprintf(", clipcount=%u, bitmap=", f->fmt.win.clipcount);
+		printaddr(ptr_to_kulong(f->fmt.win.bitmap));
+#if HAVE_STRUCT_V4L2_WINDOW_GLOBAL_ALPHA
+		tprintf(", global_alpha=%#x", f->fmt.win.global_alpha);
+#endif
+		tprints("}");
 		break;
-
+	}
 	case V4L2_BUF_TYPE_VBI_CAPTURE:
 	case V4L2_BUF_TYPE_VBI_OUTPUT:
 		tprints(prefix);
-		tprints("fmt.vbi={???}");
+		tprintf("fmt.vbi={sampling_rate=%u, offset=%u, "
+			"samples_per_line=%u, sample_format=",
+			f->fmt.vbi.sampling_rate, f->fmt.vbi.offset,
+			f->fmt.vbi.samples_per_line);
+		print_pixelformat(f->fmt.vbi.sample_format);
+		tprintf(", start=[%u, %u], count=[%u, %u], ",
+			f->fmt.vbi.start[0], f->fmt.vbi.start[1],
+			f->fmt.vbi.count[0], f->fmt.vbi.count[1]);
+		tprints("flags=");
+		printxval(v4l2_vbi_flags, f->fmt.vbi.flags, "V4L2_VBI_???");
+		tprints("}");
 		break;
-
+	/* both since Linux v2.6.14-rc2~64 */
+#if HAVE_DECL_V4L2_BUF_TYPE_SLICED_VBI_CAPTURE
 	case V4L2_BUF_TYPE_SLICED_VBI_CAPTURE:
-	case V4L2_BUF_TYPE_SLICED_VBI_OUTPUT:
-		tprints(prefix);
-		tprints("fmt.sliced={???}");
-		break;
+	case V4L2_BUF_TYPE_SLICED_VBI_OUTPUT: {
+		unsigned int i, j;
 
+		tprints(prefix);
+		tprints("fmt.sliced={service_set=");
+		printxval(v4l2_sliced_flags, f->fmt.sliced.service_set,
+			"V4L2_SLICED_???");
+		tprintf(", io_size=%u, service_lines=[",
+			f->fmt.sliced.io_size);
+		for (i = 0; i < ARRAY_SIZE(f->fmt.sliced.service_lines); i++) {
+			if (i > 0)
+				tprints(", ");
+			tprints("[");
+			for (j = 0;
+			     j < ARRAY_SIZE(f->fmt.sliced.service_lines[0]);
+			     j++) {
+				if (j > 0)
+					tprints(", ");
+				tprintf("%#x",
+					f->fmt.sliced.service_lines[i][j]);
+			}
+			tprints("]");
+		}
+		tprints("]}");
+		break;
+	}
+#endif
+	/* since Linux v4.4-rc1~118^2~14 */
+#if HAVE_DECL_V4L2_BUF_TYPE_SDR_OUTPUT
+	case V4L2_BUF_TYPE_SDR_OUTPUT:
+#endif
+	/* since Linux v3.15-rc1~85^2~213 */
 #if HAVE_DECL_V4L2_BUF_TYPE_SDR_CAPTURE
 	case V4L2_BUF_TYPE_SDR_CAPTURE:
-	case V4L2_BUF_TYPE_SDR_OUTPUT:
 		tprints(prefix);
-		tprints("fmt.sdr={???}");
+		tprints("fmt.sdr={pixelformat=");
+		print_pixelformat(f->fmt.sdr.pixelformat);
+#if HAVE_STRUCT_V4L2_SDR_FORMAT_BUFFERSIZE
+		tprintf(", buffersize=%u",
+			f->fmt.sdr.buffersize);
+#endif
+		tprints("}");
 		break;
 #endif
-#endif
 	}
+	return ret;
 }
 
 static int
@@ -296,11 +366,14 @@ print_v4l2_format(struct tcb *const tcp, const kernel_ulong_t arg,
 		printxval(v4l2_buf_types, f.type, "V4L2_BUF_TYPE_???");
 		if (is_get)
 			return 0;
-		print_v4l2_format_fmt(", ", &f);
+		if (!print_v4l2_format_fmt(tcp, ", ", &f)) {
+			tprints("}");
+			return RVAL_DECODED | 1;
+		}
 	} else {
 		if (!syserror(tcp) && !umove(tcp, arg, &f)) {
 			const char *delim = is_get ? ", " : " => ";
-			print_v4l2_format_fmt(delim, &f);
+			print_v4l2_format_fmt(tcp, delim, &f);
 		}
 		tprints("}");
 	}
@@ -554,6 +627,54 @@ print_v4l2_control(struct tcb *const tcp, const kernel_ulong_t arg,
 	}
 
 	tprints("}");
+	return 1;
+}
+
+#include "xlat/v4l2_tuner_types.h"
+#include "xlat/v4l2_tuner_capabilities.h"
+#include "xlat/v4l2_tuner_rxsubchanses.h"
+#include "xlat/v4l2_tuner_audmodes.h"
+
+static int
+print_v4l2_tuner(struct tcb *const tcp, const kernel_ulong_t arg,
+		 const bool is_get)
+{
+	struct v4l2_tuner c;
+	if (entering(tcp)) {
+		tprints(", ");
+		if (umove_or_printaddr(tcp, arg, &c))
+			return RVAL_DECODED | 1;
+		tprintf("{index=%u", c.index);
+		if (is_get)
+			return 0;
+		tprints(", ");
+	} else {
+		if (syserror(tcp) || umove(tcp, arg, &c) < 0) {
+			tprints("}");
+			return 1;
+		}
+		tprints(is_get ? ", " : " => ");
+	}
+
+	tprints("name=");
+	print_quoted_string((const char *) c.name, sizeof(c.name),
+			    QUOTE_0_TERMINATED);
+	tprints(", type=");
+	printxval(v4l2_tuner_types, c.type, "V4L2_TUNER_TYPE_???");
+	tprints(", capability=");
+	printxval(v4l2_tuner_capabilities, c.capability,
+		  "V4L2_TUNER_CAP_???");
+	tprintf(", rangelow=%u, rangehigh=%u, rxsubchans=",
+		c.rangelow, c.rangehigh);
+	printxval(v4l2_tuner_rxsubchanses, c.rxsubchans,
+		  "V4L2_TUNER_SUB_???");
+	tprints(", audmode=");
+	printxval(v4l2_tuner_audmodes, c.audmode,
+		  "V4L2_TUNER_MODE_???");
+	tprintf(", signal=%d, afc=%d", c.signal, c.afc);
+
+	if (exiting(tcp))
+		tprints("}");
 	return 1;
 }
 
@@ -822,7 +943,7 @@ print_v4l2_create_buffers(struct tcb *const tcp, const kernel_ulong_t arg)
 		tprints(", format={type=");
 		printxval(v4l2_buf_types, b.format.type,
 			  "V4L2_BUF_TYPE_???");
-		print_v4l2_format_fmt(", ",
+		print_v4l2_format_fmt(tcp, ", ",
 				      (struct_v4l2_format *) &b.format);
 		tprints("}}");
 		return 0;
@@ -898,6 +1019,10 @@ MPERS_PRINTER_DECL(int, v4l2_ioctl, struct tcb *const tcp,
 	case VIDIOC_G_CTRL: /* RW */
 	case VIDIOC_S_CTRL: /* RW */
 		return print_v4l2_control(tcp, arg, code == VIDIOC_G_CTRL);
+
+	case VIDIOC_G_TUNER: /* RW */
+	case VIDIOC_S_TUNER: /* RW */
+		return print_v4l2_tuner(tcp, arg, code == VIDIOC_G_TUNER);
 
 	case VIDIOC_QUERYCTRL: /* RW */
 		return print_v4l2_queryctrl(tcp, arg);

@@ -5,6 +5,7 @@
 # Copyright (c) 2006-2016 Dmitry V. Levin <ldv@altlinux.org>
 # Copyright (c) 2008-2015 Mike Frysinger <vapier@gentoo.org>
 # Copyright (c) 2015 Elvira Khabirova <lineprinter0@gmail.com>
+# Copyright (c) 2002-2017 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,8 @@ AC_INIT([strace],
 	[strace-devel@lists.sourceforge.net],
 	[strace],
 	[https://strace.io])
-AC_COPYRIGHT([Copyright (C) 1999-2017 The strace developers.])
+m4_define([copyright_year], m4_esyscmd([./copyright-year-gen .year]))
+AC_COPYRIGHT([Copyright (C) 1999-]copyright_year[ The strace developers.])
 AC_CONFIG_SRCDIR([strace.c])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([config.h])
@@ -58,6 +60,9 @@ AC_PROG_RANLIB
 
 AC_USE_SYSTEM_EXTENSIONS
 AX_CODE_COVERAGE
+
+AC_DEFINE([COPYRIGHT_YEAR], "[copyright_year]", [Current copyright year.])
+AC_SUBST([COPYRIGHT_YEAR], [copyright_year])
 
 AC_MSG_CHECKING([for supported architecture])
 arch_m32=
@@ -366,6 +371,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	linux/ipc.h
 	linux/mmtimer.h
 	linux/msg.h
+	linux/nsfs.h
 	linux/perf_event.h
 	linux/quota.h
 	linux/seccomp.h
@@ -434,16 +440,16 @@ AC_CHECK_HEADERS([linux/bpf.h], [
 		AC_DEFINE(HAVE_UNION_BPF_ATTR_BPF_FD, [1],
 			  [Define to 1 if union bpf_attr.bpf_fd initialization works])
 	fi
-	AC_CACHE_CHECK([whether union bpf_attr.attach_type initialization works],
-		       [st_cv_have_union_bpf_attr_attach_type],
+	AC_CACHE_CHECK([whether union bpf_attr.attach_flags initialization works],
+		       [st_cv_have_union_bpf_attr_attach_flags],
 		[AC_COMPILE_IFELSE(
 			[AC_LANG_PROGRAM([[#include <linux/bpf.h>]],
-					 [[union bpf_attr a = { .attach_type = 0 };]])],
-			[st_cv_have_union_bpf_attr_attach_type=yes],
-			[st_cv_have_union_bpf_attr_attach_type=no])])
-	if test $st_cv_have_union_bpf_attr_attach_type = yes; then
-		AC_DEFINE(HAVE_UNION_BPF_ATTR_ATTACH_TYPE, [1],
-			  [Define to 1 if union bpf_attr.attach_type initialization works])
+					 [[union bpf_attr a = { .attach_flags = 0 };]])],
+			[st_cv_have_union_bpf_attr_attach_flags=yes],
+			[st_cv_have_union_bpf_attr_attach_flags=no])])
+	if test $st_cv_have_union_bpf_attr_attach_flags = yes; then
+		AC_DEFINE(HAVE_UNION_BPF_ATTR_ATTACH_FLAGS, [1],
+			  [Define to 1 if union bpf_attr.attach_flags initialization works])
 	fi
 ])
 
@@ -608,6 +614,8 @@ AC_CHECK_DECLS(m4_normalize([
 	V4L2_BUF_TYPE_SLICED_VBI_CAPTURE,
 	V4L2_BUF_TYPE_SLICED_VBI_OUTPUT,
 	V4L2_BUF_TYPE_VIDEO_OUTPUT_OVERLAY,
+	V4L2_BUF_TYPE_SDR_CAPTURE,
+	V4L2_BUF_TYPE_SDR_OUTPUT,
 	V4L2_TUNER_RADIO,
 	V4L2_TUNER_ANALOG_TV,
 	V4L2_TUNER_DIGITAL_TV,
@@ -642,6 +650,14 @@ AC_CHECK_DECLS(m4_normalize([
 	V4L2_CTRL_TYPE_STRING,
 	V4L2_CTRL_TYPE_BITMASK,
 	V4L2_CTRL_TYPE_INTEGER_MENU
+]),,, [#include <sys/time.h>
+#include <linux/ioctl.h>
+#include <linux/types.h>
+#include <linux/videodev2.h>])
+
+AC_CHECK_MEMBERS(m4_normalize([
+	struct v4l2_window.global_alpha,
+	struct v4l2_sdr_format.buffersize
 ]),,, [#include <sys/time.h>
 #include <linux/ioctl.h>
 #include <linux/types.h>

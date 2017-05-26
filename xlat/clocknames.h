@@ -36,13 +36,8 @@
 # define CLOCK_TAI 11
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat clocknames in mpers mode
-
-#else
-
-static
 const struct xlat clocknames[] = {
  XLAT(CLOCK_REALTIME),
  XLAT(CLOCK_MONOTONIC),

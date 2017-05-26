@@ -6,6 +6,7 @@
  * Copyright (c) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *                     Linux for s390 port by D.J. Barrow
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
+ * Copyright (c) 1999-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -251,8 +252,7 @@ printxvals(const uint64_t val, const char *dflt, const struct xlat *xlat, ...)
 	}
 	/* No hits -- print raw # instead. */
 	tprintf("%#" PRIx64, val);
-	if (dflt)
-		tprintf(" /* %s */", dflt);
+	tprints_comment(dflt);
 
 	va_end(args);
 
@@ -285,8 +285,7 @@ printxval_searchn(const struct xlat *xlat, size_t xlat_size, uint64_t val,
 	}
 
 	tprintf("%#" PRIx64, val);
-	if (dflt)
-		tprintf(" /* %s */", dflt);
+	tprints_comment(dflt);
 
 	return 0;
 }
@@ -355,7 +354,6 @@ printllval(struct tcb *tcp, const char *format, int arg_no)
 /*
  * Interpret `xlat' as an array of flags
  * print the entries whose bits are on in `flags'
- * return # of flags printed.
  */
 void
 addflags(const struct xlat *xlat, uint64_t flags)
@@ -439,8 +437,7 @@ printflags64(const struct xlat *xlat, uint64_t flags, const char *dflt)
 	} else {
 		if (flags) {
 			tprintf("%#" PRIx64, flags);
-			if (dflt)
-				tprintf(" /* %s */", dflt);
+			tprints_comment(dflt);
 		} else {
 			if (dflt)
 				tprints("0");
@@ -545,23 +542,62 @@ printnum_addr_klong_int(struct tcb *tcp, const kernel_ulong_t addr)
 }
 #endif /* !current_klongsize */
 
-const char *
-sprinttime(time_t t)
+/**
+ * Prints time to a (static internal) buffer and returns pointer to it.
+ *
+ * @param sec		Seconds since epoch.
+ * @param part_sec	Amount of second parts since the start of a second.
+ * @param max_part_sec	Maximum value of a valid part_sec.
+ * @param width		1 + floor(log10(max_part_sec)).
+ */
+static const char *
+sprinttime_ex(const long long sec, const unsigned long long part_sec,
+	      const unsigned int max_part_sec, const int width)
 {
-	struct tm *tmp;
-	static char buf[sizeof(int) * 3 * 6 + sizeof("+0000")];
+	static char buf[sizeof(int) * 3 * 6 + sizeof(part_sec) * 3
+			+ sizeof("+0000")];
 
-	if (t == 0) {
-		strcpy(buf, "0");
-		return buf;
+	if ((sec == 0 && part_sec == 0) || part_sec > max_part_sec)
+		return NULL;
+
+	time_t t = (time_t) sec;
+	struct tm *tmp = (sec == t) ? localtime(&t) : NULL;
+	if (!tmp)
+		return NULL;
+
+	size_t pos = strftime(buf, sizeof(buf), "%FT%T", tmp);
+	if (!pos)
+		return NULL;
+
+	if (part_sec > 0) {
+		int ret = snprintf(buf + pos, sizeof(buf) - pos, ".%0*llu",
+				   width, part_sec);
+
+		if (ret < 0 || (size_t) ret >= sizeof(buf) - pos)
+			return NULL;
+
+		pos += ret;
 	}
-	tmp = localtime(&t);
-	if (tmp)
-		strftime(buf, sizeof(buf), "%FT%T%z", tmp);
-	else
-		snprintf(buf, sizeof(buf), "%lu", (unsigned long) t);
 
-	return buf;
+	return strftime(buf + pos, sizeof(buf) - pos, "%z", tmp) ? buf : NULL;
+}
+
+const char *
+sprinttime(long long sec)
+{
+	return sprinttime_ex(sec, 0, 0, 0);
+}
+
+const char *
+sprinttime_usec(long long sec, unsigned long long usec)
+{
+	return sprinttime_ex(sec, usec, 999999, 6);
+}
+
+const char *
+sprinttime_nsec(long long sec, unsigned long long nsec)
+{
+	return sprinttime_ex(sec, nsec, 999999999, 9);
 }
 
 enum sock_proto
@@ -1534,6 +1570,17 @@ printargs_d(struct tcb *tcp)
 		tprintf("%s%d", i ? ", " : "",
 			(int) tcp->u_arg[i]);
 	return RVAL_DECODED;
+}
+
+/* Print abnormal high bits of a kernel_ulong_t value. */
+void
+print_abnormal_hi(const kernel_ulong_t val)
+{
+	if (current_klongsize > 4) {
+		const unsigned int hi = (unsigned int) ((uint64_t) val >> 32);
+		if (hi)
+			tprintf("%#x<<32|", hi);
+	}
 }
 
 #if defined _LARGEFILE64_SOURCE && defined HAVE_OPEN64

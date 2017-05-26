@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -207,10 +208,10 @@ main(void)
 	char unterminated_str[sizeof(void *) * 2 + sizeof("0x")];
 
 	long rc;
-	struct fs_disk_quota *xdq = tail_alloc(sizeof(*xdq));
-	struct fs_quota_stat *xqstat = tail_alloc(sizeof(*xqstat));
-	struct fs_quota_statv *xqstatv = tail_alloc(sizeof(*xqstatv));
-	uint32_t *flags = tail_alloc(sizeof(*flags));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct fs_disk_quota, xdq);
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct fs_quota_stat, xqstat);
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct fs_quota_statv, xqstatv);
+	TAIL_ALLOC_OBJECT_CONST_PTR(uint32_t, flags);
 	char *unterminated = tail_memdup(unterminated_data,
 		sizeof(unterminated_data));
 

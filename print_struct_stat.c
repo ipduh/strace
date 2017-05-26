@@ -7,6 +7,7 @@
  * Copyright (c) 2009-2010 Andreas Schwab <schwab@linux-m68k.org>
  * Copyright (c) 2012 H.J. Lu <hongjiu.lu@intel.com>
  * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,18 +66,20 @@ print_struct_stat(struct tcb *tcp, const struct strace_stat *const st)
 	}
 
 	if (!abbrev(tcp)) {
-		tprints(", st_atime=");
-		tprints(sprinttime(st->atime));
-		if (st->atime_nsec)
-			tprintf(".%09llu", st->atime_nsec);
-		tprints(", st_mtime=");
-		tprints(sprinttime(st->mtime));
-		if (st->mtime_nsec)
-			tprintf(".%09llu", st->mtime_nsec);
-		tprints(", st_ctime=");
-		tprints(sprinttime(st->ctime));
-		if (st->ctime_nsec)
-			tprintf(".%09llu", st->ctime_nsec);
+#define PRINT_ST_TIME(field)						\
+	do {								\
+		tprintf(", st_" #field "=%lld", (long long) st->field);	\
+		tprints_comment(sprinttime_nsec(st->field,		\
+			zero_extend_signed_to_ull(st->field ## _nsec)));\
+		if (st->has_nsec)					\
+			tprintf(", st_" #field "_nsec=%llu",		\
+				zero_extend_signed_to_ull(		\
+					st->field ## _nsec));		\
+	} while (0)
+
+		PRINT_ST_TIME(atime);
+		PRINT_ST_TIME(mtime);
+		PRINT_ST_TIME(ctime);
 	} else {
 		tprints(", ...");
 	}

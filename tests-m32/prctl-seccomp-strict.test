@@ -5,7 +5,7 @@
 . "${srcdir=.}/init.sh"
 
 check_prog grep
-set -- "./$NAME"
+set -- "../$NAME"
 "$@" > /dev/null || {
 	case $? in
 		77) skip_ "$* exited with code 77" ;;
@@ -16,4 +16,3 @@ set -- "./$NAME"
 run_strace -eprctl "$@" > "$EXP"
 grep -v '^prctl(PR_GET_' < "$LOG" > "$OUT"
 match_diff "$OUT" "$EXP"
-rm -f "$EXP" "$OUT"

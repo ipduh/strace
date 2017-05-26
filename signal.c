@@ -6,6 +6,7 @@
  * Copyright (c) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *                     Linux for s390 port by D.J. Barrow
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
+ * Copyright (C) 2001-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -229,6 +230,24 @@ sprintsigmask_n(const char *prefix, const void *sig_mask, unsigned int bytes)
 #define tprintsigmask_val(prefix, mask) \
 	tprints(sprintsigmask_n((prefix), &(mask), sizeof(mask)))
 
+static const char *
+sprint_old_sigmask_val(const char *const prefix, const unsigned long mask)
+{
+#if defined(current_wordsize) || !defined(WORDS_BIGENDIAN)
+	return sprintsigmask_n(prefix, &mask, current_wordsize);
+#else /* !current_wordsize && WORDS_BIGENDIAN */
+	if (current_wordsize == sizeof(mask)) {
+		return sprintsigmask_val(prefix, mask);
+	} else {
+		uint32_t mask32 = mask;
+		return sprintsigmask_val(prefix, mask32);
+	}
+#endif
+}
+
+#define tprint_old_sigmask_val(prefix, mask) \
+	tprints(sprint_old_sigmask_val((prefix), (mask)))
+
 void
 printsignal(int nr)
 {
@@ -260,13 +279,20 @@ print_sigset_addr_len(struct tcb *const tcp, const kernel_ulong_t addr,
 	print_sigset_addr_len_limit(tcp, addr, len, current_wordsize);
 }
 
-SYS_FUNC(sigsetmask)
+void
+print_sigset_addr(struct tcb *const tcp, const kernel_ulong_t addr)
+{
+	print_sigset_addr_len_limit(tcp, addr, NSIG_BYTES, NSIG_BYTES);
+}
+
+SYS_FUNC(ssetmask)
 {
 	if (entering(tcp)) {
-		tprintsigmask_val("", tcp->u_arg[0]);
+		tprint_old_sigmask_val("", (unsigned) tcp->u_arg[0]);
 	}
 	else if (!syserror(tcp)) {
-		tcp->auxstr = sprintsigmask_val("old mask ", tcp->u_rval);
+		tcp->auxstr = sprint_old_sigmask_val("old mask ",
+						     (unsigned) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	}
 	return 0;
@@ -368,17 +394,23 @@ SYS_FUNC(signal)
 	return 0;
 }
 
-SYS_FUNC(siggetmask)
+SYS_FUNC(sgetmask)
 {
-	if (exiting(tcp)) {
-		tcp->auxstr = sprintsigmask_val("mask ", tcp->u_rval);
+	if (exiting(tcp) && !syserror(tcp)) {
+		tcp->auxstr = sprint_old_sigmask_val("mask ", tcp->u_rval);
+		return RVAL_HEX | RVAL_STR;
 	}
-	return RVAL_HEX | RVAL_STR;
+	return 0;
 }
 
 SYS_FUNC(sigsuspend)
 {
-	tprintsigmask_val("", tcp->u_arg[2]);
+#ifdef MIPS
+	print_sigset_addr_len(tcp, tcp->u_arg[tcp->s_ent->nargs - 1],
+			      current_wordsize);
+#else
+	tprint_old_sigmask_val("", tcp->u_arg[tcp->s_ent->nargs - 1]);
+#endif
 
 	return RVAL_DECODED;
 }

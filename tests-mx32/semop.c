@@ -33,9 +33,7 @@ main(void)
 	static void * const bogus_sops = (void *) -1L;
 	static const size_t bogus_nsops = (size_t) 0xdefaceddeadbeefULL;
 
-	static const struct timespec ts_data = { 1, 123456789 };
-
-	struct timespec *ts = tail_memdup(&ts_data, sizeof(*ts));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct timespec, ts);
 	int rc;
 
 	id = semget(IPC_PRIVATE, 1, 0600);
@@ -47,8 +45,8 @@ main(void)
 	if (semctl(id, 0, SETVAL, sem_union) == -1)
 		perror_msg_and_skip("semctl");
 
-	struct sembuf *const sem_b = tail_alloc(sizeof(*sem_b));
-	struct sembuf *const sem_b2 = tail_alloc(sizeof(*sem_b2));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct sembuf, sem_b);
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct sembuf, sem_b2);
 
 	rc = semop(bogus_semid, NULL, bogus_nsops);
 	printf("semop(%d, NULL, %u) = %s\n",
@@ -91,15 +89,17 @@ main(void)
 	printf("semtimedop(%d, %p, 1, %p) = %s\n",
 		id, sem_b + 1, ts + 1, sprintrc(rc));
 
+	ts->tv_sec = 1;
+	ts->tv_nsec = 123456789;
 	rc = semtimedop(bogus_semid, sem_b2, 2, ts);
-	printf("semtimedop(%d, [{%hu, %hd, %s%s%#hx}, %p], %u, "
-		"{tv_sec=%jd, tv_nsec=%jd}) = %s\n",
+	printf("semtimedop(%d, [{%hu, %hd, %s%s%#hx}, %p], %u"
+		", {tv_sec=%lld, tv_nsec=%llu}) = %s\n",
 		bogus_semid, sem_b2->sem_num, sem_b2->sem_op,
 		sem_b2->sem_flg & SEM_UNDO ? "SEM_UNDO|" : "",
 		sem_b2->sem_flg & IPC_NOWAIT ? "IPC_NOWAIT|" : "",
 		sem_b2->sem_flg & ~(SEM_UNDO | IPC_NOWAIT),
 		sem_b2 + 1, 2,
-		(intmax_t) ts->tv_sec, (intmax_t) ts->tv_nsec,
+		(long long) ts->tv_sec, zero_extend_signed_to_ull(ts->tv_nsec),
 		sprintrc(rc));
 
 	sem_b->sem_op = 1;
@@ -110,9 +110,27 @@ main(void)
 	sem_b->sem_op = -1;
 	if (semtimedop(id, sem_b, 1, ts))
 		perror_msg_and_skip("semtimedop, -1");
-	printf("semtimedop(%d, [{0, -1, SEM_UNDO}], 1, "
-		"{tv_sec=%jd, tv_nsec=%jd}) = 0\n", id,
-		(intmax_t) ts->tv_sec, (intmax_t) ts->tv_nsec);
+	printf("semtimedop(%d, [{0, -1, SEM_UNDO}], 1"
+	       ", {tv_sec=%lld, tv_nsec=%llu}) = 0\n", id,
+	       (long long) ts->tv_sec, zero_extend_signed_to_ull(ts->tv_nsec));
+
+	sem_b->sem_op = 1;
+	ts->tv_sec = 0xdeadbeefU;
+	ts->tv_nsec = 0xfacefeedU;
+	rc = semtimedop(id, sem_b, 1, ts);
+	printf("semtimedop(%d, [{0, 1, SEM_UNDO}], 1"
+	       ", {tv_sec=%lld, tv_nsec=%llu}) = %s\n",
+	       id, (long long) ts->tv_sec,
+	       zero_extend_signed_to_ull(ts->tv_nsec), sprintrc(rc));
+
+	sem_b->sem_op = -1;
+	ts->tv_sec = (time_t) 0xcafef00ddeadbeefLL;
+	ts->tv_nsec = (long) 0xbadc0dedfacefeedLL;
+	rc = semtimedop(id, sem_b, 1, ts);
+	printf("semtimedop(%d, [{0, -1, SEM_UNDO}], 1"
+	       ", {tv_sec=%lld, tv_nsec=%llu}) = %s\n",
+	       id, (long long) ts->tv_sec,
+	       zero_extend_signed_to_ull(ts->tv_nsec), sprintrc(rc));
 
 	puts("+++ exited with 0 +++");
 	return 0;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,26 +49,41 @@ main(void)
 
 	if (syscall(__NR_clock_getres, CLOCK_REALTIME, &t.ts))
 		perror_msg_and_skip("clock_getres CLOCK_REALTIME");
-	printf("clock_getres(CLOCK_REALTIME, {tv_sec=%jd, tv_nsec=%jd}) = 0\n",
-	       (intmax_t) t.ts.tv_sec,
-	       (intmax_t) t.ts.tv_nsec);
+	printf("clock_getres(CLOCK_REALTIME, {tv_sec=%lld, tv_nsec=%llu})"
+	       " = 0\n",
+	       (long long) t.ts.tv_sec,
+	       zero_extend_signed_to_ull(t.ts.tv_nsec));
 
 	if (syscall(__NR_clock_gettime, CLOCK_PROCESS_CPUTIME_ID, &t.ts))
 		perror_msg_and_skip("clock_gettime CLOCK_PROCESS_CPUTIME_ID");
-	printf("clock_gettime(CLOCK_PROCESS_CPUTIME_ID, "
-	       "{tv_sec=%jd, tv_nsec=%jd}) = 0\n",
-	       (intmax_t) t.ts.tv_sec,
-	       (intmax_t) t.ts.tv_nsec);
+	printf("clock_gettime(CLOCK_PROCESS_CPUTIME_ID"
+	       ", {tv_sec=%lld, tv_nsec=%llu}) = 0\n",
+	       (long long) t.ts.tv_sec,
+	       zero_extend_signed_to_ull(t.ts.tv_nsec));
 
 	t.ts.tv_sec = 0xdeface1;
 	t.ts.tv_nsec = 0xdeface2;
-	if (!syscall(__NR_clock_settime, CLOCK_THREAD_CPUTIME_ID, &t.ts))
-		error_msg_and_skip("clock_settime CLOCK_THREAD_CPUTIME_ID:"
-				   " EINVAL expected");
-	printf("clock_settime(CLOCK_THREAD_CPUTIME_ID, {tv_sec=%jd, "
-	       "tv_nsec=%jd}) = -1 EINVAL (%m)\n",
-	       (intmax_t) t.ts.tv_sec,
-	       (intmax_t) t.ts.tv_nsec);
+	syscall(__NR_clock_settime, CLOCK_THREAD_CPUTIME_ID, &t.ts);
+	printf("clock_settime(CLOCK_THREAD_CPUTIME_ID"
+	       ", {tv_sec=%lld, tv_nsec=%llu}) = -1 EINVAL (%m)\n",
+	       (long long) t.ts.tv_sec,
+	       zero_extend_signed_to_ull(t.ts.tv_nsec));
+
+	t.ts.tv_sec = 0xdeadbeefU;
+	t.ts.tv_nsec = 0xfacefeedU;
+	syscall(__NR_clock_settime, CLOCK_THREAD_CPUTIME_ID, &t.ts);
+	printf("clock_settime(CLOCK_THREAD_CPUTIME_ID"
+	       ", {tv_sec=%lld, tv_nsec=%llu}) = -1 EINVAL (%m)\n",
+	       (long long) t.ts.tv_sec,
+	       zero_extend_signed_to_ull(t.ts.tv_nsec));
+
+	t.ts.tv_sec = (time_t) 0xcafef00ddeadbeefLL;
+	t.ts.tv_nsec = (long) 0xbadc0dedfacefeedLL;
+	syscall(__NR_clock_settime, CLOCK_THREAD_CPUTIME_ID, &t.ts);
+	printf("clock_settime(CLOCK_THREAD_CPUTIME_ID"
+	       ", {tv_sec=%lld, tv_nsec=%llu}) = -1 EINVAL (%m)\n",
+	       (long long) t.ts.tv_sec,
+	       zero_extend_signed_to_ull(t.ts.tv_nsec));
 
 	puts("+++ exited with 0 +++");
 	return 0;

@@ -2,6 +2,7 @@
  * This file is part of attach-f-p strace test.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +35,8 @@
 int
 main(void)
 {
+	skip_if_unavailable("/proc/self/task/");
+
 	static const char dir[] = "attach-f-p.test cmd";
 	pid_t pid = getpid();
 	int rc = chdir(dir);
