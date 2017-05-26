@@ -348,9 +348,6 @@ LOCAL_C_INCLUDES_mips64 := $(LOCAL_PATH)/linux/mips $(LOCAL_PATH)/linux
 LOCAL_C_INCLUDES_x86 := $(LOCAL_PATH)/linux/i386 $(LOCAL_PATH)/linux
 LOCAL_C_INCLUDES_x86_64 := $(LOCAL_PATH)/linux/x86_64 $(LOCAL_PATH)/linux
 
-# For <scsi/sg.h>. TODO: export this properly from bionic (without breaking the NDK).
-LOCAL_C_INCLUDES += bionic/libc/kernel/android/
-
 LOCAL_CLANG := true
 
 LOCAL_MODULE := strace
