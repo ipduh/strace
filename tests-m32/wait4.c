@@ -2,6 +2,7 @@
  * Check decoding of wait4 syscall.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,8 +41,8 @@ sprint_rusage(const struct rusage *const ru)
 {
 	static char buf[1024];
 	snprintf(buf, sizeof(buf),
-		 "{ru_utime={tv_sec=%lu, tv_usec=%lu}"
-		 ", ru_stime={tv_sec=%lu, tv_usec=%lu}"
+		 "{ru_utime={tv_sec=%lld, tv_usec=%llu}"
+		 ", ru_stime={tv_sec=%lld, tv_usec=%llu}"
 #if VERBOSE
 		 ", ru_maxrss=%lu"
 		 ", ru_ixrss=%lu"
@@ -60,10 +61,10 @@ sprint_rusage(const struct rusage *const ru)
 #else
 		 ", ...}"
 #endif
-		 , (long) ru->ru_utime.tv_sec
-		 , (long) ru->ru_utime.tv_usec
-		 , (long) ru->ru_stime.tv_sec
-		 , (long) ru->ru_stime.tv_usec
+		 , (long long) ru->ru_utime.tv_sec
+		 , zero_extend_signed_to_ull(ru->ru_utime.tv_usec)
+		 , (long long) ru->ru_stime.tv_sec
+		 , zero_extend_signed_to_ull(ru->ru_stime.tv_usec)
 #if VERBOSE
 		 , (long) ru->ru_maxrss
 		 , (long) ru->ru_ixrss
@@ -119,12 +120,12 @@ main(void)
 
 	(void) close(0);
 
-	int *const s = tail_alloc(sizeof(*s));
+	TAIL_ALLOC_OBJECT_CONST_PTR(int, s);
 	if (wait4(pid, s, WNOHANG|__WALL, NULL))
 		perror_msg_and_fail("wait4 #1");
 	tprintf("wait4(%d, %p, WNOHANG|__WALL, NULL) = 0\n", pid, s);
 
-	struct rusage *const rusage = tail_alloc(sizeof(*rusage));
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct rusage, rusage);
 	if (wait4(pid, s, WNOHANG|__WALL, rusage))
 		perror_msg_and_fail("wait4 #2");
 	tprintf("wait4(%d, %p, WNOHANG|__WALL, %p) = 0\n", pid, s, rusage);

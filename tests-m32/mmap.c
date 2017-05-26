@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -88,10 +89,6 @@ main(int ac, char **av)
 		perror_msg_and_fail("mremap");
 	printf("mremap(%p, %lu, %lu, MREMAP_MAYMOVE|MREMAP_FIXED"
 	       ", %p) = %p\n", addr, length2, length3, addr + length2, p);
-
-	if (madvise(p, length3, MADV_NORMAL))
-		perror_msg_and_fail("madvise");
-	printf("madvise(%p, %lu, MADV_NORMAL) = 0\n", p, length3);
 
 	if (munmap(p, length3))
 		perror_msg_and_fail("munmap");

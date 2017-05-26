@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +33,6 @@
 #include "flock.h"
 
 #define FILE_LEN 4096
-#define EINVAL_STR "-1 EINVAL (Invalid argument)"
 
 #define TEST_FLOCK_EINVAL(cmd) test_flock_einval(cmd, #cmd)
 
@@ -45,9 +45,10 @@
 static long
 invoke_test_syscall(const unsigned int cmd, void *const p)
 {
-	const unsigned long op = (unsigned long) 0xffffffff00000000ULL | cmd;
+	const kernel_ulong_t fd = F8ILL_KULONG_MASK;
+	const kernel_ulong_t op = F8ILL_KULONG_MASK | cmd;
 
-	return syscall(TEST_SYSCALL_NR, 0, op, (unsigned long) p);
+	return syscall(TEST_SYSCALL_NR, fd, op, (unsigned long) p);
 }
 
 static void
@@ -58,10 +59,10 @@ test_flock_einval(const int cmd, const char *name)
 		.l_start = (TYPEOF_FLOCK_OFF_T) 0xdefaced1facefeedULL,
 		.l_len = (TYPEOF_FLOCK_OFF_T) 0xdefaced2cafef00dULL
 	};
-	invoke_test_syscall(cmd, &fl);
+	long rc = invoke_test_syscall(cmd, &fl);
 	printf("%s(0, %s, {l_type=F_RDLCK, l_whence=SEEK_SET"
 	       ", l_start=%jd, l_len=%jd}) = %s\n", TEST_SYSCALL_STR, name,
-	       (intmax_t) fl.l_start, (intmax_t) fl.l_len, EINVAL_STR);
+	       (intmax_t) fl.l_start, (intmax_t) fl.l_len, sprintrc(rc));
 }
 
 static void
@@ -77,7 +78,7 @@ test_flock(void)
 	long rc = invoke_test_syscall(F_SETLK, &fl);
 	printf("%s(0, F_SETLK, {l_type=F_RDLCK, l_whence=SEEK_SET"
 	       ", l_start=0, l_len=%d}) = %s\n",
-	       TEST_SYSCALL_STR, FILE_LEN, rc ? EINVAL_STR : "0");
+	       TEST_SYSCALL_STR, FILE_LEN, sprintrc(rc));
 	if (rc)
 		return;
 

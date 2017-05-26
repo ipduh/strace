@@ -1,6 +1,7 @@
 .\" Copyright (c) 1991, 1992 Paul Kranenburg <pk@cs.few.eur.nl>
 .\" Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
 .\" Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
+.\" Copyright (c) 1996-2017 The strace developers.
 .\" All rights reserved.
 .\"
 .\" Redistribution and use in source and binary forms, with or without
@@ -330,7 +331,7 @@ A qualifying expression which modifies which events to trace
 or how to trace them.  The format of the expression is:
 .RS 15
 .IP
-[\,\fIqualifier\/\fB=\fR][\fB!\fR]\,\fIvalue1\/\fR[\fB,\,\fIvalue2\/\fR]...
+[\,\fIqualifier\/\fB=\fR][\fB!\fR][\fB?\fR]\,\fIvalue1\/\fR[\fB,\fR[\fB?\fR]\,\fIvalue2\/\fR]...
 .RE
 .IP
 where
@@ -361,6 +362,8 @@ system call.  By contrast,
 .BR \-e "\ " trace "=!" open
 means to trace every system call except
 .BR open .
+Question mark before the syscall qualification allows suppression of error
+in case no syscalls matched the qualification provided.
 In addition, the special values
 .B all
 and
@@ -383,7 +386,17 @@ about the user/kernel boundary if only a subset of system calls
 are being monitored.  The default is
 .BR trace = all .
 .TP
-.BR "\-e\ trace" = file
+\fB\-e\ trace\fR=/\,\fIregex\fR
+Trace only those system calls that match the
+.IR regex .
+You can use
+.B POSIX
+Extended Regular Expression syntax (see
+.BR regex (7)).
+.PP
+.BR "\-e\ trace" = %file
+.TP
+.BR "\-e\ trace" = file " (deprecated)"
 Trace all system calls which take a file name as an argument.  You
 can think of this as an abbreviation for
 .BR "\-e\ trace" = open , stat , chmod , unlink ,...
@@ -392,25 +405,68 @@ Furthermore, using the abbreviation will ensure that you don't
 accidentally forget to include a call like
 .B lstat
 in the list.  Betchya woulda forgot that one.
+.PP
+.BR "\-e\ trace" = %process
 .TP
-.BR "\-e\ trace" = process
+.BR "\-e\ trace" = process " (deprecated)"
 Trace all system calls which involve process management.  This
 is useful for watching the fork, wait, and exec steps of a process.
+.PP
+.BR "\-e\ trace" = %network
 .TP
-.BR "\-e\ trace" = network
+.BR "\-e\ trace" = network " (deprecated)"
 Trace all the network related system calls.
+.PP
+.BR "\-e\ trace" = %signal
 .TP
-.BR "\-e\ trace" = signal
+.BR "\-e\ trace" = signal " (deprecated)"
 Trace all signal related system calls.
+.PP
+.BR "\-e\ trace" = %ipc
 .TP
-.BR "\-e\ trace" = ipc
+.BR "\-e\ trace" = ipc " (deprecated)"
 Trace all IPC related system calls.
+.PP
+.BR "\-e\ trace" = %desc
 .TP
-.BR "\-e\ trace" = desc
+.BR "\-e\ trace" = desc " (deprecated)"
 Trace all file descriptor related system calls.
+.PP
+.BR "\-e\ trace" = %memory
 .TP
-.BR "\-e\ trace" = memory
+.BR "\-e\ trace" = memory " (deprecated)"
 Trace all memory mapping related system calls.
+.TP
+.BR "\-e\ trace" = %stat
+Trace stat syscall variants.
+.TP
+.BR "\-e\ trace" = %lstat
+Trace lstat syscall variants.
+.TP
+.BR "\-e\ trace" = %fstat
+Trace fstat and fstatat syscall variants.
+.TP
+.BR "\-e\ trace" = %%stat
+Trace syscalls used for requesting file status (stat, lstat, fstat, fstatat,
+statx, and their variants).
+.TP
+.BR "\-e\ trace" = %statfs
+Trace statfs, statfs64, statvfs, osf_statfs, and osf_statfs64 system calls.
+The same effect can be achieved with
+.BR "\-e\ trace" = /^(.*_)?statv?fs
+regular expression.
+.TP
+.BR "\-e\ trace" = %fstatfs
+Trace fstatfs, fstatfs64, fstatvfs, osf_fstatfs, and osf_fstatfs64 system calls.
+The same effect can be achieved with
+.BR "\-e\ trace" = /fstatv?fs
+regular expression.
+.TP
+.BR "\-e\ trace" = %%statfs
+Trace syscalls related to file system statistics (statfs-like, fstatfs-like,
+and ustat).  The same effect can be achieved with
+.BR "\-e\ trace" = /statv?fs|fsstat|ustat
+regular expression.
 .TP
 \fB\-e\ abbrev\fR=\,\fIset\fR
 Abbreviate the output from printing each member of large structures.

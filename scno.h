@@ -1001,3 +1001,6 @@
 #ifndef __NR_pkey_free
 # define __NR_pkey_free (SYSCALL_BIT | 331)
 #endif
+#ifndef __NR_statx
+# define __NR_statx (SYSCALL_BIT | 332)
+#endif

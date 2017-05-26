@@ -6,6 +6,7 @@
  * Copyright (c) 2006-2007 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2006 Bernhard Kaindl <bk@suse.de>
  * Copyright (c) 2006-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2014-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,7 @@ SYS_FUNC(utimes)
 {
 	printpath(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	print_timeval_pair(tcp, tcp->u_arg[1]);
+	print_timeval_utimes(tcp, tcp->u_arg[1]);
 
 	return RVAL_DECODED;
 }
@@ -47,7 +48,7 @@ SYS_FUNC(futimesat)
 	print_dirfd(tcp, tcp->u_arg[0]);
 	printpath(tcp, tcp->u_arg[1]);
 	tprints(", ");
-	print_timeval_pair(tcp, tcp->u_arg[2]);
+	print_timeval_utimes(tcp, tcp->u_arg[2]);
 
 	return RVAL_DECODED;
 }
@@ -69,7 +70,7 @@ SYS_FUNC(osf_utimes)
 {
 	printpath(tcp, tcp->u_arg[0]);
 	tprints(", ");
-	print_timeval32_pair(tcp, tcp->u_arg[1]);
+	print_timeval32_utimes(tcp, tcp->u_arg[1]);
 
 	return RVAL_DECODED;
 }

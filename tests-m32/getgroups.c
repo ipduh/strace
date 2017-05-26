@@ -2,6 +2,7 @@
  * Check decoding of getgroups/getgroups32 syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,7 +92,7 @@ main(void)
 	if (ngroups < 0)
 		perror_msg_and_fail(SYSCALL_NAME);
 
-	rc = syscall(SYSCALL_NR, (long) 0xffffffff00000000ULL, 0);
+	rc = syscall(SYSCALL_NR, F8ILL_KULONG_MASK, 0);
 	printf("%s(0, NULL) = %ld\n", SYSCALL_NAME, rc);
 
 	rc = syscall(SYSCALL_NR, -1U, 0);
@@ -105,7 +106,7 @@ main(void)
 	rc = syscall(SYSCALL_NR, ngroups_max, 0);
 	printf("%s(%d, NULL) = %s\n", SYSCALL_NAME, ngroups_max, sprintrc(rc));
 
-	rc = syscall(SYSCALL_NR, (long) 0xffffffff00000000ULL | ngroups_max, 0);
+	rc = syscall(SYSCALL_NR, F8ILL_KULONG_MASK | ngroups_max, 0);
 	printf("%s(%d, NULL) = %s\n", SYSCALL_NAME, ngroups_max, sprintrc(rc));
 
 	/* check how the second argument is decoded */

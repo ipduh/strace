@@ -3,6 +3,7 @@
 # Check that strace does not leak placeholder descriptors.
 #
 # Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+# Copyright (c) 2016-2017 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -47,18 +48,17 @@ check_fd()
 	a2="$2"
 	a3="$3"
 
+	rm -f "$LOG" "$fd0" "$fd1" "$fd2"
 	touch "$LOG" "$fd0" ||
 		framework_skip_ 'failed to create files'
 
-	set -- "\"./$NAME\"" "\"$1\"" "\"$2\"" "\"$3\""
+	set -- "\"../$NAME\"" "\"$1\"" "\"$2\"" "\"$3\""
 	eval "$@" "<${a1:-&-}" ">${a2:-&-}" "2>${a3:-&-}" ||
 			fail_ "$* failed with code $rc"
 
 	set -- "$STRACE" -o"$LOG" -echdir "$@"
 	eval "$@" "<${a1:-&-}" ">${a2:-&-}" "2>${a3:-&-}" ||
 		dump_log_and_fail_with "$* failed with code $?"
-
-	rm -f "$LOG" "$fd0" "$fd1" "$fd2"
 }
 
 check_fd "$fd0" "$fd1" "$fd2"

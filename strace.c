@@ -3,6 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
+ * Copyright (c) 1999-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -190,10 +191,10 @@ static void
 print_version(void)
 {
 	printf("%s -- version %s\n"
-	       "Copyright (C) %s The strace developers <%s>.\n"
+	       "Copyright (C) 1991-%s The strace developers <%s>.\n"
 	       "This is free software; see the source for copying conditions.  There is NO\n"
 	       "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n",
-	       PACKAGE_NAME, PACKAGE_VERSION, "1991-2017", PACKAGE_URL);
+	       PACKAGE_NAME, PACKAGE_VERSION, COPYRIGHT_YEAR, PACKAGE_URL);
 }
 
 static void
@@ -569,12 +570,10 @@ strace_popen(const char *command)
 	return fp;
 }
 
-void
-tprintf(const char *fmt, ...)
+ATTRIBUTE_FORMAT((printf, 1, 0))
+static void
+tvprintf(const char *const fmt, va_list args)
 {
-	va_list args;
-
-	va_start(args, fmt);
 	if (current_tcp) {
 		int n = vfprintf(current_tcp->outf, fmt, args);
 		if (n < 0) {
@@ -583,6 +582,14 @@ tprintf(const char *fmt, ...)
 		} else
 			current_tcp->curcol += n;
 	}
+}
+
+void
+tprintf(const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	tvprintf(fmt, args);
 	va_end(args);
 }
 
@@ -602,6 +609,27 @@ tprints(const char *str)
 		if (current_tcp->outf != stderr)
 			perror_msg("%s", outfname);
 	}
+}
+
+void
+tprints_comment(const char *const str)
+{
+	if (str && *str)
+		tprintf(" /* %s */", str);
+}
+
+void
+tprintf_comment(const char *fmt, ...)
+{
+	if (!fmt || !*fmt)
+		return;
+
+	va_list args;
+	va_start(args, fmt);
+	tprints(" /* ");
+	tvprintf(fmt, args);
+	tprints(" */");
+	va_end(args);
 }
 
 void
@@ -2181,6 +2209,9 @@ startup_tcb(struct tcb *tcp)
 			}
 		}
 	}
+
+	if (get_scno(tcp) == 1)
+		tcp->s_prev_ent = tcp->s_ent;
 }
 
 static void
@@ -2295,10 +2326,7 @@ trace(void)
 			return true;
 	}
 
-	if (WIFSTOPPED(status))
-		get_regs(pid);
-	else
-		clear_regs();
+	clear_regs();
 
 	event = (unsigned int) status >> 16;
 
@@ -2364,8 +2392,6 @@ trace(void)
 	/* Is this the very first time we see this tracee stopped? */
 	if (tcp->flags & TCB_STARTUP) {
 		startup_tcb(tcp);
-		if (get_scno(tcp) == 1)
-			tcp->s_prev_ent = tcp->s_ent;
 	}
 
 	sig = WSTOPSIG(status);

@@ -2,6 +2,7 @@
  * Check decoding of setgroups/setgroups32 syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,7 +76,7 @@ main(void)
 	long rc = syscall(SYSCALL_NR, 0, 0);
 	printf("%s(0, NULL) = %s\n", SYSCALL_NAME, sprintrc(rc));
 
-	rc = syscall(SYSCALL_NR, (long) 0xffffffff00000000ULL, 0);
+	rc = syscall(SYSCALL_NR, F8ILL_KULONG_MASK, 0);
 	printf("%s(0, NULL) = %s\n", SYSCALL_NAME, sprintrc(rc));
 
 	rc = syscall(SYSCALL_NR, 1, 0);
@@ -91,7 +92,7 @@ main(void)
 	printf("%s(%d, NULL) = %s\n", SYSCALL_NAME, -1, sprintrc(rc));
 
 	/* check how the second argument is decoded */
-	const GID_TYPE *const g1 = tail_alloc(sizeof(*g1));
+	TAIL_ALLOC_OBJECT_CONST_PTR(const GID_TYPE, g1);
 	GID_TYPE *const g2 = tail_alloc(sizeof(*g2) * 2);
 	GID_TYPE *const g3 = tail_alloc(sizeof(*g3) * 3);
 
@@ -164,9 +165,7 @@ main(void)
 		printuid(g3[1]);
 		printf(", ...]) = %s\n", errstr);
 
-		const unsigned long size =
-			(unsigned long) 0xffffffff00000000ULL | ngroups_max;
-		rc = syscall(SYSCALL_NR, size, g3);
+		rc = syscall(SYSCALL_NR, F8ILL_KULONG_MASK | ngroups_max, g3);
 		errstr = sprintrc(rc);
 		printf("%s(%d, [", SYSCALL_NAME, ngroups_max);
 		printuid(g3[0]);

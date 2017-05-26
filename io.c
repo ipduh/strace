@@ -3,6 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
+ * Copyright (c) 1999-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -94,7 +95,7 @@ print_iovec(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
 				len = c->data_size;
 			if (c->data_size != (kernel_ulong_t) -1)
 				c->data_size -= len;
-			decode_netlink(tcp, iov[0], iov[1]);
+			decode_netlink(tcp, iov[0], len);
 			break;
 		default:
 			printaddr(iov[0]);
@@ -224,11 +225,6 @@ SYS_FUNC(preadv)
 	return do_preadv(tcp, -1);
 }
 
-SYS_FUNC(preadv2)
-{
-	return do_preadv(tcp, 5);
-}
-
 static int
 do_pwritev(struct tcb *tcp, const int flags_arg)
 {
@@ -253,9 +249,29 @@ SYS_FUNC(pwritev)
 	return do_pwritev(tcp, -1);
 }
 
+/*
+ * x32 is the only architecture where preadv2 takes 5 arguments
+ * instead of 6, see preadv64v2 in kernel sources.
+ * Likewise, x32 is the only architecture where pwritev2 takes 5 arguments
+ * instead of 6, see pwritev64v2 in kernel sources.
+ */
+
+#if defined X86_64
+# define PREADV2_PWRITEV2_FLAGS_ARG_NO (current_personality == 2 ? 4 : 5)
+#elif defined X32
+# define PREADV2_PWRITEV2_FLAGS_ARG_NO (current_personality == 0 ? 4 : 5)
+#else
+# define PREADV2_PWRITEV2_FLAGS_ARG_NO 5
+#endif
+
+SYS_FUNC(preadv2)
+{
+	return do_preadv(tcp, PREADV2_PWRITEV2_FLAGS_ARG_NO);
+}
+
 SYS_FUNC(pwritev2)
 {
-	return do_pwritev(tcp, 5);
+	return do_pwritev(tcp, PREADV2_PWRITEV2_FLAGS_ARG_NO);
 }
 
 #include "xlat/splice_flags.h"

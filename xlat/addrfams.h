@@ -128,6 +128,9 @@
 #if !(defined(AF_QIPCRTR) || (defined(HAVE_DECL_AF_QIPCRTR) && HAVE_DECL_AF_QIPCRTR))
 # define AF_QIPCRTR 42
 #endif
+#if !(defined(AF_SMC) || (defined(HAVE_DECL_AF_SMC) && HAVE_DECL_AF_SMC))
+# define AF_SMC 43
+#endif
 
 #ifndef IN_MPERS
 
@@ -175,6 +178,7 @@ const struct xlat addrfams[] = {
  XLAT(AF_VSOCK),
  XLAT(AF_KCM),
  XLAT(AF_QIPCRTR),
+ XLAT(AF_SMC),
  XLAT_END
 };
 

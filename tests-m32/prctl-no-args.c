@@ -4,6 +4,7 @@
  * PR_TASK_PERF_EVENTS_DISABLE, and PR_TASK_PERF_EVENTS_ENABLE.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,7 +58,7 @@ main(void)
 		{ 32, "PR_TASK_PERF_EVENTS_ENABLE" },
 	};
 
-	unsigned int *ptr = tail_alloc(sizeof(*ptr));
+	TAIL_ALLOC_OBJECT_CONST_PTR(unsigned int, ptr);
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(options); i++) {
