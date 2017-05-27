@@ -41,9 +41,8 @@ ifneq ($(strip $(TARGET_ARCH)),mips)
 
 include $(CLEAR_VARS)
 
-strace_version := $(shell grep strace $(LOCAL_PATH)/debian/changelog | \
-                          head -1 | cut -d " " -f 2)
-strace_year := $(shell cat $(LOCAL_PATH)/.year)
+strace_version := "4.17"
+strace_year := "2017"
 
 LOCAL_SRC_FILES := \
     access.c \
@@ -300,8 +299,8 @@ LOCAL_CFLAGS := \
     -DMAJOR_IN_SYSMACROS \
     -DPACKAGE_NAME='"strace"' \
     -DPACKAGE_URL='"https://strace.io"' \
-    -DPACKAGE_VERSION='"$(strace_version)"' \
-    -DCOPYRIGHT_YEAR='"$(strace_year)"' \
+    -DPACKAGE_VERSION='$(strace_version)' \
+    -DCOPYRIGHT_YEAR='$(strace_year)' \
     -DSIZEOF_KERNEL_LONG_T=SIZEOF_LONG \
     -DSIZEOF_OFF_T=SIZEOF_LONG \
     -DSIZEOF_LONG_LONG=8 \
