@@ -91,6 +91,9 @@ const struct xlat v4l2_device_capabilities_flags[] = {
 #if defined(V4L2_CAP_SDR_OUTPUT) || (defined(HAVE_DECL_V4L2_CAP_SDR_OUTPUT) && HAVE_DECL_V4L2_CAP_SDR_OUTPUT)
   XLAT(V4L2_CAP_SDR_OUTPUT),
 #endif
+#if defined(V4L2_CAP_META_CAPTURE) || (defined(HAVE_DECL_V4L2_CAP_META_CAPTURE) && HAVE_DECL_V4L2_CAP_META_CAPTURE)
+  XLAT(V4L2_CAP_META_CAPTURE),
+#endif
  XLAT_END
 };
 

@@ -1,3 +1,1580 @@
+2017-07-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Prepare for 4.18 release.
+	* NEWS: Update for 4.18 release.
+
+2017-07-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify create_nl_socket based tests against the race condition
+	There is a race condition between the moment a netlink socket is created
+	and the moment it is reported via SOCK_DIAG_BY_FAMILY interface.
+	Add one more operation on the socket created by create_nl_socket
+	to increase chances of winning the race.
+
+	* tests/create_nl_socket.c (create_nl_socket_ext): Add a getsockopt call
+	with the created socket.
+
+2017-07-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update NEWS.
+
+2017-07-04  Romain Naour  <romain.naour@smile.fr>
+
+	nios2: fix wrong access to "SP" register in user_pt_regs.
+	Starting with linux commit v4.0-rc4~21^2, "SP" register
+	is available via regs[PTR_SP] member of struct user_pt_regs.
+
+	* linux/nios2/arch_regs.h (nios2_sp_ptr): Change type
+	to "unsigned int *".
+	* linux/nios2/arch_regs.c (nios2_sp_ptr): Likewise.
+	Replace .sp with .regs[PTR_SP].
+
+	Fixes: http://autobuild.buildroot.net/results/b9f/b9fc25b82f3280872fe1593ac252a8529ba83576
+	Fixes: v4.16-34-g6117728a ("nios2: export nios2_sp_ptr")
+
+2017-07-03  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: add multi-process check to qual_fault.test.
+	Check that syscall counters used for tampering are per-tcb.
+
+	* tests/qual_fault.c: Include <fcntl.h> for open(),
+	<sys/param.h> for PATH_MAX, and <sys/wait.h> for wait().
+	(expfd): Rename to exp_fd, remove const qualifier and initialization.
+	(gotfd): Rename to got_fd, remove const qualifier and initialization.
+	(out_fd): New variable, for the expected strace output.
+	(open_file): New helper function.
+	(main): Remove st, add num_procs, proc, exp_prefix, got_prefix,
+	out_prefix, pid_prefix.  Remove stat asserts, update argc assert.
+	Add num_procs, exp_prefix, got_prefix, out_prefix, pid_prefix
+	initialization.  Add per-process loop, open expfd, gotfd, out_fd, pidfd
+	in each one, print process's pid to pidfd, print exit message to out_fd.
+	Add wait() call for each forked process.
+	* tests/qual_fault.test (N): increase to 100 in order to check
+	concurrent process execution.
+	(check_fault_injection): Take additional argument for the process
+	count, pass it to qual_fault, add filename variables for expected strace
+	output and pid file, pass them to qual_fault.
+	Specify -ff parameter to strace invocation.
+	Compare write and strace output for the each process.
+	Update all check_fault_injection invocation with process count argument,
+	add an invocation with 4 concurrent processes.
+	* tests/init.sh (TIMEOUT_DURATION): Raise from 120 to 300.
+
+2017-07-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: adjust TEST_NLATTR_OBJECT and TEST_NLATTR_ARRAY for large objects
+	* tests/test_nlattr.h (TEST_NLATTR_OBJECT, TEST_NLATTR_ARRAY): Add
+	support for objects larger than DEFAULT_STRLEN.
+	* tests/nlattr_inet_diag_msg.c (main): Change pattern size
+	from DEFAULT_STRLEN to 4096.
+	* tests/nlattr_netlink_diag_msg.c: Likewise.
+	* tests/nlattr_unix_diag_msg.c: Likewise.
+
+	Reported-by: JingPiao Chen <chenjingpiao@gmail.com>
+
+2017-07-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: move DEFAULT_STRLEN macro to tests.h.
+	* tests/tests.h [!DEFAULT_STRLEN] (DEFAULT_STRLEN): New macro.
+	* tests/mincore.c (DEFAULT_STRLEN): Remove.
+	* tests/mmsg_name.c: Likewise.
+	* tests/msg_control.c: Likewise.
+	* tests/netlink_protocol.c: Likewise.
+	* tests/nlattr.c: Likewise.
+	* tests/nlattr_inet_diag_msg.c: Likewise.
+	* tests/nlattr_netlink_diag_msg.c: Likewise.
+	* tests/nlattr_unix_diag_msg.c: Likewise.
+	* tests/printstr.c: Likewise.
+	* tests/xattr.c: Likewise.
+	* tests/execve.c: Likewise.
+	(main): Initialize str_a and str_b arrays at run time.
+	* tests/execveat.c: Likewise.
+
+	Suggested-by: JingPiao Chen <chenjingpiao@gmail.com>
+
+2017-07-03  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: use unified diff in order to improve test log readability.
+	* tests/init.sh (match_diff): Add -u option to the diff invocation.
+
+2017-07-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix error diagnostics in case of zero argc.
+	* strace.c (init): Adjust argc along with argv,
+	check that adjusted argc is sane.
+	* tests/zeroargc.c: New file.
+	* tests/.gitignore: Add zeroargc.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	* tests/options-syntax.test: Check strace error diagnostics
+	in case of zero argc.
+
+2017-07-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Use program_invocation_name instead of a local progname variable.
+	Emulate program_invocation_name only if it is not provided by libc.
+
+	* configure.ac: Check for program_invocation_name variable.
+	* strace.c (progname): Remove.
+	[!HAVE_PROGRAM_INVOCATION_NAME] (program_invocation_name): New variable.
+	(verror_msg, error_msg_and_help): Use it instead of progname.
+	(init): Initialize program_invocation_name instead of progname.
+
+2017-07-02  Dmitry V. Levin  <ldv@altlinux.org>
+	    Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	Introduce generic STRINGIFY and STRINGIFY_VAL macros.
+	* macros.h (STRINGIFY, STRINGIFY_VAL): New macros.
+	* mpers_type.h: Include "macros.h".
+	[IN_MPERS] (STRINGIFY): Remove.
+	* tests/sockname.c (TEST_SYSCALL_STR__, TEST_SYSCALL_STR_): Remove.
+	(TEST_SYSCALL_STR): Use STRINGIFY_VAL.
+
+2017-07-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce macros.h.
+	Introduce a separate header file for generic macros shared between
+	strace and its tests.  Start this unification with ARRAY_SIZE macro.
+
+	* defs.h: Include "macros.h".
+	(ARRAY_SIZE): Move ...
+	* macros.h: ... to new file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* tests/tests.h: Include "macros.h".
+	(ARRAY_SIZE): Remove.  All callers updated.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	quota: use PRINT_FIELD_FLAGS.
+	* quota.c (struct xfs_dqblk): Change d_flags field's type from int8_t
+	to uint8_t.
+	(decode_cmd_data): Use PRINT_FIELD_FLAGS.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Unify different generic PRINT_FIELD_* implementations.
+	Create a new header print_fields.h and move generic PRINT_FIELD_*
+	macros there.
+
+	* print_fields.h: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* netlink_sock_diag.c: Include "print_fields.h".
+	(PRINT_FIELD_U, PRINT_FIELD_X, PRINT_FIELD_COOKIE, PRINT_FIELD_FLAGS,
+	PRINT_FIELD_XVAL): Move to print_fields.h file.
+	* quota.c: Include "print_fields.h".
+	(PRINT_FIELD_D): Move to print_fields.h file.
+	(PRINT_FIELD_U, PRINT_FIELD_X): Remove.
+	* statx.c: Include "print_fields.h".
+	(PRINT_FIELD_U): Remove.
+	(SYS_FUNC(statx)): Update PRINT_FIELD_U callers.
+	* tests/quotactl.h: Include "print_fields.h".
+	* tests/quotactl-xfs.c: Update callers of PRINT_FIELD_* macros.
+	* tests/quotactl.c: Likewise.
+	(PRINT_FIELD_D, PRINT_FIELD_U, PRINT_FIELD_X): Remove.
+	* tests/test_nlattr.h: Include "print_fields.h".
+	(PRINT_FIELD_U, PRINT_FIELD_X): Remove.
+	* tests/xstatx.c: Include "print_fields.h".
+	(PRINT_FIELD_U): Remove.
+	(print_stat): Update PRINT_FIELD_U callers.
+	* tests/tests.h [!STRACE_PRINTF] (STRACE_PRINTF): Define to printf.
+
+2017-07-01  Eugeniy Paltsev  <Eugeniy.Paltsev@synopsys.com>
+
+	arc: fix wrong access to "sp" member in user_regs_struct.
+	"sp" register is a member of "scratch" structure (which is nested
+	in user_regs_struct)
+
+	* linux/arc/arch_regs.c: Replace .sp with .scratch.sp .
+
+	Fixes: v4.16-31-g134042a5 ("arc: export arc_sp_ptr")
+
+2017-07-01  Khem Raj  <raj.khem@gmail.com>
+
+	aarch64, tile: replace struct ucontext with ucontext_t.
+	glibc >= 2.26 has dropped the tag struct ucontext from ucontext_t type.
+
+	* linux/arm/arch_sigreturn.c (arch_sigreturn) [AARCH64]: Replace
+	struct ucontext with ucontext_t.
+	* linux/tile/arch_sigreturn.c (arch_sigreturn): Likewise.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: enhance nlattr_unix_diag_msg test.
+	* tests/nlattr_unix_diag_msg.c: Include "test_nlattr.h".
+	(test_unix_diag_vfs, test_unix_diag_icons, test_unix_diag_rqlen):
+	Remove.
+	(init_unix_diag_msg): Add const qualifier to arguments and variables.
+	(print_unix_diag_msg, print_uint): New functions.
+	(main): Use them and macros from test_nlattr.h file.
+
+2017-07-01  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of netlink unix_diag_msg attributes.
+	* tests/nlattr_unix_diag_msg.c: New file.
+	* tests/gen_tests.in (nlattr_unix_diag_msg): New entry.
+	* tests/pure_executables.list: Add nlattr_unix_diag_msg.
+	* tests/.gitignore: Likewise.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: ensure that structure field names are printed properly
+	* netlink_sock_diag.c (decode_unix_diag_vfs, decode_unix_diag_rqlen):
+	Use PRINT_FIELD_U to print structure fields.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: add const qualifiers.
+	Add const qualifiers to auto variables and function arguments.
+	This change does not affect the code generated by the compiler,
+	the purpose of these "const" qualifiers is to highlight the intent.
+
+	* netlink_sock_diag.c (decode_unix_diag_vfs, decode_unix_diag_inode,
+	decode_unix_diag_rqlen): Add const qualifier to tcp, addr, and len
+	arguments.
+
+2017-07-01  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: decode AF_UNIX unix_diag_msg attributes.
+	* netlink_sock_diag.c (unix_diag_msg_nla_decoders): New array.
+	(decode_unix_diag_msg): Use it.
+	* linux/unix_diag.h (unix_diag_vfs, unix_diag_rqlen): New structures.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: enhance nlattr_netlink_diag_msg test.
+	* tests/nlattr_netlink_diag_msg.c: Include "test_nlattr.h".
+	(test_netlink_diag_groups, test_netlink_diag_rx_ring,
+	test_netlink_diag_flags): Remove.
+	(init_netlink_diag_msg): Add const qualifier to arguments and variables.
+	(print_netlink_diag_msg, print_xlong): New functions.
+	(main): Use them and macros from test_nlattr.h file.
+
+2017-07-01  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of netlink_diag_msg attributes.
+	* tests/nlattr_netlink_diag_msg.c: New file.
+	* tests/gen_tests.in (nlattr_netlink_diag_msg): New entry.
+	* tests/pure_executables.list: Add nlattr_netlink_diag_msg.
+	* tests/.gitignore: Likewise.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: ensure that structure field names are printed properly
+	* netlink_sock_diag.c (decode_netlink_diag_ring): Use PRINT_FIELD_U
+	to print structure fields.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: add const qualifiers.
+	Add const qualifiers to auto variables and function arguments.
+	This change does not affect the code generated by the compiler,
+	the purpose of these "const" qualifiers is to highlight the intent.
+
+	* netlink_sock_diag.c (print_group, decode_netlink_diag_groups,
+	decode_netlink_diag_ring, decode_netlink_diag_flags): Add const
+	qualifier to tcp, addr, and len arguments.
+
+2017-07-01  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: decode AF_NETLINK netlink_diag_msg attributes.
+	* linux/netlink_diag.h (netlink_diag_ring): New structure.
+	(NDIAG_FLAG_*): New macros.
+	* netlink_sock_diag.c: Include "xlat/netlink_socket_flags.h".
+	(print_group, decode_netlink_diag_groups, decode_netlink_diag_ring,
+	decode_netlink_diag_flags): New functions.
+	(netlink_diag_msg_nla_decoders): New array.
+	(decode_netlink_diag_msg): Use it.
+	* xlat/netlink_socket_flags.in: New file.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: print inet_diag_sockid.idiag_if as an interface index
+	* netlink_sock_diag.c (print_inet_diag_sockid): Print idiag_if field
+	using print_ifindex.
+	* tests/nlattr_inet_diag_msg.c: Include <net/if.h>.
+	(IFINDEX_LO): New macro.
+	(init_inet_diag_msg): Set inet_diag_sockid.idiag_if field.
+	(print_inet_diag_msg): Update expected output.
+
+2017-07-01  Dmitry V. Levin  <ldv@altlinux.org>
+	    JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of several standard netlink attributes.
+	* tests/nlattr_inet_diag_msg.c (main): Check decoding of uint32_t,
+	uint8_t, and zero-terminated string attributes.
+
+2017-06-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: enhance nlattr_inet_diag_msg test.
+	* tests/test_nlattr.h: New file.
+	* tests/Makefile.am (libtests_a_SOURCES): Add it.
+	* tests/nlattr_inet_diag_msg.c: Include "test_nlattr.h".
+	(test_inet_diag_meminfo, test_inet_diag_vegasinfo,
+	test_inet_diag_dctcpinfo, test_inet_diag_bbrinfo): Remove.
+	(address): New variable.
+	(init_inet_diag_msg): Remove "address" argument, add const qualifier
+	to all remaining arguments.
+	(print_inet_diag_msg, print_uint): New functions.
+	(main): Use macros from test_nlattr.h file.
+
+2017-06-30  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of netlink inet_diag_msg attributes.
+	* tests/nlattr_inet_diag_msg.c: New file.
+	* tests/gen_tests.in (nlattr_inet_diag_msg): New entry.
+	* tests/pure_executables.list: Add nlattr_inet_diag_msg.
+	* tests/.gitignore: Likewise.
+
+2017-06-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: ensure that structure field names are printed properly
+	* netlink_sock_diag.c (PRINT_FIELD_X): New macro.
+	(decode_inet_diag_meminfo, decode_tcpvegas_info, decode_tcp_dctcp_info,
+	decode_tcp_bbr_info): Use it and PRINT_FIELD_U to print structure
+	fields.
+
+2017-06-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: add const qualifiers.
+	Add const qualifiers to auto variables and function arguments.
+	This change does not affect the code generated by the compiler,
+	the purpose of these "const" qualifiers is to highlight the intent.
+
+	* netlink_sock_diag.c (print_meminfo, decode_meminfo,
+	decode_inet_diag_meminfo, decode_tcpvegas_info, decode_tcp_dctcp_info,
+	decode_tcp_bbr_info): Add const qualifier to tcp, addr, and len
+	arguments.
+
+2017-06-30  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: decode AF_INET inet_diag_msg attributes.
+	* linux/inet_diag.h (inet_diag_meminfo, tcpvegas_info,
+	tcp_dctcp_info, tcp_bbr_info): New structures.
+	* linux/sock_diag.h (SK_MEMINFO_VARS): New macro.
+	* netlink_sock_diag.c: Include  <linux/sock_diag.h>.
+	(print_meminfo, decode_meminfo, decode_inet_diag_meminfo,
+	decode_tcpvegas_info, decode_tcp_dctcp_info, decode_tcp_bbr_info):
+	New functions.
+	(inet_diag_msg_nla_decoders): New array.
+	(decode_inet_diag_msg): Use it.
+
+2017-06-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	nlattr: add const qualifiers to auto variables and function arguments.
+	This change does not affect the code generated by the compiler,
+	the purpose of these "const" qualifiers is to highlight the intent.
+
+	* nlattr.c (decode_nlattr_with_data, decode_nla_str, decode_nla_strn,
+	decode_nla_##name): Add const qualifier to tcp, addr, and len arguments.
+
+2017-06-30  JingPiao Chen  <chenjingpiao@gmail.com>
+	    Fabien Siron  <fabien.siron@epita.fr>
+
+	netlink: introduce nla_decoder_t to parse netlink attributes data.
+	* nlattr.h (nla_decoder_t): New typedef.
+	(DECL_NLA): New macro.
+	(decode_nlattr): Add decoders, size and opaque_data argument.
+	* nlattr.c: (decode_nlattr_with_data): Likewise.
+	(decode_nla_*): New functions.
+	* netlink_sock_diag.c (decode_inet_diag_req_compat)
+	(decode_inet_diag_req_v2, decode_inet_diag_msg)
+	(decode_netlink_diag_msg, (decode_packet_diag_msg)
+	(decode_smc_diag_msg, decode_unix_diag_msg): Add decoders,
+	size and opaque_data arguments. All callers updated.
+
+2017-06-30  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: add a basic netlink attribute parser of AF_SMC diag.
+	* netlink_sock_diag.c: Include "xlat/smc_diag_attrs.h".
+	(decode_smc_diag_msg): Use decode_nlattr.
+	* xlat/smc_diag_attrs.in: New file.
+
+2017-06-30  JingPiao Chen  <chenjingpiao@gmail.com>
+	    Fabien Siron  <fabien.siron@epita.fr>
+
+	netlink: add a basic netlink attribute parser of AF_INET diag.
+	* linux/inet_diag.h (INET_DIAG_REQ_*): New enum.
+	* netlink_sock_diag.c: Include "xlat/inet_diag_attrs.h"
+	and "xlat/inet_diag_req_attrs.h".
+	(decode_inet_diag_req_compat, decode_inet_diag_req_v2,
+	 decode_inet_diag_msg): Use decode_nlattr.
+	* xlat/inet_diag_attrs.in: New file.
+	* xlat/inet_diag_req_attrs.in: Likewise.
+
+	netlink: add a basic netlink attribute parser of AF_PACKET diag.
+	* linux/packet_diag.h (PACKET_DIAG_*): New enum.
+	* netlink_sock_diag.c: Include "xlat/packet_diag_attrs.h".
+	(decode_packet_diag_msg): Use decode_nlattr.
+	* xlat/packet_diag_attrs.in: New file.
+
+	netlink: add a basic netlink attribute parser of AF_NETLINK diag.
+	* linux/netlink_diag.h (NETLINK_DIAG_*): New enum.
+	* netlink_sock_diag.c: Include "xlat/netlink_diag_attrs.h".
+	(decode_netlink_diag_msg): Use decode_nlattr.
+	* xlat/netlink_diag_attrs.in: New file.
+
+2017-06-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink_sock_diag: ensure that structure field names are printed properly
+	* netlink_sock_diag.c (PRINT_FIELD_U, PRINT_FIELD_COOKIE,
+	PRINT_FIELD_FLAGS, PRINT_FIELD_XVAL): New macros.
+	(decode_unix_diag_req, decode_unix_diag_msg, decode_netlink_diag_req,
+	decode_netlink_diag_msg, decode_packet_diag_req, decode_packet_diag_msg,
+	print_inet_diag_sockid, decode_inet_diag_req_compat,
+	decode_inet_diag_req_v2, decode_inet_diag_msg, decode_smc_diag_req,
+	decode_smc_diag_msg): Use them to print structure fields.
+
+2017-06-29  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	Update ioctl entries from linux v4.12-rc7.
+	* linux/32/ioctls_inc_align16.h: Update from linux v4.12-rc7
+	(with f7a320ff commit applied on top) using ioctls_gen.sh.
+	* linux/32/ioctls_inc_align32.h: Likewise.
+	* linux/32/ioctls_inc_align64.h: Likewise.
+	* linux/64/ioctls_inc.h: Likewise.
+	* linux/x32/ioctls_inc0.h: Likewise.
+	* NEWS: Mention this.
+
+2017-06-29  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	maint: fix ioctls_sym.sh premature termination.
+	When the list of headers do not fit into the command line, xargs splits
+	it into several lists and then passes them to grep.  If no headers from
+	a list match the grep pattern, grep exits with a non-zero status that
+	causes xargs to exit with a non-zero status, too.
+
+	* maint/ioctls_sym.sh: Use "find -exec +" instead of xargs,
+	ignore its exit status.
+
+2017-06-27  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: introduce NLMSG_ATTR macro.
+	* tests/tests.h (NLMSG_ATTR): New macro.
+	* tests/nlattr.c (test_nlattr, test_nla_type): Use it.
+
+2017-06-27  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: pass NLMSG_DONE messages to family specific payload decoders.
+	While many NLMSG_DONE messages indeed have payload containing
+	just one integer, there are exceptions. Handle this by passing
+	payloads of NLMSG_DONE messages to family specific netlink
+	payload decoders.
+
+	* netlink.c (print_nlmsghdr): Do not skip family detection
+	for nlmsg_type == NLMSG_DONE.
+	(decode_nlmsg_type): Skip family specific type decoders
+	for type == NLMSG_DONE.
+	(decode_nlmsg_flags): Skip family specific decoding of flags
+	for type == NLMSG_DONE.
+	(decode_netlink_sock_diag): Skip for nlmsg_type == NLMSG_DONE.
+
+2017-06-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Unexport die_out_of_memory.
+	Print more specific error diagnostics than a generic "Out of memory"
+	when an error happens outside xmalloc.c.
+
+	* defs.h (die_out_of_memory): Remove prototype.
+	* strace.c (strace_popen, init): Call perror_msg_and_die instead
+	of die_out_of_memory.
+	* unwind.c (unwind_tcb_init): Likewise.
+	* xmalloc.c (die_out_of_memory): Add static qualifier.
+
+2017-06-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Check -s argument early.
+	* util.c (printstr_ex): Move the check that -s argument
+	does not exceed -1U / 4 ...
+	* strace.c (init): ... here.
+	* tests/options-syntax.test: Check it.
+
+2017-06-25  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Include "netlink.h" instead of <linux/netlink.h>
+	* net.c: Include "netlink.h" instead of <linux/netlink.h>.
+	* sockaddr.c: Likewise.
+	* tests/create_nl_socket.c: Likewise.
+	* tests/net-sockaddr.c: Likewise.
+	* tests/netlink_audit.c: Likewise.
+	* tests/netlink_generic.c: Likewise.
+	* tests/netlink_inet_diag.c: Likewise.
+	* tests/netlink_netfilter.c: Likewise.
+	* tests/netlink_route.c: Likewise.
+	* tests/netlink_selinux.c: Likewise.
+	* tests/netlink_xfrm.c: Likewise.
+	* tests/net-yy-netlink.c: Include "netlink.h" instead
+	of <linux/netlink.h>, remove fallback definition of NETLINK_SOCK_DIAG.
+	* tests/netlink_netlink_diag.c: Likewise.
+	* tests/netlink_protocol.c: Likewise.
+	* tests/netlink_sock_diag.c: Likewise.
+	* tests/netlink_unix_diag.c: Likewise.
+	* tests/nlattr.c: Likewise.
+
+2017-06-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink: provide a fallback definition of NETLINK_SOCK_DIAG.
+	Add a fallback definition of NETLINK_SOCK_DIAG to netlink.h
+	instead of adding these fallback definitions to every file.
+
+	* netlink.h: Provide a fallback definition of NETLINK_SOCK_DIAG.
+	* socketutils.c: Include "netlink.h" instead of <linux/netlink.h>,
+	remove fallback definition of NETLINK_SOCK_DIAG.
+
+2017-06-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update prctl ARCH_* constants.
+	* xlat/archvals.in: Add ARCH_GET_CPUID and ARCH_SET_CPUID
+	introduced by linux kernel commit v4.12-rc1~153^2~2.
+
+2017-06-22  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update V4L2_* constants.
+	* xlat/v4l2_buf_types.in: Add V4L2_BUF_TYPE_META_CAPTURE introduced
+	by linux kernel commit v4.12-rc1~85^2~71.
+	* xlat/v4l2_device_capabilities_flags.in: Add V4L2_CAP_META_CAPTURE
+	introduced by the same commit.
+	* xlat/v4l2_control_flags.in: Add V4L2_CTRL_FLAG_HAS_PAYLOAD,
+	V4L2_CTRL_FLAG_EXECUTE_ON_WRITE, and V4L2_CTRL_FLAG_MODIFY_LAYOUT
+	introduced by linux kernel commits v3.17-rc1~112^2~363,
+	v4.1-rc1~59^2~1^2~63, and v4.12-rc1~85^2~62, respectively.
+	* xlat/v4l2_control_types.in: Add V4L2_CTRL_TYPE_U8, V4L2_CTRL_TYPE_U16,
+	and V4L2_CTRL_TYPE_U32 introduced by linux kernel commits
+	v3.17-rc1~112^2~343 and v3.17-rc1~112^2~112.
+
+	Update SCTP_* constants.
+	* xlat/socksctpoptions.in: Add SCTP_ENABLE_STREAM_RESET,
+	SCTP_RESET_STREAMS, SCTP_RESET_ASSOC, SCTP_ADD_STREAMS,
+	SCTP_RECONFIG_SUPPORTED, and SCTP_PR_STREAM_STATUS introduced
+	by linux kernel commits v4.11-rc1~124^2~387^2~1, v4.11-rc1~124^2~387^2,
+	v4.11-rc1~124^2~166^2~2, v4.11-rc1~124^2~166^2, v4.12-rc1~64^3~469^2,
+	and v4.12-rc1~64^3~276, respectively.
+
+	Update RTM_* constants.
+	* xlat/nl_route_types.in: Add RTM_DELNETCONF introduced
+	by linux kernel commit v4.12-rc1~64^3~312^2~6.
+
+	Update NDIAG_SHOW_* constants.
+	* linux/netlink_diag.h (NDIAG_SHOW_FLAGS): New constant introduced
+	by linux kernel commit v4.12-rc1~64^3~260.
+	* xlat/netlink_diag_show.in: Add it.
+
+	Update KEYCTL_* constants.
+	* xlat/keyctl_commands.in: Add KEYCTL_RESTRICT_KEYRING introduced
+	by linux kernel commit v4.12-rc1~123^2~7^2~2^2~3.
+
+	Update ARPHRD_* constants.
+	* xlat/arp_hardware_types.in: Add ARPHRD_VSOCKMON introduced
+	by linux kernel commit v4.12-rc1~129^2~118^2~2.
+
+	Update SO_* constants.
+	* xlat/sockoptions.in: Add SO_MEMINFO, SO_INCOMING_NAPI_ID,
+	and SO_COOKIE introduced by linux kernel commits v4.12-rc1~64^3~389,
+	v4.12-rc1~64^3~341^2, and v4.12-rc1~64^3~221^2~1, respectively.
+
+2017-06-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check more corner cases of nlattr decoding.
+	* tests/nlattr.c (test_nlattr): Check decoding in case of invalid
+	struct nlattr.nla_len.
+
+2017-06-21  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of netlink attribute.
+	* tests/nlattr.c: New file.
+	* tests/gen_tests.in (nlattr): New entry.
+	* tests/pure_executables.list: Add nlattr.
+	* tests/.gitignore: Likewise.
+
+2017-06-21  JingPiao Chen  <chenjingpiao@gmail.com>
+	    Fabien Siron  <fabien.siron@epita.fr>
+
+	netlink: introduce a basic netlink attributes parser.
+	* linux/unix_diag.h (UNIX_DIAG_*): New enum.
+	* nlattr.c: New file.
+	* nlattr.h: Likewise.
+	* Makefile.am (strace_SOURCES): Add them.
+	* netlink_sock_diag.c: Include "nlattr.h" and "xlat/unix_diag_attrs.h".
+	(decode_unix_diag_msg): Use decode_nlattr.
+	* xlat/unix_diag_attrs.in: New file.
+
+2017-06-21  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: introduce netlink.h.
+	* netlink.h: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* netlink_sock_diag.c: Include "netlink.h",
+	remove <sys/socket.h> and <linux/netlink.h>.
+	* netlink.c: Likewise.
+	(NLMSG_HDRLEN): Move to netlink.h.
+	* tests/netlink_protocol.c: Replace <linux/netlink.h> with "netlink.h".
+	* tests/netlink_sock_diag.c: Likewise.
+
+2017-06-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: add SET_STRUCT macro to tests.h.
+	* tests/netlink_sock_diag.c (INIT_STRUCT): Rename to SET_STRUCT,
+	all callers updated.  Move ...
+	* tests/tests.h: ... here.
+
+2017-06-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix potential unaligned access in netlink_sock_diag.test.
+	Despite our efforts made to avoid unaligned access, gcc appears to be
+	generating instructions that might cause unaligned access when copying
+	structures to unaligned addresses.
+
+	Fix this issue by replacing copying of structures to unaligned addresses
+	with memcpy calls.
+
+	* tests/netlink_sock_diag.c (INIT_STRUCT): New macro.
+	(test_odd_family_req, test_odd_family_msg, test_unix_diag_req,
+	test_unix_diag_msg, test_netlink_diag_req, test_netlink_diag_msg,
+	test_packet_diag_req, test_packet_diag_msg, test_inet_diag_sockid,
+	test_inet_diag_req, test_inet_diag_req_v2, test_inet_diag_msg,
+	test_smc_diag_req, test_smc_diag_msg): Use it to initialize potentially
+	unaligned struct nlmsghdr.  Do not access nlh->nlmsg_len.
+
+2017-06-19  Masatake YAMATO  <yamato@redhat.com>
+
+	tests: check decoding of NETLINK_GENERIC message types.
+	* tests/netlink_generic.c: New file.
+	* tests/gen_tests.in (netlink_generic): New entry.
+	* tests/pure_executables.list: Add netlink_generic.
+	* tests/.gitignore: Likewise.
+
+2017-06-19  Masatake YAMATO  <yamato@redhat.com>
+
+	netlink: add decoding of NETLINK_GENERIC protocol families.
+	NETLINK_GENERIC is a protocol stacked on netlink protocol.
+
+	When a NETLINK_GENERIC subsystem registers its "family" name in the
+	kernel at run time, an integer value associated with this name is
+	assigned by the kernel.  This integer value is specified in struct
+	nlmsghdr.nlmsg_type of subsequent communications with the
+	NETLINK_GENERIC subsystem.
+
+	This change implements decoding of NETLINK_GENERIC message types in
+	symbolic form, for example:
+
+	  $ ./strace -yy -e 'sendto' ip tcp_metrics > /dev/null
+	  sendto(4<NETLINK:[GENERIC:12345]>, {{len=20, type=tcp_metrics, ...
+	  +++ exited with 0 +++
+
+	Note that type= specifying the NETLINK_GENERIC protocol family
+	is decoded properly.
+
+	* netlink.c (decode_nlmsg_type_generic): New function.
+	(nlmsg_types): Add NETLINK_GENERIC entry.
+
+2017-06-19  Masatake YAMATO  <yamato@redhat.com>
+
+	socketutils: build a dynamic xlat table for NETLINK_GENERIC decoding.
+	* configure.ac (AC_CHECK_HEADERS): Add linux/genetlink.h.
+	* defs.h (genl_families_xlat): New prototype.
+	* socketutils.c [HAVE_LINUX_GENETLINK_H]: Include <linux/genetlink.h>.
+	[HAVE_LINUX_GENETLINK_H] (genl_send_dump_families,
+	genl_parse_families_response): New helper functions.
+	(genl_families_xlat): New function for building the xlat table
+	for NETLINK_GENERIC decoding.
+
+2017-06-19  Masatake YAMATO  <yamato@redhat.com>
+
+	dyxlat: new interface for building xlat tables dynamically.
+	xlat tables are usually generated at build time.
+
+	printxval is suitable for printing struct nlmsghdr.nlmsg_type for
+	NETLINK_GENERIC protocol.  However, the corresponding xlat table
+	cannot be defined at build time because the values are registered
+	by the kernel at run time.
+
+	This change introduces dyxlat functions for building xlat tables
+	dynamically.  The primary use case is decoding nlmsg_type but this
+	interface can be used for other purposes.
+
+	* defs.h (struct dyxlat): New opaque data type.
+	(dyxlat_alloc, dyxlat_free, dyxlat_add_pair): New function declarations.
+	* dyxlat.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+
+2017-06-19  Masatake YAMATO  <yamato@redhat.com>
+
+	Introduce xstrndup function.
+	* configure.ac (AC_CHECK_FUNCS): Add strndup.
+	* defs.h (xstrndup): New prototype.
+	* xmalloc.c (xstrndup): New function.
+
+2017-06-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink: do not print extra braces around payloadless nlmsghdr.
+	* netlink.c (decode_nlmsghdr_with_payload): Print braces before
+	print_nlmsghdr and after decode_payload iff decode_payload is invoked.
+	* tests/netlink_audit.c (test_nlmsg_type): Update expected output.
+	* tests/netlink_netfilter.c: Likewise.
+	* tests/netlink_selinux.c: Likewise.
+	* tests/netlink_protocol.c (send_query): Likewise.
+	* tests/netlink_route.c (test_nlmsg_type, test_nlmsg_flags): Likewise.
+	* tests/netlink_sock_diag.c: Likewise.
+	* tests/netlink_xfrm.c: Likewise.
+
+2017-06-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Strip argument name of type "struct tcb *" from function prototypes.
+	"struct tcb *" was used in most prototypes along with "struct tcb *tcp",
+	this change converts the latter form to the former for consistency.
+
+	Fix a few spacing style issues.
+	Reported by kernel's checkpatch.pl script.
+
+2017-06-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Strip redundant trailing semicolons.
+	Strip trailing semicolons from macro definitions.
+	Strip extra semicolons from statements terminations.
+
+	Reported by kernel's checkpatch.pl script.
+
+2017-06-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix macros encosure in a do/while loop.
+	Enclose macros with multiple statements and macros starting
+	with "if" statement in a do/while loop.
+	Do not enclose single statement macros in a do/while loop.
+
+	Reported by kernel's checkpatch.pl script.
+
+2017-06-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Use __func__ instead of gcc specific __FUNCTION__
+	Reported by kernel's checkpatch.pl script.
+
+2017-06-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix a few initialization style issues.
+	Do not initialise statics and globals to 0, NULL, or false.
+
+	Reported by kernel's checkpatch.pl script.
+
+2017-06-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix function prototypes with unspecified arguments.
+	Change functions declared as taking unspecified number of arguments
+	of unspecified type to functions that take no arguments.
+
+	Reported by kernel's checkpatch.pl script.
+
+2017-06-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix a few sizeof style issues.
+	Reported by kernel's checkpatch.pl script.
+
+	Fix a few misspellings in comments.
+	Reported by kernel's checkpatch.pl script.
+
+2017-06-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	print_mreq: remove superfluous print_quoted_string calls.
+	The string returned by inet_ntoa(3) has IPv4 dotted-decimal notation,
+	no need to quote it.
+
+	* net.c (print_mreq): Remove print_quoted_string calls.
+
+2017-06-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of incomplete SCM_TIMESTAMP* control messages.
+	* tests/msg_control.c (test_scm_timestamp, test_scm_timestampns,
+	test_scm_timestamping): Check decoding of incomplete control messages.
+
+2017-06-15  Miroslav Lichvar  <mlichvar@redhat.com>
+
+	msghdr: print SCM_TIMESTAMP* control messages.
+	Add support for printing control messages containing software and/or
+	hardware timestamps, which are typically enabled by NTP and PTP
+	implementations.
+
+	* print_timeval.c (print_struct_timeval_data_size): New mpers printer.
+	* print_timespec.c (print_struct_timespec_data_size,
+	print_struct_timespec_array_data_size): Likewise.
+	* msghdr.c (print_scm_timestamp, print_scm_timestampns,
+	print_scm_timestamping): New functions.
+	(cmsg_socket_printers): Add them.
+	* NEWS: Mention this change.
+	* tests/msg_control.c: Include "xlat.h" and "xlat/scmvals.h".
+	(test_scm_timestamp, test_scm_timestampns, test_scm_timestamping):
+	New functions.
+	(test_sol_socket): Use them.
+
+2017-06-15  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of NETLINK_SOCK_DIAG AF_SMC messages.
+	* tests/netlink_sock_diag.c: Include <linux/smc_diag.h>.
+	(SMC_ACTIVE): New macro.
+	(test_smc_diag_req, test_smc_diag_msg): New functions.
+	(main): Use them.
+
+	netlink: add a basic socket diag parser of AF_SMC messages.
+	* linux/smc_diag.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* netlink_sock_diag.c: Include <linux/smc_diag.h>,
+	"xlat/smc_diag_extended_flags.h" and "xlat/smc_states.h".
+	(decode_smc_diag_req, decode_smc_diag_msg): New functions.
+	(diag_decoders): Add AF_SMC.
+	* xlat/smc_diag_extended_flags.in: New file.
+	* xlat/smc_states.in: Likewise.
+
+2017-06-15  JingPiao Chen  <chenjingpiao@gmail.com>
+	    Fabien Siron  <fabien.siron@epita.fr>
+
+	tests: check decoding of NETLINK_SOCK_DIAG AF_INET messages.
+	* tests/netlink_sock_diag.c: Include <arpa/inet.h>
+	and <linux/inet_diag.h>.
+	(test_inet_diag_sockid, test_inet_diag_req, test_inet_diag_req_v2,
+	test_inet_diag_msg): New functions.
+	(mian): Use them.
+
+	netlink: add a basic socket diag parser of AF_INET and AF_INET6 messages
+	* defs.h (inet_protocols): New xlat prototype.
+	* linux/inet_diag.h (inet_diag_req): New structure.
+	(INET_DIAG_*): New enum.
+	* netlink_sock_diag.c: Include <arpa/inet.h>, <linux/inet_diag.h>
+	and "xlat/inet_diag_extended_flags.h".
+	(print_inet_diag_sockid, decode_inet_diag_req_compat)
+	(decode_inet_diag_req_v2, decode_inet_diag_req)
+	(decode_inet_diag_msg): New functions.
+	(diag_decoders): Add AF_INET and AF_INET6;
+	* xlat/inet_diag_extended_flags.in: New file.
+
+2017-06-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce print_inet_addr.
+	* defs.h (print_inet_addr): New prototype.
+	* sockaddr.c (print_inet_addr): New function.
+	(print_sockaddr_data_in6): Use it.
+	* net.c (print_mreq6): Likewise.
+	* tests/ip_mreq.c (main): Update expected output.
+
+2017-06-15  JingPiao Chen  <chenjingpiao@gmail.com>
+	    Fabien Siron  <fabien.siron@epita.fr>
+
+	tests: check decoding of NETLINK_SOCK_DIAG AF_PACKET messages.
+	* tests/netlink_sock_diag.c: Include <linux/if_ether.h>
+	and <linux/packet_diag.h>.
+	(test_packet_diag_req, test_packet_diag_msg): New functions.
+	(main): Use them.
+
+	netlink: add a basic socket diag parser of AF_PACKET messages.
+	* linux/packet_diag.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* defs.h (ethernet_protocols): New xlat prototype.
+	* netlink_sock_diag.c: Include <linux/packet_diag.h>
+	and "xlat/packet_diag_show.h".
+	(decode_packet_diag_req, decode_packet_diag_msg): New functions.
+	(diag_decoders): Add AF_PACKET.
+	* xlat/packet_diag_show.in: New file.
+
+	tests: check decoding of NETLINK_SOCK_DIAG AF_NETLINK messages.
+	* tests/netlink_sock_diag.c: Include <linux/netlink_diag.h>.
+	(test_netlink_diag_req, test_netlink_diag_msg): New functions.
+	(main): Use them.
+
+	netlink: add a basic socket diag parser of AF_NETLINK messages.
+	* linux/netlink_diag.h (NDIAG_SHOW_GROUPS, NDIAG_SHOW_RING_CFG):
+	New macros.
+	* netlink_sock_diag.c: Include <linux/netlink_diag.h>,
+	"xlat/netlink_diag_show.h" and "xlat/netlink_states.h".
+	(decode_netlink_diag_req, decode_netlink_diag_msg): New functions.
+	(diag_decoders): Add AF_NETLINK.
+	* xlat/netlink_diag_show.in: New file.
+	* xlat/netlink_states.in: Likewise.
+
+2017-06-15  Dmitry V. Levin  <ldv@altlinux.org>
+	    Fabien Siron  <fabien.siron@epita.fr>
+	    JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of NETLINK_SOCK_DIAG AF_UNIX messages.
+	* tests/netlink_sock_diag.c: Include <netinet/tcp.h>
+	and <linux/unix_diag.h>.
+	(test_odd_family_req, test_odd_family_msg, test_unix_diag_req,
+	test_unix_diag_msg): New functions.
+	(main): Use them.
+
+	netlink: add a basic socket diag parser of AF_UNIX messages.
+	* defs.h (socktypes): New xlat prototype.
+	* linux/unix_diag.h (UDIAG_SHOW_VFS, UDIAG_SHOW_ICONS, UDIAG_SHOW_RQLEN,
+	UDIAG_SHOW_MEMINFO): New macros.
+	* netlink_sock_diag.c: Include <sys/socket.h>, <linux/netlink.h>,
+	<linux/unix_diag.h>, "xlat/tcp_states.h", "xlat/tcp_state_flags.h",
+	and "xlat/unix_diag_show.h".
+	(decode_unix_diag_req, decode_unix_diag_msg): New functions.
+	(netlink_diag_decoder_t): New typedef.
+	(diag_decoders): New array.
+	(decode_netlink_sock_diag): Use it.
+	* xlat/tcp_state_flags.in: New file.
+	* xlat/tcp_states.in: Likewise.
+	* xlat/unix_diag_show.in: Likewise.
+
+	netlink: introduce family specific payload decoders.
+	* defs.h (netlink_decoder_t): New typedef.
+	(DECL_NETLINK): New macro.
+	(decode_netlink_sock_diag): New prototype.
+	* netlink.c (netlink_decoders): New array.
+	(decode_payload): Use it to invoke netlink family specific decoders.
+	* netlink_sock_diag.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+
+2017-06-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update SCM_* constants.
+	* xlat/scmvals.in: Add SCM_TIMESTAMP, SCM_TIMESTAMPNS, SCM_TIMESTAMPING,
+	SCM_WIFI_STATUS, and SCM_TIMESTAMPING_OPT_STATS.
+
+2017-06-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink: refactor decode_nlmsg_type.
+	* netlink.c (decode_nlmsg_type_default, decode_nlmsg_type_netfilter):
+	New functions.
+	(nlmsg_types_decoder_t): New typedef.
+	(nlmsg_types): Add decoder field.
+	(decode_nlmsg_type): Use it.
+
+2017-06-14  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: extend printstr test.
+	* tests/printstr.c (main): Add a case for short read.
+
+2017-06-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	v4l2: fix preprocessor checks.
+	Fix checks for struct v4l2_window.global_alpha and struct
+	v4l2_sdr_format.buffersize.
+
+	* v4l2.c (print_v4l2_format_fmt): Do not assume that
+	HAVE_STRUCT_V4L2_WINDOW_GLOBAL_ALPHA and
+	HAVE_STRUCT_V4L2_SDR_FORMAT_BUFFERSIZE are defined.
+	* tests/ioctl_v4l2.c (init_v4l2_format, dprint_ioctl_v4l2): Likewise.
+
+2017-06-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move xlat related functions to a separate file.
+	* util.c (xlookup, xlat_bsearch_compare, xlat_search, printxvals,
+	printxval_searchn, addflags, sprintflags, printflags_ex): Move ...
+	* xlat.c: ... to this new file.
+	* Makefile.am (strace_SOURCES): Add it.
+
+2017-06-12  Masatake YAMATO  <yamato@redhat.com>
+
+	socketeutils: extend receive_responses further.
+	This is the second patch in series of implementing NETLINK_GENERIC
+	protocol decoder.
+
+	This change allows passing of opaque user data to the callback function.
+
+	* socketutils.c (receive_responses): Change the type of proto_name
+	argument from "const char *" to "void *" to allow passing
+	of arbitrary data to the callback function.
+	Rename proto_name to opaque_data, make it the last argument.
+	Pass it to the callback function as the last argument.
+	(inet_parse_response, unix_parse_response, netlink_parse_response):
+	Change the type of proto_name argument from "const char *" to "void *",
+	rename it to opaque_data, make it the last argument.
+	Introduce a local variable proto_name to convert the type
+	of opaque_data argument from "void *" to "const char *".
+	(unix_get, inet_get, netlink_get): Cast the protocol name from
+	"const char *" to "void *" for passing to the callback function.
+
+2017-06-12  Masatake YAMATO  <yamato@redhat.com>
+
+	socketeutils: extend receive_responses to handle other netlink types.
+	This is the first patch in series of implementing NETLINK_GENERIC
+	protocol decoder.
+
+	receive_responses was written for decoding kernel responses of type
+	SOCK_DIAG_BY_FAMILY, other types were ignored.
+
+	This change makes the type of netlink response a parameter
+	so the function can be used for other types of communication.
+
+	* socketutils.c (receive_responses): add a new parameter
+	expected_msg_type to handle types other than SOCK_DIAG_BY_FAMILY.
+
+2017-06-12  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: fix typo.
+	* tests/dup3.c (SKIP_MAIN_UNDEFINED): Remove duplicated &&.
+
+2017-06-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce printflags_ex function.
+	Add printflags_ex extension over printflags64 that, similar
+	to printxvals, takes a NULL-terminated sequence of xlat pointers.
+
+	* defs.h (printflags_ex): New prototype.
+	(printflags64): Turn into a thin wrapper around printflags_ex.
+	* netlink.c (decode_nlmsg_flags): Use printflags_ex.
+	* util.c (printflags_ex): New function.
+	(printflags64): Remove.
+	* xlat/netlink_get_flags.in: Remove entries listed
+	in xlat/netlink_flags.in file.
+	* xlat/netlink_new_flags.in: Likewise.
+
+2017-06-08  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: add check for decoding netlink get and new flags.
+	* tests/netlink_route.c (test_nlmsg_flags): New function, checks
+	decoding of NETLINK_ROUTE get and new flags.
+	(main): Use it.
+	* tests/netlink_sock_diag.c (test_nlmsg_flags): New function, checks
+	decoding of NETLINK_SOCK_DIAG get flags.
+	(main): Use it.
+	* tests/netlink_xfrm.c: (test_nlmsg_flags): New function, checks
+	decoding of NETLINK_XFRM get and new flags.
+	(main): Use it.
+
+2017-06-08  JingPiao Chen  <chenjingpiao@gmail.com>
+	    Fabien Siron  <fabien.siron@epita.fr>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink: implement generic nlmsg_flags decoding.
+	* netlink.c: Include "xlat/netlink_get_flags.h"
+	and "xlat/netlink_new_flags.h".
+	(decode_nlmsg_flags): New function.
+	(print_nlmsghdr): Use it.
+	* xlat/netlink_get_flags.in: New file.
+	* xlat/netlink_new_flags.in: Likewise.
+
+2017-06-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	xlat: provide fallback definitions for XFRM_MSG_* constants.
+	Some of XFRM_MSG_* constants were introduced later than the header file
+	where they are defined.
+
+	* xlat/nl_xfrm_types.in: Add default values for constants.
+
+2017-06-05  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	syscall.c: split trace_syscall() into 6 functions.
+	This change removes the trace_syscall function.  Now, the code that uses
+	syscall.c trace functions is expected to check whether it is a syscall
+	entry or exit (with entering(tcp)/exiting(tcp)) itself, and then make
+	an appropriate sequence of function calls.
+
+	* defs.h: Update comment on TCB_INSYSCALL.
+	(trace_syscall): Remove prototype.
+	(syscall_entering_decode, syscall_entering_trace,
+	syscall_entering_finish, syscall_exiting_decode, syscall_exiting_trace,
+	syscall_exiting_finish): New prototypes.
+	* strace.c (trace_syscall): New static replacement for old trace_syscall.
+	* syscall.c (trace_syscall): Remove.
+	(trace_syscall_entering): Split into ...
+	(syscall_entering_decode, syscall_entering_trace,
+	syscall_entering_finish): ... new functions.
+	(trace_syscall_exiting): Split into ...
+	(syscall_exiting_decode, syscall_exiting_trace,
+	syscall_exiting_finish): ... new functions.
+
+2017-06-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: guard against missing linux/netfilter/nfnetlink.h.
+	nfnetlink was introduced in linux by commit v2.6.14-rc1~1035^2~217,
+	add a guard for the case when system headers are not fresh enough.
+
+	* configure.ac (AC_CHECK_HEADERS): Add linux/netfilter/nfnetlink.h.
+	* tests/netlink_netfilter.c: Check for HAVE_LINUX_NETFILTER_NFNETLINK_H.
+
+2017-06-05  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of NETLINK_XFRM message types.
+	* tests/netlink_xfrm.c: New file.
+	* tests/gen_tests.in (netlink_xfrm): New entry.
+	* tests/pure_executables.list: Add netlink_xfrm.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NETLINK_SELINUX message types.
+	* tests/netlink_selinux.c: New file.
+	* tests/gen_tests.in (netlink_selinux): New entry.
+	* tests/pure_executables.list: Add netlink_selinux.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NETLINK_NETFILTER message types.
+	* tests/netlink_netfilter.c: New file.
+	* tests/gen_tests.in (netlink_netfilter): New entry.
+	* tests/pure_executables.list: Add netlink_netfilter.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NETLINK_AUDIT message types.
+	* tests/netlink_audit.c: New file.
+	* tests/gen_tests.in (netlink_audit): New entry.
+	* tests/pure_executables.list: Add netlink_audit.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NETLINK_ROUTE message types.
+	* tests/netlink_route.c: New file.
+	* tests/gen_tests.in (netlink_route): New entry.
+	* tests/pure_executables.list: Add netlink_route.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NETLINK_SOCK_DIAG message types.
+	* tests/netlink_sock_diag.c: New file.
+	* tests/netlink_sock_diag.test: New test.
+	* tests/pure_executables.list: Add netlink_sock_diag.
+	* tests/.gitignore: Likewise.
+	* tests/Makefile.am (DECODER_TESTS): Add netlink_sock_diag.test.
+
+2017-06-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: use create_nl_socket in netlink_protocol.test.
+	* tests/netlink_protocol.c (main): Use create_nl_socket.
+
+	tests: change netlink_protocol.test to trace sendto syscalls only.
+	* tests/gen_tests.in (netlink_protocol): Replace %network with sendto.
+	* tests/netlink_protocol.c (main): Update expected output.
+
+	tests: enhance create_nl_socket diagnostics messages.
+	* tests/tests.h (create_nl_socket): Rename to create_nl_socket_ext,
+	add a string argument.
+	(create_nl_socket): New macro wrapper around create_nl_socket_ext.
+	* tests/create_nl_socket.c (create_nl_socket): Rename
+	to create_nl_socket_ext, add a string argument, include it
+	in diagnostic messages.
+
+	tests: use const and designated initializers in create_nl_socket.c.
+	* tests/create_nl_socket.c: Stop including <string.h>.
+	(create_nl_socket): Use const and designated initializers.
+
+2017-06-05  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: add create_nl_socket function to libtests.
+	* tests/create_nl_socket.c: New file.
+	* tests/tests.h (create_nl_socket): New prototype.
+	* tests/Makefile.am (libtests_a_SOURCES): Add create_nl_socket.c.
+
+2017-06-05  Dmitry V. Levin  <ldv@altlinux.org>
+	    Fabien Siron  <fabien.siron@epita.fr>
+
+	netlink: add decoding of NETLINK_NETFILTER message types.
+	* xlat/nl_netfilter_msg_types.in: New file.
+	* xlat/nl_netfilter_subsys_ids.in: Likewise.
+	* netlink.c: Include "xlat/nl_netfilter_msg_types.h"
+	and "xlat/nl_netfilter_subsys_ids.h".
+	(nlmsg_types): Add NETLINK_NETFILTER.
+	(decode_nlmsg_type): Handle NETLINK_NETFILTER.
+
+	netlink: add decoding of NETLINK_XFRM message types.
+	* xlat/nl_xfrm_types.in: New file.
+	* netlink.c: Include "xlat/nl_xfrm_types.h".
+	(nlmsg_types): Add NETLINK_XFRM.
+
+	netlink: add decoding of NETLINK_SELINUX message types.
+	* xlat/nl_selinux_types.in: New file.
+	* netlink.c: Include "xlat/nl_selinux_types.h".
+	(nlmsg_types): Add NETLINK_SELINUX.
+
+	netlink: add decoding of NETLINK_ROUTE message types.
+	* xlat/nl_route_types.in: New file.
+	* netlink.c: Include <linux/rtnetlink.h> and "xlat/nl_route_types.h".
+	(nlmsg_types): Add NETLINK_ROUTE.
+
+	netlink: add decoding of NETLINK_AUDIT message types.
+	* xlat/nl_audit_types.in: New file.
+	* netlink.c: Include <linux/audit.h> and "xlat/nl_audit_types.h".
+	(nlmsg_types): Add NETLINK_AUDIT.
+
+2017-06-05  Dmitry V. Levin  <ldv@altlinux.org>
+	    Fabien Siron  <fabien.siron@epita.fr>
+
+	netlink: implement generic nlmsg_type decoding.
+	Implement a pluggable mechanism of nlmsg_type decoding.
+	Add decoding of NETLINK_SOCK_DIAG types.
+
+	* linux/sock_diag.h (SOCK_DESTROY): New macro.
+	* xlat/nl_sock_diag_types.in: New file.
+	* netlink.c: Include xlat/nl_sock_diag_types.h.
+	(get_fd_nl_family, decode_nlmsg_type): New functions.
+	(print_nlmsghdr): Use them for nlmsg_type decoding.
+
+2017-06-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink: add netlink family argument to printers and decoders.
+	* netlink.c (NL_FAMILY_ERROR, NL_FAMILY_DEFAULT): New constants.
+	(print_nlmsghdr): Add netlink family argument, change return type
+	to int, return family.
+	(decode_nlmsghdr_with_payload, decode_nlmsgerr, decode_payload): Add
+	netlink family argument.  All callers updated.
+
+2017-06-05  Fabien Siron  <fabien.siron@epita.fr>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	Add file descriptor argument to decode_netlink.
+	* defs.h (decode_netlink): Add file descriptor argument.
+	* io.c (print_iovec): Specify file descriptor to decode_netlink.
+	* net.c (decode_sockbuf): Likewise.
+	* netlink.c (print_nlmsghdr, decode_nlmsghdr_with_payload,
+	decode_nlmsgerr, decode_payload, decode_nlmsghdr_with_payload,
+	decode_netlink): Likewise.
+	All callers updated.
+
+	Introduce getfdinode to obtain inode from fd.
+	* defs.h (getfdinode): New prototype.
+	* utils.c (getfdinode): New function.
+
+2017-06-05  Fabien Siron  <fabien.siron@epita.fr>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce get_sockaddr_by_inode.
+	Add a way to get socket information without printing it.
+
+	* defs.h (get_sockaddr_by_inode): New prototype.
+	* socketutils.c (get_sockaddr_by_inode): New function.
+
+2017-06-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	socketutils.c: introduce get_sockaddr_by_inode_uncached.
+	* socketutils.c (get_sockaddr_by_inode_uncached): New function.
+	(print_sockaddr_by_inode_uncached): Use it.
+
+2017-06-05  Fabien Siron  <fabien.siron@epita.fr>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	socketutils.c: use get_sockaddr_by_inode_cached.
+	* socketutils.c (unix_print, inet_print, tcp_v4_print, tcp_v6_print,
+	udp_v4_print, udp_v6_print, netlink_print): Remove.
+	(unix_get, inet_get, tcp_v4_get, tcp_v6_get, udp_v4_get,
+	udp_v6_get, netlink_get): New functions.
+	(protocols): Update.
+
+2017-06-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	socketutils.c: move inet_print closer to its first use.
+	* socketutils.c (inet_print): Move right before tcp_v4_print.
+
+2017-06-05  Fabien Siron  <fabien.siron@epita.fr>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	socketutils.c: introduce cache_inode_details.
+	cache_inode_details gives a way to obtain cache information without
+	printing it.
+
+	* socketutils.c (cache_and_print_inode_details): Rename
+	to cache_inode_details.  Do not print cached information.
+	(inet_parse_response, unix_parse_response, netlink_parse_response):
+	Use cache_inode_details instead of cache_and_print_inode_details.
+	(inet_print, unix_print, netlink_print): Call
+	print_sockaddr_by_inode_cached.
+
+2017-06-05  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	strace.c: move termination code to a separate function.
+	This will be needed for the pull-style API.
+
+	* strace.c (terminate): New function.
+	(main): Use it.
+
+2017-06-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: avoid hitting SO_SNDBUF limit in sendfile/sendfile64 tests.
+	Do not assume that an executable is small enough and SO_SNDBUF is large
+	enough so that the executable could be sendfile'ed into a socket pair.
+
+	* tests/sendfile.c (main): Create a regular file of the right size
+	to avoid hitting SO_SNDBUF limit.
+	* tests/sendfile64.c: Likewise.
+
+	Reported-by: Andreas Schwab <schwab@linux-m68k.org>
+
+2017-06-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move netlink_protocols definition from net.c to netlink.c.
+	The side effect of #include "xlat/netlink_protocols.h" is
+	NETLINK_* constants properly defined in that header file.
+	While net.c does not use these constants itself, netlink.c
+	is going to need them soon.
+
+	* net.c: Move inclusion of "xlat/netlink_protocols.h" ...
+	* netlink.c: ... here.
+
+2017-06-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	travis: switch from gcc-6 to gcc-7.
+	* .travis.yml (matrix): Change gcc-6 to gcc-7.
+
+	tests: extend checking of NLMSG_DONE decoding.
+	* tests/netlink_protocol.c (test_nlmsg_done):  Use designated
+	initializers.  Check decoding of messages with non-integer payload.
+
+2017-06-04  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: decode NLMSG_DONE messages.
+	* netlink.c (decode_payload): Decode NLMSG_DONE messages.
+	* tests/netlink_protocol.c (test_nlmsg_done): New function
+	for checking decoding of NLMSG_DONE messages.
+	(main): Use it.
+
+2017-06-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	socketutils.c: introduce get_sockaddr_by_inode_cached.
+	* socketutils.c (get_sockaddr_by_inode_cached): New function.
+	(print_sockaddr_by_inode_cached): Use it.
+
+2017-06-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Unexport print_sockaddr_by_inode_cached.
+	Change print_sockaddr_by_inode to be the only function exposed,
+	hide print_sockaddr_by_inode_cached as a part of implementation.
+
+	* defs.h (print_sockaddr_by_inode_cached): Remove prototype.
+	(print_sockaddr_by_inode): Add struct tcb * and descriptor arguments.
+	* socketutils.c (print_sockaddr_by_inode_cached): Make static.
+	(print_sockaddr_by_inode): Rename to print_sockaddr_by_inode_uncached,
+	make static.
+	(print_sockaddr_by_inode): New function.
+	* util.c (printfd): Update to use new print_sockaddr_by_inode.
+
+2017-06-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce str_strip_prefix_len function and STR_STRIP_PREFIX macro.
+	Address proliferation of string prefix check implementations.
+
+	* defs.h (str_strip_prefix_len): New inline function.
+	(STR_STRIP_PREFIX): New macro.
+	* qualify.c (strip_prefix): Remove.
+	(parse_inject_token): Use STR_STRIP_PREFIX instead of strip_prefix.
+	(qualify): Use str_strip_prefix_len.
+	* socketutils.c (netlink_parse_response): Likewise.
+	* util.c (printfd): Likewise.
+
+2017-06-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink: move NLMSG_ERROR payload length check to nlmsgerr decoder.
+	Move decoder specific check to the decoder.
+
+	* netlink.c (decode_payload): Move NLMSG_ERROR payload length check ...
+	(decode_nlmsgerr): ... here.
+
+2017-06-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.c: handle PTRACE_EVENT_EXEC like other events.
+	There is nothing unusual about PTRACE_EVENT_EXEC that would require
+	a special treatment.
+
+	* strace.c (next_event): Move PTRACE_EVENT_EXEC handling to the main
+	switch statement.
+
+2017-06-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.c: remove dead code.
+	As strace does not use WCONTINUED flag, there is no need to handle
+	WIFCONTINUED status.
+
+	* strace.c (print_debug_info) [WIFCONTINUED]: Remove.
+	(next_event): Remove redundant !WIFSTOPPED check.
+
+2017-06-02  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	strace.c: refactor trace into two functions.
+	This change decouples waiting for next event from reacting to it.  This
+	makes the control flow easier to understand, and serves as a preparation
+	for implementing a pull-style API for LuaJIT.
+
+	* strace.c (enum trace_event): New enum.
+	(trace): Split into ...
+	(next_event, dispatch_event): ... new functions.
+	(main): Use them.
+
+2017-05-30  Dmitry V. Levin  <ldv@altlinux.org>
+
+	scno.am: include config.h before syscallent.h.
+	This fixes generation of syscallent.i and subsequent scno.h files
+	on mips where syscallent.h checks macros defined in config.h.
+
+	* scno.am (syscallent.i): Add $(top_builddir)/config.h
+	to prerequisites, include it.
+	* NEWS: Mention this fix.
+
+	Reported-by: David Robins <dbrobins@i4031.net>
+
+2017-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of sigaction syscall.
+	* tests/sigaction.c: New file.
+	* tests/gen_tests.in (sigaction): New entry.
+	* tests/pure_executables.list: Add sigaction.
+	* tests/.gitignore: Likewise.
+
+	tests: rename sigaction.test to rt_sigaction.test.
+	* tests/sigaction.awk: Rename to rt_sigaction.awk.
+	* tests/sigaction.c: Rename to tests/rt_sigaction.c.
+	* tests/sigaction.test: Rename to tests/rt_sigaction.test.
+	* tests/.gitignore: Replace sigaction with rt_sigaction.
+	* tests/pure_executables.list: Likewise.
+	* tests/Makefile.am (DECODER_TESTS): Replace sigaction.test
+	with rt_sigaction.test.
+	(EXTRA_DIST): Replace sigaction.awk with rt_sigaction.awk.
+
+2017-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	sparc: enhance decoding of signal number argument of sigaction syscall.
+	On sparc, unlike all other architectures, old sigaction syscall takes
+	a negated signal number.
+
+	* signal.c (SYS_FUNC(sigaction)) [SPARC || SPARC64]: Enhance printing
+	of negative signal number argument.
+
+2017-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	signal: enhance printing of old_sigaction.mask.
+	* signal.c (decode_old_sigaction): Print old_sigaction.mask
+	using tprint_old_sigmask_val.
+
+	signal: limit scope of struct old_sigaction32 definition.
+	* signal.c (struct old_sigaction32): Define only if [!current_wordsize].
+
+2017-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	signal: fix decoding of struct old_sigaction on some architectures.
+	On alpha, struct old_sigaction.sa_flags has a 32-bit type.
+
+	On mips, only first word of old_sigaction.sa_mask is read.
+
+	On all architectures except alpha and mips that have old sigaction
+	syscall, struct old_sigaction has sa_restorer field that has to be
+	decoded.
+
+	* signal.c (struct old_sigaction) [ALPHA]: Change sa_flags type
+	to unsigned int, add ATTRIBUTE_PACKED.
+	[MIPS]: Dhrink sa_mask array to 1 element.
+	[!ALPHA && !MIPS]: Define sa_restorer field unconditionally.
+	(struct old_sigaction32): Likewise.
+	(decode_old_sigaction) [!current_wordsize]: Initialize sa_restorer field
+	from old_sigaction32.sa_restorer unconditionally.
+	[!ALPHA && !MIPS]: Print old_sigaction.sa_restorer if SA_RESTORER flag
+	is set.
+	* NEWS: Mention this change.
+
+2017-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	xlat: rename SA_STACK to SA_ONSTACK.
+	SA_ONSTACK is the standard name while its alias SA_STACK is not even
+	defined on many platforms.
+
+	* xlat/sigact_flags.in (SA_STACK): Rename to SA_ONSTACK.
+
+2017-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of sigpending syscall.
+	* tests/sigpending.c: New file.
+	* tests/gen_tests.in (sigpending): New entry.
+	* tests/pure_executables.list: Add sigpending.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of sigprocmask syscall.
+	* tests/sigprocmask.c: New file.
+	* tests/gen_tests.in (sigprocmask): New entry.
+	* tests/pure_executables.list: Add sigprocmask.
+	* tests/.gitignore: Likewise.
+
+2017-05-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	alpha: rename sys_sigprocmask to sys_osf_sigprocmask.
+	Parsers of sigprocmask and osf_sigprocmask syscalls are different
+	anyway, so rename the function to match the syscall name.
+
+	* signal.c [ALPHA] (SYS_FUNC(sigprocmask)): Rename
+	to SYS_FUNC(osf_sigprocmask).
+	* linux/alpha/syscallent.h: Update sys_func.
+
+2017-05-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Enable coverage when strace is self terminated by signal.
+	The data collected by -fprofile-arcs during program run is saved
+	on program exit.  When program is terminated by signal, the data
+	is not saved.  However, libgcov provides an interface to dump
+	the data at runtime.
+
+	* m4/ax_code_coverage.m4 (AX_CODE_COVERAGE): Add -DENABLE_COVERAGE_GCOV
+	to CODE_COVERAGE_CPPFLAGS.
+	* strace.c [ENABLE_COVERAGE_GCOV] (__gcov_flush): New prototype.
+	(main) [ENABLE_COVERAGE_GCOV]: Call __gcov_flush() before raise()
+	and sigprocmask() calls that might cause program termination.
+
+2017-05-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check termination signal forwarding.
+	* tests/run_expect_termsig.c: New file.
+	* tests/unblock_reset_raise.c: Likewise.
+	* tests/termsig.test: New test.
+	* tests/.gitignore: Add run_expect_termsig and unblock_reset_raise.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(MISC_TESTS): Add termsig.test.
+
+2017-05-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix termination signal forwarding.
+	When traced command is terminated by a blocked signal, unblock
+	that signal to ensure strace termination with the same signal.
+
+	* strace.c (main): Unblock the signal raised for strace termination.
+	* NEWS: Mention this change.
+
+2017-05-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Do not reset SIGCHLD handler in tracees to SIG_DFL.
+	While strace resets SIGCHLD handler to the default action so that
+	waitpid definitely works without losing track of children, tracees
+	should not inherit this change.
+
+	* strace.c (struct exec_params): Add child_sa field.
+	(init): When setting SIGCHLD handler to SIG_DFL, save the old handler.
+	(exec_or_die): Restore SIGCHLD handler if it was different from SIG_DFL
+	at startup.
+	* NEWS: Mention this change.
+
+2017-05-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Refactor setting of signal handlers to reduce redundancy.
+	* strace.c (set_sigaction): New function.
+	(init): Use it instead of sigaction with sigaddset.
+
+	tests: check how signals are unblocked in interactive mode.
+	* tests/block_reset_raise_run.c: New file.
+	* tests/interactive_block.test: New test.
+	* tests/.gitignore: Add block_reset_raise_run.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(MISC_TESTS): Add interactive_block.test.
+
+2017-05-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix unblocking of signals in interactive mode.
+	In interactive mode (-I2), those signals that were blocked at startup
+	will remain blocked for the whole period of strace execution.
+
+	* strace.c (empty_set): Rename to start_set.  All users changed.
+	(init): Initialize start_set and blocked_set to the set of currently
+	blocked signals.
+	(startup_attach, trace): Use SIG_SETMASK instead of SIG_BLOCK.
+	* NEWS: Mention this change.
+
+2017-05-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Cleanup interactive check.
+	* strace.c (init): Check for INTR_WHILE_WAIT mode the same way
+	as in other places.
+
+	tests: check decoding of signal syscall.
+	* tests/signal.c: New file.
+	* tests/gen_tests.in (signal): New entry.
+	* tests/pure_executables.list: Add signal.
+	* tests/.gitignore: Likewise.
+
+2017-05-26  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Unify capitalisation of (c) in copyright notices.
+
+2017-05-25  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Post-release administrivia.
+	* NEWS: Add a header line for the next release.
+	* debian/changelog.in: Add a changelog entry for 4.17-1.
+	* strace.spec.in: Likewise.
+
 2017-05-24  Dmitry V. Levin  <ldv@altlinux.org>
 
 	Prepare for 4.17 release.

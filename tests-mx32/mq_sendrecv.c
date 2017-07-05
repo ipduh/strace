@@ -228,7 +228,7 @@ main(void)
 	static const struct timespec future_tmout_data = {
 		.tv_sec = (time_t) 0x7ea1fade7e57faceLL,
 		.tv_nsec = 999999999,
-	};;
+	};
 	struct_sigevent bogus_sev_data = {
 		.sigev_notify = 0xdefaced,
 		.sigev_signo = 0xfacefeed,
@@ -437,7 +437,7 @@ main(void)
 	bogus_attrs[1] = 2;
 	bogus_attrs[2] = MSG_SIZE;
 	fd = rc = syscall(__NR_mq_open, mq_name,
-		          O_CREAT|O_RDWR|O_NONBLOCK, S_IRWXU, bogus_attrs);
+			  O_CREAT|O_RDWR|O_NONBLOCK, S_IRWXU, bogus_attrs);
 	errstr = sprintrc(rc);
 	if (rc < 0)
 		perror_msg_and_skip("mq_open");
