@@ -39,13 +39,15 @@
 # include <stdlib.h>
 # include <unistd.h>
 
-#define PRINT_EVENT(flag, member) \
-	if (member & flag) { \
-		if (member != pfd->member) \
-			tprintf("|"); \
-		tprintf(#flag); \
-		member &= ~flag; \
-	}
+#define PRINT_EVENT(flag, member)			\
+	do {						\
+		if (member & flag) {			\
+			if (member != pfd->member)	\
+				tprintf("|");		\
+			tprintf(#flag);			\
+			member &= ~flag;		\
+		}					\
+	} while (0)
 
 static void
 print_pollfd_entering(const struct pollfd *const pfd)
@@ -56,24 +58,24 @@ print_pollfd_entering(const struct pollfd *const pfd)
 		short events = pfd->events;
 
 		if (pfd->events) {
-			PRINT_EVENT(POLLIN, events)
-			PRINT_EVENT(POLLPRI, events)
-			PRINT_EVENT(POLLOUT, events)
+			PRINT_EVENT(POLLIN, events);
+			PRINT_EVENT(POLLPRI, events);
+			PRINT_EVENT(POLLOUT, events);
 #ifdef POLLRDNORM
-			PRINT_EVENT(POLLRDNORM, events)
+			PRINT_EVENT(POLLRDNORM, events);
 #endif
 #ifdef POLLWRNORM
-			PRINT_EVENT(POLLWRNORM, events)
+			PRINT_EVENT(POLLWRNORM, events);
 #endif
 #ifdef POLLRDBAND
-			PRINT_EVENT(POLLRDBAND, events)
+			PRINT_EVENT(POLLRDBAND, events);
 #endif
 #ifdef POLLWRBAND
-			PRINT_EVENT(POLLWRBAND, events)
+			PRINT_EVENT(POLLWRBAND, events);
 #endif
-			PRINT_EVENT(POLLERR, events)
-			PRINT_EVENT(POLLHUP, events)
-			PRINT_EVENT(POLLNVAL, events)
+			PRINT_EVENT(POLLERR, events);
+			PRINT_EVENT(POLLHUP, events);
+			PRINT_EVENT(POLLNVAL, events);
 		} else
 			tprintf("0");
 	}
@@ -123,24 +125,24 @@ print_pollfd_exiting(const struct pollfd *const pfd,
 	tprintf("{fd=%d, revents=", pfd->fd);
 	short revents = pfd->revents;
 
-	PRINT_EVENT(POLLIN, revents)
-	PRINT_EVENT(POLLPRI, revents)
-	PRINT_EVENT(POLLOUT, revents)
+	PRINT_EVENT(POLLIN, revents);
+	PRINT_EVENT(POLLPRI, revents);
+	PRINT_EVENT(POLLOUT, revents);
 #ifdef POLLRDNORM
-	PRINT_EVENT(POLLRDNORM, revents)
+	PRINT_EVENT(POLLRDNORM, revents);
 #endif
 #ifdef POLLWRNORM
-	PRINT_EVENT(POLLWRNORM, revents)
+	PRINT_EVENT(POLLWRNORM, revents);
 #endif
 #ifdef POLLRDBAND
-	PRINT_EVENT(POLLRDBAND, revents)
+	PRINT_EVENT(POLLRDBAND, revents);
 #endif
 #ifdef POLLWRBAND
-	PRINT_EVENT(POLLWRBAND, revents)
+	PRINT_EVENT(POLLWRBAND, revents);
 #endif
-	PRINT_EVENT(POLLERR, revents)
-	PRINT_EVENT(POLLHUP, revents)
-	PRINT_EVENT(POLLNVAL, revents)
+	PRINT_EVENT(POLLERR, revents);
+	PRINT_EVENT(POLLHUP, revents);
+	PRINT_EVENT(POLLNVAL, revents);
 	tprintf("}");
 }
 
@@ -192,7 +194,8 @@ main(int ac, char **av)
 	tprintf("poll(");
 	print_pollfd_array_entering(tail_fds0, ARRAY_SIZE(pfds0),
 				    ARRAY_SIZE(pfds0), abbrev);
-	tprintf(", %u, %d) = %d (", ARRAY_SIZE(pfds0), timeout, rc);
+	tprintf(", %u, %d) = %d (",
+		(unsigned int) ARRAY_SIZE(pfds0), timeout, rc);
 	print_pollfd_array_exiting(tail_fds0, ARRAY_SIZE(pfds0), abbrev);
 	tprintf(")\n");
 
@@ -205,7 +208,8 @@ main(int ac, char **av)
 	tprintf("poll(");
 	print_pollfd_array_entering(tail_fds0, ARRAY_SIZE(pfds0),
 				    ARRAY_SIZE(pfds0), abbrev);
-	tprintf(", %u, %d) = %d (", ARRAY_SIZE(pfds0), timeout, rc);
+	tprintf(", %u, %d) = %d (",
+		(unsigned int) ARRAY_SIZE(pfds0), timeout, rc);
 	print_pollfd_array_exiting(tail_fds0, ARRAY_SIZE(pfds0), abbrev);
 	tprintf(")\n");
 
@@ -217,7 +221,8 @@ main(int ac, char **av)
 	tprintf("poll(");
 	print_pollfd_array_entering(tail_fds0, ARRAY_SIZE(pfds0),
 				    ARRAY_SIZE(pfds0), abbrev);
-	tprintf(", %u, %d) = %d (", ARRAY_SIZE(pfds0), timeout, rc);
+	tprintf(", %u, %d) = %d (",
+		(unsigned int) ARRAY_SIZE(pfds0), timeout, rc);
 	print_pollfd_array_exiting(tail_fds0, ARRAY_SIZE(pfds0), abbrev);
 	tprintf(")\n");
 
@@ -232,7 +237,8 @@ main(int ac, char **av)
 	tprintf("poll(");
 	print_pollfd_array_entering(tail_fds1, ARRAY_SIZE(pfds1),
 				    ARRAY_SIZE(pfds1), abbrev);
-	tprintf(", %u, %d) = %d (Timeout)\n", ARRAY_SIZE(pfds1), timeout, rc);
+	tprintf(", %u, %d) = %d (Timeout)\n",
+		(unsigned int) ARRAY_SIZE(pfds1), timeout, rc);
 
 	const void *const efault = tail_fds0 + ARRAY_SIZE(pfds0);
 	rc = syscall(__NR_poll, efault, 1, 0);

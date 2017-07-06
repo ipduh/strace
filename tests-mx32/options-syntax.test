@@ -127,7 +127,19 @@ check_h 'piping the output and -ff are mutually exclusive' -o '!' -ff true
 check_h "invalid -a argument: '-42'" -a -42
 check_h "invalid -O argument: '-42'" -O -42
 check_h "invalid -s argument: '-42'" -s -42
+check_h "invalid -s argument: '1073741824'" -s 1073741824
 check_h "invalid -I argument: '5'" -I 5
+
+cat > "$EXP" << '__EOF__'
+strace: must have PROG [ARGS] or -p PID
+Try 'strace -h' for more information.
+__EOF__
+../zeroargc "$strace_exp" /bin/true 2> "$LOG" &&
+	dump_log_and_fail_with \
+		'zeroargc strace failed to handle the error properly'
+match_diff "$LOG" "$EXP" ||
+	dump_log_and_fail_with \
+		'zeroargc strace failed to print expected diagnostics'
 
 if [ -n "${UID-}" ]; then
 	if [ "${UID-}" = 0 ]; then

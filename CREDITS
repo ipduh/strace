@@ -56,6 +56,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Erik Johansson <erik@ejohansson.se>
 	Etienne Gemsa <etienne.gemsa@lse.epita.fr>
 	Eugene Syromyatnikov <evgsyr@gmail.com>
+	Eugeniy Paltsev <Eugeniy.Paltsev@synopsys.com>
 	Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
 	Fabien Siron <fabien.siron@epita.fr>
 	Fei Jie <feij.fnst@cn.fujitsu.com>
@@ -97,6 +98,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Katerina Koukiou <k.koukiou@googlemail.com>
 	Keith Owens <kaos.ocs@gmail.com>
 	Keith Thompson <kst@alsys.com>
+	Khem Raj <raj.khem@gmail.com>
 	Kirill A. Shutemov <kirill@shutemov.name>
 	Kyle McMartin <kyle@mcmartin.ca>
 	Lai JiangShan <laijs@cn.fujitsu.com>
@@ -123,6 +125,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Mike Frysinger <vapier@gentoo.org>
 	Mike Stroyan <mike.stroyan@hp.com>
 	Mikulas Patocka <mpatocka@redhat.com>
+	Miroslav Lichvar <mlichvar@redhat.com>
 	Muttley Meen <muttley.meen@gmail.com>
 	Nahim El Atmani <naam@lse.epita.fr>
 	Namhyung Kim <namhyung.kim@lge.com>
@@ -150,6 +153,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Rishi Bhatt <bhatt.rishi062@gmail.com>
 	Roland Borde <bo@uebemc.siemens.de>
 	Roland McGrath <roland@redhat.com>
+	Romain Naour <romain.naour@smile.fr>
 	Sami Farin <safari@u.safari.iki.fi>
 	Sandhya Bankar <bankarsandhya512@gmail.com>
 	Scott Tsai <scottt958@yahoo.com.tw>

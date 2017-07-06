@@ -717,6 +717,9 @@
 /* Define to 1 if you have the <linux/filter.h> header file. */
 #undef HAVE_LINUX_FILTER_H
 
+/* Define to 1 if you have the <linux/genetlink.h> header file. */
+#undef HAVE_LINUX_GENETLINK_H
+
 /* Define to 1 if you have the <linux/hiddev.h> header file. */
 #undef HAVE_LINUX_HIDDEV_H
 
@@ -753,6 +756,9 @@
 /* Define to 1 if you have the <linux/netfilter_ipv6/ip6_tables.h> header
    file. */
 #undef HAVE_LINUX_NETFILTER_IPV6_IP6_TABLES_H
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink.h> header file. */
+#undef HAVE_LINUX_NETFILTER_NFNETLINK_H
 
 /* Define to 1 if you have the <linux/nsfs.h> header file. */
 #undef HAVE_LINUX_NSFS_H
@@ -843,6 +849,9 @@
 /* Define to 1 if you have the `process_vm_readv' function. */
 #undef HAVE_PROCESS_VM_READV
 
+/* Define to 1 if the system provides program_invocation_name variable */
+#undef HAVE_PROGRAM_INVOCATION_NAME
+
 /* Define to 1 if you have the `pwritev' function. */
 #undef HAVE_PWRITEV
 
@@ -884,6 +893,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strndup' function. */
+#undef HAVE_STRNDUP
 
 /* Define to 1 if you have the <stropts.h> header file. */
 #undef HAVE_STROPTS_H
