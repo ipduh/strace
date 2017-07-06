@@ -184,8 +184,18 @@ munlockall	-a13
 nanosleep	-a20
 net-icmp_filter	-e trace=getsockopt,setsockopt
 net-sockaddr	-a24 -e trace=connect
-netlink_protocol	-e trace=%network
+netlink_audit	+netlink_sock_diag.test
+netlink_generic	+netlink_sock_diag.test
+netlink_netfilter	+netlink_sock_diag.test
+netlink_protocol	-e trace=sendto
+netlink_route	+netlink_sock_diag.test
+netlink_selinux	+netlink_sock_diag.test
+netlink_xfrm	+netlink_sock_diag.test
 newfstatat	-a32 -v -P stat.sample -P /dev/full
+nlattr		+netlink_sock_diag.test
+nlattr_inet_diag_msg		+netlink_sock_diag.test
+nlattr_netlink_diag_msg		+netlink_sock_diag.test
+nlattr_unix_diag_msg		+netlink_sock_diag.test
 old_mmap	-a11 -e trace=mmap
 oldfstat	-a18 -v -P stat.sample
 oldlstat	-a32 -v -P stat.sample -P /dev/full
@@ -280,9 +290,13 @@ setuid	-a10
 setuid32	-a12
 shmxt	-a11 -e trace='/(osf_)?shmat,shmdt'
 shutdown	-a24
+sigaction	-a31
 siginfo	-e trace=none
+signal	-a25 -e signal=none -e trace='/^signal$'
 signal_receive	-a16 -e trace=kill
 signalfd4
+sigpending	-a15
+sigprocmask	-a34
 sigreturn	-esignal='!USR1'
 sigsuspend	-a19 -esignal=none
 socketcall	-a20

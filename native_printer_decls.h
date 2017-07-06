@@ -19,11 +19,14 @@ extern void printmqattr(struct tcb *const tcp, const kernel_ulong_t addr, const 
 extern void tprint_msgbuf(struct tcb *const tcp, const kernel_ulong_t addr, const kernel_ulong_t count);
 extern int decode_sg_req_info(struct tcb *const tcp, const kernel_ulong_t arg);
 extern void print_sigevent(struct tcb *const tcp, const kernel_ulong_t addr);
+extern _Bool print_struct_timespec_data_size(const void *arg, const size_t size);
+extern _Bool print_struct_timespec_array_data_size(const void *arg, const unsigned int nmemb, const size_t size);
 extern void print_timespec(struct tcb *const tcp, const kernel_ulong_t addr);
 extern const char * sprint_timespec(struct tcb *const tcp, const kernel_ulong_t addr);
 extern void print_timespec_utime_pair(struct tcb *const tcp, const kernel_ulong_t addr);
 extern void print_itimerspec(struct tcb *const tcp, const kernel_ulong_t addr);
 extern void print_struct_timeval(const void *arg);
+extern _Bool print_struct_timeval_data_size(const void *arg, const size_t size);
 extern void print_timeval(struct tcb *const tcp, const kernel_ulong_t addr);
 extern void print_timeval_utimes(struct tcb *const tcp, const kernel_ulong_t addr);
 extern const char * sprint_timeval(struct tcb *const tcp, const kernel_ulong_t addr);

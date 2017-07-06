@@ -36,10 +36,24 @@
 # include <sys/types.h>
 # include "kernel_types.h"
 # include "gcc_compat.h"
+# include "macros.h"
+
+/*
+ * The printf-like function to use in header files
+ * shared between strace and its tests.
+ */
+#ifndef STRACE_PRINTF
+# define STRACE_PRINTF printf
+#endif
 
 /* Tests of "strace -v" are expected to define VERBOSE to 1. */
 #ifndef VERBOSE
 # define VERBOSE 0
+#endif
+
+#ifndef DEFAULT_STRLEN
+/* Default maximum # of bytes printed in printstr et al. */
+# define DEFAULT_STRLEN 32
 #endif
 
 /* Cached sysconf(_SC_PAGESIZE). */
@@ -66,7 +80,7 @@ void skip_if_unavailable(const char *);
 
 /*
  * Allocate memory that ends on the page boundary.
- * Pages allocated by this call are preceeded by an unmapped page
+ * Pages allocated by this call are preceded by an unmapped page
  * and followed also by an unmapped page.
  */
 void *tail_alloc(const size_t)
@@ -167,6 +181,10 @@ struct timespec;
 int recv_mmsg(int, struct mmsghdr *, unsigned int, unsigned int, struct timespec *);
 int send_mmsg(int, struct mmsghdr *, unsigned int, unsigned int);
 
+/* Create a netlink socket. */
+int create_nl_socket_ext(int proto, const char *name);
+#define create_nl_socket(proto)	create_nl_socket_ext((proto), #proto)
+
 /* Create a pipe with maximized descriptor numbers. */
 void pipe_maxfd(int pipefd[2]);
 
@@ -186,7 +204,6 @@ f8ill_ptr_to_kulong(const void *const ptr)
 	       ? F8ILL_KULONG_MASK | uptr : (kernel_ulong_t) uptr;
 }
 
-# define ARRAY_SIZE(arg) ((unsigned int) (sizeof(arg) / sizeof((arg)[0])))
 # define LENGTH_OF(arg) ((unsigned int) sizeof(arg) - 1)
 
 /* Zero-extend a signed integer type to unsigned long long. */
@@ -238,5 +255,17 @@ f8ill_ptr_to_kulong(const void *const ptr)
 # define _STR(_arg) #_arg
 # define ARG_STR(_arg) (_arg), #_arg
 # define ARG_ULL_STR(_arg) _arg##ULL, #_arg
+
+/*
+ * Assign an object of type DEST_TYPE at address DEST_ADDR
+ * using memcpy to avoid potential unaligned access.
+ */
+#define SET_STRUCT(DEST_TYPE, DEST_ADDR, ...)						\
+	do {										\
+		DEST_TYPE dest_type_tmp_var = { __VA_ARGS__ };				\
+		memcpy(DEST_ADDR, &dest_type_tmp_var, sizeof(dest_type_tmp_var));	\
+	} while (0)
+
+#define NLMSG_ATTR(nlh, hdrlen) ((void *)(nlh) + NLMSG_SPACE(hdrlen))
 
 #endif /* !STRACE_TESTS_H */

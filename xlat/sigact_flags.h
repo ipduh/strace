@@ -15,8 +15,8 @@ const struct xlat sigact_flags[] = {
 #if defined(SA_RESTORER) || (defined(HAVE_DECL_SA_RESTORER) && HAVE_DECL_SA_RESTORER)
   XLAT(SA_RESTORER),
 #endif
-#if defined(SA_STACK) || (defined(HAVE_DECL_SA_STACK) && HAVE_DECL_SA_STACK)
-  XLAT(SA_STACK),
+#if defined(SA_ONSTACK) || (defined(HAVE_DECL_SA_ONSTACK) && HAVE_DECL_SA_ONSTACK)
+  XLAT(SA_ONSTACK),
 #endif
 #if defined(SA_RESTART) || (defined(HAVE_DECL_SA_RESTART) && HAVE_DECL_SA_RESTART)
   XLAT(SA_RESTART),

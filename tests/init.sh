@@ -169,7 +169,7 @@ match_diff()
 
 	check_prog diff
 
-	diff -- "$expected" "$output" ||
+	diff -u -- "$expected" "$output" ||
 		fail_ "$error"
 }
 
@@ -366,7 +366,7 @@ else
 		STRACE=../strace
 fi
 
-: "${TIMEOUT_DURATION:=120}"
+: "${TIMEOUT_DURATION:=300}"
 : "${SLEEP_A_BIT:=sleep 1}"
 
 [ -z "${VERBOSE-}" ] ||

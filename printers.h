@@ -60,6 +60,12 @@ typedef struct {
  void (*print_sigevent)(struct tcb *const tcp, const kernel_ulong_t addr);
 #define print_sigevent MPERS_PRINTER_NAME(print_sigevent)
 
+ _Bool (*print_struct_timespec_data_size)(const void *arg, const size_t size);
+#define print_struct_timespec_data_size MPERS_PRINTER_NAME(print_struct_timespec_data_size)
+
+ _Bool (*print_struct_timespec_array_data_size)(const void *arg, const unsigned int nmemb, const size_t size);
+#define print_struct_timespec_array_data_size MPERS_PRINTER_NAME(print_struct_timespec_array_data_size)
+
  void (*print_timespec)(struct tcb *const tcp, const kernel_ulong_t addr);
 #define print_timespec MPERS_PRINTER_NAME(print_timespec)
 
@@ -74,6 +80,9 @@ typedef struct {
 
  void (*print_struct_timeval)(const void *arg);
 #define print_struct_timeval MPERS_PRINTER_NAME(print_struct_timeval)
+
+ _Bool (*print_struct_timeval_data_size)(const void *arg, const size_t size);
+#define print_struct_timeval_data_size MPERS_PRINTER_NAME(print_struct_timeval_data_size)
 
  void (*print_timeval)(struct tcb *const tcp, const kernel_ulong_t addr);
 #define print_timeval MPERS_PRINTER_NAME(print_timeval)
