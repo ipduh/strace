@@ -138,14 +138,14 @@ DIST_COMMON = $(srcdir)/pure_executables.am $(srcdir)/gen_tests.am \
 	$(top_srcdir)/test-driver
 check_PROGRAMS = $(am__EXEEXT_1) answer$(EXEEXT) attach-f-p$(EXEEXT) \
 	attach-f-p-cmd$(EXEEXT) attach-p-cmd-cmd$(EXEEXT) \
-	attach-p-cmd-p$(EXEEXT) caps-abbrev$(EXEEXT) count-f$(EXEEXT) \
-	execve-v$(EXEEXT) execveat-v$(EXEEXT) \
-	filter-unavailable$(EXEEXT) fork-f$(EXEEXT) getpid$(EXEEXT) \
-	getppid$(EXEEXT) gettid$(EXEEXT) int_0x80$(EXEEXT) \
-	ioctl_dm-v$(EXEEXT) ioctl_evdev-v$(EXEEXT) \
-	ioctl_loop-nv$(EXEEXT) ioctl_loop-v$(EXEEXT) \
-	ioctl_nsfs$(EXEEXT) ioctl_rtc-v$(EXEEXT) ksysent$(EXEEXT) \
-	mmsg-silent$(EXEEXT) mmsg_name-v$(EXEEXT) \
+	attach-p-cmd-p$(EXEEXT) block_reset_raise_run$(EXEEXT) \
+	caps-abbrev$(EXEEXT) count-f$(EXEEXT) execve-v$(EXEEXT) \
+	execveat-v$(EXEEXT) filter-unavailable$(EXEEXT) \
+	fork-f$(EXEEXT) getpid$(EXEEXT) getppid$(EXEEXT) \
+	gettid$(EXEEXT) int_0x80$(EXEEXT) ioctl_dm-v$(EXEEXT) \
+	ioctl_evdev-v$(EXEEXT) ioctl_loop-nv$(EXEEXT) \
+	ioctl_loop-v$(EXEEXT) ioctl_nsfs$(EXEEXT) ioctl_rtc-v$(EXEEXT) \
+	ksysent$(EXEEXT) mmsg-silent$(EXEEXT) mmsg_name-v$(EXEEXT) \
 	msg_control-v$(EXEEXT) net-accept-connect$(EXEEXT) \
 	netlink_inet_diag$(EXEEXT) netlink_netlink_diag$(EXEEXT) \
 	netlink_unix_diag$(EXEEXT) nsyscalls$(EXEEXT) pc$(EXEEXT) \
@@ -157,12 +157,13 @@ check_PROGRAMS = $(am__EXEEXT_1) answer$(EXEEXT) attach-f-p$(EXEEXT) \
 	qual_inject-signal$(EXEEXT) qual_signal$(EXEEXT) \
 	quotactl-v$(EXEEXT) quotactl-xfs-v$(EXEEXT) \
 	redirect-fds$(EXEEXT) restart_syscall$(EXEEXT) \
-	scm_rights$(EXEEXT) seccomp-filter-v$(EXEEXT) \
-	seccomp-strict$(EXEEXT) set_ptracer_any$(EXEEXT) \
-	signal_receive$(EXEEXT) sleep$(EXEEXT) stack-fcall$(EXEEXT) \
-	threads-execve$(EXEEXT) unix-pair-send-recv$(EXEEXT) \
+	run_expect_termsig$(EXEEXT) scm_rights$(EXEEXT) \
+	seccomp-filter-v$(EXEEXT) seccomp-strict$(EXEEXT) \
+	set_ptracer_any$(EXEEXT) signal_receive$(EXEEXT) \
+	sleep$(EXEEXT) stack-fcall$(EXEEXT) threads-execve$(EXEEXT) \
+	unblock_reset_raise$(EXEEXT) unix-pair-send-recv$(EXEEXT) \
 	unix-pair-sendto-recvfrom$(EXEEXT) vfork-f$(EXEEXT) \
-	wait4-v$(EXEEXT) waitid-v$(EXEEXT)
+	wait4-v$(EXEEXT) waitid-v$(EXEEXT) zeroargc$(EXEEXT)
 TESTS = $(GEN_TESTS) $(DECODER_TESTS) $(MISC_TESTS) $(am__EXEEXT_2)
 subdir = tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -187,8 +188,8 @@ am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 libtests_a_AR = $(AR) $(ARFLAGS)
 libtests_a_LIBADD =
-am_libtests_a_OBJECTS = libtests_a-errno2name.$(OBJEXT) \
-	libtests_a-error_msg.$(OBJEXT) \
+am_libtests_a_OBJECTS = libtests_a-create_nl_socket.$(OBJEXT) \
+	libtests_a-errno2name.$(OBJEXT) libtests_a-error_msg.$(OBJEXT) \
 	libtests_a-fill_memory.$(OBJEXT) \
 	libtests_a-get_page_size.$(OBJEXT) \
 	libtests_a-get_sigset_size.$(OBJEXT) \
@@ -264,18 +265,23 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	net-icmp_filter$(EXEEXT) net-sockaddr$(EXEEXT) \
 	net-y-unix$(EXEEXT) net-yy-inet$(EXEEXT) \
 	net-yy-netlink$(EXEEXT) net-yy-unix$(EXEEXT) \
-	netlink_protocol$(EXEEXT) newfstatat$(EXEEXT) \
-	old_mmap$(EXEEXT) oldfstat$(EXEEXT) oldlstat$(EXEEXT) \
-	oldselect$(EXEEXT) oldstat$(EXEEXT) open$(EXEEXT) \
-	openat$(EXEEXT) osf_utimes$(EXEEXT) pause$(EXEEXT) \
-	perf_event_open$(EXEEXT) personality$(EXEEXT) pipe$(EXEEXT) \
-	pipe2$(EXEEXT) pkey_alloc$(EXEEXT) pkey_free$(EXEEXT) \
-	pkey_mprotect$(EXEEXT) poll$(EXEEXT) ppoll$(EXEEXT) \
-	prctl-arg2-intptr$(EXEEXT) prctl-dumpable$(EXEEXT) \
-	prctl-name$(EXEEXT) prctl-no-args$(EXEEXT) \
-	prctl-pdeathsig$(EXEEXT) prctl-securebits$(EXEEXT) \
-	prctl-tid_address$(EXEEXT) prctl-tsc$(EXEEXT) \
-	pread64-pwrite64$(EXEEXT) preadv$(EXEEXT) \
+	netlink_audit$(EXEEXT) netlink_generic$(EXEEXT) \
+	netlink_netfilter$(EXEEXT) netlink_protocol$(EXEEXT) \
+	netlink_route$(EXEEXT) netlink_selinux$(EXEEXT) \
+	netlink_sock_diag$(EXEEXT) netlink_xfrm$(EXEEXT) \
+	newfstatat$(EXEEXT) nlattr$(EXEEXT) \
+	nlattr_inet_diag_msg$(EXEEXT) nlattr_netlink_diag_msg$(EXEEXT) \
+	nlattr_unix_diag_msg$(EXEEXT) old_mmap$(EXEEXT) \
+	oldfstat$(EXEEXT) oldlstat$(EXEEXT) oldselect$(EXEEXT) \
+	oldstat$(EXEEXT) open$(EXEEXT) openat$(EXEEXT) \
+	osf_utimes$(EXEEXT) pause$(EXEEXT) perf_event_open$(EXEEXT) \
+	personality$(EXEEXT) pipe$(EXEEXT) pipe2$(EXEEXT) \
+	pkey_alloc$(EXEEXT) pkey_free$(EXEEXT) pkey_mprotect$(EXEEXT) \
+	poll$(EXEEXT) ppoll$(EXEEXT) prctl-arg2-intptr$(EXEEXT) \
+	prctl-dumpable$(EXEEXT) prctl-name$(EXEEXT) \
+	prctl-no-args$(EXEEXT) prctl-pdeathsig$(EXEEXT) \
+	prctl-securebits$(EXEEXT) prctl-tid_address$(EXEEXT) \
+	prctl-tsc$(EXEEXT) pread64-pwrite64$(EXEEXT) preadv$(EXEEXT) \
 	preadv-pwritev$(EXEEXT) preadv2-pwritev2$(EXEEXT) \
 	printstr$(EXEEXT) prlimit64$(EXEEXT) process_vm_readv$(EXEEXT) \
 	process_vm_writev$(EXEEXT) pselect6$(EXEEXT) ptrace$(EXEEXT) \
@@ -285,42 +291,43 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	reboot$(EXEEXT) recvfrom$(EXEEXT) recvmmsg-timeout$(EXEEXT) \
 	recvmsg$(EXEEXT) remap_file_pages$(EXEEXT) rename$(EXEEXT) \
 	renameat$(EXEEXT) renameat2$(EXEEXT) request_key$(EXEEXT) \
-	rmdir$(EXEEXT) rt_sigpending$(EXEEXT) rt_sigprocmask$(EXEEXT) \
-	rt_sigqueueinfo$(EXEEXT) rt_sigreturn$(EXEEXT) \
-	rt_sigsuspend$(EXEEXT) rt_sigtimedwait$(EXEEXT) \
-	rt_tgsigqueueinfo$(EXEEXT) sched_get_priority_mxx$(EXEEXT) \
-	sched_rr_get_interval$(EXEEXT) sched_xetaffinity$(EXEEXT) \
-	sched_xetattr$(EXEEXT) sched_xetparam$(EXEEXT) \
-	sched_xetscheduler$(EXEEXT) sched_yield$(EXEEXT) \
-	seccomp-filter$(EXEEXT) select$(EXEEXT) semop$(EXEEXT) \
-	sendfile$(EXEEXT) sendfile64$(EXEEXT) set_mempolicy$(EXEEXT) \
-	setdomainname$(EXEEXT) setfsgid$(EXEEXT) setfsgid32$(EXEEXT) \
-	setfsuid$(EXEEXT) setfsuid32$(EXEEXT) setgid$(EXEEXT) \
-	setgid32$(EXEEXT) setgroups$(EXEEXT) setgroups32$(EXEEXT) \
-	sethostname$(EXEEXT) setns$(EXEEXT) setregid$(EXEEXT) \
-	setregid32$(EXEEXT) setresgid$(EXEEXT) setresgid32$(EXEEXT) \
-	setresuid$(EXEEXT) setresuid32$(EXEEXT) setreuid$(EXEEXT) \
-	setreuid32$(EXEEXT) setrlimit$(EXEEXT) setuid$(EXEEXT) \
-	setuid32$(EXEEXT) shmxt$(EXEEXT) shutdown$(EXEEXT) \
-	sigaction$(EXEEXT) sigaltstack$(EXEEXT) siginfo$(EXEEXT) \
-	signalfd4$(EXEEXT) sigreturn$(EXEEXT) sigsuspend$(EXEEXT) \
-	socketcall$(EXEEXT) splice$(EXEEXT) stat$(EXEEXT) \
-	stat64$(EXEEXT) statfs$(EXEEXT) statfs64$(EXEEXT) \
-	statx$(EXEEXT) swap$(EXEEXT) sxetmask$(EXEEXT) \
-	symlink$(EXEEXT) symlinkat$(EXEEXT) sync$(EXEEXT) \
-	sync_file_range$(EXEEXT) sync_file_range2$(EXEEXT) \
-	sysinfo$(EXEEXT) syslog$(EXEEXT) tee$(EXEEXT) time$(EXEEXT) \
-	timer_create$(EXEEXT) timer_xettime$(EXEEXT) \
-	timerfd_xettime$(EXEEXT) times$(EXEEXT) times-fail$(EXEEXT) \
-	truncate$(EXEEXT) truncate64$(EXEEXT) ugetrlimit$(EXEEXT) \
-	uio$(EXEEXT) umask$(EXEEXT) umount$(EXEEXT) umount2$(EXEEXT) \
-	umoven-illptr$(EXEEXT) umovestr$(EXEEXT) \
-	umovestr-illptr$(EXEEXT) umovestr2$(EXEEXT) umovestr3$(EXEEXT) \
-	uname$(EXEEXT) unlink$(EXEEXT) unlinkat$(EXEEXT) \
-	unshare$(EXEEXT) userfaultfd$(EXEEXT) ustat$(EXEEXT) \
-	utime$(EXEEXT) utimensat$(EXEEXT) utimes$(EXEEXT) \
-	vhangup$(EXEEXT) vmsplice$(EXEEXT) wait4$(EXEEXT) \
-	waitid$(EXEEXT) waitpid$(EXEEXT) xattr$(EXEEXT) \
+	rmdir$(EXEEXT) rt_sigaction$(EXEEXT) rt_sigpending$(EXEEXT) \
+	rt_sigprocmask$(EXEEXT) rt_sigqueueinfo$(EXEEXT) \
+	rt_sigreturn$(EXEEXT) rt_sigsuspend$(EXEEXT) \
+	rt_sigtimedwait$(EXEEXT) rt_tgsigqueueinfo$(EXEEXT) \
+	sched_get_priority_mxx$(EXEEXT) sched_rr_get_interval$(EXEEXT) \
+	sched_xetaffinity$(EXEEXT) sched_xetattr$(EXEEXT) \
+	sched_xetparam$(EXEEXT) sched_xetscheduler$(EXEEXT) \
+	sched_yield$(EXEEXT) seccomp-filter$(EXEEXT) select$(EXEEXT) \
+	semop$(EXEEXT) sendfile$(EXEEXT) sendfile64$(EXEEXT) \
+	set_mempolicy$(EXEEXT) setdomainname$(EXEEXT) \
+	setfsgid$(EXEEXT) setfsgid32$(EXEEXT) setfsuid$(EXEEXT) \
+	setfsuid32$(EXEEXT) setgid$(EXEEXT) setgid32$(EXEEXT) \
+	setgroups$(EXEEXT) setgroups32$(EXEEXT) sethostname$(EXEEXT) \
+	setns$(EXEEXT) setregid$(EXEEXT) setregid32$(EXEEXT) \
+	setresgid$(EXEEXT) setresgid32$(EXEEXT) setresuid$(EXEEXT) \
+	setresuid32$(EXEEXT) setreuid$(EXEEXT) setreuid32$(EXEEXT) \
+	setrlimit$(EXEEXT) setuid$(EXEEXT) setuid32$(EXEEXT) \
+	shmxt$(EXEEXT) shutdown$(EXEEXT) sigaction$(EXEEXT) \
+	sigaltstack$(EXEEXT) siginfo$(EXEEXT) signal$(EXEEXT) \
+	signalfd4$(EXEEXT) sigpending$(EXEEXT) sigprocmask$(EXEEXT) \
+	sigreturn$(EXEEXT) sigsuspend$(EXEEXT) socketcall$(EXEEXT) \
+	splice$(EXEEXT) stat$(EXEEXT) stat64$(EXEEXT) statfs$(EXEEXT) \
+	statfs64$(EXEEXT) statx$(EXEEXT) swap$(EXEEXT) \
+	sxetmask$(EXEEXT) symlink$(EXEEXT) symlinkat$(EXEEXT) \
+	sync$(EXEEXT) sync_file_range$(EXEEXT) \
+	sync_file_range2$(EXEEXT) sysinfo$(EXEEXT) syslog$(EXEEXT) \
+	tee$(EXEEXT) time$(EXEEXT) timer_create$(EXEEXT) \
+	timer_xettime$(EXEEXT) timerfd_xettime$(EXEEXT) times$(EXEEXT) \
+	times-fail$(EXEEXT) truncate$(EXEEXT) truncate64$(EXEEXT) \
+	ugetrlimit$(EXEEXT) uio$(EXEEXT) umask$(EXEEXT) \
+	umount$(EXEEXT) umount2$(EXEEXT) umoven-illptr$(EXEEXT) \
+	umovestr$(EXEEXT) umovestr-illptr$(EXEEXT) umovestr2$(EXEEXT) \
+	umovestr3$(EXEEXT) uname$(EXEEXT) unlink$(EXEEXT) \
+	unlinkat$(EXEEXT) unshare$(EXEEXT) userfaultfd$(EXEEXT) \
+	ustat$(EXEEXT) utime$(EXEEXT) utimensat$(EXEEXT) \
+	utimes$(EXEEXT) vhangup$(EXEEXT) vmsplice$(EXEEXT) \
+	wait4$(EXEEXT) waitid$(EXEEXT) waitpid$(EXEEXT) xattr$(EXEEXT) \
 	xattr-strings$(EXEEXT) xet_robust_list$(EXEEXT) \
 	xetitimer$(EXEEXT) xetpgid$(EXEEXT) xetpriority$(EXEEXT) \
 	xettimeofday$(EXEEXT)
@@ -379,6 +386,10 @@ attach_p_cmd_p_SOURCES = attach-p-cmd-p.c
 attach_p_cmd_p_OBJECTS = attach-p-cmd-p.$(OBJEXT)
 attach_p_cmd_p_LDADD = $(LDADD)
 attach_p_cmd_p_DEPENDENCIES = libtests.a
+block_reset_raise_run_SOURCES = block_reset_raise_run.c
+block_reset_raise_run_OBJECTS = block_reset_raise_run.$(OBJEXT)
+block_reset_raise_run_LDADD = $(LDADD)
+block_reset_raise_run_DEPENDENCIES = libtests.a
 bpf_SOURCES = bpf.c
 bpf_OBJECTS = bpf.$(OBJEXT)
 bpf_LDADD = $(LDADD)
@@ -1076,10 +1087,22 @@ net_yy_unix_SOURCES = net-yy-unix.c
 net_yy_unix_OBJECTS = net-yy-unix.$(OBJEXT)
 net_yy_unix_LDADD = $(LDADD)
 net_yy_unix_DEPENDENCIES = libtests.a
+netlink_audit_SOURCES = netlink_audit.c
+netlink_audit_OBJECTS = netlink_audit.$(OBJEXT)
+netlink_audit_LDADD = $(LDADD)
+netlink_audit_DEPENDENCIES = libtests.a
+netlink_generic_SOURCES = netlink_generic.c
+netlink_generic_OBJECTS = netlink_generic.$(OBJEXT)
+netlink_generic_LDADD = $(LDADD)
+netlink_generic_DEPENDENCIES = libtests.a
 netlink_inet_diag_SOURCES = netlink_inet_diag.c
 netlink_inet_diag_OBJECTS = netlink_inet_diag.$(OBJEXT)
 netlink_inet_diag_LDADD = $(LDADD)
 netlink_inet_diag_DEPENDENCIES = libtests.a
+netlink_netfilter_SOURCES = netlink_netfilter.c
+netlink_netfilter_OBJECTS = netlink_netfilter.$(OBJEXT)
+netlink_netfilter_LDADD = $(LDADD)
+netlink_netfilter_DEPENDENCIES = libtests.a
 netlink_netlink_diag_SOURCES = netlink_netlink_diag.c
 netlink_netlink_diag_OBJECTS = netlink_netlink_diag.$(OBJEXT)
 netlink_netlink_diag_LDADD = $(LDADD)
@@ -1088,14 +1111,46 @@ netlink_protocol_SOURCES = netlink_protocol.c
 netlink_protocol_OBJECTS = netlink_protocol.$(OBJEXT)
 netlink_protocol_LDADD = $(LDADD)
 netlink_protocol_DEPENDENCIES = libtests.a
+netlink_route_SOURCES = netlink_route.c
+netlink_route_OBJECTS = netlink_route.$(OBJEXT)
+netlink_route_LDADD = $(LDADD)
+netlink_route_DEPENDENCIES = libtests.a
+netlink_selinux_SOURCES = netlink_selinux.c
+netlink_selinux_OBJECTS = netlink_selinux.$(OBJEXT)
+netlink_selinux_LDADD = $(LDADD)
+netlink_selinux_DEPENDENCIES = libtests.a
+netlink_sock_diag_SOURCES = netlink_sock_diag.c
+netlink_sock_diag_OBJECTS = netlink_sock_diag.$(OBJEXT)
+netlink_sock_diag_LDADD = $(LDADD)
+netlink_sock_diag_DEPENDENCIES = libtests.a
 netlink_unix_diag_SOURCES = netlink_unix_diag.c
 netlink_unix_diag_OBJECTS = netlink_unix_diag.$(OBJEXT)
 netlink_unix_diag_LDADD = $(LDADD)
 netlink_unix_diag_DEPENDENCIES = libtests.a
+netlink_xfrm_SOURCES = netlink_xfrm.c
+netlink_xfrm_OBJECTS = netlink_xfrm.$(OBJEXT)
+netlink_xfrm_LDADD = $(LDADD)
+netlink_xfrm_DEPENDENCIES = libtests.a
 newfstatat_SOURCES = newfstatat.c
 newfstatat_OBJECTS = newfstatat-newfstatat.$(OBJEXT)
 newfstatat_LDADD = $(LDADD)
 newfstatat_DEPENDENCIES = libtests.a
+nlattr_SOURCES = nlattr.c
+nlattr_OBJECTS = nlattr.$(OBJEXT)
+nlattr_LDADD = $(LDADD)
+nlattr_DEPENDENCIES = libtests.a
+nlattr_inet_diag_msg_SOURCES = nlattr_inet_diag_msg.c
+nlattr_inet_diag_msg_OBJECTS = nlattr_inet_diag_msg.$(OBJEXT)
+nlattr_inet_diag_msg_LDADD = $(LDADD)
+nlattr_inet_diag_msg_DEPENDENCIES = libtests.a
+nlattr_netlink_diag_msg_SOURCES = nlattr_netlink_diag_msg.c
+nlattr_netlink_diag_msg_OBJECTS = nlattr_netlink_diag_msg.$(OBJEXT)
+nlattr_netlink_diag_msg_LDADD = $(LDADD)
+nlattr_netlink_diag_msg_DEPENDENCIES = libtests.a
+nlattr_unix_diag_msg_SOURCES = nlattr_unix_diag_msg.c
+nlattr_unix_diag_msg_OBJECTS = nlattr_unix_diag_msg.$(OBJEXT)
+nlattr_unix_diag_msg_LDADD = $(LDADD)
+nlattr_unix_diag_msg_DEPENDENCIES = libtests.a
 nsyscalls_SOURCES = nsyscalls.c
 nsyscalls_OBJECTS = nsyscalls.$(OBJEXT)
 nsyscalls_LDADD = $(LDADD)
@@ -1386,6 +1441,10 @@ rmdir_SOURCES = rmdir.c
 rmdir_OBJECTS = rmdir.$(OBJEXT)
 rmdir_LDADD = $(LDADD)
 rmdir_DEPENDENCIES = libtests.a
+rt_sigaction_SOURCES = rt_sigaction.c
+rt_sigaction_OBJECTS = rt_sigaction.$(OBJEXT)
+rt_sigaction_LDADD = $(LDADD)
+rt_sigaction_DEPENDENCIES = libtests.a
 rt_sigpending_SOURCES = rt_sigpending.c
 rt_sigpending_OBJECTS = rt_sigpending.$(OBJEXT)
 rt_sigpending_LDADD = $(LDADD)
@@ -1414,6 +1473,10 @@ rt_tgsigqueueinfo_SOURCES = rt_tgsigqueueinfo.c
 rt_tgsigqueueinfo_OBJECTS = rt_tgsigqueueinfo.$(OBJEXT)
 rt_tgsigqueueinfo_LDADD = $(LDADD)
 rt_tgsigqueueinfo_DEPENDENCIES = libtests.a
+run_expect_termsig_SOURCES = run_expect_termsig.c
+run_expect_termsig_OBJECTS = run_expect_termsig.$(OBJEXT)
+run_expect_termsig_LDADD = $(LDADD)
+run_expect_termsig_DEPENDENCIES = libtests.a
 sched_get_priority_mxx_SOURCES = sched_get_priority_mxx.c
 sched_get_priority_mxx_OBJECTS = sched_get_priority_mxx.$(OBJEXT)
 sched_get_priority_mxx_LDADD = $(LDADD)
@@ -1590,6 +1653,10 @@ siginfo_SOURCES = siginfo.c
 siginfo_OBJECTS = siginfo.$(OBJEXT)
 siginfo_LDADD = $(LDADD)
 siginfo_DEPENDENCIES = libtests.a
+signal_SOURCES = signal.c
+signal_OBJECTS = signal.$(OBJEXT)
+signal_LDADD = $(LDADD)
+signal_DEPENDENCIES = libtests.a
 signal_receive_SOURCES = signal_receive.c
 signal_receive_OBJECTS = signal_receive.$(OBJEXT)
 signal_receive_LDADD = $(LDADD)
@@ -1598,6 +1665,14 @@ signalfd4_SOURCES = signalfd4.c
 signalfd4_OBJECTS = signalfd4.$(OBJEXT)
 signalfd4_LDADD = $(LDADD)
 signalfd4_DEPENDENCIES = libtests.a
+sigpending_SOURCES = sigpending.c
+sigpending_OBJECTS = sigpending.$(OBJEXT)
+sigpending_LDADD = $(LDADD)
+sigpending_DEPENDENCIES = libtests.a
+sigprocmask_SOURCES = sigprocmask.c
+sigprocmask_OBJECTS = sigprocmask.$(OBJEXT)
+sigprocmask_LDADD = $(LDADD)
+sigprocmask_DEPENDENCIES = libtests.a
 sigreturn_SOURCES = sigreturn.c
 sigreturn_OBJECTS = sigreturn.$(OBJEXT)
 sigreturn_LDADD = $(LDADD)
@@ -1762,6 +1837,10 @@ uname_SOURCES = uname.c
 uname_OBJECTS = uname.$(OBJEXT)
 uname_LDADD = $(LDADD)
 uname_DEPENDENCIES = libtests.a
+unblock_reset_raise_SOURCES = unblock_reset_raise.c
+unblock_reset_raise_OBJECTS = unblock_reset_raise.$(OBJEXT)
+unblock_reset_raise_LDADD = $(LDADD)
+unblock_reset_raise_DEPENDENCIES = libtests.a
 unix_pair_send_recv_SOURCES = unix-pair-send-recv.c
 unix_pair_send_recv_OBJECTS = unix-pair-send-recv.$(OBJEXT)
 unix_pair_send_recv_LDADD = $(LDADD)
@@ -1863,6 +1942,10 @@ xettimeofday_SOURCES = xettimeofday.c
 xettimeofday_OBJECTS = xettimeofday.$(OBJEXT)
 xettimeofday_LDADD = $(LDADD)
 xettimeofday_DEPENDENCIES = libtests.a
+zeroargc_SOURCES = zeroargc.c
+zeroargc_OBJECTS = zeroargc.$(OBJEXT)
+zeroargc_LDADD = $(LDADD)
+zeroargc_DEPENDENCIES = libtests.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -1898,47 +1981,51 @@ am__v_CCLD_1 =
 SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	access.c acct.c add_key.c adjtimex.c aio.c alarm.c answer.c \
 	attach-f-p.c attach-f-p-cmd.c attach-p-cmd-cmd.c \
-	attach-p-cmd-p.c bpf.c brk.c btrfs.c caps.c caps-abbrev.c \
-	chmod.c chown.c chown32.c chroot.c clock_adjtime.c \
-	clock_nanosleep.c clock_xettime.c copy_file_range.c count-f.c \
-	creat.c delete_module.c dup.c dup2.c dup3.c epoll_create.c \
-	epoll_create1.c epoll_ctl.c epoll_pwait.c epoll_wait.c \
-	erestartsys.c eventfd.c execve.c execve-v.c execveat.c \
-	execveat-v.c faccessat.c fadvise64.c fadvise64_64.c \
-	fallocate.c fanotify_init.c fanotify_mark.c fchdir.c fchmod.c \
-	fchmodat.c fchown.c fchown32.c fchownat.c fcntl.c fcntl64.c \
-	fdatasync.c file_handle.c file_ioctl.c filter-unavailable.c \
-	finit_module.c flock.c fork-f.c fstat.c fstat64.c fstatat64.c \
-	fstatfs.c fstatfs64.c fsync.c ftruncate.c ftruncate64.c \
-	futex.c futimesat.c get_mempolicy.c getcpu.c getcwd.c \
-	getdents.c getdents64.c getegid.c getegid32.c geteuid.c \
-	geteuid32.c getgid.c getgid32.c getgroups.c getgroups32.c \
-	getpeername.c getpgrp.c getpid.c getppid.c getrandom.c \
-	getresgid.c getresgid32.c getresuid.c getresuid32.c \
-	getrlimit.c getrusage.c getsid.c getsockname.c gettid.c \
-	getuid.c getuid32.c getxxid.c inet-cmsg.c init_module.c \
-	inotify.c inotify_init1.c int_0x80.c ioctl.c ioctl_block.c \
-	ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c ioctl_evdev-v.c \
-	ioctl_loop.c ioctl_loop-nv.c ioctl_loop-v.c ioctl_mtd.c \
-	ioctl_nsfs.c ioctl_rtc.c ioctl_rtc-v.c ioctl_scsi.c \
-	ioctl_sg_io_v3.c ioctl_sg_io_v4.c ioctl_sock_gifconf.c \
-	ioctl_uffdio.c ioctl_v4l2.c ioperm.c iopl.c ioprio.c ip_mreq.c \
-	ipc.c ipc_msg.c ipc_msgbuf.c ipc_sem.c ipc_shm.c kcmp.c \
-	kexec_file_load.c kexec_load.c keyctl.c kill.c ksysent.c \
-	lchown.c lchown32.c link.c linkat.c llseek.c lookup_dcookie.c \
-	lseek.c lstat.c lstat64.c madvise.c mbind.c membarrier.c \
-	memfd_create.c migrate_pages.c mincore.c mkdir.c mkdirat.c \
-	mknod.c mknodat.c mlock.c mlock2.c mlockall.c mmap.c mmap64.c \
-	mmsg.c mmsg-silent.c mmsg_name.c mmsg_name-v.c mount.c \
-	move_pages.c mq.c mq_sendrecv.c mq_sendrecv-read.c \
-	mq_sendrecv-write.c msg_control.c msg_control-v.c msg_name.c \
-	munlockall.c nanosleep.c net-accept-connect.c \
-	net-icmp_filter.c net-sockaddr.c net-y-unix.c net-yy-inet.c \
-	net-yy-netlink.c net-yy-unix.c netlink_inet_diag.c \
-	netlink_netlink_diag.c netlink_protocol.c netlink_unix_diag.c \
-	newfstatat.c nsyscalls.c old_mmap.c oldfstat.c oldlstat.c \
-	oldselect.c oldstat.c open.c openat.c osf_utimes.c pause.c \
-	pc.c perf_event_open.c perf_event_open_nonverbose.c \
+	attach-p-cmd-p.c block_reset_raise_run.c bpf.c brk.c btrfs.c \
+	caps.c caps-abbrev.c chmod.c chown.c chown32.c chroot.c \
+	clock_adjtime.c clock_nanosleep.c clock_xettime.c \
+	copy_file_range.c count-f.c creat.c delete_module.c dup.c \
+	dup2.c dup3.c epoll_create.c epoll_create1.c epoll_ctl.c \
+	epoll_pwait.c epoll_wait.c erestartsys.c eventfd.c execve.c \
+	execve-v.c execveat.c execveat-v.c faccessat.c fadvise64.c \
+	fadvise64_64.c fallocate.c fanotify_init.c fanotify_mark.c \
+	fchdir.c fchmod.c fchmodat.c fchown.c fchown32.c fchownat.c \
+	fcntl.c fcntl64.c fdatasync.c file_handle.c file_ioctl.c \
+	filter-unavailable.c finit_module.c flock.c fork-f.c fstat.c \
+	fstat64.c fstatat64.c fstatfs.c fstatfs64.c fsync.c \
+	ftruncate.c ftruncate64.c futex.c futimesat.c get_mempolicy.c \
+	getcpu.c getcwd.c getdents.c getdents64.c getegid.c \
+	getegid32.c geteuid.c geteuid32.c getgid.c getgid32.c \
+	getgroups.c getgroups32.c getpeername.c getpgrp.c getpid.c \
+	getppid.c getrandom.c getresgid.c getresgid32.c getresuid.c \
+	getresuid32.c getrlimit.c getrusage.c getsid.c getsockname.c \
+	gettid.c getuid.c getuid32.c getxxid.c inet-cmsg.c \
+	init_module.c inotify.c inotify_init1.c int_0x80.c ioctl.c \
+	ioctl_block.c ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c \
+	ioctl_evdev-v.c ioctl_loop.c ioctl_loop-nv.c ioctl_loop-v.c \
+	ioctl_mtd.c ioctl_nsfs.c ioctl_rtc.c ioctl_rtc-v.c \
+	ioctl_scsi.c ioctl_sg_io_v3.c ioctl_sg_io_v4.c \
+	ioctl_sock_gifconf.c ioctl_uffdio.c ioctl_v4l2.c ioperm.c \
+	iopl.c ioprio.c ip_mreq.c ipc.c ipc_msg.c ipc_msgbuf.c \
+	ipc_sem.c ipc_shm.c kcmp.c kexec_file_load.c kexec_load.c \
+	keyctl.c kill.c ksysent.c lchown.c lchown32.c link.c linkat.c \
+	llseek.c lookup_dcookie.c lseek.c lstat.c lstat64.c madvise.c \
+	mbind.c membarrier.c memfd_create.c migrate_pages.c mincore.c \
+	mkdir.c mkdirat.c mknod.c mknodat.c mlock.c mlock2.c \
+	mlockall.c mmap.c mmap64.c mmsg.c mmsg-silent.c mmsg_name.c \
+	mmsg_name-v.c mount.c move_pages.c mq.c mq_sendrecv.c \
+	mq_sendrecv-read.c mq_sendrecv-write.c msg_control.c \
+	msg_control-v.c msg_name.c munlockall.c nanosleep.c \
+	net-accept-connect.c net-icmp_filter.c net-sockaddr.c \
+	net-y-unix.c net-yy-inet.c net-yy-netlink.c net-yy-unix.c \
+	netlink_audit.c netlink_generic.c netlink_inet_diag.c \
+	netlink_netfilter.c netlink_netlink_diag.c netlink_protocol.c \
+	netlink_route.c netlink_selinux.c netlink_sock_diag.c \
+	netlink_unix_diag.c netlink_xfrm.c newfstatat.c nlattr.c \
+	nlattr_inet_diag_msg.c nlattr_netlink_diag_msg.c \
+	nlattr_unix_diag_msg.c nsyscalls.c old_mmap.c oldfstat.c \
+	oldlstat.c oldselect.c oldstat.c open.c openat.c osf_utimes.c \
+	pause.c pc.c perf_event_open.c perf_event_open_nonverbose.c \
 	perf_event_open_unabbrev.c personality.c pipe.c pipe2.c \
 	pkey_alloc.c pkey_free.c pkey_mprotect.c poll.c ppoll.c \
 	ppoll-v.c prctl-arg2-intptr.c prctl-dumpable.c prctl-name.c \
@@ -1954,21 +2041,22 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	readv.c reboot.c recvfrom.c recvmmsg-timeout.c recvmsg.c \
 	redirect-fds.c remap_file_pages.c rename.c renameat.c \
 	renameat2.c request_key.c restart_syscall.c rmdir.c \
-	rt_sigpending.c rt_sigprocmask.c rt_sigqueueinfo.c \
-	rt_sigreturn.c rt_sigsuspend.c rt_sigtimedwait.c \
-	rt_tgsigqueueinfo.c sched_get_priority_mxx.c \
-	sched_rr_get_interval.c sched_xetaffinity.c sched_xetattr.c \
-	sched_xetparam.c sched_xetscheduler.c sched_yield.c \
-	scm_rights.c seccomp-filter.c seccomp-filter-v.c \
-	seccomp-strict.c select.c semop.c sendfile.c sendfile64.c \
-	set_mempolicy.c set_ptracer_any.c setdomainname.c setfsgid.c \
-	setfsgid32.c setfsuid.c setfsuid32.c setgid.c setgid32.c \
-	setgroups.c setgroups32.c sethostname.c setns.c setregid.c \
-	setregid32.c setresgid.c setresgid32.c setresuid.c \
-	setresuid32.c setreuid.c setreuid32.c setrlimit.c setuid.c \
-	setuid32.c shmxt.c shutdown.c sigaction.c sigaltstack.c \
-	siginfo.c signal_receive.c signalfd4.c sigreturn.c \
-	sigsuspend.c sleep.c socketcall.c splice.c \
+	rt_sigaction.c rt_sigpending.c rt_sigprocmask.c \
+	rt_sigqueueinfo.c rt_sigreturn.c rt_sigsuspend.c \
+	rt_sigtimedwait.c rt_tgsigqueueinfo.c run_expect_termsig.c \
+	sched_get_priority_mxx.c sched_rr_get_interval.c \
+	sched_xetaffinity.c sched_xetattr.c sched_xetparam.c \
+	sched_xetscheduler.c sched_yield.c scm_rights.c \
+	seccomp-filter.c seccomp-filter-v.c seccomp-strict.c select.c \
+	semop.c sendfile.c sendfile64.c set_mempolicy.c \
+	set_ptracer_any.c setdomainname.c setfsgid.c setfsgid32.c \
+	setfsuid.c setfsuid32.c setgid.c setgid32.c setgroups.c \
+	setgroups32.c sethostname.c setns.c setregid.c setregid32.c \
+	setresgid.c setresgid32.c setresuid.c setresuid32.c setreuid.c \
+	setreuid32.c setrlimit.c setuid.c setuid32.c shmxt.c \
+	shutdown.c sigaction.c sigaltstack.c siginfo.c signal.c \
+	signal_receive.c signalfd4.c sigpending.c sigprocmask.c \
+	sigreturn.c sigsuspend.c sleep.c socketcall.c splice.c \
 	$(stack_fcall_SOURCES) stat.c stat64.c statfs.c statfs64.c \
 	statx.c swap.c sxetmask.c symlink.c symlinkat.c sync.c \
 	sync_file_range.c sync_file_range2.c sysinfo.c syslog.c tee.c \
@@ -1976,56 +2064,60 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	timerfd_xettime.c times.c times-fail.c truncate.c truncate64.c \
 	ugetrlimit.c uio.c umask.c umount.c umount2.c umoven-illptr.c \
 	umovestr.c umovestr-illptr.c umovestr2.c umovestr3.c uname.c \
-	unix-pair-send-recv.c unix-pair-sendto-recvfrom.c unlink.c \
-	unlinkat.c unshare.c userfaultfd.c ustat.c utime.c utimensat.c \
-	utimes.c vfork-f.c vhangup.c vmsplice.c wait4.c wait4-v.c \
-	waitid.c waitid-v.c waitpid.c xattr.c xattr-strings.c \
-	xet_robust_list.c xetitimer.c xetpgid.c xetpriority.c \
-	xettimeofday.c
+	unblock_reset_raise.c unix-pair-send-recv.c \
+	unix-pair-sendto-recvfrom.c unlink.c unlinkat.c unshare.c \
+	userfaultfd.c ustat.c utime.c utimensat.c utimes.c vfork-f.c \
+	vhangup.c vmsplice.c wait4.c wait4-v.c waitid.c waitid-v.c \
+	waitpid.c xattr.c xattr-strings.c xet_robust_list.c \
+	xetitimer.c xetpgid.c xetpriority.c xettimeofday.c zeroargc.c
 DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	access.c acct.c add_key.c adjtimex.c aio.c alarm.c answer.c \
 	attach-f-p.c attach-f-p-cmd.c attach-p-cmd-cmd.c \
-	attach-p-cmd-p.c bpf.c brk.c btrfs.c caps.c caps-abbrev.c \
-	chmod.c chown.c chown32.c chroot.c clock_adjtime.c \
-	clock_nanosleep.c clock_xettime.c copy_file_range.c count-f.c \
-	creat.c delete_module.c dup.c dup2.c dup3.c epoll_create.c \
-	epoll_create1.c epoll_ctl.c epoll_pwait.c epoll_wait.c \
-	erestartsys.c eventfd.c execve.c execve-v.c execveat.c \
-	execveat-v.c faccessat.c fadvise64.c fadvise64_64.c \
-	fallocate.c fanotify_init.c fanotify_mark.c fchdir.c fchmod.c \
-	fchmodat.c fchown.c fchown32.c fchownat.c fcntl.c fcntl64.c \
-	fdatasync.c file_handle.c file_ioctl.c filter-unavailable.c \
-	finit_module.c flock.c fork-f.c fstat.c fstat64.c fstatat64.c \
-	fstatfs.c fstatfs64.c fsync.c ftruncate.c ftruncate64.c \
-	futex.c futimesat.c get_mempolicy.c getcpu.c getcwd.c \
-	getdents.c getdents64.c getegid.c getegid32.c geteuid.c \
-	geteuid32.c getgid.c getgid32.c getgroups.c getgroups32.c \
-	getpeername.c getpgrp.c getpid.c getppid.c getrandom.c \
-	getresgid.c getresgid32.c getresuid.c getresuid32.c \
-	getrlimit.c getrusage.c getsid.c getsockname.c gettid.c \
-	getuid.c getuid32.c getxxid.c inet-cmsg.c init_module.c \
-	inotify.c inotify_init1.c int_0x80.c ioctl.c ioctl_block.c \
-	ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c ioctl_evdev-v.c \
-	ioctl_loop.c ioctl_loop-nv.c ioctl_loop-v.c ioctl_mtd.c \
-	ioctl_nsfs.c ioctl_rtc.c ioctl_rtc-v.c ioctl_scsi.c \
-	ioctl_sg_io_v3.c ioctl_sg_io_v4.c ioctl_sock_gifconf.c \
-	ioctl_uffdio.c ioctl_v4l2.c ioperm.c iopl.c ioprio.c ip_mreq.c \
-	ipc.c ipc_msg.c ipc_msgbuf.c ipc_sem.c ipc_shm.c kcmp.c \
-	kexec_file_load.c kexec_load.c keyctl.c kill.c ksysent.c \
-	lchown.c lchown32.c link.c linkat.c llseek.c lookup_dcookie.c \
-	lseek.c lstat.c lstat64.c madvise.c mbind.c membarrier.c \
-	memfd_create.c migrate_pages.c mincore.c mkdir.c mkdirat.c \
-	mknod.c mknodat.c mlock.c mlock2.c mlockall.c mmap.c mmap64.c \
-	mmsg.c mmsg-silent.c mmsg_name.c mmsg_name-v.c mount.c \
-	move_pages.c mq.c mq_sendrecv.c mq_sendrecv-read.c \
-	mq_sendrecv-write.c msg_control.c msg_control-v.c msg_name.c \
-	munlockall.c nanosleep.c net-accept-connect.c \
-	net-icmp_filter.c net-sockaddr.c net-y-unix.c net-yy-inet.c \
-	net-yy-netlink.c net-yy-unix.c netlink_inet_diag.c \
-	netlink_netlink_diag.c netlink_protocol.c netlink_unix_diag.c \
-	newfstatat.c nsyscalls.c old_mmap.c oldfstat.c oldlstat.c \
-	oldselect.c oldstat.c open.c openat.c osf_utimes.c pause.c \
-	pc.c perf_event_open.c perf_event_open_nonverbose.c \
+	attach-p-cmd-p.c block_reset_raise_run.c bpf.c brk.c btrfs.c \
+	caps.c caps-abbrev.c chmod.c chown.c chown32.c chroot.c \
+	clock_adjtime.c clock_nanosleep.c clock_xettime.c \
+	copy_file_range.c count-f.c creat.c delete_module.c dup.c \
+	dup2.c dup3.c epoll_create.c epoll_create1.c epoll_ctl.c \
+	epoll_pwait.c epoll_wait.c erestartsys.c eventfd.c execve.c \
+	execve-v.c execveat.c execveat-v.c faccessat.c fadvise64.c \
+	fadvise64_64.c fallocate.c fanotify_init.c fanotify_mark.c \
+	fchdir.c fchmod.c fchmodat.c fchown.c fchown32.c fchownat.c \
+	fcntl.c fcntl64.c fdatasync.c file_handle.c file_ioctl.c \
+	filter-unavailable.c finit_module.c flock.c fork-f.c fstat.c \
+	fstat64.c fstatat64.c fstatfs.c fstatfs64.c fsync.c \
+	ftruncate.c ftruncate64.c futex.c futimesat.c get_mempolicy.c \
+	getcpu.c getcwd.c getdents.c getdents64.c getegid.c \
+	getegid32.c geteuid.c geteuid32.c getgid.c getgid32.c \
+	getgroups.c getgroups32.c getpeername.c getpgrp.c getpid.c \
+	getppid.c getrandom.c getresgid.c getresgid32.c getresuid.c \
+	getresuid32.c getrlimit.c getrusage.c getsid.c getsockname.c \
+	gettid.c getuid.c getuid32.c getxxid.c inet-cmsg.c \
+	init_module.c inotify.c inotify_init1.c int_0x80.c ioctl.c \
+	ioctl_block.c ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c \
+	ioctl_evdev-v.c ioctl_loop.c ioctl_loop-nv.c ioctl_loop-v.c \
+	ioctl_mtd.c ioctl_nsfs.c ioctl_rtc.c ioctl_rtc-v.c \
+	ioctl_scsi.c ioctl_sg_io_v3.c ioctl_sg_io_v4.c \
+	ioctl_sock_gifconf.c ioctl_uffdio.c ioctl_v4l2.c ioperm.c \
+	iopl.c ioprio.c ip_mreq.c ipc.c ipc_msg.c ipc_msgbuf.c \
+	ipc_sem.c ipc_shm.c kcmp.c kexec_file_load.c kexec_load.c \
+	keyctl.c kill.c ksysent.c lchown.c lchown32.c link.c linkat.c \
+	llseek.c lookup_dcookie.c lseek.c lstat.c lstat64.c madvise.c \
+	mbind.c membarrier.c memfd_create.c migrate_pages.c mincore.c \
+	mkdir.c mkdirat.c mknod.c mknodat.c mlock.c mlock2.c \
+	mlockall.c mmap.c mmap64.c mmsg.c mmsg-silent.c mmsg_name.c \
+	mmsg_name-v.c mount.c move_pages.c mq.c mq_sendrecv.c \
+	mq_sendrecv-read.c mq_sendrecv-write.c msg_control.c \
+	msg_control-v.c msg_name.c munlockall.c nanosleep.c \
+	net-accept-connect.c net-icmp_filter.c net-sockaddr.c \
+	net-y-unix.c net-yy-inet.c net-yy-netlink.c net-yy-unix.c \
+	netlink_audit.c netlink_generic.c netlink_inet_diag.c \
+	netlink_netfilter.c netlink_netlink_diag.c netlink_protocol.c \
+	netlink_route.c netlink_selinux.c netlink_sock_diag.c \
+	netlink_unix_diag.c netlink_xfrm.c newfstatat.c nlattr.c \
+	nlattr_inet_diag_msg.c nlattr_netlink_diag_msg.c \
+	nlattr_unix_diag_msg.c nsyscalls.c old_mmap.c oldfstat.c \
+	oldlstat.c oldselect.c oldstat.c open.c openat.c osf_utimes.c \
+	pause.c pc.c perf_event_open.c perf_event_open_nonverbose.c \
 	perf_event_open_unabbrev.c personality.c pipe.c pipe2.c \
 	pkey_alloc.c pkey_free.c pkey_mprotect.c poll.c ppoll.c \
 	ppoll-v.c prctl-arg2-intptr.c prctl-dumpable.c prctl-name.c \
@@ -2041,21 +2133,22 @@ DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	readv.c reboot.c recvfrom.c recvmmsg-timeout.c recvmsg.c \
 	redirect-fds.c remap_file_pages.c rename.c renameat.c \
 	renameat2.c request_key.c restart_syscall.c rmdir.c \
-	rt_sigpending.c rt_sigprocmask.c rt_sigqueueinfo.c \
-	rt_sigreturn.c rt_sigsuspend.c rt_sigtimedwait.c \
-	rt_tgsigqueueinfo.c sched_get_priority_mxx.c \
-	sched_rr_get_interval.c sched_xetaffinity.c sched_xetattr.c \
-	sched_xetparam.c sched_xetscheduler.c sched_yield.c \
-	scm_rights.c seccomp-filter.c seccomp-filter-v.c \
-	seccomp-strict.c select.c semop.c sendfile.c sendfile64.c \
-	set_mempolicy.c set_ptracer_any.c setdomainname.c setfsgid.c \
-	setfsgid32.c setfsuid.c setfsuid32.c setgid.c setgid32.c \
-	setgroups.c setgroups32.c sethostname.c setns.c setregid.c \
-	setregid32.c setresgid.c setresgid32.c setresuid.c \
-	setresuid32.c setreuid.c setreuid32.c setrlimit.c setuid.c \
-	setuid32.c shmxt.c shutdown.c sigaction.c sigaltstack.c \
-	siginfo.c signal_receive.c signalfd4.c sigreturn.c \
-	sigsuspend.c sleep.c socketcall.c splice.c \
+	rt_sigaction.c rt_sigpending.c rt_sigprocmask.c \
+	rt_sigqueueinfo.c rt_sigreturn.c rt_sigsuspend.c \
+	rt_sigtimedwait.c rt_tgsigqueueinfo.c run_expect_termsig.c \
+	sched_get_priority_mxx.c sched_rr_get_interval.c \
+	sched_xetaffinity.c sched_xetattr.c sched_xetparam.c \
+	sched_xetscheduler.c sched_yield.c scm_rights.c \
+	seccomp-filter.c seccomp-filter-v.c seccomp-strict.c select.c \
+	semop.c sendfile.c sendfile64.c set_mempolicy.c \
+	set_ptracer_any.c setdomainname.c setfsgid.c setfsgid32.c \
+	setfsuid.c setfsuid32.c setgid.c setgid32.c setgroups.c \
+	setgroups32.c sethostname.c setns.c setregid.c setregid32.c \
+	setresgid.c setresgid32.c setresuid.c setresuid32.c setreuid.c \
+	setreuid32.c setrlimit.c setuid.c setuid32.c shmxt.c \
+	shutdown.c sigaction.c sigaltstack.c siginfo.c signal.c \
+	signal_receive.c signalfd4.c sigpending.c sigprocmask.c \
+	sigreturn.c sigsuspend.c sleep.c socketcall.c splice.c \
 	$(stack_fcall_SOURCES) stat.c stat64.c statfs.c statfs64.c \
 	statx.c swap.c sxetmask.c symlink.c symlinkat.c sync.c \
 	sync_file_range.c sync_file_range2.c sysinfo.c syslog.c tee.c \
@@ -2063,12 +2156,12 @@ DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	timerfd_xettime.c times.c times-fail.c truncate.c truncate64.c \
 	ugetrlimit.c uio.c umask.c umount.c umount2.c umoven-illptr.c \
 	umovestr.c umovestr-illptr.c umovestr2.c umovestr3.c uname.c \
-	unix-pair-send-recv.c unix-pair-sendto-recvfrom.c unlink.c \
-	unlinkat.c unshare.c userfaultfd.c ustat.c utime.c utimensat.c \
-	utimes.c vfork-f.c vhangup.c vmsplice.c wait4.c wait4-v.c \
-	waitid.c waitid-v.c waitpid.c xattr.c xattr-strings.c \
-	xet_robust_list.c xetitimer.c xetpgid.c xetpriority.c \
-	xettimeofday.c
+	unblock_reset_raise.c unix-pair-send-recv.c \
+	unix-pair-sendto-recvfrom.c unlink.c unlinkat.c unshare.c \
+	userfaultfd.c ustat.c utime.c utimensat.c utimes.c vfork-f.c \
+	vhangup.c vmsplice.c wait4.c wait4-v.c waitid.c waitid-v.c \
+	waitpid.c xattr.c xattr-strings.c xet_robust_list.c \
+	xetitimer.c xetpgid.c xetpriority.c xettimeofday.c zeroargc.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -2450,6 +2543,7 @@ AM_CPPFLAGS = $(ARCH_MFLAGS) \
 
 AM_LDFLAGS = $(ARCH_MFLAGS)
 libtests_a_SOURCES = \
+	create_nl_socket.c \
 	errno2name.c \
 	error_msg.c \
 	fill_memory.c \
@@ -2470,6 +2564,7 @@ libtests_a_SOURCES = \
 	skip_unavailable.c \
 	sprintrc.c \
 	tail_alloc.c \
+	test_nlattr.h \
 	tests.h \
 	tprintf.c \
 	# end of libtests_a_SOURCES
@@ -2646,8 +2741,19 @@ PURE_EXECUTABLES = \
   net-yy-inet \
   net-yy-netlink \
   net-yy-unix \
+  netlink_audit \
+  netlink_generic \
+  netlink_netfilter \
   netlink_protocol \
+  netlink_route \
+  netlink_selinux \
+  netlink_sock_diag \
+  netlink_xfrm \
   newfstatat \
+  nlattr \
+  nlattr_inet_diag_msg \
+  nlattr_netlink_diag_msg \
+  nlattr_unix_diag_msg \
   old_mmap \
   oldfstat \
   oldlstat \
@@ -2703,6 +2809,7 @@ PURE_EXECUTABLES = \
   renameat2 \
   request_key \
   rmdir \
+  rt_sigaction \
   rt_sigpending \
   rt_sigprocmask \
   rt_sigqueueinfo \
@@ -2750,7 +2857,10 @@ PURE_EXECUTABLES = \
   sigaction \
   sigaltstack \
   siginfo \
+  signal \
   signalfd4 \
+  sigpending \
+  sigprocmask \
   sigreturn \
   sigsuspend \
   socketcall \
@@ -2895,11 +3005,17 @@ GEN_TESTS = _newselect.gen.test accept.gen.test accept4.gen.test \
 	mq_sendrecv-write.gen.test msg_control.gen.test \
 	msg_control-v.gen.test msg_name.gen.test munlockall.gen.test \
 	nanosleep.gen.test net-icmp_filter.gen.test \
-	net-sockaddr.gen.test netlink_protocol.gen.test \
-	newfstatat.gen.test old_mmap.gen.test oldfstat.gen.test \
-	oldlstat.gen.test oldstat.gen.test open.gen.test \
-	openat.gen.test osf_utimes.gen.test pause.gen.test \
-	perf_event_open.gen.test perf_event_open_nonverbose.gen.test \
+	net-sockaddr.gen.test netlink_audit.gen.test \
+	netlink_generic.gen.test netlink_netfilter.gen.test \
+	netlink_protocol.gen.test netlink_route.gen.test \
+	netlink_selinux.gen.test netlink_xfrm.gen.test \
+	newfstatat.gen.test nlattr.gen.test \
+	nlattr_inet_diag_msg.gen.test nlattr_netlink_diag_msg.gen.test \
+	nlattr_unix_diag_msg.gen.test old_mmap.gen.test \
+	oldfstat.gen.test oldlstat.gen.test oldstat.gen.test \
+	open.gen.test openat.gen.test osf_utimes.gen.test \
+	pause.gen.test perf_event_open.gen.test \
+	perf_event_open_nonverbose.gen.test \
 	perf_event_open_unabbrev.gen.test pipe2.gen.test \
 	pkey_alloc.gen.test pkey_free.gen.test pkey_mprotect.gen.test \
 	ppoll.gen.test ppoll-v.gen.test pread64-pwrite64.gen.test \
@@ -2932,22 +3048,23 @@ GEN_TESTS = _newselect.gen.test accept.gen.test accept4.gen.test \
 	setresuid.gen.test setresuid32.gen.test setreuid.gen.test \
 	setreuid32.gen.test setrlimit.gen.test setuid.gen.test \
 	setuid32.gen.test shmxt.gen.test shutdown.gen.test \
-	siginfo.gen.test signal_receive.gen.test signalfd4.gen.test \
-	sigreturn.gen.test sigsuspend.gen.test socketcall.gen.test \
-	splice.gen.test stat.gen.test stat64.gen.test statfs.gen.test \
-	statfs64.gen.test statx.gen.test swap.gen.test \
-	sxetmask.gen.test symlink.gen.test symlinkat.gen.test \
-	sync.gen.test sync_file_range.gen.test \
-	sync_file_range2.gen.test sysinfo.gen.test syslog.gen.test \
-	tee.gen.test time.gen.test timer_create.gen.test \
-	timer_xettime.gen.test timerfd_xettime.gen.test times.gen.test \
-	times-fail.gen.test trace_fstat.gen.test \
-	trace_fstatfs.gen.test trace_lstat.gen.test \
-	trace_question.gen.test trace_stat.gen.test \
-	trace_stat_like.gen.test trace_statfs.gen.test \
-	trace_statfs_like.gen.test truncate.gen.test \
-	truncate64.gen.test ugetrlimit.gen.test umask.gen.test \
-	umoven-illptr.gen.test umovestr-illptr.gen.test \
+	sigaction.gen.test siginfo.gen.test signal.gen.test \
+	signal_receive.gen.test signalfd4.gen.test sigpending.gen.test \
+	sigprocmask.gen.test sigreturn.gen.test sigsuspend.gen.test \
+	socketcall.gen.test splice.gen.test stat.gen.test \
+	stat64.gen.test statfs.gen.test statfs64.gen.test \
+	statx.gen.test swap.gen.test sxetmask.gen.test \
+	symlink.gen.test symlinkat.gen.test sync.gen.test \
+	sync_file_range.gen.test sync_file_range2.gen.test \
+	sysinfo.gen.test syslog.gen.test tee.gen.test time.gen.test \
+	timer_create.gen.test timer_xettime.gen.test \
+	timerfd_xettime.gen.test times.gen.test times-fail.gen.test \
+	trace_fstat.gen.test trace_fstatfs.gen.test \
+	trace_lstat.gen.test trace_question.gen.test \
+	trace_stat.gen.test trace_stat_like.gen.test \
+	trace_statfs.gen.test trace_statfs_like.gen.test \
+	truncate.gen.test truncate64.gen.test ugetrlimit.gen.test \
+	umask.gen.test umoven-illptr.gen.test umovestr-illptr.gen.test \
 	umovestr3.gen.test unlink.gen.test unlinkat.gen.test \
 	unshare.gen.test userfaultfd.gen.test ustat.gen.test \
 	utime.gen.test utimensat.gen.test utimes.gen.test \
@@ -2987,6 +3104,7 @@ DECODER_TESTS = \
 	net-yy-netlink.test \
 	net-yy-unix.test \
 	net.test \
+	netlink_sock_diag.test \
 	nsyscalls.test \
 	oldselect.test \
 	personality.test \
@@ -3004,9 +3122,9 @@ DECODER_TESTS = \
 	prctl-tsc.test \
 	qual_fault-exit_group.test \
 	readv.test \
+	rt_sigaction.test \
 	scm_rights-fd.test \
 	seccomp-strict.test \
-	sigaction.test \
 	sigaltstack.test \
 	sun_path.test \
 	uio.test \
@@ -3030,6 +3148,7 @@ MISC_TESTS = \
 	detach-stopped.test \
 	filter-unavailable.test \
 	get_regs.test \
+	interactive_block.test \
 	ksysent.test \
 	opipe.test \
 	options-syntax.test \
@@ -3055,6 +3174,7 @@ MISC_TESTS = \
 	strace-t.test \
 	strace-tt.test \
 	strace-ttt.test \
+	termsig.test \
 	threads-execve.test \
 	# end of MISC_TESTS
 
@@ -3100,6 +3220,7 @@ EXTRA_DIST = \
 	qual_inject-signal.expected \
 	quotactl.h \
 	regex.in \
+	rt_sigaction.awk \
 	run.sh \
 	sched.in \
 	scno_tampering.sh \
@@ -3107,7 +3228,6 @@ EXTRA_DIST = \
 	setresugid.c \
 	setreugid.c \
 	setugid.c \
-	sigaction.awk \
 	sigaltstack.expected \
 	sockname.c \
 	strace-C.expected \
@@ -3252,6 +3372,10 @@ attach-p-cmd-cmd$(EXEEXT): $(attach_p_cmd_cmd_OBJECTS) $(attach_p_cmd_cmd_DEPEND
 attach-p-cmd-p$(EXEEXT): $(attach_p_cmd_p_OBJECTS) $(attach_p_cmd_p_DEPENDENCIES) $(EXTRA_attach_p_cmd_p_DEPENDENCIES) 
 	@rm -f attach-p-cmd-p$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(attach_p_cmd_p_OBJECTS) $(attach_p_cmd_p_LDADD) $(LIBS)
+
+block_reset_raise_run$(EXEEXT): $(block_reset_raise_run_OBJECTS) $(block_reset_raise_run_DEPENDENCIES) $(EXTRA_block_reset_raise_run_DEPENDENCIES) 
+	@rm -f block_reset_raise_run$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(block_reset_raise_run_OBJECTS) $(block_reset_raise_run_LDADD) $(LIBS)
 
 bpf$(EXEEXT): $(bpf_OBJECTS) $(bpf_DEPENDENCIES) $(EXTRA_bpf_DEPENDENCIES) 
 	@rm -f bpf$(EXEEXT)
@@ -3957,9 +4081,21 @@ net-yy-unix$(EXEEXT): $(net_yy_unix_OBJECTS) $(net_yy_unix_DEPENDENCIES) $(EXTRA
 	@rm -f net-yy-unix$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(net_yy_unix_OBJECTS) $(net_yy_unix_LDADD) $(LIBS)
 
+netlink_audit$(EXEEXT): $(netlink_audit_OBJECTS) $(netlink_audit_DEPENDENCIES) $(EXTRA_netlink_audit_DEPENDENCIES) 
+	@rm -f netlink_audit$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(netlink_audit_OBJECTS) $(netlink_audit_LDADD) $(LIBS)
+
+netlink_generic$(EXEEXT): $(netlink_generic_OBJECTS) $(netlink_generic_DEPENDENCIES) $(EXTRA_netlink_generic_DEPENDENCIES) 
+	@rm -f netlink_generic$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(netlink_generic_OBJECTS) $(netlink_generic_LDADD) $(LIBS)
+
 netlink_inet_diag$(EXEEXT): $(netlink_inet_diag_OBJECTS) $(netlink_inet_diag_DEPENDENCIES) $(EXTRA_netlink_inet_diag_DEPENDENCIES) 
 	@rm -f netlink_inet_diag$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(netlink_inet_diag_OBJECTS) $(netlink_inet_diag_LDADD) $(LIBS)
+
+netlink_netfilter$(EXEEXT): $(netlink_netfilter_OBJECTS) $(netlink_netfilter_DEPENDENCIES) $(EXTRA_netlink_netfilter_DEPENDENCIES) 
+	@rm -f netlink_netfilter$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(netlink_netfilter_OBJECTS) $(netlink_netfilter_LDADD) $(LIBS)
 
 netlink_netlink_diag$(EXEEXT): $(netlink_netlink_diag_OBJECTS) $(netlink_netlink_diag_DEPENDENCIES) $(EXTRA_netlink_netlink_diag_DEPENDENCIES) 
 	@rm -f netlink_netlink_diag$(EXEEXT)
@@ -3969,13 +4105,45 @@ netlink_protocol$(EXEEXT): $(netlink_protocol_OBJECTS) $(netlink_protocol_DEPEND
 	@rm -f netlink_protocol$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(netlink_protocol_OBJECTS) $(netlink_protocol_LDADD) $(LIBS)
 
+netlink_route$(EXEEXT): $(netlink_route_OBJECTS) $(netlink_route_DEPENDENCIES) $(EXTRA_netlink_route_DEPENDENCIES) 
+	@rm -f netlink_route$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(netlink_route_OBJECTS) $(netlink_route_LDADD) $(LIBS)
+
+netlink_selinux$(EXEEXT): $(netlink_selinux_OBJECTS) $(netlink_selinux_DEPENDENCIES) $(EXTRA_netlink_selinux_DEPENDENCIES) 
+	@rm -f netlink_selinux$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(netlink_selinux_OBJECTS) $(netlink_selinux_LDADD) $(LIBS)
+
+netlink_sock_diag$(EXEEXT): $(netlink_sock_diag_OBJECTS) $(netlink_sock_diag_DEPENDENCIES) $(EXTRA_netlink_sock_diag_DEPENDENCIES) 
+	@rm -f netlink_sock_diag$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(netlink_sock_diag_OBJECTS) $(netlink_sock_diag_LDADD) $(LIBS)
+
 netlink_unix_diag$(EXEEXT): $(netlink_unix_diag_OBJECTS) $(netlink_unix_diag_DEPENDENCIES) $(EXTRA_netlink_unix_diag_DEPENDENCIES) 
 	@rm -f netlink_unix_diag$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(netlink_unix_diag_OBJECTS) $(netlink_unix_diag_LDADD) $(LIBS)
 
+netlink_xfrm$(EXEEXT): $(netlink_xfrm_OBJECTS) $(netlink_xfrm_DEPENDENCIES) $(EXTRA_netlink_xfrm_DEPENDENCIES) 
+	@rm -f netlink_xfrm$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(netlink_xfrm_OBJECTS) $(netlink_xfrm_LDADD) $(LIBS)
+
 newfstatat$(EXEEXT): $(newfstatat_OBJECTS) $(newfstatat_DEPENDENCIES) $(EXTRA_newfstatat_DEPENDENCIES) 
 	@rm -f newfstatat$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(newfstatat_OBJECTS) $(newfstatat_LDADD) $(LIBS)
+
+nlattr$(EXEEXT): $(nlattr_OBJECTS) $(nlattr_DEPENDENCIES) $(EXTRA_nlattr_DEPENDENCIES) 
+	@rm -f nlattr$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_OBJECTS) $(nlattr_LDADD) $(LIBS)
+
+nlattr_inet_diag_msg$(EXEEXT): $(nlattr_inet_diag_msg_OBJECTS) $(nlattr_inet_diag_msg_DEPENDENCIES) $(EXTRA_nlattr_inet_diag_msg_DEPENDENCIES) 
+	@rm -f nlattr_inet_diag_msg$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_inet_diag_msg_OBJECTS) $(nlattr_inet_diag_msg_LDADD) $(LIBS)
+
+nlattr_netlink_diag_msg$(EXEEXT): $(nlattr_netlink_diag_msg_OBJECTS) $(nlattr_netlink_diag_msg_DEPENDENCIES) $(EXTRA_nlattr_netlink_diag_msg_DEPENDENCIES) 
+	@rm -f nlattr_netlink_diag_msg$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_netlink_diag_msg_OBJECTS) $(nlattr_netlink_diag_msg_LDADD) $(LIBS)
+
+nlattr_unix_diag_msg$(EXEEXT): $(nlattr_unix_diag_msg_OBJECTS) $(nlattr_unix_diag_msg_DEPENDENCIES) $(EXTRA_nlattr_unix_diag_msg_DEPENDENCIES) 
+	@rm -f nlattr_unix_diag_msg$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_unix_diag_msg_OBJECTS) $(nlattr_unix_diag_msg_LDADD) $(LIBS)
 
 nsyscalls$(EXEEXT): $(nsyscalls_OBJECTS) $(nsyscalls_DEPENDENCIES) $(EXTRA_nsyscalls_DEPENDENCIES) 
 	@rm -f nsyscalls$(EXEEXT)
@@ -4265,6 +4433,10 @@ rmdir$(EXEEXT): $(rmdir_OBJECTS) $(rmdir_DEPENDENCIES) $(EXTRA_rmdir_DEPENDENCIE
 	@rm -f rmdir$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(rmdir_OBJECTS) $(rmdir_LDADD) $(LIBS)
 
+rt_sigaction$(EXEEXT): $(rt_sigaction_OBJECTS) $(rt_sigaction_DEPENDENCIES) $(EXTRA_rt_sigaction_DEPENDENCIES) 
+	@rm -f rt_sigaction$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(rt_sigaction_OBJECTS) $(rt_sigaction_LDADD) $(LIBS)
+
 rt_sigpending$(EXEEXT): $(rt_sigpending_OBJECTS) $(rt_sigpending_DEPENDENCIES) $(EXTRA_rt_sigpending_DEPENDENCIES) 
 	@rm -f rt_sigpending$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(rt_sigpending_OBJECTS) $(rt_sigpending_LDADD) $(LIBS)
@@ -4292,6 +4464,10 @@ rt_sigtimedwait$(EXEEXT): $(rt_sigtimedwait_OBJECTS) $(rt_sigtimedwait_DEPENDENC
 rt_tgsigqueueinfo$(EXEEXT): $(rt_tgsigqueueinfo_OBJECTS) $(rt_tgsigqueueinfo_DEPENDENCIES) $(EXTRA_rt_tgsigqueueinfo_DEPENDENCIES) 
 	@rm -f rt_tgsigqueueinfo$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(rt_tgsigqueueinfo_OBJECTS) $(rt_tgsigqueueinfo_LDADD) $(LIBS)
+
+run_expect_termsig$(EXEEXT): $(run_expect_termsig_OBJECTS) $(run_expect_termsig_DEPENDENCIES) $(EXTRA_run_expect_termsig_DEPENDENCIES) 
+	@rm -f run_expect_termsig$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(run_expect_termsig_OBJECTS) $(run_expect_termsig_LDADD) $(LIBS)
 
 sched_get_priority_mxx$(EXEEXT): $(sched_get_priority_mxx_OBJECTS) $(sched_get_priority_mxx_DEPENDENCIES) $(EXTRA_sched_get_priority_mxx_DEPENDENCIES) 
 	@rm -f sched_get_priority_mxx$(EXEEXT)
@@ -4469,6 +4645,10 @@ siginfo$(EXEEXT): $(siginfo_OBJECTS) $(siginfo_DEPENDENCIES) $(EXTRA_siginfo_DEP
 	@rm -f siginfo$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(siginfo_OBJECTS) $(siginfo_LDADD) $(LIBS)
 
+signal$(EXEEXT): $(signal_OBJECTS) $(signal_DEPENDENCIES) $(EXTRA_signal_DEPENDENCIES) 
+	@rm -f signal$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(signal_OBJECTS) $(signal_LDADD) $(LIBS)
+
 signal_receive$(EXEEXT): $(signal_receive_OBJECTS) $(signal_receive_DEPENDENCIES) $(EXTRA_signal_receive_DEPENDENCIES) 
 	@rm -f signal_receive$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(signal_receive_OBJECTS) $(signal_receive_LDADD) $(LIBS)
@@ -4476,6 +4656,14 @@ signal_receive$(EXEEXT): $(signal_receive_OBJECTS) $(signal_receive_DEPENDENCIES
 signalfd4$(EXEEXT): $(signalfd4_OBJECTS) $(signalfd4_DEPENDENCIES) $(EXTRA_signalfd4_DEPENDENCIES) 
 	@rm -f signalfd4$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(signalfd4_OBJECTS) $(signalfd4_LDADD) $(LIBS)
+
+sigpending$(EXEEXT): $(sigpending_OBJECTS) $(sigpending_DEPENDENCIES) $(EXTRA_sigpending_DEPENDENCIES) 
+	@rm -f sigpending$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(sigpending_OBJECTS) $(sigpending_LDADD) $(LIBS)
+
+sigprocmask$(EXEEXT): $(sigprocmask_OBJECTS) $(sigprocmask_DEPENDENCIES) $(EXTRA_sigprocmask_DEPENDENCIES) 
+	@rm -f sigprocmask$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(sigprocmask_OBJECTS) $(sigprocmask_LDADD) $(LIBS)
 
 sigreturn$(EXEEXT): $(sigreturn_OBJECTS) $(sigreturn_DEPENDENCIES) $(EXTRA_sigreturn_DEPENDENCIES) 
 	@rm -f sigreturn$(EXEEXT)
@@ -4641,6 +4829,10 @@ uname$(EXEEXT): $(uname_OBJECTS) $(uname_DEPENDENCIES) $(EXTRA_uname_DEPENDENCIE
 	@rm -f uname$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(uname_OBJECTS) $(uname_LDADD) $(LIBS)
 
+unblock_reset_raise$(EXEEXT): $(unblock_reset_raise_OBJECTS) $(unblock_reset_raise_DEPENDENCIES) $(EXTRA_unblock_reset_raise_DEPENDENCIES) 
+	@rm -f unblock_reset_raise$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(unblock_reset_raise_OBJECTS) $(unblock_reset_raise_LDADD) $(LIBS)
+
 unix-pair-send-recv$(EXEEXT): $(unix_pair_send_recv_OBJECTS) $(unix_pair_send_recv_DEPENDENCIES) $(EXTRA_unix_pair_send_recv_DEPENDENCIES) 
 	@rm -f unix-pair-send-recv$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(unix_pair_send_recv_OBJECTS) $(unix_pair_send_recv_LDADD) $(LIBS)
@@ -4741,6 +4933,10 @@ xettimeofday$(EXEEXT): $(xettimeofday_OBJECTS) $(xettimeofday_DEPENDENCIES) $(EX
 	@rm -f xettimeofday$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(xettimeofday_OBJECTS) $(xettimeofday_LDADD) $(LIBS)
 
+zeroargc$(EXEEXT): $(zeroargc_OBJECTS) $(zeroargc_DEPENDENCIES) $(EXTRA_zeroargc_DEPENDENCIES) 
+	@rm -f zeroargc$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(zeroargc_OBJECTS) $(zeroargc_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -4761,6 +4957,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/attach-f-p.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/attach-p-cmd-cmd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/attach-p-cmd-p.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/block_reset_raise_run.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bpf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/brk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btrfs.Po@am__quote@
@@ -4893,6 +5090,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ksysent.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lchown.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lchown32.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libtests_a-create_nl_socket.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libtests_a-errno2name.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libtests_a-error_msg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libtests_a-fill_memory.Po@am__quote@
@@ -4958,11 +5156,22 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-yy-inet.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-yy-netlink.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-yy-unix.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_audit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_generic.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_inet_diag.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_netfilter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_netlink_diag.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_protocol.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_route.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_selinux.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_sock_diag.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_unix_diag.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_xfrm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/newfstatat-newfstatat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_inet_diag_msg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_netlink_diag_msg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_unix_diag_msg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nsyscalls.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/old_mmap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/oldfstat.Po@am__quote@
@@ -5035,6 +5244,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/request_key.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/restart_syscall.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rmdir.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rt_sigaction.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rt_sigpending.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rt_sigprocmask.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rt_sigqueueinfo.Po@am__quote@
@@ -5042,6 +5252,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rt_sigsuspend.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rt_sigtimedwait.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rt_tgsigqueueinfo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/run_expect_termsig.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sched_get_priority_mxx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sched_rr_get_interval.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sched_xetaffinity.Po@am__quote@
@@ -5086,8 +5297,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigaction.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigaltstack.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/siginfo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signal.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signal_receive.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/signalfd4.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigpending.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigprocmask.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigreturn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sigsuspend.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sleep.Po@am__quote@
@@ -5133,6 +5347,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/umovestr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/umovestr3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uname.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unblock_reset_raise.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unix-pair-send-recv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unix-pair-sendto-recvfrom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unlink.Po@am__quote@
@@ -5158,6 +5373,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xetpgid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xetpriority.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xettimeofday.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/zeroargc.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -5172,6 +5388,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+libtests_a-create_nl_socket.o: create_nl_socket.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libtests_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libtests_a-create_nl_socket.o -MD -MP -MF $(DEPDIR)/libtests_a-create_nl_socket.Tpo -c -o libtests_a-create_nl_socket.o `test -f 'create_nl_socket.c' || echo '$(srcdir)/'`create_nl_socket.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libtests_a-create_nl_socket.Tpo $(DEPDIR)/libtests_a-create_nl_socket.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='create_nl_socket.c' object='libtests_a-create_nl_socket.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libtests_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libtests_a-create_nl_socket.o `test -f 'create_nl_socket.c' || echo '$(srcdir)/'`create_nl_socket.c
+
+libtests_a-create_nl_socket.obj: create_nl_socket.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libtests_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libtests_a-create_nl_socket.obj -MD -MP -MF $(DEPDIR)/libtests_a-create_nl_socket.Tpo -c -o libtests_a-create_nl_socket.obj `if test -f 'create_nl_socket.c'; then $(CYGPATH_W) 'create_nl_socket.c'; else $(CYGPATH_W) '$(srcdir)/create_nl_socket.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libtests_a-create_nl_socket.Tpo $(DEPDIR)/libtests_a-create_nl_socket.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='create_nl_socket.c' object='libtests_a-create_nl_socket.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libtests_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libtests_a-create_nl_socket.obj `if test -f 'create_nl_socket.c'; then $(CYGPATH_W) 'create_nl_socket.c'; else $(CYGPATH_W) '$(srcdir)/create_nl_socket.c'; fi`
 
 libtests_a-errno2name.o: errno2name.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libtests_a_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libtests_a-errno2name.o -MD -MP -MF $(DEPDIR)/libtests_a-errno2name.Tpo -c -o libtests_a-errno2name.o `test -f 'errno2name.c' || echo '$(srcdir)/'`errno2name.c
@@ -6511,10 +6741,40 @@ $(srcdir)/net-icmp_filter.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tes
 $(srcdir)/net-sockaddr.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/netlink_audit.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/netlink_generic.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/netlink_netfilter.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/netlink_protocol.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/netlink_route.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/netlink_selinux.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/netlink_xfrm.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/newfstatat.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nlattr.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nlattr_inet_diag_msg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nlattr_netlink_diag_msg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nlattr_unix_diag_msg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/old_mmap.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
@@ -6799,13 +7059,25 @@ $(srcdir)/shmxt.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 $(srcdir)/shutdown.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/sigaction.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/siginfo.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/signal.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/signal_receive.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/signalfd4.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/sigpending.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/sigprocmask.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/sigreturn.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
@@ -7014,8 +7286,8 @@ clean-local: clean-local-check
 clean-local-check:
 	-rm -rf -- $(TESTS:.test=.dir) $(GEN_TESTS:.gen.test=.dir)
 
-syscallent.i: $(top_srcdir)/$(OS)/$(ARCH)/syscallent.h
-	$(CPP) -P $(SCNO_CPPFLAGS) $^ -o $@
+syscallent.i: $(top_builddir)/config.h $(top_srcdir)/$(OS)/$(ARCH)/syscallent.h
+	$(CPP) -P $(SCNO_CPPFLAGS) -include $^ -o $@
 
 scno.h: $(top_srcdir)/scno.head syscallent.i
 	echo '/* Generated by Makefile from $^; do not edit. */' > $@-t

@@ -140,33 +140,6 @@ tv_mul(struct timeval *tv, const struct timeval *a, int n)
 	tv->tv_usec %= 1000000;
 }
 
-const char *
-xlookup(const struct xlat *xlat, const uint64_t val)
-{
-	for (; xlat->str != NULL; xlat++)
-		if (xlat->val == val)
-			return xlat->str;
-	return NULL;
-}
-
-static int
-xlat_bsearch_compare(const void *a, const void *b)
-{
-	const uint64_t val1 = *(const uint64_t *) a;
-	const uint64_t val2 = ((const struct xlat *) b)->val;
-	return (val1 > val2) ? 1 : (val1 < val2) ? -1 : 0;
-}
-
-const char *
-xlat_search(const struct xlat *xlat, const size_t nmemb, const uint64_t val)
-{
-	const struct xlat *e =
-		bsearch((const void*) &val,
-			xlat, nmemb, sizeof(*xlat), xlat_bsearch_compare);
-
-	return e ? e->str : NULL;
-}
-
 #if !defined HAVE_STPCPY
 char *
 stpcpy(char *dst, const char *src)
@@ -191,7 +164,7 @@ int
 next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits)
 {
 	const unsigned endian = 1;
-	int little_endian = * (char *) (void *) &endian;
+	int little_endian = *(char *) (void *) &endian;
 
 	const uint8_t *array = bit_array;
 	unsigned pos = cur_bit / 8;
@@ -225,71 +198,6 @@ next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits)
 	}
 }
 
-/**
- * Print entry in struct xlat table, if there.
- *
- * @param val  Value to search a literal representation for.
- * @param dflt String (abbreviated in comment syntax) which should be emitted
- *             if no appropriate xlat value has been found.
- * @param xlat (And the following arguments) Pointers to arrays of xlat values.
- *             The last argument should be NULL.
- * @return     1 if appropriate xlat value has been found, 0 otherwise.
- */
-int
-printxvals(const uint64_t val, const char *dflt, const struct xlat *xlat, ...)
-{
-	va_list args;
-
-	va_start(args, xlat);
-	for (; xlat; xlat = va_arg(args, const struct xlat *)) {
-		const char *str = xlookup(xlat, val);
-
-		if (str) {
-			tprints(str);
-			va_end(args);
-			return 1;
-		}
-	}
-	/* No hits -- print raw # instead. */
-	tprintf("%#" PRIx64, val);
-	tprints_comment(dflt);
-
-	va_end(args);
-
-	return 0;
-}
-
-/**
- * Print entry in sorted struct xlat table, if it is there.
- *
- * @param xlat      Pointer to an array of xlat values (not terminated with
- *                  XLAT_END).
- * @param xlat_size Number of xlat elements present in array (usually ARRAY_SIZE
- *                  if array is declared in the unit's scope and not
- *                  terminated with XLAT_END).
- * @param val       Value to search literal representation for.
- * @param dflt      String (abbreviated in comment syntax) which should be
- *                  emitted if no appropriate xlat value has been found.
- * @return          1 if appropriate xlat value has been found, 0
- *                  otherwise.
- */
-int
-printxval_searchn(const struct xlat *xlat, size_t xlat_size, uint64_t val,
-	const char *dflt)
-{
-	const char *s = xlat_search(xlat, xlat_size, val);
-
-	if (s) {
-		tprints(s);
-		return 1;
-	}
-
-	tprintf("%#" PRIx64, val);
-	tprints_comment(dflt);
-
-	return 0;
-}
-
 /*
  * Fetch 64bit argument at position arg_no and
  * return the index of the next argument.
@@ -313,10 +221,10 @@ getllval(struct tcb *tcp, unsigned long long *val, int arg_no)
 		arg_no++;
 	}
 #else /* SIZEOF_KERNEL_LONG_T == 4 */
-# if defined __ARM_EABI__ || \
-     defined LINUX_MIPSO32 || \
-     defined POWERPC || \
-     defined XTENSA
+# if defined __ARM_EABI__	\
+  || defined LINUX_MIPSO32	\
+  || defined POWERPC		\
+  || defined XTENSA
 	/* Align arg_no to the next even number. */
 	arg_no = (arg_no + 1) & 0xe;
 # elif defined SH
@@ -349,102 +257,6 @@ printllval(struct tcb *tcp, const char *format, int arg_no)
 	arg_no = getllval(tcp, &val, arg_no);
 	tprintf(format, val);
 	return arg_no;
-}
-
-/*
- * Interpret `xlat' as an array of flags
- * print the entries whose bits are on in `flags'
- */
-void
-addflags(const struct xlat *xlat, uint64_t flags)
-{
-	for (; xlat->str; xlat++) {
-		if (xlat->val && (flags & xlat->val) == xlat->val) {
-			tprintf("|%s", xlat->str);
-			flags &= ~xlat->val;
-		}
-	}
-	if (flags) {
-		tprintf("|%#" PRIx64, flags);
-	}
-}
-
-/*
- * Interpret `xlat' as an array of flags.
- * Print to static string the entries whose bits are on in `flags'
- * Return static string.
- */
-const char *
-sprintflags(const char *prefix, const struct xlat *xlat, uint64_t flags)
-{
-	static char outstr[1024];
-	char *outptr;
-	int found = 0;
-
-	outptr = stpcpy(outstr, prefix);
-
-	if (flags == 0 && xlat->val == 0 && xlat->str) {
-		strcpy(outptr, xlat->str);
-		return outstr;
-	}
-
-	for (; xlat->str; xlat++) {
-		if (xlat->val && (flags & xlat->val) == xlat->val) {
-			if (found)
-				*outptr++ = '|';
-			outptr = stpcpy(outptr, xlat->str);
-			found = 1;
-			flags &= ~xlat->val;
-			if (!flags)
-				break;
-		}
-	}
-	if (flags) {
-		if (found)
-			*outptr++ = '|';
-		outptr += sprintf(outptr, "%#" PRIx64, flags);
-	}
-
-	return outstr;
-}
-
-int
-printflags64(const struct xlat *xlat, uint64_t flags, const char *dflt)
-{
-	int n;
-	const char *sep;
-
-	if (flags == 0 && xlat->val == 0 && xlat->str) {
-		tprints(xlat->str);
-		return 1;
-	}
-
-	sep = "";
-	for (n = 0; xlat->str; xlat++) {
-		if (xlat->val && (flags & xlat->val) == xlat->val) {
-			tprintf("%s%s", sep, xlat->str);
-			flags &= ~xlat->val;
-			sep = "|";
-			n++;
-		}
-	}
-
-	if (n) {
-		if (flags) {
-			tprintf("%s%#" PRIx64, sep, flags);
-			n++;
-		}
-	} else {
-		if (flags) {
-			tprintf("%#" PRIx64, flags);
-			tprints_comment(dflt);
-		} else {
-			if (dflt)
-				tprints("0");
-		}
-	}
-
-	return n;
 }
 
 void
@@ -630,30 +442,41 @@ getfdproto(struct tcb *tcp, int fd)
 #endif
 }
 
+unsigned long
+getfdinode(struct tcb *tcp, int fd)
+{
+	char path[PATH_MAX + 1];
+
+	if (getfdpath(tcp, fd, path, sizeof(path)) >= 0) {
+		const char *str = STR_STRIP_PREFIX(path, "socket:[");
+
+		if (str != path) {
+			const size_t str_len = strlen(str);
+			if (str_len && str[str_len - 1] == ']')
+				return strtoul(str, NULL, 10);
+		}
+	}
+
+	return 0;
+}
+
 void
 printfd(struct tcb *tcp, int fd)
 {
 	char path[PATH_MAX + 1];
 	if (show_fd_path && getfdpath(tcp, fd, path, sizeof(path)) >= 0) {
-		static const char socket_prefix[] = "socket:[";
-		const size_t socket_prefix_len = sizeof(socket_prefix) - 1;
-		const size_t path_len = strlen(path);
+		const char *str;
+		size_t len;
+		unsigned long inode;
 
 		tprintf("%d<", fd);
-		if (show_fd_path > 1 &&
-		    strncmp(path, socket_prefix, socket_prefix_len) == 0 &&
-		    path[path_len - 1] == ']') {
-			unsigned long inode =
-				strtoul(path + socket_prefix_len, NULL, 10);
-
-			if (!print_sockaddr_by_inode_cached(inode)) {
-				const enum sock_proto proto =
-					getfdproto(tcp, fd);
-				if (!print_sockaddr_by_inode(inode, proto))
-					tprints(path);
-			}
-		} else {
-			print_quoted_string(path, path_len,
+		if (show_fd_path <= 1
+		    || (str = STR_STRIP_PREFIX(path, "socket:[")) == path
+		    || !(len = strlen(str))
+		    || str[len - 1] != ']'
+		    || !(inode = strtoul(str, NULL, 10))
+		    || !print_sockaddr_by_inode(tcp, fd, inode)) {
+			print_quoted_string(path, strlen(path),
 					    QUOTE_OMIT_LEADING_TRAILING_QUOTES);
 		}
 		tprints(">");
@@ -888,8 +711,8 @@ printpathn(struct tcb *const tcp, const kernel_ulong_t addr, unsigned int n)
 	}
 
 	/* Cap path length to the path buffer size */
-	if (n > sizeof path - 1)
-		n = sizeof path - 1;
+	if (n > sizeof(path) - 1)
+		n = sizeof(path) - 1;
 
 	/* Fetch one byte more to find out whether path length > n. */
 	nul_seen = umovestr(tcp, addr, n + 1, path);
@@ -922,8 +745,9 @@ void
 printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
 	    const kernel_ulong_t len, const unsigned int user_style)
 {
-	static char *str = NULL;
+	static char *str;
 	static char *outstr;
+
 	unsigned int size;
 	unsigned int style = user_style;
 	int rc;
@@ -935,10 +759,13 @@ printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
 	}
 	/* Allocate static buffers if they are not allocated yet. */
 	if (!str) {
-		unsigned int outstr_size = 4 * max_strlen + /*for quotes and NUL:*/ 3;
+		const unsigned int outstr_size =
+			4 * max_strlen + /* for quotes and NUL */ 3;
+		/*
+		 * We can assume that outstr_size / 4 == max_strlen
+		 * since we have a guarantee that max_strlen <= -1U / 4.
+		 */
 
-		if (outstr_size / 4 != max_strlen)
-			die_out_of_memory();
 		str = xmalloc(max_strlen + 1);
 		outstr = xmalloc(outstr_size);
 	}
@@ -1075,8 +902,7 @@ dumpstr(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 			if (i < len) {
 				*dst++ = "0123456789abcdef"[*src >> 4];
 				*dst++ = "0123456789abcdef"[*src & 0xf];
-			}
-			else {
+			} else {
 				*dst++ = ' ';
 				*dst++ = ' ';
 			}
@@ -1101,7 +927,8 @@ dumpstr(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 	}
 }
 
-static bool process_vm_readv_not_supported = 0;
+static bool process_vm_readv_not_supported;
+
 #ifndef HAVE_PROCESS_VM_READV
 /*
  * Need to do this since process_vm_readv() is not yet available in libc.
@@ -1162,7 +989,7 @@ umoven(struct tcb *const tcp, kernel_ulong_t addr, unsigned int len,
 
 #if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG
 	if (current_wordsize < sizeof(addr)
-	    && (addr & (~ (kernel_ulong_t) -1U))) {
+	    && (addr & (~(kernel_ulong_t) -1U))) {
 		return -1;
 	}
 #endif
@@ -1310,7 +1137,7 @@ umovestr(struct tcb *const tcp, kernel_ulong_t addr, unsigned int len, char *lad
 
 #if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG
 	if (current_wordsize < sizeof(addr)
-	    && (addr & (~ (kernel_ulong_t) -1U))) {
+	    && (addr & (~(kernel_ulong_t) -1U))) {
 		return -1;
 	}
 #endif

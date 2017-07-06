@@ -1,7 +1,7 @@
 /*
  * PTP 1588 clock support - user space interface
  *
- * Copyright (C) 2010 OMICRON electronics GmbH
+ * Copyright (c) 2010 OMICRON electronics GmbH
  * Copyright (c) 2010-2017 The strace developers.
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -90,7 +90,7 @@ struct ptp_sys_offset {
 #define PTP_SYS_OFFSET     _IOW(PTP_CLK_MAGIC, 5, struct ptp_sys_offset)
 
 struct ptp_extts_event {
-	struct ptp_clock_time t; /* Time event occured. */
+	struct ptp_clock_time t; /* Time event occurred. */
 	unsigned int index;      /* Which channel produced the event. */
 	unsigned int flags;      /* Reserved for future use. */
 	unsigned int rsv[2];     /* Reserved for future use. */
