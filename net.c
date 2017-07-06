@@ -56,7 +56,7 @@
 #if defined(HAVE_LINUX_IP_VS_H)
 # include <linux/ip_vs.h>
 #endif
-#include <linux/netlink.h>
+#include "netlink.h"
 #if defined(HAVE_LINUX_NETFILTER_ARP_ARP_TABLES_H)
 # include <linux/netfilter_arp/arp_tables.h>
 #endif
@@ -81,7 +81,6 @@
 #include "xlat/socketlayers.h"
 
 #include "xlat/inet_protocols.h"
-#include "xlat/netlink_protocols.h"
 
 #ifdef HAVE_BLUETOOTH_BLUETOOTH_H
 # include <bluetooth/bluetooth.h>
@@ -111,7 +110,7 @@ decode_sockbuf(struct tcb *const tcp, const int fd, const kernel_ulong_t addr,
 
 	switch (verbose(tcp) ? getfdproto(tcp, fd) : SOCK_PROTO_UNKNOWN) {
 	case SOCK_PROTO_NETLINK:
-		decode_netlink(tcp, addr, addrlen);
+		decode_netlink(tcp, fd, addr, addrlen);
 		break;
 	default:
 		printstrn(tcp, addr, addrlen);
@@ -649,13 +648,10 @@ print_mreq(struct tcb *const tcp, const kernel_ulong_t addr,
 	if (umove_or_printaddr(tcp, addr, &mreq))
 		return;
 
-	tprints("{imr_multiaddr=inet_addr(");
-	print_quoted_string(inet_ntoa(mreq.imr_multiaddr),
-			    16, QUOTE_0_TERMINATED);
-	tprints("), imr_interface=inet_addr(");
-	print_quoted_string(inet_ntoa(mreq.imr_interface),
-			    16, QUOTE_0_TERMINATED);
-	tprints(")}");
+	tprintf("{imr_multiaddr=inet_addr(\"%s\")",
+		inet_ntoa(mreq.imr_multiaddr));
+	tprintf(", imr_interface=inet_addr(\"%s\")}",
+		inet_ntoa(mreq.imr_interface));
 }
 #endif /* IP_ADD_MEMBERSHIP */
 
@@ -666,27 +662,20 @@ print_mreq6(struct tcb *const tcp, const kernel_ulong_t addr,
 {
 	struct ipv6_mreq mreq;
 
-	if (len < sizeof(mreq))
-		goto fail;
-
+	if (len < sizeof(mreq)) {
+		printstrn(tcp, addr, len);
+		return;
+	}
 	if (umove_or_printaddr(tcp, addr, &mreq))
 		return;
 
-	const struct in6_addr *in6 = &mreq.ipv6mr_multiaddr;
-	char address[INET6_ADDRSTRLEN];
+	tprints("{");
+	print_inet_addr(AF_INET6, &mreq.ipv6mr_multiaddr,
+			sizeof(mreq.ipv6mr_multiaddr), "ipv6mr_multiaddr");
 
-	if (!inet_ntop(AF_INET6, in6, address, sizeof(address)))
-		goto fail;
-
-	tprints("{ipv6mr_multiaddr=inet_pton(");
-	print_quoted_string(address, sizeof(address), QUOTE_0_TERMINATED);
-	tprints("), ipv6mr_interface=");
+	tprints(", ipv6mr_interface=");
 	print_ifindex(mreq.ipv6mr_interface);
 	tprints("}");
-	return;
-
-fail:
-	printstrn(tcp, addr, len);
 }
 #endif /* IPV6_ADD_MEMBERSHIP */
 

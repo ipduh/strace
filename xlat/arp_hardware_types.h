@@ -194,6 +194,9 @@ const struct xlat arp_hardware_types[] = {
 #if defined(ARPHRD_6LOWPAN) || (defined(HAVE_DECL_ARPHRD_6LOWPAN) && HAVE_DECL_ARPHRD_6LOWPAN)
   XLAT(ARPHRD_6LOWPAN),
 #endif
+#if defined(ARPHRD_VSOCKMON) || (defined(HAVE_DECL_ARPHRD_VSOCKMON) && HAVE_DECL_ARPHRD_VSOCKMON)
+  XLAT(ARPHRD_VSOCKMON),
+#endif
 #if defined(ARPHRD_VOID) || (defined(HAVE_DECL_ARPHRD_VOID) && HAVE_DECL_ARPHRD_VOID)
   XLAT(ARPHRD_VOID),
 #endif

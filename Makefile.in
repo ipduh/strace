@@ -291,24 +291,26 @@ PROGRAMS = $(bin_PROGRAMS)
 am__strace_SOURCES_DIST = access.c affinity.c aio.c alpha.c bjm.c \
 	block.c bpf.c btrfs.c cacheflush.c capability.c caps0.h \
 	caps1.h chdir.c chmod.c clone.c copy_file_range.c count.c \
-	defs.h desc.c dirent.c dirent64.c dm.c empty.h epoll.c evdev.c \
-	eventfd.c execve.c fadvise.c fallocate.c fanotify.c fchownat.c \
-	fcntl.c fetch_seccomp_fprog.c fetch_struct_flock.c \
-	fetch_struct_mmsghdr.c fetch_struct_msghdr.c \
-	fetch_struct_stat.c fetch_struct_stat64.c \
-	fetch_struct_statfs.c file_handle.c file_ioctl.c fs_x_ioctl.c \
-	flock.c flock.h futex.c gcc_compat.h get_robust_list.c \
-	getcpu.c getcwd.c getrandom.c hdio.c hostname.c inotify.c io.c \
-	ioctl.c ioperm.c iopl.c ioprio.c ipc_defs.h ipc_msg.c \
-	ipc_msgctl.c ipc_sem.c ipc_shm.c ipc_shmctl.c kcmp.c \
-	kernel_types.h kexec.c keyctl.c ldt.c link.c linux/asm_stat.h \
-	linux/x32/asm_stat.h linux/x86_64/asm_stat.h lookup_dcookie.c \
-	loop.c lseek.c mem.c membarrier.c memfd_create.c mknod.c \
-	mmsghdr.c mount.c mpers_type.h mq.c msghdr.c msghdr.h mtd.c \
-	native_defs.h net.c netlink.c nsfs.c nsfs.h nsig.h numa.c \
-	oldstat.c open.c or1k_atomic.c pathtrace.c perf.c \
-	perf_event_struct.h personality.c pkeys.c poll.c prctl.c \
-	print_dev_t.c print_mq_attr.c print_msgbuf.c \
+	defs.h desc.c dirent.c dirent64.c dm.c dyxlat.c empty.h \
+	epoll.c evdev.c eventfd.c execve.c fadvise.c fallocate.c \
+	fanotify.c fchownat.c fcntl.c fetch_seccomp_fprog.c \
+	fetch_struct_flock.c fetch_struct_mmsghdr.c \
+	fetch_struct_msghdr.c fetch_struct_stat.c \
+	fetch_struct_stat64.c fetch_struct_statfs.c file_handle.c \
+	file_ioctl.c fs_x_ioctl.c flock.c flock.h futex.c gcc_compat.h \
+	get_robust_list.c getcpu.c getcwd.c getrandom.c hdio.c \
+	hostname.c inotify.c io.c ioctl.c ioperm.c iopl.c ioprio.c \
+	ipc_defs.h ipc_msg.c ipc_msgctl.c ipc_sem.c ipc_shm.c \
+	ipc_shmctl.c kcmp.c kernel_types.h kexec.c keyctl.c ldt.c \
+	link.c linux/asm_stat.h linux/x32/asm_stat.h \
+	linux/x86_64/asm_stat.h lookup_dcookie.c loop.c lseek.c \
+	macros.h mem.c membarrier.c memfd_create.c mknod.c mmsghdr.c \
+	mount.c mpers_type.h mq.c msghdr.c msghdr.h mtd.c \
+	native_defs.h net.c netlink.c netlink.h netlink_sock_diag.c \
+	nlattr.c nlattr.h nsfs.c nsfs.h nsig.h numa.c oldstat.c open.c \
+	or1k_atomic.c pathtrace.c perf.c perf_event_struct.h \
+	personality.c pkeys.c poll.c prctl.c print_dev_t.c \
+	print_fields.h print_mq_attr.c print_msgbuf.c \
 	print_sg_req_info.c print_sigevent.c print_statfs.c \
 	print_struct_stat.c print_time.c print_timespec.c \
 	print_timeval.c print_timex.c printmode.c printrusage.c \
@@ -322,8 +324,8 @@ am__strace_SOURCES_DIST = access.c affinity.c aio.c alpha.c bjm.c \
 	statx.h strace.c swapon.c syscall.c sysctl.c sysent.h \
 	sysinfo.c syslog.c sysmips.c term.c time.c times.c truncate.c \
 	ubi.c uid.c uid16.c umask.c umount.c uname.c userfaultfd.c \
-	ustat.c util.c utime.c utimes.c v4l2.c wait.c xattr.c xlat.h \
-	xmalloc.c unwind.c
+	ustat.c util.c utime.c utimes.c v4l2.c wait.c xattr.c xlat.c \
+	xlat.h xmalloc.c unwind.c
 @USE_LIBUNWIND_TRUE@am__objects_3 = strace-unwind.$(OBJEXT)
 am_strace_OBJECTS = strace-access.$(OBJEXT) strace-affinity.$(OBJEXT) \
 	strace-aio.$(OBJEXT) strace-alpha.$(OBJEXT) \
@@ -334,12 +336,12 @@ am_strace_OBJECTS = strace-access.$(OBJEXT) strace-affinity.$(OBJEXT) \
 	strace-clone.$(OBJEXT) strace-copy_file_range.$(OBJEXT) \
 	strace-count.$(OBJEXT) strace-desc.$(OBJEXT) \
 	strace-dirent.$(OBJEXT) strace-dirent64.$(OBJEXT) \
-	strace-dm.$(OBJEXT) strace-epoll.$(OBJEXT) \
-	strace-evdev.$(OBJEXT) strace-eventfd.$(OBJEXT) \
-	strace-execve.$(OBJEXT) strace-fadvise.$(OBJEXT) \
-	strace-fallocate.$(OBJEXT) strace-fanotify.$(OBJEXT) \
-	strace-fchownat.$(OBJEXT) strace-fcntl.$(OBJEXT) \
-	strace-fetch_seccomp_fprog.$(OBJEXT) \
+	strace-dm.$(OBJEXT) strace-dyxlat.$(OBJEXT) \
+	strace-epoll.$(OBJEXT) strace-evdev.$(OBJEXT) \
+	strace-eventfd.$(OBJEXT) strace-execve.$(OBJEXT) \
+	strace-fadvise.$(OBJEXT) strace-fallocate.$(OBJEXT) \
+	strace-fanotify.$(OBJEXT) strace-fchownat.$(OBJEXT) \
+	strace-fcntl.$(OBJEXT) strace-fetch_seccomp_fprog.$(OBJEXT) \
 	strace-fetch_struct_flock.$(OBJEXT) \
 	strace-fetch_struct_mmsghdr.$(OBJEXT) \
 	strace-fetch_struct_msghdr.$(OBJEXT) \
@@ -366,7 +368,8 @@ am_strace_OBJECTS = strace-access.$(OBJEXT) strace-affinity.$(OBJEXT) \
 	strace-mmsghdr.$(OBJEXT) strace-mount.$(OBJEXT) \
 	strace-mq.$(OBJEXT) strace-msghdr.$(OBJEXT) \
 	strace-mtd.$(OBJEXT) strace-net.$(OBJEXT) \
-	strace-netlink.$(OBJEXT) strace-nsfs.$(OBJEXT) \
+	strace-netlink.$(OBJEXT) strace-netlink_sock_diag.$(OBJEXT) \
+	strace-nlattr.$(OBJEXT) strace-nsfs.$(OBJEXT) \
 	strace-numa.$(OBJEXT) strace-oldstat.$(OBJEXT) \
 	strace-open.$(OBJEXT) strace-or1k_atomic.$(OBJEXT) \
 	strace-pathtrace.$(OBJEXT) strace-perf.$(OBJEXT) \
@@ -407,8 +410,8 @@ am_strace_OBJECTS = strace-access.$(OBJEXT) strace-affinity.$(OBJEXT) \
 	strace-ustat.$(OBJEXT) strace-util.$(OBJEXT) \
 	strace-utime.$(OBJEXT) strace-utimes.$(OBJEXT) \
 	strace-v4l2.$(OBJEXT) strace-wait.$(OBJEXT) \
-	strace-xattr.$(OBJEXT) strace-xmalloc.$(OBJEXT) \
-	$(am__objects_3)
+	strace-xattr.$(OBJEXT) strace-xlat.$(OBJEXT) \
+	strace-xmalloc.$(OBJEXT) $(am__objects_3)
 strace_OBJECTS = $(am_strace_OBJECTS)
 am__DEPENDENCIES_1 =
 @USE_LIBUNWIND_TRUE@am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1)
@@ -778,7 +781,9 @@ XLAT_INPUT_FILES = xlat/access_flags.in xlat/addrfams.in \
 	xlat/hw_breakpoint_len.in xlat/hw_breakpoint_type.in \
 	xlat/icmpfilterflags.in xlat/if_dqblk_valid.in \
 	xlat/if_dqinfo_flags.in xlat/if_dqinfo_valid.in \
-	xlat/iffflags.in xlat/inet_protocols.in xlat/inotify_flags.in \
+	xlat/iffflags.in xlat/inet_diag_attrs.in \
+	xlat/inet_diag_extended_flags.in xlat/inet_diag_req_attrs.in \
+	xlat/inet_protocols.in xlat/inotify_flags.in \
 	xlat/inotify_init_flags.in xlat/ioctl_dirs.in \
 	xlat/ioprio_class.in xlat/ioprio_who.in xlat/ip_cmsg_types.in \
 	xlat/ipc_msg_flags.in xlat/ipccalls.in xlat/itimer_which.in \
@@ -798,13 +803,20 @@ XLAT_INPUT_FILES = xlat/access_flags.in xlat/addrfams.in \
 	xlat/mtd_file_mode_options.in xlat/mtd_flags_options.in \
 	xlat/mtd_mode_options.in xlat/mtd_nandecc_options.in \
 	xlat/mtd_otp_options.in xlat/mtd_type_options.in \
-	xlat/name_to_handle_at_flags.in xlat/netlink_flags.in \
-	xlat/netlink_protocols.in xlat/netlink_types.in \
-	xlat/notifyflags.in xlat/nt_descriptor_types.in \
-	xlat/open_access_modes.in xlat/open_mode_flags.in \
-	xlat/packet_mreq_type.in xlat/perf_attr_size.in \
-	xlat/perf_branch_sample_type.in xlat/perf_event_open_flags.in \
-	xlat/perf_event_read_format.in \
+	xlat/name_to_handle_at_flags.in xlat/netlink_diag_attrs.in \
+	xlat/netlink_diag_show.in xlat/netlink_flags.in \
+	xlat/netlink_get_flags.in xlat/netlink_new_flags.in \
+	xlat/netlink_protocols.in xlat/netlink_socket_flags.in \
+	xlat/netlink_states.in xlat/netlink_types.in \
+	xlat/nl_audit_types.in xlat/nl_netfilter_msg_types.in \
+	xlat/nl_netfilter_subsys_ids.in xlat/nl_route_types.in \
+	xlat/nl_selinux_types.in xlat/nl_sock_diag_types.in \
+	xlat/nl_xfrm_types.in xlat/notifyflags.in \
+	xlat/nt_descriptor_types.in xlat/open_access_modes.in \
+	xlat/open_mode_flags.in xlat/packet_diag_attrs.in \
+	xlat/packet_diag_show.in xlat/packet_mreq_type.in \
+	xlat/perf_attr_size.in xlat/perf_branch_sample_type.in \
+	xlat/perf_event_open_flags.in xlat/perf_event_read_format.in \
 	xlat/perf_event_sample_format.in xlat/perf_hw_cache_id.in \
 	xlat/perf_hw_cache_op_id.in xlat/perf_hw_cache_op_result_id.in \
 	xlat/perf_hw_id.in xlat/perf_sw_ids.in xlat/perf_type_id.in \
@@ -837,7 +849,8 @@ XLAT_INPUT_FILES = xlat/access_flags.in xlat/addrfams.in \
 	xlat/sigpoll_codes.in xlat/sigprocmaskcmds.in \
 	xlat/sigprof_codes.in xlat/sigsegv_codes.in \
 	xlat/sigsys_codes.in xlat/sigtrap_codes.in \
-	xlat/sock_type_flags.in xlat/socketcalls.in \
+	xlat/smc_diag_attrs.in xlat/smc_diag_extended_flags.in \
+	xlat/smc_states.in xlat/sock_type_flags.in xlat/socketcalls.in \
 	xlat/socketlayers.in xlat/sockipoptions.in \
 	xlat/sockipv6options.in xlat/sockipxoptions.in \
 	xlat/sockoptions.in xlat/sockpacketoptions.in \
@@ -852,13 +865,14 @@ XLAT_INPUT_FILES = xlat/access_flags.in xlat/addrfams.in \
 	xlat/sysctl_net_ipv6_route.in xlat/sysctl_net_unix.in \
 	xlat/sysctl_root.in xlat/sysctl_vm.in \
 	xlat/syslog_action_type.in xlat/sysmips_operations.in \
-	xlat/tcflsh_options.in xlat/tcxonc_options.in \
-	xlat/timerfdflags.in xlat/ubi_volume_props.in \
-	xlat/ubi_volume_types.in xlat/uffd_api_flags.in \
-	xlat/uffd_copy_flags.in xlat/uffd_flags.in \
-	xlat/uffd_register_ioctl_flags.in \
+	xlat/tcflsh_options.in xlat/tcp_state_flags.in \
+	xlat/tcp_states.in xlat/tcxonc_options.in xlat/timerfdflags.in \
+	xlat/ubi_volume_props.in xlat/ubi_volume_types.in \
+	xlat/uffd_api_flags.in xlat/uffd_copy_flags.in \
+	xlat/uffd_flags.in xlat/uffd_register_ioctl_flags.in \
 	xlat/uffd_register_mode_flags.in xlat/uffd_zeropage_flags.in \
-	xlat/umount_flags.in xlat/unshare_flags.in xlat/usagewho.in \
+	xlat/umount_flags.in xlat/unix_diag_attrs.in \
+	xlat/unix_diag_show.in xlat/unshare_flags.in xlat/usagewho.in \
 	xlat/v4l2_buf_flags.in xlat/v4l2_buf_types.in \
 	xlat/v4l2_capture_modes.in xlat/v4l2_colorspaces.in \
 	xlat/v4l2_control_classes.in xlat/v4l2_control_flags.in \
@@ -921,11 +935,12 @@ XLAT_HEADER_FILES = xlat/access_flags.h xlat/addrfams.h \
 	xlat/hw_breakpoint_len.h xlat/hw_breakpoint_type.h \
 	xlat/icmpfilterflags.h xlat/if_dqblk_valid.h \
 	xlat/if_dqinfo_flags.h xlat/if_dqinfo_valid.h xlat/iffflags.h \
-	xlat/inet_protocols.h xlat/inotify_flags.h \
-	xlat/inotify_init_flags.h xlat/ioctl_dirs.h \
-	xlat/ioprio_class.h xlat/ioprio_who.h xlat/ip_cmsg_types.h \
-	xlat/ipc_msg_flags.h xlat/ipccalls.h xlat/itimer_which.h \
-	xlat/kcmp_types.h xlat/kexec_arch_values.h \
+	xlat/inet_diag_attrs.h xlat/inet_diag_extended_flags.h \
+	xlat/inet_diag_req_attrs.h xlat/inet_protocols.h \
+	xlat/inotify_flags.h xlat/inotify_init_flags.h \
+	xlat/ioctl_dirs.h xlat/ioprio_class.h xlat/ioprio_who.h \
+	xlat/ip_cmsg_types.h xlat/ipc_msg_flags.h xlat/ipccalls.h \
+	xlat/itimer_which.h xlat/kcmp_types.h xlat/kexec_arch_values.h \
 	xlat/kexec_file_load_flags.h xlat/kexec_load_flags.h \
 	xlat/key_perms.h xlat/key_reqkeys.h xlat/key_spec.h \
 	xlat/keyctl_commands.h xlat/lockfcmds.h xlat/loop_cmds.h \
@@ -940,16 +955,23 @@ XLAT_HEADER_FILES = xlat/access_flags.h xlat/addrfams.h \
 	xlat/mtd_file_mode_options.h xlat/mtd_flags_options.h \
 	xlat/mtd_mode_options.h xlat/mtd_nandecc_options.h \
 	xlat/mtd_otp_options.h xlat/mtd_type_options.h \
-	xlat/name_to_handle_at_flags.h xlat/netlink_flags.h \
-	xlat/netlink_protocols.h xlat/netlink_types.h \
-	xlat/notifyflags.h xlat/nt_descriptor_types.h \
-	xlat/open_access_modes.h xlat/open_mode_flags.h \
-	xlat/packet_mreq_type.h xlat/perf_attr_size.h \
-	xlat/perf_branch_sample_type.h xlat/perf_event_open_flags.h \
-	xlat/perf_event_read_format.h xlat/perf_event_sample_format.h \
-	xlat/perf_hw_cache_id.h xlat/perf_hw_cache_op_id.h \
-	xlat/perf_hw_cache_op_result_id.h xlat/perf_hw_id.h \
-	xlat/perf_sw_ids.h xlat/perf_type_id.h \
+	xlat/name_to_handle_at_flags.h xlat/netlink_diag_attrs.h \
+	xlat/netlink_diag_show.h xlat/netlink_flags.h \
+	xlat/netlink_get_flags.h xlat/netlink_new_flags.h \
+	xlat/netlink_protocols.h xlat/netlink_socket_flags.h \
+	xlat/netlink_states.h xlat/netlink_types.h \
+	xlat/nl_audit_types.h xlat/nl_netfilter_msg_types.h \
+	xlat/nl_netfilter_subsys_ids.h xlat/nl_route_types.h \
+	xlat/nl_selinux_types.h xlat/nl_sock_diag_types.h \
+	xlat/nl_xfrm_types.h xlat/notifyflags.h \
+	xlat/nt_descriptor_types.h xlat/open_access_modes.h \
+	xlat/open_mode_flags.h xlat/packet_diag_attrs.h \
+	xlat/packet_diag_show.h xlat/packet_mreq_type.h \
+	xlat/perf_attr_size.h xlat/perf_branch_sample_type.h \
+	xlat/perf_event_open_flags.h xlat/perf_event_read_format.h \
+	xlat/perf_event_sample_format.h xlat/perf_hw_cache_id.h \
+	xlat/perf_hw_cache_op_id.h xlat/perf_hw_cache_op_result_id.h \
+	xlat/perf_hw_id.h xlat/perf_sw_ids.h xlat/perf_type_id.h \
 	xlat/personality_flags.h xlat/personality_types.h \
 	xlat/pkey_access.h xlat/policies.h xlat/pollflags.h \
 	xlat/pr_cap_ambient.h xlat/pr_dumpable.h xlat/pr_fp_mode.h \
@@ -975,27 +997,30 @@ XLAT_HEADER_FILES = xlat/access_flags.h xlat/addrfams.h \
 	xlat/sigfpe_codes.h xlat/sigill_codes.h xlat/siginfo_codes.h \
 	xlat/sigpoll_codes.h xlat/sigprocmaskcmds.h \
 	xlat/sigprof_codes.h xlat/sigsegv_codes.h xlat/sigsys_codes.h \
-	xlat/sigtrap_codes.h xlat/sock_type_flags.h xlat/socketcalls.h \
-	xlat/socketlayers.h xlat/sockipoptions.h \
-	xlat/sockipv6options.h xlat/sockipxoptions.h \
-	xlat/sockoptions.h xlat/sockpacketoptions.h \
-	xlat/sockrawoptions.h xlat/socksctpoptions.h \
-	xlat/socktcpoptions.h xlat/socktypes.h xlat/splice_flags.h \
-	xlat/sram_alloc_flags.h xlat/statfs_flags.h xlat/statx_attrs.h \
-	xlat/statx_masks.h xlat/swap_flags.h \
-	xlat/sync_file_range_flags.h xlat/sysctl_kern.h \
-	xlat/sysctl_net.h xlat/sysctl_net_core.h \
+	xlat/sigtrap_codes.h xlat/smc_diag_attrs.h \
+	xlat/smc_diag_extended_flags.h xlat/smc_states.h \
+	xlat/sock_type_flags.h xlat/socketcalls.h xlat/socketlayers.h \
+	xlat/sockipoptions.h xlat/sockipv6options.h \
+	xlat/sockipxoptions.h xlat/sockoptions.h \
+	xlat/sockpacketoptions.h xlat/sockrawoptions.h \
+	xlat/socksctpoptions.h xlat/socktcpoptions.h xlat/socktypes.h \
+	xlat/splice_flags.h xlat/sram_alloc_flags.h \
+	xlat/statfs_flags.h xlat/statx_attrs.h xlat/statx_masks.h \
+	xlat/swap_flags.h xlat/sync_file_range_flags.h \
+	xlat/sysctl_kern.h xlat/sysctl_net.h xlat/sysctl_net_core.h \
 	xlat/sysctl_net_ipv4.h xlat/sysctl_net_ipv4_conf.h \
 	xlat/sysctl_net_ipv4_route.h xlat/sysctl_net_ipv6.h \
 	xlat/sysctl_net_ipv6_route.h xlat/sysctl_net_unix.h \
 	xlat/sysctl_root.h xlat/sysctl_vm.h xlat/syslog_action_type.h \
 	xlat/sysmips_operations.h xlat/tcflsh_options.h \
-	xlat/tcxonc_options.h xlat/timerfdflags.h \
-	xlat/ubi_volume_props.h xlat/ubi_volume_types.h \
-	xlat/uffd_api_flags.h xlat/uffd_copy_flags.h xlat/uffd_flags.h \
+	xlat/tcp_state_flags.h xlat/tcp_states.h xlat/tcxonc_options.h \
+	xlat/timerfdflags.h xlat/ubi_volume_props.h \
+	xlat/ubi_volume_types.h xlat/uffd_api_flags.h \
+	xlat/uffd_copy_flags.h xlat/uffd_flags.h \
 	xlat/uffd_register_ioctl_flags.h \
 	xlat/uffd_register_mode_flags.h xlat/uffd_zeropage_flags.h \
-	xlat/umount_flags.h xlat/unshare_flags.h xlat/usagewho.h \
+	xlat/umount_flags.h xlat/unix_diag_attrs.h \
+	xlat/unix_diag_show.h xlat/unshare_flags.h xlat/usagewho.h \
 	xlat/v4l2_buf_flags.h xlat/v4l2_buf_types.h \
 	xlat/v4l2_capture_modes.h xlat/v4l2_colorspaces.h \
 	xlat/v4l2_control_classes.h xlat/v4l2_control_flags.h \
@@ -1036,9 +1061,9 @@ libstrace_a_SOURCES = \
 strace_SOURCES = access.c affinity.c aio.c alpha.c bjm.c block.c bpf.c \
 	btrfs.c cacheflush.c capability.c caps0.h caps1.h chdir.c \
 	chmod.c clone.c copy_file_range.c count.c defs.h desc.c \
-	dirent.c dirent64.c dm.c empty.h epoll.c evdev.c eventfd.c \
-	execve.c fadvise.c fallocate.c fanotify.c fchownat.c fcntl.c \
-	fetch_seccomp_fprog.c fetch_struct_flock.c \
+	dirent.c dirent64.c dm.c dyxlat.c empty.h epoll.c evdev.c \
+	eventfd.c execve.c fadvise.c fallocate.c fanotify.c fchownat.c \
+	fcntl.c fetch_seccomp_fprog.c fetch_struct_flock.c \
 	fetch_struct_mmsghdr.c fetch_struct_msghdr.c \
 	fetch_struct_stat.c fetch_struct_stat64.c \
 	fetch_struct_statfs.c file_handle.c file_ioctl.c fs_x_ioctl.c \
@@ -1048,12 +1073,13 @@ strace_SOURCES = access.c affinity.c aio.c alpha.c bjm.c block.c bpf.c \
 	ipc_msgctl.c ipc_sem.c ipc_shm.c ipc_shmctl.c kcmp.c \
 	kernel_types.h kexec.c keyctl.c ldt.c link.c linux/asm_stat.h \
 	linux/x32/asm_stat.h linux/x86_64/asm_stat.h lookup_dcookie.c \
-	loop.c lseek.c mem.c membarrier.c memfd_create.c mknod.c \
-	mmsghdr.c mount.c mpers_type.h mq.c msghdr.c msghdr.h mtd.c \
-	native_defs.h net.c netlink.c nsfs.c nsfs.h nsig.h numa.c \
-	oldstat.c open.c or1k_atomic.c pathtrace.c perf.c \
+	loop.c lseek.c macros.h mem.c membarrier.c memfd_create.c \
+	mknod.c mmsghdr.c mount.c mpers_type.h mq.c msghdr.c msghdr.h \
+	mtd.c native_defs.h net.c netlink.c netlink.h \
+	netlink_sock_diag.c nlattr.c nlattr.h nsfs.c nsfs.h nsig.h \
+	numa.c oldstat.c open.c or1k_atomic.c pathtrace.c perf.c \
 	perf_event_struct.h personality.c pkeys.c poll.c prctl.c \
-	print_dev_t.c print_mq_attr.c print_msgbuf.c \
+	print_dev_t.c print_fields.h print_mq_attr.c print_msgbuf.c \
 	print_sg_req_info.c print_sigevent.c print_statfs.c \
 	print_struct_stat.c print_time.c print_timespec.c \
 	print_timeval.c print_timex.c printmode.c printrusage.c \
@@ -1067,8 +1093,8 @@ strace_SOURCES = access.c affinity.c aio.c alpha.c bjm.c block.c bpf.c \
 	statx.h strace.c swapon.c syscall.c sysctl.c sysent.h \
 	sysinfo.c syslog.c sysmips.c term.c time.c times.c truncate.c \
 	ubi.c uid.c uid16.c umask.c umount.c uname.c userfaultfd.c \
-	ustat.c util.c utime.c utimes.c v4l2.c wait.c xattr.c xlat.h \
-	xmalloc.c $(am__append_1)
+	ustat.c util.c utime.c utimes.c v4l2.c wait.c xattr.c xlat.c \
+	xlat.h xmalloc.c $(am__append_1)
 CODE_COVERAGE_BRANCH_COVERAGE = 1
 CODE_COVERAGE_GENHTML_OPTIONS = $(CODE_COVERAGE_GENHTML_OPTIONS_DEFAULT) \
 	--prefix $(shell cd $(abs_top_srcdir)/.. && pwd || echo .)
@@ -1351,6 +1377,7 @@ EXTRA_DIST = \
 	linux/or1k/set_scno.c		\
 	linux/or1k/syscallent.h		\
 	linux/or1k/userent.h		\
+	linux/packet_diag.h		\
 	linux/personality.h		\
 	linux/powerpc/arch_regs.c	\
 	linux/powerpc/arch_regs.h	\
@@ -1467,6 +1494,7 @@ EXTRA_DIST = \
 	linux/sh64/syscallent.h		\
 	linux/sh64/userent.h		\
 	linux/signalent.h		\
+	linux/smc_diag.h		\
 	linux/sock_diag.h		\
 	linux/sparc/arch_getrval2.c	\
 	linux/sparc/arch_regs.c		\
@@ -1930,6 +1958,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-dirent.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-dirent64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-dm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-dyxlat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-epoll.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-evdev.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-eventfd.Po@am__quote@
@@ -1987,6 +2016,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-mtd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-net.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-netlink.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-netlink_sock_diag.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-nlattr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-nsfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-numa.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-oldstat.Po@am__quote@
@@ -2068,6 +2099,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-v4l2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-wait.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-xattr.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-xlat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strace-xmalloc.Po@am__quote@
 
 .c.o:
@@ -3512,6 +3544,20 @@ strace-dm.obj: dm.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-dm.obj `if test -f 'dm.c'; then $(CYGPATH_W) 'dm.c'; else $(CYGPATH_W) '$(srcdir)/dm.c'; fi`
 
+strace-dyxlat.o: dyxlat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-dyxlat.o -MD -MP -MF $(DEPDIR)/strace-dyxlat.Tpo -c -o strace-dyxlat.o `test -f 'dyxlat.c' || echo '$(srcdir)/'`dyxlat.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-dyxlat.Tpo $(DEPDIR)/strace-dyxlat.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='dyxlat.c' object='strace-dyxlat.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-dyxlat.o `test -f 'dyxlat.c' || echo '$(srcdir)/'`dyxlat.c
+
+strace-dyxlat.obj: dyxlat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-dyxlat.obj -MD -MP -MF $(DEPDIR)/strace-dyxlat.Tpo -c -o strace-dyxlat.obj `if test -f 'dyxlat.c'; then $(CYGPATH_W) 'dyxlat.c'; else $(CYGPATH_W) '$(srcdir)/dyxlat.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-dyxlat.Tpo $(DEPDIR)/strace-dyxlat.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='dyxlat.c' object='strace-dyxlat.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-dyxlat.obj `if test -f 'dyxlat.c'; then $(CYGPATH_W) 'dyxlat.c'; else $(CYGPATH_W) '$(srcdir)/dyxlat.c'; fi`
+
 strace-epoll.o: epoll.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-epoll.o -MD -MP -MF $(DEPDIR)/strace-epoll.Tpo -c -o strace-epoll.o `test -f 'epoll.c' || echo '$(srcdir)/'`epoll.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-epoll.Tpo $(DEPDIR)/strace-epoll.Po
@@ -4309,6 +4355,34 @@ strace-netlink.obj: netlink.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='netlink.c' object='strace-netlink.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-netlink.obj `if test -f 'netlink.c'; then $(CYGPATH_W) 'netlink.c'; else $(CYGPATH_W) '$(srcdir)/netlink.c'; fi`
+
+strace-netlink_sock_diag.o: netlink_sock_diag.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-netlink_sock_diag.o -MD -MP -MF $(DEPDIR)/strace-netlink_sock_diag.Tpo -c -o strace-netlink_sock_diag.o `test -f 'netlink_sock_diag.c' || echo '$(srcdir)/'`netlink_sock_diag.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-netlink_sock_diag.Tpo $(DEPDIR)/strace-netlink_sock_diag.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='netlink_sock_diag.c' object='strace-netlink_sock_diag.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-netlink_sock_diag.o `test -f 'netlink_sock_diag.c' || echo '$(srcdir)/'`netlink_sock_diag.c
+
+strace-netlink_sock_diag.obj: netlink_sock_diag.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-netlink_sock_diag.obj -MD -MP -MF $(DEPDIR)/strace-netlink_sock_diag.Tpo -c -o strace-netlink_sock_diag.obj `if test -f 'netlink_sock_diag.c'; then $(CYGPATH_W) 'netlink_sock_diag.c'; else $(CYGPATH_W) '$(srcdir)/netlink_sock_diag.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-netlink_sock_diag.Tpo $(DEPDIR)/strace-netlink_sock_diag.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='netlink_sock_diag.c' object='strace-netlink_sock_diag.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-netlink_sock_diag.obj `if test -f 'netlink_sock_diag.c'; then $(CYGPATH_W) 'netlink_sock_diag.c'; else $(CYGPATH_W) '$(srcdir)/netlink_sock_diag.c'; fi`
+
+strace-nlattr.o: nlattr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-nlattr.o -MD -MP -MF $(DEPDIR)/strace-nlattr.Tpo -c -o strace-nlattr.o `test -f 'nlattr.c' || echo '$(srcdir)/'`nlattr.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-nlattr.Tpo $(DEPDIR)/strace-nlattr.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nlattr.c' object='strace-nlattr.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-nlattr.o `test -f 'nlattr.c' || echo '$(srcdir)/'`nlattr.c
+
+strace-nlattr.obj: nlattr.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-nlattr.obj -MD -MP -MF $(DEPDIR)/strace-nlattr.Tpo -c -o strace-nlattr.obj `if test -f 'nlattr.c'; then $(CYGPATH_W) 'nlattr.c'; else $(CYGPATH_W) '$(srcdir)/nlattr.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-nlattr.Tpo $(DEPDIR)/strace-nlattr.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='nlattr.c' object='strace-nlattr.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-nlattr.obj `if test -f 'nlattr.c'; then $(CYGPATH_W) 'nlattr.c'; else $(CYGPATH_W) '$(srcdir)/nlattr.c'; fi`
 
 strace-nsfs.o: nsfs.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-nsfs.o -MD -MP -MF $(DEPDIR)/strace-nsfs.Tpo -c -o strace-nsfs.o `test -f 'nsfs.c' || echo '$(srcdir)/'`nsfs.c
@@ -5430,6 +5504,20 @@ strace-xattr.obj: xattr.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-xattr.obj `if test -f 'xattr.c'; then $(CYGPATH_W) 'xattr.c'; else $(CYGPATH_W) '$(srcdir)/xattr.c'; fi`
 
+strace-xlat.o: xlat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-xlat.o -MD -MP -MF $(DEPDIR)/strace-xlat.Tpo -c -o strace-xlat.o `test -f 'xlat.c' || echo '$(srcdir)/'`xlat.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-xlat.Tpo $(DEPDIR)/strace-xlat.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='xlat.c' object='strace-xlat.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-xlat.o `test -f 'xlat.c' || echo '$(srcdir)/'`xlat.c
+
+strace-xlat.obj: xlat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-xlat.obj -MD -MP -MF $(DEPDIR)/strace-xlat.Tpo -c -o strace-xlat.obj `if test -f 'xlat.c'; then $(CYGPATH_W) 'xlat.c'; else $(CYGPATH_W) '$(srcdir)/xlat.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-xlat.Tpo $(DEPDIR)/strace-xlat.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='xlat.c' object='strace-xlat.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -c -o strace-xlat.obj `if test -f 'xlat.c'; then $(CYGPATH_W) 'xlat.c'; else $(CYGPATH_W) '$(srcdir)/xlat.c'; fi`
+
 strace-xmalloc.o: xmalloc.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(strace_CPPFLAGS) $(CPPFLAGS) $(strace_CFLAGS) $(CFLAGS) -MT strace-xmalloc.o -MD -MP -MF $(DEPDIR)/strace-xmalloc.Tpo -c -o strace-xmalloc.o `test -f 'xmalloc.c' || echo '$(srcdir)/'`xmalloc.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/strace-xmalloc.Tpo $(DEPDIR)/strace-xmalloc.Po
@@ -6182,6 +6270,12 @@ $(top_srcdir)/xlat/if_dqinfo_valid.h: $(top_srcdir)/xlat/if_dqinfo_valid.in $(to
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/iffflags.h: $(top_srcdir)/xlat/iffflags.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/inet_diag_attrs.h: $(top_srcdir)/xlat/inet_diag_attrs.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/inet_diag_extended_flags.h: $(top_srcdir)/xlat/inet_diag_extended_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/inet_diag_req_attrs.h: $(top_srcdir)/xlat/inet_diag_req_attrs.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/inet_protocols.h: $(top_srcdir)/xlat/inet_protocols.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/inotify_flags.h: $(top_srcdir)/xlat/inotify_flags.in $(top_srcdir)/xlat/gen.sh
@@ -6278,11 +6372,37 @@ $(top_srcdir)/xlat/mtd_type_options.h: $(top_srcdir)/xlat/mtd_type_options.in $(
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/name_to_handle_at_flags.h: $(top_srcdir)/xlat/name_to_handle_at_flags.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/netlink_diag_attrs.h: $(top_srcdir)/xlat/netlink_diag_attrs.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/netlink_diag_show.h: $(top_srcdir)/xlat/netlink_diag_show.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/netlink_flags.h: $(top_srcdir)/xlat/netlink_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/netlink_get_flags.h: $(top_srcdir)/xlat/netlink_get_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/netlink_new_flags.h: $(top_srcdir)/xlat/netlink_new_flags.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/netlink_protocols.h: $(top_srcdir)/xlat/netlink_protocols.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/netlink_socket_flags.h: $(top_srcdir)/xlat/netlink_socket_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/netlink_states.h: $(top_srcdir)/xlat/netlink_states.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/netlink_types.h: $(top_srcdir)/xlat/netlink_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nl_audit_types.h: $(top_srcdir)/xlat/nl_audit_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nl_netfilter_msg_types.h: $(top_srcdir)/xlat/nl_netfilter_msg_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nl_netfilter_subsys_ids.h: $(top_srcdir)/xlat/nl_netfilter_subsys_ids.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nl_route_types.h: $(top_srcdir)/xlat/nl_route_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nl_selinux_types.h: $(top_srcdir)/xlat/nl_selinux_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nl_sock_diag_types.h: $(top_srcdir)/xlat/nl_sock_diag_types.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/nl_xfrm_types.h: $(top_srcdir)/xlat/nl_xfrm_types.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/notifyflags.h: $(top_srcdir)/xlat/notifyflags.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
@@ -6291,6 +6411,10 @@ $(top_srcdir)/xlat/nt_descriptor_types.h: $(top_srcdir)/xlat/nt_descriptor_types
 $(top_srcdir)/xlat/open_access_modes.h: $(top_srcdir)/xlat/open_access_modes.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/open_mode_flags.h: $(top_srcdir)/xlat/open_mode_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/packet_diag_attrs.h: $(top_srcdir)/xlat/packet_diag_attrs.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/packet_diag_show.h: $(top_srcdir)/xlat/packet_diag_show.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/packet_mreq_type.h: $(top_srcdir)/xlat/packet_mreq_type.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
@@ -6448,6 +6572,12 @@ $(top_srcdir)/xlat/sigsys_codes.h: $(top_srcdir)/xlat/sigsys_codes.in $(top_srcd
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/sigtrap_codes.h: $(top_srcdir)/xlat/sigtrap_codes.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/smc_diag_attrs.h: $(top_srcdir)/xlat/smc_diag_attrs.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/smc_diag_extended_flags.h: $(top_srcdir)/xlat/smc_diag_extended_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/smc_states.h: $(top_srcdir)/xlat/smc_states.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/sock_type_flags.h: $(top_srcdir)/xlat/sock_type_flags.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/socketcalls.h: $(top_srcdir)/xlat/socketcalls.in $(top_srcdir)/xlat/gen.sh
@@ -6514,6 +6644,10 @@ $(top_srcdir)/xlat/sysmips_operations.h: $(top_srcdir)/xlat/sysmips_operations.i
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/tcflsh_options.h: $(top_srcdir)/xlat/tcflsh_options.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/tcp_state_flags.h: $(top_srcdir)/xlat/tcp_state_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/tcp_states.h: $(top_srcdir)/xlat/tcp_states.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/tcxonc_options.h: $(top_srcdir)/xlat/tcxonc_options.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/timerfdflags.h: $(top_srcdir)/xlat/timerfdflags.in $(top_srcdir)/xlat/gen.sh
@@ -6535,6 +6669,10 @@ $(top_srcdir)/xlat/uffd_register_mode_flags.h: $(top_srcdir)/xlat/uffd_register_
 $(top_srcdir)/xlat/uffd_zeropage_flags.h: $(top_srcdir)/xlat/uffd_zeropage_flags.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/umount_flags.h: $(top_srcdir)/xlat/umount_flags.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/unix_diag_attrs.h: $(top_srcdir)/xlat/unix_diag_attrs.in $(top_srcdir)/xlat/gen.sh
+	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
+$(top_srcdir)/xlat/unix_diag_show.h: $(top_srcdir)/xlat/unix_diag_show.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
 $(top_srcdir)/xlat/unshare_flags.h: $(top_srcdir)/xlat/unshare_flags.in $(top_srcdir)/xlat/gen.sh
 	$(AM_V_GEN)$(top_srcdir)/xlat/gen.sh $< $@
@@ -6660,8 +6798,8 @@ ioctlsort%.o: ioctls_all%.h ioctl_iocdef.h $(srcdir)/ioctlsort.c
 ioctls_all%.h: $(srcdir)/$(OS)/$(ARCH)/ioctls_inc%.h $(srcdir)/$(OS)/$(ARCH)/ioctls_arch%.h
 	cat $^ > $@
 
-syscallent.i: $(top_srcdir)/$(OS)/$(ARCH)/syscallent.h
-	$(CPP) -P $(SCNO_CPPFLAGS) $^ -o $@
+syscallent.i: $(top_builddir)/config.h $(top_srcdir)/$(OS)/$(ARCH)/syscallent.h
+	$(CPP) -P $(SCNO_CPPFLAGS) -include $^ -o $@
 
 scno.h: $(top_srcdir)/scno.head syscallent.i
 	echo '/* Generated by Makefile from $^; do not edit. */' > $@-t

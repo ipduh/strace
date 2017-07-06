@@ -6,7 +6,7 @@
  * Copyright (c) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *                     Linux for s390 port by D.J. Barrow
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
- * Copyright (C) 2001-2017 The strace developers.
+ * Copyright (c) 2001-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -289,8 +289,7 @@ SYS_FUNC(ssetmask)
 {
 	if (entering(tcp)) {
 		tprint_old_sigmask_val("", (unsigned) tcp->u_arg[0]);
-	}
-	else if (!syserror(tcp)) {
+	} else if (!syserror(tcp)) {
 		tcp->auxstr = sprint_old_sigmask_val("old mask ",
 						     (unsigned) tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
@@ -300,30 +299,25 @@ SYS_FUNC(ssetmask)
 
 struct old_sigaction {
 	/* sa_handler may be a libc #define, need to use other name: */
-#ifdef MIPS
+#if defined MIPS
 	unsigned int sa_flags;
 	unsigned long sa_handler__;
-	/* Kernel treats sa_mask as an array of longs. */
-	unsigned long sa_mask[NSIG / sizeof(long)];
+	unsigned long sa_mask;
+#elif defined ALPHA
+	unsigned long sa_handler__;
+	unsigned long sa_mask;
+	unsigned int sa_flags;
 #else
 	unsigned long sa_handler__;
 	unsigned long sa_mask;
 	unsigned long sa_flags;
-#endif /* !MIPS */
-#if HAVE_SA_RESTORER
 	unsigned long sa_restorer;
 #endif
-};
-
-struct old_sigaction32 {
-	/* sa_handler may be a libc #define, need to use other name: */
-	uint32_t sa_handler__;
-	uint32_t sa_mask;
-	uint32_t sa_flags;
-#if HAVE_SA_RESTORER
-	uint32_t sa_restorer;
+}
+#ifdef ALPHA
+	ATTRIBUTE_PACKED
 #endif
-};
+;
 
 static void
 decode_old_sigaction(struct tcb *const tcp, const kernel_ulong_t addr)
@@ -332,7 +326,12 @@ decode_old_sigaction(struct tcb *const tcp, const kernel_ulong_t addr)
 
 #ifndef current_wordsize
 	if (current_wordsize < sizeof(sa.sa_handler__)) {
-		struct old_sigaction32 sa32;
+		struct old_sigaction32 {
+			uint32_t sa_handler__;
+			uint32_t sa_mask;
+			uint32_t sa_flags;
+			uint32_t sa_restorer;
+		} sa32;
 
 		if (umove_or_printaddr(tcp, addr, &sa32))
 			return;
@@ -340,9 +339,7 @@ decode_old_sigaction(struct tcb *const tcp, const kernel_ulong_t addr)
 		memset(&sa, 0, sizeof(sa));
 		sa.sa_handler__ = sa32.sa_handler__;
 		sa.sa_flags = sa32.sa_flags;
-#if HAVE_SA_RESTORER && defined SA_RESTORER
 		sa.sa_restorer = sa32.sa_restorer;
-#endif
 		sa.sa_mask = sa32.sa_mask;
 	} else
 #endif
@@ -352,15 +349,11 @@ decode_old_sigaction(struct tcb *const tcp, const kernel_ulong_t addr)
 	tprints("{sa_handler=");
 	print_sa_handler(sa.sa_handler__);
 	tprints(", sa_mask=");
-#ifdef MIPS
-	tprintsigmask_addr("", sa.sa_mask);
-#else
-	tprintsigmask_val("", sa.sa_mask);
-#endif
+	tprint_old_sigmask_val("", sa.sa_mask);
 	tprints(", sa_flags=");
 	printflags(sigact_flags, sa.sa_flags, "SA_???");
-#if HAVE_SA_RESTORER && defined SA_RESTORER
-	if (sa.sa_flags & SA_RESTORER) {
+#if !(defined ALPHA || defined MIPS)
+	if (sa.sa_flags & 0x04000000U) {
 		tprints(", sa_restorer=");
 		printaddr(sa.sa_restorer);
 	}
@@ -371,7 +364,14 @@ decode_old_sigaction(struct tcb *const tcp, const kernel_ulong_t addr)
 SYS_FUNC(sigaction)
 {
 	if (entering(tcp)) {
-		printsignal(tcp->u_arg[0]);
+		int signo = tcp->u_arg[0];
+#if defined SPARC || defined SPARC64
+		if (signo < 0) {
+			tprints("-");
+			signo = -signo;
+		}
+#endif
+		printsignal(signo);
 		tprints(", ");
 		decode_old_sigaction(tcp, tcp->u_arg[1]);
 		tprints(", ");
@@ -415,42 +415,46 @@ SYS_FUNC(sigsuspend)
 	return RVAL_DECODED;
 }
 
-/* "Old" sigprocmask, which operates with word-sized signal masks */
-SYS_FUNC(sigprocmask)
+#ifdef ALPHA
+/*
+ * The OSF/1 sigprocmask is different: it doesn't pass in two pointers,
+ * but rather passes in the new bitmask as an argument and then returns
+ * the old bitmask.  This "works" because we only have 64 signals to worry
+ * about.  If you want more, use of the rt_sigprocmask syscall is required.
+ *
+ * Alpha:
+ *	old = osf_sigprocmask(how, new);
+ * Everyone else:
+ *	ret = sigprocmask(how, &new, &old, ...);
+ */
+SYS_FUNC(osf_sigprocmask)
 {
-# ifdef ALPHA
 	if (entering(tcp)) {
-		/*
-		 * Alpha/OSF is different: it doesn't pass in two pointers,
-		 * but rather passes in the new bitmask as an argument and
-		 * then returns the old bitmask.  This "works" because we
-		 * only have 64 signals to worry about.  If you want more,
-		 * use of the rt_sigprocmask syscall is required.
-		 * Alpha:
-		 *	old = osf_sigprocmask(how, new);
-		 * Everyone else:
-		 *	ret = sigprocmask(how, &new, &old, ...);
-		 */
 		printxval(sigprocmaskcmds, tcp->u_arg[0], "SIG_???");
 		tprintsigmask_val(", ", tcp->u_arg[1]);
-	}
-	else if (!syserror(tcp)) {
+	} else if (!syserror(tcp)) {
 		tcp->auxstr = sprintsigmask_val("old mask ", tcp->u_rval);
 		return RVAL_HEX | RVAL_STR;
 	}
-# else /* !ALPHA */
+	return 0;
+}
+
+#else /* !ALPHA */
+
+/* "Old" sigprocmask, which operates with word-sized signal masks */
+SYS_FUNC(sigprocmask)
+{
 	if (entering(tcp)) {
 		printxval(sigprocmaskcmds, tcp->u_arg[0], "SIG_???");
 		tprints(", ");
 		print_sigset_addr_len(tcp, tcp->u_arg[1], current_wordsize);
 		tprints(", ");
-	}
-	else {
+	} else {
 		print_sigset_addr_len(tcp, tcp->u_arg[2], current_wordsize);
 	}
-# endif /* !ALPHA */
 	return 0;
 }
+#endif /* !ALPHA */
 
 SYS_FUNC(kill)
 {
@@ -486,8 +490,7 @@ SYS_FUNC(rt_sigprocmask)
 		tprints(", ");
 		print_sigset_addr_len(tcp, tcp->u_arg[1], tcp->u_arg[3]);
 		tprints(", ");
-	}
-	else {
+	} else {
 		print_sigset_addr_len(tcp, tcp->u_arg[2], tcp->u_arg[3]);
 		tprintf(", %" PRI_klu, tcp->u_arg[3]);
 	}
@@ -495,8 +498,7 @@ SYS_FUNC(rt_sigprocmask)
 }
 
 /* Structure describing the action to be taken when a signal arrives.  */
-struct new_sigaction
-{
+struct new_sigaction {
 	/* sa_handler may be a libc #define, need to use other name: */
 #ifdef MIPS
 	unsigned int sa_flags;
@@ -512,8 +514,7 @@ struct new_sigaction
 	unsigned long sa_mask[NSIG / sizeof(long)];
 };
 /* Same for i386-on-x86_64 and similar cases */
-struct new_sigaction32
-{
+struct new_sigaction32 {
 	uint32_t sa_handler__;
 	uint32_t sa_flags;
 #if HAVE_SA_RESTORER

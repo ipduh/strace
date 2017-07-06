@@ -173,6 +173,15 @@ const struct xlat sockoptions[] = {
 #if defined(SO_CNX_ADVICE) || (defined(HAVE_DECL_SO_CNX_ADVICE) && HAVE_DECL_SO_CNX_ADVICE)
   XLAT(SO_CNX_ADVICE),
 #endif
+#if defined(SO_MEMINFO) || (defined(HAVE_DECL_SO_MEMINFO) && HAVE_DECL_SO_MEMINFO)
+  XLAT(SO_MEMINFO),
+#endif
+#if defined(SO_INCOMING_NAPI_ID) || (defined(HAVE_DECL_SO_INCOMING_NAPI_ID) && HAVE_DECL_SO_INCOMING_NAPI_ID)
+  XLAT(SO_INCOMING_NAPI_ID),
+#endif
+#if defined(SO_COOKIE) || (defined(HAVE_DECL_SO_COOKIE) && HAVE_DECL_SO_COOKIE)
+  XLAT(SO_COOKIE),
+#endif
 
 #if defined(SO_ALLRAW) || (defined(HAVE_DECL_SO_ALLRAW) && HAVE_DECL_SO_ALLRAW)
   XLAT(SO_ALLRAW),

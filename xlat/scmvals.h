@@ -8,6 +8,51 @@
 #if !(defined(SCM_SECURITY) || (defined(HAVE_DECL_SCM_SECURITY) && HAVE_DECL_SCM_SECURITY))
 # define SCM_SECURITY 3
 #endif
+#ifndef SCM_TIMESTAMP
+# if defined HPPA
+#  define SCM_TIMESTAMP 0x4012
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMP 0x001d
+# else
+#  define SCM_TIMESTAMP 29
+# endif
+#endif
+#ifndef SCM_TIMESTAMPNS
+# if defined HPPA
+#  define SCM_TIMESTAMPNS 0x4013
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPNS 0x0021
+# else
+#  define SCM_TIMESTAMPNS 35
+# endif
+#endif
+#ifndef SCM_TIMESTAMPING
+# if defined HPPA
+#  define SCM_TIMESTAMPING 0x4020
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPING 0x0023
+# else
+#  define SCM_TIMESTAMPING 37
+# endif
+#endif
+#ifndef SCM_WIFI_STATUS
+# if defined HPPA
+#  define SCM_WIFI_STATUS 0x4022
+# elif defined SPARC || defined SPARC64
+#  define SCM_WIFI_STATUS 0x0025
+# else
+#  define SCM_WIFI_STATUS 41
+# endif
+#endif
+#ifndef SCM_TIMESTAMPING_OPT_STATS
+# if defined HPPA
+#  define SCM_TIMESTAMPING_OPT_STATS 0x402f
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPING_OPT_STATS 0x0038
+# else
+#  define SCM_TIMESTAMPING_OPT_STATS 54
+# endif
+#endif
 
 #ifdef IN_MPERS
 
@@ -20,6 +65,71 @@ const struct xlat scmvals[] = {
  XLAT(SCM_RIGHTS),
  XLAT(SCM_CREDENTIALS),
  XLAT(SCM_SECURITY),
+
+#ifndef SCM_TIMESTAMP
+# if defined HPPA
+#  define SCM_TIMESTAMP 0x4012
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMP 0x001d
+# else
+#  define SCM_TIMESTAMP 29
+# endif
+#endif
+#if defined(SCM_TIMESTAMP) || (defined(HAVE_DECL_SCM_TIMESTAMP) && HAVE_DECL_SCM_TIMESTAMP)
+  XLAT(SCM_TIMESTAMP),
+#endif
+
+#ifndef SCM_TIMESTAMPNS
+# if defined HPPA
+#  define SCM_TIMESTAMPNS 0x4013
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPNS 0x0021
+# else
+#  define SCM_TIMESTAMPNS 35
+# endif
+#endif
+#if defined(SCM_TIMESTAMPNS) || (defined(HAVE_DECL_SCM_TIMESTAMPNS) && HAVE_DECL_SCM_TIMESTAMPNS)
+  XLAT(SCM_TIMESTAMPNS),
+#endif
+
+#ifndef SCM_TIMESTAMPING
+# if defined HPPA
+#  define SCM_TIMESTAMPING 0x4020
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPING 0x0023
+# else
+#  define SCM_TIMESTAMPING 37
+# endif
+#endif
+#if defined(SCM_TIMESTAMPING) || (defined(HAVE_DECL_SCM_TIMESTAMPING) && HAVE_DECL_SCM_TIMESTAMPING)
+  XLAT(SCM_TIMESTAMPING),
+#endif
+
+#ifndef SCM_WIFI_STATUS
+# if defined HPPA
+#  define SCM_WIFI_STATUS 0x4022
+# elif defined SPARC || defined SPARC64
+#  define SCM_WIFI_STATUS 0x0025
+# else
+#  define SCM_WIFI_STATUS 41
+# endif
+#endif
+#if defined(SCM_WIFI_STATUS) || (defined(HAVE_DECL_SCM_WIFI_STATUS) && HAVE_DECL_SCM_WIFI_STATUS)
+  XLAT(SCM_WIFI_STATUS),
+#endif
+
+#ifndef SCM_TIMESTAMPING_OPT_STATS
+# if defined HPPA
+#  define SCM_TIMESTAMPING_OPT_STATS 0x402f
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPING_OPT_STATS 0x0038
+# else
+#  define SCM_TIMESTAMPING_OPT_STATS 54
+# endif
+#endif
+#if defined(SCM_TIMESTAMPING_OPT_STATS) || (defined(HAVE_DECL_SCM_TIMESTAMPING_OPT_STATS) && HAVE_DECL_SCM_TIMESTAMPING_OPT_STATS)
+  XLAT(SCM_TIMESTAMPING_OPT_STATS),
+#endif
  XLAT_END
 };
 
