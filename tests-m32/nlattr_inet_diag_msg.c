@@ -39,12 +39,6 @@
 
 static const char address[] = "10.11.12.13";
 
-#ifdef HAVE_IF_INDEXTONAME
-# define IFINDEX_LO	(if_nametoindex("lo"))
-#else
-# define IFINDEX_LO	1
-#endif
-
 static void
 init_inet_diag_msg(struct nlmsghdr *const nlh, const unsigned int msg_len)
 {
@@ -58,7 +52,7 @@ init_inet_diag_msg(struct nlmsghdr *const nlh, const unsigned int msg_len)
 	SET_STRUCT(struct inet_diag_msg, msg,
 		.idiag_family = AF_INET,
 		.idiag_state = TCP_LISTEN,
-		.id.idiag_if = IFINDEX_LO
+		.id.idiag_if = ifindex_lo()
 	);
 
 	if (!inet_pton(AF_INET, address, msg->id.idiag_src) ||
@@ -73,9 +67,10 @@ print_inet_diag_msg(const unsigned int msg_len)
 	       ", flags=NLM_F_DUMP, seq=0, pid=0}, {idiag_family=AF_INET"
 	       ", idiag_state=TCP_LISTEN, idiag_timer=0, idiag_retrans=0"
 	       ", id={idiag_sport=htons(0), idiag_dport=htons(0)"
-	       ", inet_pton(AF_INET, \"%s\", &idiag_src)"
-	       ", inet_pton(AF_INET, \"%s\", &idiag_dst)"
-	       ", idiag_if=if_nametoindex(\"lo\"), idiag_cookie=[0, 0]}"
+	       ", idiag_src=inet_addr(\"%s\")"
+	       ", idiag_dst=inet_addr(\"%s\")"
+	       ", idiag_if=" IFINDEX_LO_STR
+	       ", idiag_cookie=[0, 0]}"
 	       ", idiag_expires=0, idiag_rqueue=0, idiag_wqueue=0"
 	       ", idiag_uid=0, idiag_inode=0}",
 	       msg_len, address, address);
@@ -168,6 +163,18 @@ main(void)
 	TEST_NLATTR_ARRAY(fd, nlh0, hdrlen,
 			  init_inet_diag_msg, print_inet_diag_msg,
 			  INET_DIAG_SKMEMINFO, pattern, mem, print_uint);
+
+	static uint32_t bigmem[SK_MEMINFO_VARS + 1];
+	memcpy(bigmem, pattern, sizeof(bigmem));
+
+	TEST_NLATTR(fd, nlh0, hdrlen, init_inet_diag_msg, print_inet_diag_msg,
+		    INET_DIAG_SKMEMINFO, sizeof(bigmem), bigmem, sizeof(bigmem),
+		    size_t i;
+		    for (i = 0; i < SK_MEMINFO_VARS; ++i) {
+			printf(i ? ", " : "[");
+			print_uint(&bigmem[i]);
+		    }
+		    printf(", ...]"));
 
 	static const uint32_t mark = 0xabdfadca;
 	TEST_NLATTR_OBJECT(fd, nlh0, hdrlen,

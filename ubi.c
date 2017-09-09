@@ -61,14 +61,13 @@ ubi_ioctl(struct tcb *const tcp, const unsigned int code,
 				mkvol.alignment, (int64_t)mkvol.bytes);
 			printxval(ubi_volume_types,
 				    (uint8_t) mkvol.vol_type, "UBI_???_VOLUME");
-			tprintf(", name_len=%" PRIi16 ", name=", mkvol.name_len);
-			if (print_quoted_string(mkvol.name,
-					CLAMP(mkvol.name_len, 0, UBI_MAX_VOLUME_NAME),
-					QUOTE_0_TERMINATED) > 0) {
-				tprints("...");
-			}
+			tprintf(", name_len=%" PRIi16 ", name=",
+				mkvol.name_len);
+			print_quoted_cstring(mkvol.name,
+					CLAMP(mkvol.name_len, 0,
+					      UBI_MAX_VOLUME_NAME));
 			tprints("}");
-			return 1;
+			return 0;
 		}
 		if (!syserror(tcp)) {
 			tprints(" => ");
@@ -103,11 +102,9 @@ ubi_ioctl(struct tcb *const tcp, const unsigned int code,
 			tprintf("{vol_id=%" PRIi32 ", name_len=%" PRIi16
 				", name=", rnvol.ents[c].vol_id,
 				rnvol.ents[c].name_len);
-			if (print_quoted_string(rnvol.ents[c].name,
-					CLAMP(rnvol.ents[c].name_len, 0, UBI_MAX_VOLUME_NAME),
-					QUOTE_0_TERMINATED) > 0) {
-				tprints("...");
-			}
+			print_quoted_cstring(rnvol.ents[c].name,
+					CLAMP(rnvol.ents[c].name_len, 0,
+					      UBI_MAX_VOLUME_NAME));
 			tprints("}");
 		}
 		tprints("]}");
@@ -138,7 +135,7 @@ ubi_ioctl(struct tcb *const tcp, const unsigned int code,
 				", max_beb_per1024=%" PRIi16 "}",
 				attach.ubi_num, attach.mtd_num,
 				attach.vid_hdr_offset, attach.max_beb_per1024);
-			return 1;
+			return 0;
 		}
 		if (!syserror(tcp)) {
 			tprints(" => ");
@@ -199,5 +196,5 @@ ubi_ioctl(struct tcb *const tcp, const unsigned int code,
 		return RVAL_DECODED;
 	}
 
-	return RVAL_DECODED | 1;
+	return RVAL_IOCTL_DECODED;
 }

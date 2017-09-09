@@ -156,13 +156,8 @@
 # define RTM_GETSTATS 94
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat nl_route_types in mpers mode
-
-#else
-
-static
 const struct xlat nl_route_types[] = {
  XLAT(RTM_NEWLINK),
  XLAT(RTM_DELLINK),

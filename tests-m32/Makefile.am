@@ -50,6 +50,7 @@ libtests_a_SOURCES = \
 	get_sigset_size.c \
 	hexdump_strdup.c \
 	hexquote_strndup.c \
+	ifindex.c \
 	inode_of_sockfd.c \
 	libmmsg.c \
 	libsocketcall.c \
@@ -63,7 +64,12 @@ libtests_a_SOURCES = \
 	skip_unavailable.c \
 	sprintrc.c \
 	tail_alloc.c \
+	test_netlink.h \
 	test_nlattr.h \
+	test_printpath.c \
+	test_printstrn.c \
+	test_ucopy.c \
+	test_ucopy.h \
 	tests.h \
 	tprintf.c \
 	# end of libtests_a_SOURCES
@@ -81,6 +87,8 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	attach-p-cmd-p \
 	block_reset_raise_run \
 	caps-abbrev \
+	clone_parent \
+	clone_ptrace \
 	count-f \
 	execve-v \
 	execveat-v \
@@ -96,6 +104,7 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	ioctl_loop-v \
 	ioctl_nsfs \
 	ioctl_rtc-v \
+	is_linux_mips_n64 \
 	ksysent \
 	mmsg-silent \
 	mmsg_name-v \
@@ -241,18 +250,23 @@ MISC_TESTS = \
 	attach-f-p.test \
 	attach-p-cmd.test \
 	bexecve.test \
+	clone_parent.test \
+	clone_ptrace.test \
 	count-f.test \
 	count.test \
 	detach-running.test \
 	detach-sleeping.test \
 	detach-stopped.test \
 	filter-unavailable.test \
+	fflush.test \
 	get_regs.test \
 	interactive_block.test \
 	ksysent.test \
 	opipe.test \
 	options-syntax.test \
 	pc.test \
+	printpath-umovestr-legacy.test \
+	printstrn-umoven-legacy.test \
 	qual_fault-syntax.test \
 	qual_fault.test \
 	qual_inject-error-signal.test \
@@ -292,7 +306,7 @@ AM_TEST_LOG_FLAGS = STRACE_ARCH=$(ARCH) MIPS_ABI=$(MIPS_ABI) $(srcdir)/run.sh
 
 @VALGRIND_CHECK_RULES@
 VALGRIND_FLAGS = --quiet
-VALGRIND_SUPPRESSIONS_FILES = $(srcdir)/strace.supp
+VALGRIND_SUPPRESSIONS_FILES = $(abs_srcdir)/strace.supp
 
 EXTRA_DIST = \
 	caps-abbrev.awk \
@@ -317,6 +331,7 @@ EXTRA_DIST = \
 	lstatx.c \
 	match.awk \
 	net.expected \
+	netlink_sock_diag-v.sh \
 	oldselect.expected \
 	pipe.expected \
 	process_vm_readv_writev.c \
@@ -345,6 +360,7 @@ EXTRA_DIST = \
 	strace.supp \
 	struct_flock.c \
 	sun_path.expected \
+	syntax.sh \
 	trace_fstat.in \
 	trace_fstatfs.in \
 	trace_lstat.in \
@@ -385,6 +401,10 @@ clean-local: clean-local-check
 clean-local-check:
 	-rm -rf -- $(TESTS:.test=.dir) $(GEN_TESTS:.gen.test=.dir)
 
+.PHONY: check-valgrind-local
+check-valgrind-local: $(check_LIBRARIES) $(check_PROGRAMS)
+
+BUILT_SOURCES = ksysent.h
 CLEANFILES = ksysent.h
 
 include ../scno.am

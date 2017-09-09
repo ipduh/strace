@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,9 +39,10 @@
 static void
 print_pktinfo(const struct cmsghdr *c)
 {
-	printf("IP_PKTINFO, cmsg_data={ipi_ifindex=if_nametoindex(\"lo\")"
-	       ", ipi_spec_dst=inet_addr(\"127.0.0.1\")"
-	       ", ipi_addr=inet_addr(\"127.0.0.1\")}");
+	printf("IP_PKTINFO, cmsg_data={ipi_ifindex=%s"
+	       ", ipi_spec_dst=inet_addr(\"%s\")"
+	       ", ipi_addr=inet_addr(\"%s\")}",
+	       IFINDEX_LO_STR, "127.0.0.1", "127.0.0.1");
 }
 
 static void

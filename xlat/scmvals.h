@@ -53,6 +53,15 @@
 #  define SCM_TIMESTAMPING_OPT_STATS 54
 # endif
 #endif
+#ifndef SCM_TIMESTAMPING_PKTINFO
+# if defined HPPA
+#  define SCM_TIMESTAMPING_PKTINFO 0x4033
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPING_PKTINFO 0x003c
+# else
+#  define SCM_TIMESTAMPING_PKTINFO 58
+# endif
+#endif
 
 #ifdef IN_MPERS
 
@@ -129,6 +138,19 @@ const struct xlat scmvals[] = {
 #endif
 #if defined(SCM_TIMESTAMPING_OPT_STATS) || (defined(HAVE_DECL_SCM_TIMESTAMPING_OPT_STATS) && HAVE_DECL_SCM_TIMESTAMPING_OPT_STATS)
   XLAT(SCM_TIMESTAMPING_OPT_STATS),
+#endif
+
+#ifndef SCM_TIMESTAMPING_PKTINFO
+# if defined HPPA
+#  define SCM_TIMESTAMPING_PKTINFO 0x4033
+# elif defined SPARC || defined SPARC64
+#  define SCM_TIMESTAMPING_PKTINFO 0x003c
+# else
+#  define SCM_TIMESTAMPING_PKTINFO 58
+# endif
+#endif
+#if defined(SCM_TIMESTAMPING_PKTINFO) || (defined(HAVE_DECL_SCM_TIMESTAMPING_PKTINFO) && HAVE_DECL_SCM_TIMESTAMPING_PKTINFO)
+  XLAT(SCM_TIMESTAMPING_PKTINFO),
 #endif
  XLAT_END
 };

@@ -50,7 +50,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Douglas Mencken <dougmencken@gmail.com>
 	Dr. David Alan Gilbert <dgilbert@redhat.com>
 	Edgar E. Iglesias <edgar.iglesias@gmail.com>
-	Edgar Kaziahmedov <edos@linux.com>
+	Edgar Kaziakhmedov <edgar.kaziakhmedov@virtuozzo.com>
 	Elliott Hughes <enh@google.com>
 	Elvira Khabirova <lineprinter0@gmail.com>
 	Erik Johansson <erik@ejohansson.se>
@@ -102,6 +102,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Kirill A. Shutemov <kirill@shutemov.name>
 	Kyle McMartin <kyle@mcmartin.ca>
 	Lai JiangShan <laijs@cn.fujitsu.com>
+	Lazar Trsic <Lazar.Trsic@imgtec.com>
 	Leonard N. Zubkoff <lnz@dandelion.com>
 	Linus Torvalds <Linus.Torvalds@cs.helsinki.fi>
 	Lubomir Rintel <lkundrak@v3.sk>

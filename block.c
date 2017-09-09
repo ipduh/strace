@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2009, 2010 Jeff Mahoney <jeffm@suse.com>
  * Copyright (c) 2011-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2011-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -66,6 +67,8 @@ typedef struct blk_user_trace_setup {
 
 #include MPERS_DEFS
 
+#include "print_fields.h"
+
 #ifndef BLKPG
 # define BLKPG      _IO(0x12, 105)
 #endif
@@ -123,21 +126,17 @@ print_blkpg_req(struct tcb *tcp, const struct_blkpg_ioctl_arg *blkpg)
 {
 	struct_blkpg_partition p;
 
-	tprints("{");
-	printxval(blkpg_ops, blkpg->op, "BLKPG_???");
+	PRINT_FIELD_XVAL("{", *blkpg, op, blkpg_ops, "BLKPG_???");
+	PRINT_FIELD_D(", ", *blkpg, flags);
+	PRINT_FIELD_D(", ", *blkpg, datalen);
 
-	tprintf(", flags=%d, datalen=%d, data=",
-		blkpg->flags, blkpg->datalen);
-
+	tprints(", data=");
 	if (!umove_or_printaddr(tcp, ptr_to_kulong(blkpg->data), &p)) {
-		tprintf("{start=%" PRId64 ", length=%" PRId64
-			", pno=%d, devname=",
-			p.start, p.length, p.pno);
-		print_quoted_string(p.devname, sizeof(p.devname),
-				    QUOTE_0_TERMINATED);
-		tprints(", volname=");
-		print_quoted_string(p.volname, sizeof(p.volname),
-				    QUOTE_0_TERMINATED);
+		PRINT_FIELD_D("{", p, start);
+		PRINT_FIELD_D(", ", p, length);
+		PRINT_FIELD_D(", ", p, pno);
+		PRINT_FIELD_CSTRING(", ", p, devname);
+		PRINT_FIELD_CSTRING(", ", p, volname);
 		tprints("}");
 	}
 	tprints("}");
@@ -240,21 +239,18 @@ MPERS_PRINTER_DECL(int, block_ioctl, struct tcb *const tcp,
 			tprints(", ");
 			if (umove_or_printaddr(tcp, arg, &buts))
 				break;
-			tprintf("{act_mask=%u, buf_size=%u, "
-				"buf_nr=%u, start_lba=%" PRIu64 ", "
-				"end_lba=%" PRIu64 ", pid=%u",
-				(unsigned)buts.act_mask, buts.buf_size,
-				buts.buf_nr, buts.start_lba,
-				buts.end_lba, buts.pid);
-			return 1;
+			PRINT_FIELD_U("{", buts, act_mask);
+			PRINT_FIELD_U(", ", buts, buf_size);
+			PRINT_FIELD_U(", ", buts, buf_nr);
+			PRINT_FIELD_U(", ", buts, start_lba);
+			PRINT_FIELD_U(", ", buts, end_lba);
+			PRINT_FIELD_U(", ", buts, pid);
+			return 0;
 		} else {
 			struct_blk_user_trace_setup buts;
 
-			if (!syserror(tcp) && !umove(tcp, arg, &buts)) {
-				tprints(", name=");
-				print_quoted_string(buts.name, sizeof(buts.name),
-						    QUOTE_0_TERMINATED);
-			}
+			if (!syserror(tcp) && !umove(tcp, arg, &buts))
+				PRINT_FIELD_CSTRING(", ", buts, name);
 			tprints("}");
 			break;
 		}
@@ -270,5 +266,5 @@ MPERS_PRINTER_DECL(int, block_ioctl, struct tcb *const tcp,
 		return RVAL_DECODED;
 	}
 
-	return RVAL_DECODED | 1;
+	return RVAL_IOCTL_DECODED;
 }

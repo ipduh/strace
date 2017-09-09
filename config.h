@@ -17,7 +17,7 @@
 /* #undef ARM */
 
 /* SA_RESTORER defined in <asm/signal.h> */
-/* #undef ASM_SA_RESTORER */
+#define ASM_SA_RESTORER 0x04000000
 
 /* SIGRTMIN defined in <asm/signal.h> */
 /* #undef ASM_SIGRTMIN */
@@ -51,6 +51,9 @@
 
 /* Define to 1 if you have the <asm/sysmips.h> header file. */
 /* #undef HAVE_ASM_SYSMIPS_H */
+
+/* Define to 1 if you have the `be64toh' function. */
+/* #undef HAVE_BE64TOH */
 
 /* Define to 1 if you have BLKGETSIZE64. */
 #define HAVE_BLKGETSIZE64 1
@@ -396,11 +399,11 @@
 
 /* Define to 1 if you have the declaration of `V4L2_BUF_TYPE_SDR_CAPTURE', and
    to 0 if you don't. */
-#define HAVE_DECL_V4L2_BUF_TYPE_SDR_CAPTURE 0
+#define HAVE_DECL_V4L2_BUF_TYPE_SDR_CAPTURE 1
 
 /* Define to 1 if you have the declaration of `V4L2_BUF_TYPE_SDR_OUTPUT', and
    to 0 if you don't. */
-#define HAVE_DECL_V4L2_BUF_TYPE_SDR_OUTPUT 0
+#define HAVE_DECL_V4L2_BUF_TYPE_SDR_OUTPUT 1
 
 /* Define to 1 if you have the declaration of
    `V4L2_BUF_TYPE_SLICED_VBI_CAPTURE', and to 0 if you don't. */
@@ -703,6 +706,9 @@
 /* Define to 1 if you have the <linux/btrfs.h> header file. */
 #define HAVE_LINUX_BTRFS_H 1
 
+/* Define to 1 if you have the <linux/cryptouser.h> header file. */
+#define HAVE_LINUX_CRYPTOUSER_H 1
+
 /* Define to 1 if you have the <linux/dm-ioctl.h> header file. */
 #define HAVE_LINUX_DM_IOCTL_H 1
 
@@ -712,17 +718,23 @@
 /* Define to 1 if you have the <linux/falloc.h> header file. */
 #define HAVE_LINUX_FALLOC_H 1
 
+/* Define to 1 if you have the <linux/fib_rules.h> header file. */
+#define HAVE_LINUX_FIB_RULES_H 1
+
 /* Define to 1 if you have the <linux/fiemap.h> header file. */
 #define HAVE_LINUX_FIEMAP_H 1
-
-/* Define to 1 if you have the <linux/filter.h> header file. */
-#define HAVE_LINUX_FILTER_H 1
 
 /* Define to 1 if you have the <linux/genetlink.h> header file. */
 #define HAVE_LINUX_GENETLINK_H 1
 
 /* Define to 1 if you have the <linux/hiddev.h> header file. */
 #define HAVE_LINUX_HIDDEV_H 1
+
+/* Define to 1 if you have the <linux/if_addr.h> header file. */
+#define HAVE_LINUX_IF_ADDR_H 1
+
+/* Define to 1 if you have the <linux/if_link.h> header file. */
+#define HAVE_LINUX_IF_LINK_H 1
 
 /* Define to 1 if you have the <linux/input.h> header file. */
 #define HAVE_LINUX_INPUT_H 1
@@ -741,6 +753,9 @@
 
 /* Define to 1 if you have the <linux/msg.h> header file. */
 #define HAVE_LINUX_MSG_H 1
+
+/* Define to 1 if you have the <linux/neighbour.h> header file. */
+#define HAVE_LINUX_NEIGHBOUR_H 1
 
 /* Define to 1 if you have the <linux/netfilter_arp/arp_tables.h> header file.
    */
@@ -907,6 +922,9 @@
 /* Define to 1 if the system has the type `struct blk_user_trace_setup'. */
 #define HAVE_STRUCT_BLK_USER_TRACE_SETUP 1
 
+/* Define to 1 if the system has the type `struct br_port_msg'. */
+#define HAVE_STRUCT_BR_PORT_MSG 1
+
 /* Define to 1 if `start' is a member of `struct
    btrfs_ioctl_defrag_range_args'. */
 #define HAVE_STRUCT_BTRFS_IOCTL_DEFRAG_RANGE_ARGS_START 1
@@ -923,6 +941,27 @@
    btrfs_ioctl_search_args_v2'. */
 #define HAVE_STRUCT_BTRFS_IOCTL_SEARCH_ARGS_V2_BUF_SIZE 1
 
+/* Define to 1 if the system has the type `struct crypto_report_aead'. */
+#define HAVE_STRUCT_CRYPTO_REPORT_AEAD 1
+
+/* Define to 1 if the system has the type `struct crypto_report_blkcipher'. */
+#define HAVE_STRUCT_CRYPTO_REPORT_BLKCIPHER 1
+
+/* Define to 1 if the system has the type `struct crypto_report_cipher'. */
+#define HAVE_STRUCT_CRYPTO_REPORT_CIPHER 1
+
+/* Define to 1 if the system has the type `struct crypto_report_hash'. */
+#define HAVE_STRUCT_CRYPTO_REPORT_HASH 1
+
+/* Define to 1 if the system has the type `struct crypto_report_rng'. */
+#define HAVE_STRUCT_CRYPTO_REPORT_RNG 1
+
+/* Define to 1 if the system has the type `struct dcbmsg'. */
+#define HAVE_STRUCT_DCBMSG 1
+
+/* Define to 1 if the system has the type `struct fib_rule_uid_range'. */
+#define HAVE_STRUCT_FIB_RULE_UID_RANGE 1
+
 /* Define to 1 if the system has the type `struct flock'. */
 #define HAVE_STRUCT_FLOCK 1
 
@@ -932,11 +971,35 @@
 /* Define to 1 if the system has the type `struct ia64_fpreg'. */
 /* #undef HAVE_STRUCT_IA64_FPREG */
 
+/* Define to 1 if the system has the type `struct ifaddrlblmsg'. */
+#define HAVE_STRUCT_IFADDRLBLMSG 1
+
+/* Define to 1 if the system has the type `struct ifla_bridge_id'. */
+#define HAVE_STRUCT_IFLA_BRIDGE_ID 1
+
+/* Define to 1 if the system has the type `struct ifla_port_vsi'. */
+#define HAVE_STRUCT_IFLA_PORT_VSI 1
+
 /* Define to 1 if `resolution' is a member of `struct input_absinfo'. */
 #define HAVE_STRUCT_INPUT_ABSINFO_RESOLUTION 1
 
+/* Define to 1 if the system has the type `struct keyctl_kdf_params'. */
+#define HAVE_STRUCT_KEYCTL_KDF_PARAMS 1
+
 /* Define to 1 if the system has the type `struct mmsghdr'. */
 #define HAVE_STRUCT_MMSGHDR 1
+
+/* Define to 1 if the system has the type `struct ndt_config'. */
+#define HAVE_STRUCT_NDT_CONFIG 1
+
+/* Define to 1 if the system has the type `struct ndt_stats'. */
+#define HAVE_STRUCT_NDT_STATS 1
+
+/* Define to 1 if `ndts_table_fulls' is a member of `struct ndt_stats'. */
+#define HAVE_STRUCT_NDT_STATS_NDTS_TABLE_FULLS 1
+
+/* Define to 1 if the system has the type `struct netconfmsg'. */
+#define HAVE_STRUCT_NETCONFMSG 1
 
 /* Define to 1 if `aux_watermark' is a member of `struct perf_event_attr'. */
 #define HAVE_STRUCT_PERF_EVENT_ATTR_AUX_WATERMARK 1
@@ -1013,6 +1076,21 @@
 
 /* Define to 1 if the system has the type `struct pt_all_user_regs'. */
 /* #undef HAVE_STRUCT_PT_ALL_USER_REGS */
+
+/* Define to 1 if the system has the type `struct rta_mfc_stats'. */
+#define HAVE_STRUCT_RTA_MFC_STATS 1
+
+/* Define to 1 if the system has the type `struct rtnl_link_stats64'. */
+#define HAVE_STRUCT_RTNL_LINK_STATS64 1
+
+/* Define to 1 if `rx_nohandler' is a member of `struct rtnl_link_stats64'. */
+#define HAVE_STRUCT_RTNL_LINK_STATS64_RX_NOHANDLER 1
+
+/* Define to 1 if `rx_nohandler' is a member of `struct rtnl_link_stats'. */
+#define HAVE_STRUCT_RTNL_LINK_STATS_RX_NOHANDLER 1
+
+/* Define to 1 if the system has the type `struct rtvia'. */
+#define HAVE_STRUCT_RTVIA 1
 
 /* Define to 1 if the system has the type `struct sigcontext'. */
 #define HAVE_STRUCT_SIGCONTEXT 1
@@ -1125,14 +1203,20 @@
 /* Define to 1 if typeof works with your compiler. */
 #define HAVE_TYPEOF 1
 
-/* Define to 1 if union bpf_attr.attach_flags initialization works */
+/* Define to 1 if attr_text initialization works */
 #define HAVE_UNION_BPF_ATTR_ATTACH_FLAGS 1
 
-/* Define to 1 if union bpf_attr.bpf_fd initialization works */
+/* Define to 1 if attr_text initialization works */
 #define HAVE_UNION_BPF_ATTR_BPF_FD 1
 
-/* Define to 1 if union bpf_attr.log_buf initialization works */
-#define HAVE_UNION_BPF_ATTR_LOG_BUF 1
+/* Define to 1 if attr_text initialization works */
+#define HAVE_UNION_BPF_ATTR_FLAGS 1
+
+/* Define to 1 if attr_text initialization works */
+#define HAVE_UNION_BPF_ATTR_INNER_MAP_FD 1
+
+/* Define to 1 if attr_text initialization works */
+#define HAVE_UNION_BPF_ATTR_PROG_FLAGS 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
@@ -1173,6 +1257,9 @@
 /* Define for the m68k architecture. */
 /* #undef M68K */
 
+/* Date */
+#define MANPAGE_DATE "2017-08-28"
+
 /* Define for the Meta architecture. */
 /* #undef METAG */
 
@@ -1198,7 +1285,7 @@
 #define PACKAGE_NAME "strace"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "strace 4.18"
+#define PACKAGE_STRING "strace 4.19"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "strace"
@@ -1207,7 +1294,7 @@
 #define PACKAGE_URL "https://strace.io"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.18"
+#define PACKAGE_VERSION "4.19"
 
 /* Define for the PowerPC architecture. */
 /* #undef POWERPC */
@@ -1231,16 +1318,12 @@
 /* #undef SH64 */
 
 /* The size of `kernel_long_t', as computed by sizeof. */
-/* #undef SIZEOF_KERNEL_LONG_T */
 
 /* The size of `long', as computed by sizeof. */
-/* #undef SIZEOF_LONG */
 
 /* The size of `long long', as computed by sizeof. */
-/* #undef SIZEOF_LONG_LONG */
 
 /* The size of `off_t', as computed by sizeof. */
-/* #undef SIZEOF_OFF_T */
 
 /* The size of `struct i64_i32', as computed by sizeof. */
 #define SIZEOF_STRUCT_I64_I32 16
@@ -1283,7 +1366,7 @@
 
 
 /* Version number of package */
-#define VERSION "4.18"
+#define VERSION "4.19"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
