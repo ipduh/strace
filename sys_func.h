@@ -162,6 +162,7 @@ extern SYS_FUNC(osf_gettimeofday);
 extern SYS_FUNC(osf_select);
 extern SYS_FUNC(osf_setitimer);
 extern SYS_FUNC(osf_settimeofday);
+extern SYS_FUNC(osf_sigprocmask);
 extern SYS_FUNC(osf_statfs);
 extern SYS_FUNC(osf_utimes);
 extern SYS_FUNC(osf_wait4);

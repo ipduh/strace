@@ -182,6 +182,9 @@ const struct xlat sockoptions[] = {
 #if defined(SO_COOKIE) || (defined(HAVE_DECL_SO_COOKIE) && HAVE_DECL_SO_COOKIE)
   XLAT(SO_COOKIE),
 #endif
+#if defined(SO_PEERGROUPS) || (defined(HAVE_DECL_SO_PEERGROUPS) && HAVE_DECL_SO_PEERGROUPS)
+  XLAT(SO_PEERGROUPS),
+#endif
 
 #if defined(SO_ALLRAW) || (defined(HAVE_DECL_SO_ALLRAW) && HAVE_DECL_SO_ALLRAW)
   XLAT(SO_ALLRAW),

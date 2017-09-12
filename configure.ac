@@ -37,12 +37,12 @@ AC_INIT([strace],
 	[strace],
 	[https://strace.io])
 m4_define([copyright_year], m4_esyscmd([./copyright-year-gen .year]))
+m4_define([manpage_date], m4_esyscmd([./file-date-gen strace.1.in]))
 AC_COPYRIGHT([Copyright (c) 1999-]copyright_year[ The strace developers.])
 AC_CONFIG_SRCDIR([strace.c])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE([foreign nostdinc dist-xz silent-rules parallel-tests])
-AM_EXTRA_RECURSIVE_TARGETS([check-valgrind])
+AM_INIT_AUTOMAKE([foreign nostdinc dist-xz silent-rules parallel-tests 1.13])
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
 
@@ -63,6 +63,9 @@ AX_CODE_COVERAGE
 
 AC_DEFINE([COPYRIGHT_YEAR], "[copyright_year]", [Current copyright year.])
 AC_SUBST([COPYRIGHT_YEAR], [copyright_year])
+
+AC_DEFINE([MANPAGE_DATE], "[manpage_date]", [Date])
+AC_SUBST([MANPAGE_DATE], [manpage_date])
 
 AC_MSG_CHECKING([for supported architecture])
 arch_m32=
@@ -265,6 +268,7 @@ AC_TYPE_UID_T
 
 AC_CHECK_FUNCS(m4_normalize([
 	accept4
+	be64toh
 	fallocate
 	fanotify_mark
 	fopen64
@@ -321,6 +325,18 @@ AC_CHECK_TYPES(m4_normalize([
 [#include <sys/types.h>
 #include <linux/fcntl.h>])
 
+AC_CHECK_TYPES(m4_normalize([
+	struct crypto_report_aead,
+	struct crypto_report_blkcipher,
+	struct crypto_report_cipher,
+	struct crypto_report_hash,
+	struct crypto_report_rng
+]),,, [#include <linux/cryptouser.h>])
+
+AC_CHECK_TYPES(m4_normalize([
+	struct keyctl_kdf_params
+]),,, [#include <linux/keyctl.h>])
+
 AC_CHECK_MEMBERS([struct timex.tai],,, [#include <sys/timex.h>])
 
 AC_CHECK_MEMBERS([struct utsname.domainname],,, [#include <sys/utsname.h>])
@@ -362,17 +378,21 @@ AC_CHECK_HEADERS(m4_normalize([
 	elf.h
 	inttypes.h
 	linux/bsg.h
+	linux/cryptouser.h
 	linux/dm-ioctl.h
 	linux/dqblk_xfs.h
 	linux/falloc.h
+	linux/fib_rules.h
 	linux/fiemap.h
-	linux/filter.h
 	linux/genetlink.h
 	linux/hiddev.h
+	linux/if_addr.h
+	linux/if_link.h
 	linux/ip_vs.h
 	linux/ipc.h
 	linux/mmtimer.h
 	linux/msg.h
+	linux/neighbour.h
 	linux/netfilter/nfnetlink.h
 	linux/nsfs.h
 	linux/perf_event.h
@@ -421,61 +441,59 @@ AC_CHECK_HEADERS([linux/input.h], [
 ])
 
 AC_CHECK_HEADERS([linux/bpf.h], [
-	AC_CACHE_CHECK([whether union bpf_attr.log_buf initialization works],
-		       [st_cv_have_union_bpf_attr_log_buf],
-		[AC_COMPILE_IFELSE(
-			[AC_LANG_PROGRAM([[#include <linux/bpf.h>]],
-					 [[union bpf_attr a = { .log_buf = 0 };]])],
-			[st_cv_have_union_bpf_attr_log_buf=yes],
-			[st_cv_have_union_bpf_attr_log_buf=no])])
-	if test $st_cv_have_union_bpf_attr_log_buf = yes; then
-		AC_DEFINE(HAVE_UNION_BPF_ATTR_LOG_BUF, [1],
-			  [Define to 1 if union bpf_attr.log_buf initialization works])
-	fi
-	AC_CACHE_CHECK([whether union bpf_attr.bpf_fd initialization works],
-		       [st_cv_have_union_bpf_attr_bpf_fd],
-		[AC_COMPILE_IFELSE(
-			[AC_LANG_PROGRAM([[#include <linux/bpf.h>]],
-					 [[union bpf_attr a = { .bpf_fd = 0 };]])],
-			[st_cv_have_union_bpf_attr_bpf_fd=yes],
-			[st_cv_have_union_bpf_attr_bpf_fd=no])])
-	if test $st_cv_have_union_bpf_attr_bpf_fd = yes; then
-		AC_DEFINE(HAVE_UNION_BPF_ATTR_BPF_FD, [1],
-			  [Define to 1 if union bpf_attr.bpf_fd initialization works])
-	fi
-	AC_CACHE_CHECK([whether union bpf_attr.attach_flags initialization works],
-		       [st_cv_have_union_bpf_attr_attach_flags],
-		[AC_COMPILE_IFELSE(
-			[AC_LANG_PROGRAM([[#include <linux/bpf.h>]],
-					 [[union bpf_attr a = { .attach_flags = 0 };]])],
-			[st_cv_have_union_bpf_attr_attach_flags=yes],
-			[st_cv_have_union_bpf_attr_attach_flags=no])])
-	if test $st_cv_have_union_bpf_attr_attach_flags = yes; then
-		AC_DEFINE(HAVE_UNION_BPF_ATTR_ATTACH_FLAGS, [1],
-			  [Define to 1 if union bpf_attr.attach_flags initialization works])
-	fi
+	st_CHECK_UNION_BPF_ATTR([attach_flags])
+	st_CHECK_UNION_BPF_ATTR([bpf_fd])
+	st_CHECK_UNION_BPF_ATTR([flags])
+	st_CHECK_UNION_BPF_ATTR([inner_map_fd])
+	st_CHECK_UNION_BPF_ATTR([prog_flags])
 ])
 
+AC_CHECK_TYPES([struct br_port_msg],,, [#include <linux/if_bridge.h>])
+AC_CHECK_TYPES([struct dcbmsg],,, [#include <linux/dcbnl.h>])
+AC_CHECK_TYPES([struct ifaddrlblmsg],,, [#include <linux/if_addrlabel.h>])
+AC_CHECK_TYPES([struct netconfmsg],,, [#include <linux/netconf.h>])
+
+AC_CHECK_TYPES(m4_normalize([
+	struct rta_mfc_stats,
+	struct rtvia
+]),,, [#include <linux/rtnetlink.h>])
+
+AC_CHECK_MEMBERS([struct ndt_stats.ndts_table_fulls],,, [#include <linux/neighbour.h>])
+AC_CHECK_TYPES(m4_normalize([
+	struct ndt_config,
+	struct ndt_stats
+]),,, [#include <linux/neighbour.h>])
+
+AC_CHECK_TYPES(m4_normalize([
+	struct ifla_bridge_id,
+	struct ifla_port_vsi,
+	struct rtnl_link_stats64
+]),,, [#include <linux/if_link.h>])
+AC_CHECK_MEMBERS(m4_normalize([
+	struct rtnl_link_stats.rx_nohandler,
+	struct rtnl_link_stats64.rx_nohandler
+]),,, [#include <linux/if_link.h>])
+
+AC_CHECK_TYPES([struct fib_rule_uid_range],,, [#include <linux/fib_rules.h>])
+
 AC_CHECK_TYPES([struct statfs], [
-	AC_CHECK_MEMBERS([struct statfs.f_frsize],,, [#include <linux/types.h>
-#include <asm/statfs.h>])
-	AC_CHECK_MEMBERS([struct statfs.f_flags],,, [#include <linux/types.h>
-#include <asm/statfs.h>])
-	AC_CHECK_MEMBERS([struct statfs.f_fsid.val],,, [#include <linux/types.h>
-#include <asm/statfs.h>])
-	AC_CHECK_MEMBERS([struct statfs.f_fsid.__val],,, [#include <linux/types.h>
+	AC_CHECK_MEMBERS(m4_normalize([
+		struct statfs.f_frsize,
+		struct statfs.f_flags,
+		struct statfs.f_fsid.val,
+		struct statfs.f_fsid.__val
+	]),,, [#include <linux/types.h>
 #include <asm/statfs.h>])
 ],, [#include <linux/types.h>
 #include <asm/statfs.h>])
 
 AC_CHECK_TYPES([struct statfs64], [
-	AC_CHECK_MEMBERS([struct statfs64.f_frsize],,, [#include <linux/types.h>
-#include <asm/statfs.h>])
-	AC_CHECK_MEMBERS([struct statfs64.f_flags],,, [#include <linux/types.h>
-#include <asm/statfs.h>])
-	AC_CHECK_MEMBERS([struct statfs64.f_fsid.val],,, [#include <linux/types.h>
-#include <asm/statfs.h>])
-	AC_CHECK_MEMBERS([struct statfs64.f_fsid.__val],,, [#include <linux/types.h>
+	AC_CHECK_MEMBERS(m4_normalize([
+		struct statfs64.f_frsize,
+		struct statfs64.f_flags,
+		struct statfs64.f_fsid.val,
+		struct statfs64.f_fsid.__val
+	]),,, [#include <linux/types.h>
 #include <asm/statfs.h>])
 ],, [#include <linux/types.h>
 #include <asm/statfs.h>])
@@ -835,6 +853,7 @@ AC_CONFIG_FILES([Makefile
 		 tests/Makefile
 		 tests-m32/Makefile
 		 tests-mx32/Makefile
+		 strace.1
 		 strace.spec
 		 debian/changelog])
 AC_OUTPUT

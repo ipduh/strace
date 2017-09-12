@@ -35,7 +35,7 @@ endif
 if HAVE_MX32_RUNTIME
 TESTS_MX32 = tests-mx32
 endif
-SUBDIRS = tests $(TESTS_M32) $(TESTS_MX32)
+SUBDIRS = . tests $(TESTS_M32) $(TESTS_MX32)
 
 bin_PROGRAMS = strace
 man_MANS = strace.1
@@ -86,9 +86,16 @@ strace_SOURCES =	\
 	affinity.c	\
 	aio.c		\
 	alpha.c		\
+	basic_filters.c	\
+	bind.c		\
 	bjm.c		\
 	block.c		\
 	bpf.c		\
+	bpf_filter.c	\
+	bpf_filter.h	\
+	bpf_fprog.h 	\
+	bpf_seccomp_filter.c \
+	bpf_sock_filter.c \
 	btrfs.c		\
 	cacheflush.c	\
 	capability.c	\
@@ -107,6 +114,8 @@ strace_SOURCES =	\
 	dyxlat.c	\
 	empty.h		\
 	epoll.c		\
+	error_prints.c	\
+	error_prints.h	\
 	evdev.c		\
 	eventfd.c	\
 	execve.c	\
@@ -115,8 +124,9 @@ strace_SOURCES =	\
 	fanotify.c	\
 	fchownat.c	\
 	fcntl.c		\
-	fetch_seccomp_fprog.c \
+	fetch_bpf_fprog.c \
 	fetch_struct_flock.c \
+	fetch_struct_keyctl_kdf_params.c \
 	fetch_struct_mmsghdr.c \
 	fetch_struct_msghdr.c \
 	fetch_struct_stat.c \
@@ -124,9 +134,11 @@ strace_SOURCES =	\
 	fetch_struct_statfs.c \
 	file_handle.c	\
 	file_ioctl.c	\
-	fs_x_ioctl.c	\
+	filter_qualify.c \
+	filter.h	\
 	flock.c		\
 	flock.h		\
+	fs_x_ioctl.c	\
 	futex.c		\
 	gcc_compat.h	\
 	get_robust_list.c \
@@ -151,11 +163,13 @@ strace_SOURCES =	\
 	kernel_types.h	\
 	kexec.c		\
 	keyctl.c	\
+	keyctl_kdf_params.h \
 	ldt.c		\
 	link.c		\
 	linux/asm_stat.h \
 	linux/x32/asm_stat.h \
 	linux/x86_64/asm_stat.h \
+	listen.c	\
 	lookup_dcookie.c \
 	loop.c		\
 	lseek.c		\
@@ -172,16 +186,29 @@ strace_SOURCES =	\
 	msghdr.h	\
 	mtd.c		\
 	native_defs.h	\
+	negated_errno.h	\
 	net.c		\
 	netlink.c       \
 	netlink.h	\
+	netlink_crypto.c \
+	netlink_sock_diag.h \
+	netlink_inet_diag.c \
+	netlink_netlink_diag.c \
+	netlink_packet_diag.c \
+	netlink_route.c	\
+	netlink_route.h	\
+	netlink_selinux.c \
+	netlink_smc_diag.c \
 	netlink_sock_diag.c \
+	netlink_unix_diag.c \
 	nlattr.c	\
 	nlattr.h	\
 	nsfs.c          \
 	nsfs.h          \
 	nsig.h		\
 	numa.c		\
+	number_set.c	\
+	number_set.h	\
 	oldstat.c	\
 	open.c		\
 	or1k_atomic.c	\
@@ -193,7 +220,9 @@ strace_SOURCES =	\
 	poll.c		\
 	prctl.c		\
 	print_dev_t.c	\
+	print_group_req.c \
 	print_fields.h	\
+	print_ifindex.c	\
 	print_mq_attr.c	\
 	print_msgbuf.c	\
 	print_sg_req_info.c \
@@ -212,7 +241,6 @@ strace_SOURCES =	\
 	process_vm.c	\
 	ptp.c		\
 	ptrace.h	\
-	qualify.c	\
 	quota.c		\
 	readahead.c	\
 	readlink.c	\
@@ -223,14 +251,27 @@ strace_SOURCES =	\
 	rt_sigframe.c	\
 	rt_sigreturn.c	\
 	rtc.c		\
+	rtnl_addr.c	\
+	rtnl_addrlabel.c \
+	rtnl_dcb.c	\
+	rtnl_link.c	\
+	rtnl_mdb.c	\
+	rtnl_neigh.c	\
+	rtnl_neightbl.c	\
+	rtnl_netconf.c	\
+	rtnl_nsid.c	\
+	rtnl_route.c	\
+	rtnl_rule.c	\
+	rtnl_tc.c	\
+	rtnl_tc_action.c \
 	sched.c		\
 	sched_attr.h	\
 	scsi.c		\
 	seccomp.c	\
-	seccomp_fprog.h \
 	sendfile.c	\
 	sg_io_v3.c	\
 	sg_io_v4.c	\
+	shutdown.c	\
 	sigaltstack.c	\
 	sigevent.h	\
 	signal.c	\
@@ -247,10 +288,15 @@ strace_SOURCES =	\
 	statx.c		\
 	statx.h		\
 	strace.c	\
+	string_to_uint.h \
+	string_to_uint.c \
+	supported_personalities.h \
 	swapon.c	\
 	syscall.c	\
 	sysctl.c	\
 	sysent.h	\
+	sysent_shorthand_defs.h \
+	sysent_shorthand_undefs.h \
 	sysinfo.c	\
 	syslog.c	\
 	sysmips.c	\
@@ -259,6 +305,7 @@ strace_SOURCES =	\
 	times.c		\
 	truncate.c	\
 	ubi.c		\
+	ucopy.c		\
 	uid.c		\
 	uid16.c		\
 	umask.c		\
@@ -275,6 +322,7 @@ strace_SOURCES =	\
 	xlat.c		\
 	xlat.h		\
 	xmalloc.c	\
+	xmalloc.h	\
 	# end of strace_SOURCES
 
 if USE_LIBUNWIND
@@ -291,7 +339,7 @@ CODE_COVERAGE_GENHTML_OPTIONS = $(CODE_COVERAGE_GENHTML_OPTIONS_DEFAULT) \
 CODE_COVERAGE_IGNORE_PATTERN = '/usr/include/*'
 strace_CPPFLAGS += $(CODE_COVERAGE_CPPFLAGS)
 strace_CFLAGS += $(CODE_COVERAGE_CFLAGS)
-strace_LDADD += $(CODE_COVERAGE_LDFLAGS)
+strace_LDADD += $(CODE_COVERAGE_LIBS)
 
 # Enable this to get link map generated
 #strace_LDFLAGS += -Wl,-Map=strace.mapfile
@@ -855,6 +903,7 @@ sen.h: $(patsubst %,$(srcdir)/%,$(syscallent_files))
 dist-hook:
 	$(AM_V_GEN)echo $(VERSION) > $(distdir)/.tarball-version
 	${AM_V_GEN}echo $(COPYRIGHT_YEAR) > $(distdir)/.year
+	${AM_V_GEN}echo $(MANPAGE_DATE) > $(distdir)/.strace.1.in.date
 
 today = $(shell date +%Y-%m-%d)
 version_regexp = $(subst .,\.,$(VERSION))

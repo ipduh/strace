@@ -47,6 +47,9 @@ const struct xlat bpf_op_alu[] = {
 #if defined(BPF_ARSH) || (defined(HAVE_DECL_BPF_ARSH) && HAVE_DECL_BPF_ARSH)
   XLAT(BPF_ARSH),
 #endif
+#if defined(BPF_END) || (defined(HAVE_DECL_BPF_END) && HAVE_DECL_BPF_END)
+  XLAT(BPF_END),
+#endif
  XLAT_END
 };
 

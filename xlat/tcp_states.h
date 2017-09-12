@@ -36,13 +36,8 @@
 # define TCP_NEW_SYN_RECV 12
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat tcp_states in mpers mode
-
-#else
-
-static
 const struct xlat tcp_states[] = {
  XLAT(TCP_ESTABLISHED),
  XLAT(TCP_SYN_SENT),

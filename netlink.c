@@ -29,21 +29,24 @@
 
 #include "defs.h"
 #include "netlink.h"
+#include "nlattr.h"
 #include <linux/audit.h>
 #include <linux/rtnetlink.h>
 #include <linux/xfrm.h>
+#include "xlat/netlink_ack_flags.h"
 #include "xlat/netlink_flags.h"
 #include "xlat/netlink_get_flags.h"
 #include "xlat/netlink_new_flags.h"
 #include "xlat/netlink_protocols.h"
 #include "xlat/netlink_types.h"
 #include "xlat/nl_audit_types.h"
+#include "xlat/nl_crypto_types.h"
 #include "xlat/nl_netfilter_msg_types.h"
 #include "xlat/nl_netfilter_subsys_ids.h"
-#include "xlat/nl_route_types.h"
 #include "xlat/nl_selinux_types.h"
 #include "xlat/nl_sock_diag_types.h"
 #include "xlat/nl_xfrm_types.h"
+#include "xlat/nlmsgerr_attrs.h"
 
 /*
  * Fetch a struct nlmsghdr from the given address.
@@ -53,7 +56,7 @@ fetch_nlmsghdr(struct tcb *const tcp, struct nlmsghdr *const nlmsghdr,
 	       const kernel_ulong_t addr, const kernel_ulong_t len)
 {
 	if (len < sizeof(struct nlmsghdr)) {
-		printstrn(tcp, addr, len);
+		printstr_ex(tcp, addr, len, QUOTE_FORCE_HEX);
 		return false;
 	}
 
@@ -63,25 +66,20 @@ fetch_nlmsghdr(struct tcb *const tcp, struct nlmsghdr *const nlmsghdr,
 	return true;
 }
 
-enum {
-	NL_FAMILY_ERROR = -1,
-	NL_FAMILY_DEFAULT = -2
-};
-
 static int
 get_fd_nl_family(struct tcb *const tcp, const int fd)
 {
 	const unsigned long inode = getfdinode(tcp, fd);
 	if (!inode)
-		return NL_FAMILY_ERROR;
+		return -1;
 
 	const char *const details = get_sockaddr_by_inode(tcp, fd, inode);
 	if (!details)
-		return NL_FAMILY_ERROR;
+		return -1;
 
 	const char *const nl_details = STR_STRIP_PREFIX(details, "NETLINK:[");
 	if (nl_details == details)
-		return NL_FAMILY_ERROR;
+		return -1;
 
 	const struct xlat *xlats = netlink_protocols;
 	for (; xlats->str; ++xlats) {
@@ -93,7 +91,7 @@ get_fd_nl_family(struct tcb *const tcp, const int fd)
 	if (*nl_details >= '0' && *nl_details <= '9')
 		return atoi(nl_details);
 
-	return NL_FAMILY_ERROR;
+	return -1;
 }
 
 static void
@@ -150,6 +148,7 @@ static const struct {
 	const char *const dflt;
 } nlmsg_types[] = {
 	[NETLINK_AUDIT] = { NULL, nl_audit_types, "AUDIT_???" },
+	[NETLINK_CRYPTO] = { NULL, nl_crypto_types, "CRYPTO_MSG_???" },
 	[NETLINK_GENERIC] = {
 		decode_nlmsg_type_generic,
 		NULL,
@@ -168,7 +167,7 @@ static const struct {
 
 /*
  * As all valid netlink families are positive integers, use unsigned int
- * for family here to filter out NL_FAMILY_ERROR and NL_FAMILY_DEFAULT.
+ * for family here to filter out -1.
  */
 static void
 decode_nlmsg_type(const uint16_t type, const unsigned int family)
@@ -177,7 +176,11 @@ decode_nlmsg_type(const uint16_t type, const unsigned int family)
 	const struct xlat *xlat = netlink_types;
 	const char *dflt = "NLMSG_???";
 
-	if (type != NLMSG_DONE && family < ARRAY_SIZE(nlmsg_types)) {
+	/*
+	 * type < NLMSG_MIN_TYPE are reserved control messages
+	 * that need no family-specific decoding.
+	 */
+	if (type >= NLMSG_MIN_TYPE && family < ARRAY_SIZE(nlmsg_types)) {
 		if (nlmsg_types[family].decoder)
 			decoder = nlmsg_types[family].decoder;
 		if (nlmsg_types[family].xlat)
@@ -194,10 +197,23 @@ decode_nlmsg_flags(const uint16_t flags, const uint16_t type, const int family)
 {
 	const struct xlat *table = NULL;
 
-	if (type == NLMSG_DONE)
+	if (type < NLMSG_MIN_TYPE) {
+		if (type == NLMSG_ERROR)
+			table = netlink_ack_flags;
 		goto end;
+	}
 
 	switch (family) {
+	case NETLINK_CRYPTO:
+		switch (type) {
+		case CRYPTO_MSG_NEWALG:
+			table = netlink_new_flags;
+			break;
+		case CRYPTO_MSG_GETALG:
+			table = netlink_get_flags;
+			break;
+		}
+		break;
 	case NETLINK_SOCK_DIAG:
 		table = netlink_get_flags;
 		break;
@@ -240,38 +256,60 @@ end:
 	printflags_ex(flags, "NLM_F_???", netlink_flags, table, NULL);
 }
 
-static int
+static void
 print_nlmsghdr(struct tcb *tcp,
 	       const int fd,
-	       int family,
+	       const int family,
 	       const struct nlmsghdr *const nlmsghdr)
 {
 	/* print the whole structure regardless of its nlmsg_len */
 
 	tprintf("{len=%u, type=", nlmsghdr->nlmsg_len);
 
-	const int hdr_family = (nlmsghdr->nlmsg_type < NLMSG_MIN_TYPE
-				&& nlmsghdr->nlmsg_type != NLMSG_DONE)
-			       ? NL_FAMILY_DEFAULT
-			       : (family != NL_FAMILY_DEFAULT
-				  ? family : get_fd_nl_family(tcp, fd));
-
-	decode_nlmsg_type(nlmsghdr->nlmsg_type, hdr_family);
+	decode_nlmsg_type(nlmsghdr->nlmsg_type, family);
 
 	tprints(", flags=");
 	decode_nlmsg_flags(nlmsghdr->nlmsg_flags,
-			   nlmsghdr->nlmsg_type, hdr_family);
+			   nlmsghdr->nlmsg_type, family);
 
 	tprintf(", seq=%u, pid=%u}", nlmsghdr->nlmsg_seq,
 		nlmsghdr->nlmsg_pid);
-
-	return family != NL_FAMILY_DEFAULT ? family : hdr_family;
 }
+
+static bool
+print_cookie(struct tcb *const tcp, void *const elem_buf,
+	     const size_t elem_size, void *const opaque_data)
+{
+	tprintf("%" PRIu8, *(uint8_t *) elem_buf);
+
+	return true;
+}
+
+static bool
+decode_nlmsgerr_attr_cookie(struct tcb *const tcp,
+			    const kernel_ulong_t addr,
+			    const unsigned int len,
+			    const void *const opaque_data)
+{
+	uint8_t cookie;
+	const size_t nmemb = len / sizeof(cookie);
+
+	print_array(tcp, addr, nmemb, &cookie, sizeof(cookie),
+		    umoven_or_printaddr, print_cookie, 0);
+
+	return true;
+}
+
+static const nla_decoder_t nlmsgerr_nla_decoders[] = {
+	[NLMSGERR_ATTR_MSG]	= decode_nla_str,
+	[NLMSGERR_ATTR_OFFS]	= decode_nla_u32,
+	[NLMSGERR_ATTR_COOKIE]	= decode_nlmsgerr_attr_cookie
+};
 
 static void
 decode_nlmsghdr_with_payload(struct tcb *const tcp,
 			     const int fd,
-			     int family,
+			     const int family,
 			     const struct nlmsghdr *const nlmsghdr,
 			     const kernel_ulong_t addr,
 			     const kernel_ulong_t len);
@@ -281,12 +319,13 @@ decode_nlmsgerr(struct tcb *const tcp,
 		const int fd,
 		const int family,
 		kernel_ulong_t addr,
-		kernel_ulong_t len)
+		unsigned int len,
+		const bool capped)
 {
 	struct nlmsgerr err;
 
 	if (len < sizeof(err.error)) {
-		printstrn(tcp, addr, len);
+		printstr_ex(tcp, addr, len, QUOTE_FORCE_HEX);
 		return;
 	}
 
@@ -306,8 +345,22 @@ decode_nlmsgerr(struct tcb *const tcp,
 	if (len) {
 		tprints(", msg=");
 		if (fetch_nlmsghdr(tcp, &err.msg, addr, len)) {
+			unsigned int payload =
+				capped ? sizeof(err.msg) : err.msg.nlmsg_len;
+			if (payload > len)
+				payload = len;
+
 			decode_nlmsghdr_with_payload(tcp, fd, family,
-						     &err.msg, addr, len);
+						     &err.msg, addr, payload);
+			if (len > payload) {
+				tprints(", ");
+				decode_nlattr(tcp, addr + payload,
+					      len - payload, nlmsgerr_attrs,
+					      "NLMSGERR_ATTR_???",
+					      nlmsgerr_nla_decoders,
+					      ARRAY_SIZE(nlmsgerr_nla_decoders),
+					      NULL);
+			}
 		}
 	}
 
@@ -315,6 +368,11 @@ decode_nlmsgerr(struct tcb *const tcp,
 }
 
 static const netlink_decoder_t netlink_decoders[] = {
+#ifdef HAVE_LINUX_CRYPTOUSER_H
+	[NETLINK_CRYPTO] = decode_netlink_crypto,
+#endif
+	[NETLINK_ROUTE] = decode_netlink_route,
+	[NETLINK_SELINUX] = decode_netlink_selinux,
 	[NETLINK_SOCK_DIAG] = decode_netlink_sock_diag
 };
 
@@ -324,14 +382,26 @@ decode_payload(struct tcb *const tcp,
 	       const int family,
 	       const struct nlmsghdr *const nlmsghdr,
 	       const kernel_ulong_t addr,
-	       const kernel_ulong_t len)
+	       const unsigned int len)
 {
 	if (nlmsghdr->nlmsg_type == NLMSG_ERROR) {
-		decode_nlmsgerr(tcp, fd, family, addr, len);
+		decode_nlmsgerr(tcp, fd, family, addr, len,
+				nlmsghdr->nlmsg_flags & NLM_F_CAPPED);
 		return;
 	}
 
-	if ((unsigned int) family < ARRAY_SIZE(netlink_decoders)
+	/*
+	 * While most of NLMSG_DONE messages indeed have payloads
+	 * containing just a single integer, there are few exceptions,
+	 * so pass payloads of NLMSG_DONE messages to family-specific
+	 * netlink payload decoders.
+	 *
+	 * Other types of reserved control messages need no family-specific
+	 * netlink payload decoding.
+	 */
+	if ((nlmsghdr->nlmsg_type >= NLMSG_MIN_TYPE
+	    || nlmsghdr->nlmsg_type == NLMSG_DONE)
+	    && (unsigned int) family < ARRAY_SIZE(netlink_decoders)
 	    && netlink_decoders[family]
 	    && netlink_decoders[family](tcp, nlmsghdr, addr, len)) {
 		return;
@@ -345,13 +415,13 @@ decode_payload(struct tcb *const tcp,
 		return;
 	}
 
-	printstrn(tcp, addr, len);
+	printstr_ex(tcp, addr, len, QUOTE_FORCE_HEX);
 }
 
 static void
 decode_nlmsghdr_with_payload(struct tcb *const tcp,
 			     const int fd,
-			     int family,
+			     const int family,
 			     const struct nlmsghdr *const nlmsghdr,
 			     const kernel_ulong_t addr,
 			     const kernel_ulong_t len)
@@ -362,7 +432,7 @@ decode_nlmsghdr_with_payload(struct tcb *const tcp,
 	if (nlmsg_len > NLMSG_HDRLEN)
 		tprints("{");
 
-	family = print_nlmsghdr(tcp, fd, family, nlmsghdr);
+	print_nlmsghdr(tcp, fd, family, nlmsghdr);
 
 	if (nlmsg_len > NLMSG_HDRLEN) {
 		tprints(", ");
@@ -378,6 +448,13 @@ decode_netlink(struct tcb *const tcp,
 	       kernel_ulong_t addr,
 	       kernel_ulong_t len)
 {
+	const int family = get_fd_nl_family(tcp, fd);
+
+	if (family == NETLINK_KOBJECT_UEVENT) {
+		printstrn(tcp, addr, len);
+		return;
+	}
+
 	struct nlmsghdr nlmsghdr;
 	bool print_array = false;
 	unsigned int elt;
@@ -404,7 +481,7 @@ decode_netlink(struct tcb *const tcp,
 			print_array = true;
 		}
 
-		decode_nlmsghdr_with_payload(tcp, fd, NL_FAMILY_DEFAULT,
+		decode_nlmsghdr_with_payload(tcp, fd, family,
 					     &nlmsghdr, addr, len);
 
 		if (!next_addr)

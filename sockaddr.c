@@ -4,6 +4,7 @@
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-2000 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +31,8 @@
  */
 
 #include "defs.h"
+#include "print_fields.h"
+
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
@@ -87,26 +90,73 @@ print_inet_addr(const int af,
 		const unsigned int len,
 		const char *const var_name)
 {
-	const char *af_name = NULL;
 	char buf[INET6_ADDRSTRLEN];
 
 	switch (af) {
 	case AF_INET:
-		af_name = "AF_INET";
+		if (inet_ntop(af, addr, buf, sizeof(buf))) {
+			if (var_name)
+				tprintf("%s=inet_addr(\"%s\")", var_name, buf);
+			else
+				tprints(buf);
+			return true;
+		}
 		break;
 	case AF_INET6:
-		af_name = "AF_INET6";
+		if (inet_ntop(af, addr, buf, sizeof(buf))) {
+			if (var_name)
+				tprintf("inet_pton(%s, \"%s\", &%s)",
+					"AF_INET6", buf, var_name);
+			else
+				tprints(buf);
+			return true;
+		}
 		break;
 	}
 
-	if (af_name && inet_ntop(af, addr, buf, sizeof(buf))) {
-		tprintf("inet_pton(%s, \"%s\", &%s)", af_name, buf, var_name);
-		return true;
-	} else {
+	if (var_name)
 		tprintf("%s=", var_name);
-		print_quoted_string(addr, len, 0);
+	print_quoted_string(addr, len, QUOTE_FORCE_HEX);
+	return false;
+}
+
+bool
+decode_inet_addr(struct tcb *const tcp,
+		 const kernel_ulong_t addr,
+		 const unsigned int len,
+		 const int family,
+		 const char *const var_name)
+{
+	union {
+		struct in_addr  a4;
+		struct in6_addr a6;
+	} addrbuf;
+	size_t size = 0;
+
+	switch (family) {
+	case AF_INET:
+		size = sizeof(addrbuf.a4);
+		break;
+	case AF_INET6:
+		size = sizeof(addrbuf.a6);
+		break;
+	}
+
+	if (!size || len < size) {
+		if (var_name)
+			tprintf("%s=", var_name);
+		printstr_ex(tcp, addr, len, QUOTE_FORCE_HEX);
 		return false;
 	}
+
+	if (umoven(tcp, addr, size, &addrbuf) < 0) {
+		if (var_name)
+			tprintf("%s=", var_name);
+		printaddr(addr);
+		return false;
+	}
+
+	return print_inet_addr(family, &addrbuf, size, var_name);
 }
 
 static void
@@ -114,8 +164,8 @@ print_sockaddr_data_in(const void *const buf, const int addrlen)
 {
 	const struct sockaddr_in *const sa_in = buf;
 
-	tprintf("sin_port=htons(%u), sin_addr=inet_addr(\"%s\")",
-		ntohs(sa_in->sin_port), inet_ntoa(sa_in->sin_addr));
+	PRINT_FIELD_NET_PORT("", *sa_in, sin_port);
+	PRINT_FIELD_INET4_ADDR(", ", *sa_in, sin_addr);
 }
 
 #define SIN6_MIN_LEN offsetof(struct sockaddr_in6, sin6_scope_id)
@@ -125,22 +175,20 @@ print_sockaddr_data_in6(const void *const buf, const int addrlen)
 {
 	const struct sockaddr_in6 *const sa_in6 = buf;
 
-	tprintf("sin6_port=htons(%u), ", ntohs(sa_in6->sin6_port));
-	print_inet_addr(AF_INET6, &sa_in6->sin6_addr,
-			sizeof(sa_in6->sin6_addr), "sin6_addr");
+	PRINT_FIELD_NET_PORT("", *sa_in6, sin6_port);
+	PRINT_FIELD_INET_ADDR(", ", *sa_in6, sin6_addr, AF_INET6);
 	tprintf(", sin6_flowinfo=htonl(%u)", ntohl(sa_in6->sin6_flowinfo));
 
 	if (addrlen <= (int) SIN6_MIN_LEN)
 		return;
 
-	tprints(", sin6_scope_id=");
 #if defined IN6_IS_ADDR_LINKLOCAL && defined IN6_IS_ADDR_MC_LINKLOCAL
 	if (IN6_IS_ADDR_LINKLOCAL(&sa_in6->sin6_addr)
 	    || IN6_IS_ADDR_MC_LINKLOCAL(&sa_in6->sin6_addr))
-		print_ifindex(sa_in6->sin6_scope_id);
+		PRINT_FIELD_IFINDEX(", ", *sa_in6, sin6_scope_id);
 	else
 #endif
-		tprintf("%u", sa_in6->sin6_scope_id);
+		PRINT_FIELD_U(", ", *sa_in6, sin6_scope_id);
 }
 
 static void
@@ -149,16 +197,15 @@ print_sockaddr_data_ipx(const void *const buf, const int addrlen)
 	const struct sockaddr_ipx *const sa_ipx = buf;
 	unsigned int i;
 
-	tprintf("sipx_port=htons(%u)"
-		", sipx_network=htonl(%#08x)"
+	PRINT_FIELD_NET_PORT("", *sa_ipx, sipx_port);
+	tprintf(", sipx_network=htonl(%#08x)"
 		", sipx_node=[",
-		ntohs(sa_ipx->sipx_port),
 		ntohl(sa_ipx->sipx_network));
 	for (i = 0; i < IPX_NODE_LEN; ++i) {
 		tprintf("%s%#02x", i ? ", " : "",
 			sa_ipx->sipx_node[i]);
 	}
-	tprintf("], sipx_type=%#02x", sa_ipx->sipx_type);
+	PRINT_FIELD_0X("], ", *sa_ipx, sipx_type);
 }
 
 static void
@@ -166,8 +213,8 @@ print_sockaddr_data_nl(const void *const buf, const int addrlen)
 {
 	const struct sockaddr_nl *const sa_nl = buf;
 
-	tprintf("nl_pid=%d, nl_groups=%#08x",
-		sa_nl->nl_pid, sa_nl->nl_groups);
+	PRINT_FIELD_D("", *sa_nl, nl_pid);
+	PRINT_FIELD_0X(", ", *sa_nl, nl_groups);
 }
 
 static void
@@ -177,8 +224,7 @@ print_sockaddr_data_ll(const void *const buf, const int addrlen)
 
 	tprints("sll_protocol=htons(");
 	printxval(ethernet_protocols, ntohs(sa_ll->sll_protocol), "ETH_P_???");
-	tprints("), sll_ifindex=");
-	print_ifindex(sa_ll->sll_ifindex);
+	PRINT_FIELD_IFINDEX("), ", *sa_ll, sll_ifindex);
 	tprints(", sll_hatype=");
 	printxval(arp_hardware_types, sa_ll->sll_hatype, "ARPHRD_???");
 	tprints(", sll_pkttype=");
@@ -281,7 +327,7 @@ static const struct {
 };
 
 void
-print_sockaddr(struct tcb *tcp, const void *const buf, const int addrlen)
+print_sockaddr(const void *const buf, const int addrlen)
 {
 	const struct sockaddr *const sa = buf;
 
@@ -325,7 +371,7 @@ decode_sockaddr(struct tcb *const tcp, const kernel_ulong_t addr, int addrlen)
 
 	memset(&addrbuf.pad[addrlen], 0, sizeof(addrbuf.pad) - addrlen);
 
-	print_sockaddr(tcp, &addrbuf, addrlen);
+	print_sockaddr(&addrbuf, addrlen);
 
 	return addrbuf.sa.sa_family;
 }
