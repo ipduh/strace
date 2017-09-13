@@ -35,6 +35,7 @@
 
 #ifdef HAVE_LINUX_DM_IOCTL_H
 
+# include "print_fields.h"
 # include <linux/dm-ioctl.h>
 # include <linux/ioctl.h>
 
@@ -62,20 +63,15 @@ dm_decode_device(const unsigned int code, const struct dm_ioctl *ioc)
 	case DM_LIST_VERSIONS:
 		break;
 	default:
-		if (ioc->dev) {
-			tprints(", dev=");
-			print_dev_t(ioc->dev);
-		}
-		if (ioc->name[0]) {
-			tprints(", name=");
-			print_quoted_string(ioc->name, DM_NAME_LEN,
-					    QUOTE_0_TERMINATED);
-		}
-		if (ioc->uuid[0]) {
-			tprints(", uuid=");
-			print_quoted_string(ioc->uuid, DM_UUID_LEN,
-					    QUOTE_0_TERMINATED);
-		}
+		if (ioc->dev)
+			PRINT_FIELD_DEV(", ", *ioc, dev);
+
+		if (ioc->name[0])
+			PRINT_FIELD_CSTRING(", ", *ioc, name);
+
+		if (ioc->uuid[0])
+			PRINT_FIELD_CSTRING(", ", *ioc, uuid);
+
 		break;
 	}
 }
@@ -87,8 +83,7 @@ dm_decode_values(struct tcb *tcp, const unsigned int code,
 	if (entering(tcp)) {
 		switch (code) {
 		case DM_TABLE_LOAD:
-			tprintf(", target_count=%" PRIu32,
-				ioc->target_count);
+			PRINT_FIELD_U(", ", *ioc, target_count);
 			break;
 		case DM_DEV_SUSPEND:
 			if (ioc->flags & DM_SUSPEND_FLAG)
@@ -97,8 +92,7 @@ dm_decode_values(struct tcb *tcp, const unsigned int code,
 		case DM_DEV_RENAME:
 		case DM_DEV_REMOVE:
 		case DM_DEV_WAIT:
-			tprintf(", event_nr=%" PRIu32,
-				ioc->event_nr);
+			PRINT_FIELD_U(", ", *ioc, event_nr);
 			break;
 		}
 	} else if (!syserror(tcp)) {
@@ -113,12 +107,9 @@ dm_decode_values(struct tcb *tcp, const unsigned int code,
 		case DM_TABLE_DEPS:
 		case DM_TABLE_STATUS:
 		case DM_TARGET_MSG:
-			tprintf(", target_count=%" PRIu32,
-				ioc->target_count);
-			tprintf(", open_count=%" PRIu32,
-				ioc->open_count);
-			tprintf(", event_nr=%" PRIu32,
-				ioc->event_nr);
+			PRINT_FIELD_U(", ", *ioc, target_count);
+			PRINT_FIELD_U(", ", *ioc, open_count);
+			PRINT_FIELD_U(", ", *ioc, event_nr);
 			break;
 		}
 	}
@@ -129,8 +120,7 @@ dm_decode_values(struct tcb *tcp, const unsigned int code,
 static void
 dm_decode_flags(const struct dm_ioctl *ioc)
 {
-	tprints(", flags=");
-	printflags(dm_flags, ioc->flags, "DM_???");
+	PRINT_FIELD_FLAGS(", ", *ioc, flags, dm_flags, "DM_???");
 }
 
 static void
@@ -171,15 +161,13 @@ dm_decode_dm_target_spec(struct tcb *const tcp, const kernel_ulong_t addr,
 		if (umove_or_printaddr(tcp, addr + offset, &s))
 			break;
 
-		tprintf("{sector_start=%" PRI__u64 ", length=%" PRI__u64,
-			s.sector_start, s.length);
+		PRINT_FIELD_U("{", s, sector_start);
+		PRINT_FIELD_U(", ", s, length);
 
 		if (exiting(tcp))
-			tprintf(", status=%" PRId32, s.status);
+			PRINT_FIELD_D(", ", s, status);
 
-		tprints(", target_type=");
-		print_quoted_string(s.target_type, DM_MAX_TYPE_NAME,
-				    QUOTE_0_TERMINATED);
+		PRINT_FIELD_CSTRING(", ", s, target_type);
 
 		tprints(", string=");
 		printstr_ex(tcp, addr + offset_end, ioc->data_size - offset_end,
@@ -242,8 +230,9 @@ dm_decode_dm_target_deps(struct tcb *const tcp, const kernel_ulong_t addr,
 	if (s.count > space)
 		goto misplaced;
 
-	tprintf("{count=%u, deps=", s.count);
+	PRINT_FIELD_U("{", s, count);
 
+	tprints(", deps=");
 	print_array(tcp, addr + offset_end, s.count, &dev_buf, sizeof(dev_buf),
 		    umoven_or_printaddr, dm_print_dev, NULL);
 
@@ -294,10 +283,8 @@ dm_decode_dm_name_list(struct tcb *const tcp, const kernel_ulong_t addr,
 		if (umove_or_printaddr(tcp, addr + offset, &s))
 			break;
 
-		tprints("{dev=");
-		print_dev_t(s.dev);
-
-		tprints("name=");
+		PRINT_FIELD_DEV("{", s, dev);
+		tprints(", name=");
 		printstr_ex(tcp, addr + offset_end, ioc->data_size - offset_end,
 			    QUOTE_0_TERMINATED);
 		tprints("}");
@@ -397,7 +384,8 @@ dm_decode_dm_target_msg(struct tcb *const tcp, const kernel_ulong_t addr,
 		if (umove_or_printaddr(tcp, addr + offset, &s))
 			return;
 
-		tprintf("{sector=%" PRI__u64 ", message=", s.sector);
+		PRINT_FIELD_U("{", s, sector);
+		tprints(", message=");
 		printstr_ex(tcp, addr + offset_end, ioc->data_size - offset_end,
 			    QUOTE_0_TERMINATED);
 		tprints("}");
@@ -491,7 +479,7 @@ dm_known_ioctl(struct tcb *const tcp, const unsigned int code,
 	}
 
 	if (exiting(tcp) && syserror(tcp) && !ioc_changed)
-		return 1;
+		return RVAL_IOCTL_DECODED;
 
 	/*
 	 * device mapper code uses %d in some places and %u in another, but
@@ -508,7 +496,7 @@ dm_known_ioctl(struct tcb *const tcp, const unsigned int code,
 		goto skip;
 	}
 
-	tprintf(", data_size=%u", ioc->data_size);
+	PRINT_FIELD_U(", ", *ioc, data_size);
 
 	if (ioc->data_size < offsetof(struct dm_ioctl, data)) {
 		tprints_comment("data_size too small");
@@ -516,7 +504,7 @@ dm_known_ioctl(struct tcb *const tcp, const unsigned int code,
 	}
 
 	if (dm_ioctl_has_params(code))
-		tprintf(", data_start=%u", ioc->data_start);
+		PRINT_FIELD_U(", ", *ioc, data_start);
 
 	dm_decode_device(code, ioc);
 	dm_decode_values(tcp, code, ioc);
@@ -565,7 +553,7 @@ dm_known_ioctl(struct tcb *const tcp, const unsigned int code,
 
  skip:
 	tprints("}");
-	return 1;
+	return entering(tcp) ? 0 : RVAL_IOCTL_DECODED;
 }
 
 int
@@ -590,7 +578,7 @@ dm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t ar
 	case DM_DEV_SET_GEOMETRY:
 		return dm_known_ioctl(tcp, code, arg);
 	default:
-		return 0;
+		return RVAL_DECODED;
 	}
 }
 
@@ -599,7 +587,7 @@ dm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t ar
 int
 dm_ioctl(struct tcb *const tcp, const unsigned int code, const kernel_ulong_t arg)
 {
-	return 0;
+	return RVAL_DECODED;
 }
 
 # endif /* DM_VERSION_MAJOR == 4 */

@@ -27,6 +27,7 @@
  */
 
 #include "defs.h"
+#include "print_fields.h"
 
 #include <sys/socket.h>
 #if defined ALPHA || defined SH || defined SH64
@@ -46,13 +47,6 @@ typedef struct ifreq struct_ifreq;
 
 #include "xlat/iffflags.h"
 
-#define PRINT_IFREQ_ADDR(tcp, ifr, sockaddr)					\
-	do {									\
-		tprints(#sockaddr "=");						\
-		print_sockaddr(tcp, &((ifr)->sockaddr),				\
-			       sizeof((ifr)->sockaddr));			\
-	} while (0)
-
 static void
 print_ifname(const char *ifname)
 {
@@ -66,19 +60,19 @@ print_ifreq(struct tcb *const tcp, const unsigned int code,
 	switch (code) {
 	case SIOCSIFADDR:
 	case SIOCGIFADDR:
-		PRINT_IFREQ_ADDR(tcp, ifr, ifr_addr);
+		PRINT_FIELD_SOCKADDR("", *ifr, ifr_addr);
 		break;
 	case SIOCSIFDSTADDR:
 	case SIOCGIFDSTADDR:
-		PRINT_IFREQ_ADDR(tcp, ifr, ifr_dstaddr);
+		PRINT_FIELD_SOCKADDR("", *ifr, ifr_dstaddr);
 		break;
 	case SIOCSIFBRDADDR:
 	case SIOCGIFBRDADDR:
-		PRINT_IFREQ_ADDR(tcp, ifr, ifr_broadaddr);
+		PRINT_FIELD_SOCKADDR("", *ifr, ifr_broadaddr);
 		break;
 	case SIOCSIFNETMASK:
 	case SIOCGIFNETMASK:
-		PRINT_IFREQ_ADDR(tcp, ifr, ifr_netmask);
+		PRINT_FIELD_SOCKADDR("", *ifr, ifr_netmask);
 		break;
 	case SIOCSIFHWADDR:
 	case SIOCGIFHWADDR: {
@@ -149,8 +143,7 @@ print_ifconf_ifreq(struct tcb *tcp, void *elem_buf, size_t elem_size,
 
 	tprints("{ifr_name=");
 	print_ifname(ifr->ifr_name);
-	tprints(", ");
-	PRINT_IFREQ_ADDR(tcp, ifr, ifr_addr);
+	PRINT_FIELD_SOCKADDR(", ", *ifr, ifr_addr);
 	tprints("}");
 
 	return true;
@@ -205,7 +198,7 @@ decode_ifconf(struct tcb *const tcp, const kernel_ulong_t addr)
 			tprints("}");
 		}
 
-		return RVAL_DECODED | 1;
+		return RVAL_IOCTL_DECODED;
 	}
 
 	if (entering(tcp)) {
@@ -215,7 +208,7 @@ decode_ifconf(struct tcb *const tcp, const kernel_ulong_t addr)
 
 		set_tcb_priv_data(tcp, ifc, free);
 
-		return 1;
+		return 0;
 	}
 
 	/* exiting */
@@ -244,7 +237,7 @@ decode_ifconf(struct tcb *const tcp, const kernel_ulong_t addr)
 
 	tprints("}");
 
-	return RVAL_DECODED | 1;
+	return RVAL_IOCTL_DECODED;
 }
 
 MPERS_PRINTER_DECL(int, sock_ioctl,
@@ -351,7 +344,7 @@ MPERS_PRINTER_DECL(int, sock_ioctl,
 				tprints("{ifr_name=");
 				print_ifname(ifr.ifr_name);
 			}
-			return 1;
+			return 0;
 		} else {
 			if (syserror(tcp)) {
 				tprints("}");
@@ -378,5 +371,5 @@ MPERS_PRINTER_DECL(int, sock_ioctl,
 		return RVAL_DECODED;
 	}
 
-	return RVAL_DECODED | 1;
+	return RVAL_IOCTL_DECODED;
 }

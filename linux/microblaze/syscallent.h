@@ -318,7 +318,7 @@
 [289] = { 3,	0,		SEN(ioprio_set),		"ioprio_set"		},
 [290] = { 2,	0,		SEN(ioprio_get),		"ioprio_get"		},
 [291] = { 0,	TD,		SEN(inotify_init),		"inotify_init"		},
-[292] = { 3,	TD,		SEN(inotify_add_watch),		"inotify_add_watch"	},
+[292] = { 3,	TD|TF,		SEN(inotify_add_watch),		"inotify_add_watch"	},
 [293] = { 2,	TD,		SEN(inotify_rm_watch),		"inotify_rm_watch"	},
 [294] = { 4,	TM,		SEN(migrate_pages),		"migrate_pages"		},
 [295] = { 4,	TD|TF,		SEN(openat),			"openat"		},
@@ -424,3 +424,4 @@
 [395] = { 4,	TM|SI,		SEN(pkey_mprotect),		"pkey_mprotect"		},
 [396] = { 2,	0,		SEN(pkey_alloc),		"pkey_alloc"		},
 [397] = { 1,	0,		SEN(pkey_free),			"pkey_free"		},
+[398] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},

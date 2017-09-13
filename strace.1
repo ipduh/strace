@@ -27,46 +27,75 @@
 .\" THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .de CW
 .sp
+.in +4n
 .nf
 .ft CW
 ..
 .de CE
 .ft R
 .fi
+.in
 .sp
 ..
-.\" Macro IX is not defined in the groff macros
-.if \n(.g \{\
-.  de IX
+.\" Like .OP, but with ellipsis at the end in order to signify that option
+.\" can be provided multiple times. Based on .OP definition in groff's
+.\" an-ext.tmac.
+.de OM
+.  ie \\n(.$-1 \
+.    RI "[\fB\\$1\fP" "\ \\$2" "]...\&"
+.  el \
+.    RB "[" "\\$1" "]...\&"
 ..
-.\}
-.TH STRACE 1 "2010-03-30"
+.\" Required option.
+.de OR
+.  ie \\n(.$-1 \
+.    RI "\fB\\$1\fP" "\ \\$2"
+.  el \
+.    BR "\\$1"
+..
+.TH STRACE 1 "2017-08-28" "strace 4.19"
 .SH NAME
 strace \- trace system calls and signals
 .SH SYNOPSIS
-.B strace
-[\fB-CdffhikqrtttTvVxxy\fR]
-[\fB-I\fIn\fR]
-[\fB-b\fIexecve\fR]
-[\fB-e\fIexpr\fR]...
-[\fB-a\fIcolumn\fR]
-[\fB-o\fIfile\fR]
-[\fB-s\fIstrsize\fR]
-[\fB-P\fIpath\fR]... \fB-p\fIpid\fR... /
-[\fB-D\fR]
-[\fB-E\fIvar\fR[=\fIval\fR]]... [\fB-u\fIusername\fR]
-\fIcommand\fR [\fIargs\fR]
-.sp
-.B strace
-\fB-c\fR[\fBdf\fR]
-[\fB-I\fIn\fR]
-[\fB-b\fIexecve\fR]
-[\fB-e\fIexpr\fR]...
-[\fB-O\fIoverhead\fR]
-[\fB-S\fIsortby\fR] \fB-p\fIpid\fR... /
-[\fB-D\fR]
-[\fB-E\fIvar\fR[=\fIval\fR]]... [\fB-u\fIusername\fR]
-\fIcommand\fR [\fIargs\fR]
+.SY strace
+.OP \-CdffhikqrtttTvVxxy
+.OP \-I n
+.OP \-b execve
+.OM \-e expr
+.OP \-a column
+.OP \-o file
+.OP \-s strsize
+.OM \-P path
+.OM \-p pid
+.BR "" {
+.OR \-p pid
+.BR "" |
+.OP \-D
+.OM \-E var\fR[=\fIval\fR]
+.OP \-u username
+.IR command " [" args ]
+.BR "" }
+.YS
+.SY strace
+.B \-c
+.OP \-df
+.OP \-I n
+.OP \-b execve
+.OM \-e expr
+.OP \-O overhead
+.OP \-S sortby
+.OM \-P path
+.OM \-p pid
+.BR "" {
+.OR \-p pid
+.BR "" |
+.OP \-D
+.OM \-E var\fR[=\fIval\fR]
+.OP -u username
+.IR command " [" args ]
+.BR "" }
+.YS
+
 .SH DESCRIPTION
 .IX "strace command" "" "\fLstrace\fR command"
 .LP
@@ -395,7 +424,7 @@ Extended Regular Expression syntax (see
 .BR regex (7)).
 .PP
 .BR "\-e\ trace" = %file
-.TP
+.TQ
 .BR "\-e\ trace" = file " (deprecated)"
 Trace all system calls which take a file name as an argument.  You
 can think of this as an abbreviation for
@@ -407,33 +436,33 @@ accidentally forget to include a call like
 in the list.  Betchya woulda forgot that one.
 .PP
 .BR "\-e\ trace" = %process
-.TP
+.TQ
 .BR "\-e\ trace" = process " (deprecated)"
 Trace all system calls which involve process management.  This
 is useful for watching the fork, wait, and exec steps of a process.
 .PP
 .BR "\-e\ trace" = %network
-.TP
+.TQ
 .BR "\-e\ trace" = network " (deprecated)"
 Trace all the network related system calls.
 .PP
 .BR "\-e\ trace" = %signal
-.TP
+.TQ
 .BR "\-e\ trace" = signal " (deprecated)"
 Trace all signal related system calls.
 .PP
 .BR "\-e\ trace" = %ipc
-.TP
+.TQ
 .BR "\-e\ trace" = ipc " (deprecated)"
 Trace all IPC related system calls.
 .PP
 .BR "\-e\ trace" = %desc
-.TP
+.TQ
 .BR "\-e\ trace" = desc " (deprecated)"
 Trace all file descriptor related system calls.
 .PP
 .BR "\-e\ trace" = %memory
-.TP
+.TQ
 .BR "\-e\ trace" = memory " (deprecated)"
 Trace all memory mapping related system calls.
 .TP
@@ -625,8 +654,9 @@ An injection expression can contain only one
 .BR error =
 or
 .BR retval =
-specification.
-If an injection expression contains multiple
+specification, and only one
+.BR signal =
+specification.  If an injection expression contains multiple
 .BR when =
 specifications, the last one takes precedence.
 
@@ -830,14 +860,15 @@ sometimes possible to make deductive inferences about process
 behavior using inputs and outputs as propositions.
 .LP
 In some cases, a system call will differ from the documented behavior
-or have a different name.  For example, on System V-derived systems
-the true
-.BR time (2)
-system call does not take an argument and the
-.B stat
-function is called
-.B xstat
-and takes an extra leading argument.  These
+or have a different name.  For example, the
+.BR faccessat (2)
+system call does not have
+.I flags
+argument, and the
+.BR setrlimit (2)
+library function uses
+.BR prlimit (2)
+system call on modern (2.6.38+) kernels.  These
 discrepancies are normal but idiosyncratic characteristics of the
 system call interface and are accounted for by C library wrapper
 functions.
@@ -877,10 +908,6 @@ Traced processes which are descended from
 .I command
 may be left running after an interrupt signal (\c
 .SM CTRL\s0-C).
-.LP
-The
-.B \-i
-option is weakly supported.
 .SH HISTORY
 The original
 .B strace

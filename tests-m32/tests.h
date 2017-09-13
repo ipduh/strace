@@ -134,8 +134,17 @@ unsigned long inode_of_sockfd(int);
 /* Print string in a quoted form. */
 void print_quoted_string(const char *);
 
+/*
+ * Print a NUL-terminated string `str' of length up to `size' - 1
+ * in a quoted form.
+ */
+void print_quoted_cstring(const char *str, size_t size);
+
 /* Print memory in a quoted form. */
-void print_quoted_memory(const char *, size_t);
+void print_quoted_memory(const void *, size_t);
+
+/* Print memory in a hexquoted form. */
+void print_quoted_hex(const void *, size_t);
 
 /* Print time_t and nanoseconds in symbolic format. */
 void print_time_t_nsec(time_t, unsigned long long, int);
@@ -188,6 +197,15 @@ int create_nl_socket_ext(int proto, const char *name);
 /* Create a pipe with maximized descriptor numbers. */
 void pipe_maxfd(int pipefd[2]);
 
+/* if_nametoindex("lo") */
+unsigned int ifindex_lo(void);
+
+#ifdef HAVE_IF_INDEXTONAME
+# define IFINDEX_LO_STR "if_nametoindex(\"lo\")"
+#else
+# define IFINDEX_LO_STR "1"
+#endif
+
 #define F8ILL_KULONG_SUPPORTED	(sizeof(void *) < sizeof(kernel_ulong_t))
 #define F8ILL_KULONG_MASK	((kernel_ulong_t) 0xffffffff00000000ULL)
 
@@ -224,26 +242,6 @@ f8ill_ptr_to_kulong(const void *const ptr)
 
 # define SKIP_MAIN_UNDEFINED(arg) \
 	int main(void) { error_msg_and_skip("undefined: %s", arg); }
-
-/*
- * The kernel used to define 64-bit types on 64-bit systems on a per-arch
- * basis.  Some architectures would use unsigned long and others would use
- * unsigned long long.  These types were exported as part of the
- * kernel-userspace ABI and now must be maintained forever.  This matches
- * what the kernel exports for each architecture so we don't need to cast
- * every printing of __u64 or __s64 to stdint types.
- */
-# if SIZEOF_LONG == 4
-#  define PRI__64 "ll"
-# elif defined ALPHA || defined IA64 || defined MIPS || defined POWERPC
-#  define PRI__64 "l"
-# else
-#  define PRI__64 "ll"
-# endif
-
-# define PRI__d64 PRI__64"d"
-# define PRI__u64 PRI__64"u"
-# define PRI__x64 PRI__64"x"
 
 # if WORDS_BIGENDIAN
 #  define LL_PAIR(HI, LO) (HI), (LO)
