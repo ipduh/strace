@@ -1,6 +1,6 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 4.18
+Version: 4.19
 Release: 1%{?dist}
 License: BSD
 Group: Development/Debuggers
@@ -49,6 +49,7 @@ The `strace' program in the `strace' package is for 32-bit processes.
 %setup -q
 echo -n %version-%release > .tarball-version
 echo -n 2017 > .year
+echo -n 2017-08-28 > .strace.1.in.date
 
 %build
 echo 'BEGIN OF BUILD ENVIRONMENT INFORMATION'
@@ -101,8 +102,11 @@ echo 'END OF TEST SUITE INFORMATION'
 %endif
 
 %changelog
-* Wed Jul 05 2017 strace-devel@lists.sourceforge.net - 4.18-1
-- strace 4.18 snapshot.
+* Tue Sep 05 2017 strace-devel@lists.sourceforge.net - 4.19-1
+- strace 4.19 snapshot.
+
+* Wed Jul 05 2017 Dmitry V. Levin <ldv@altlinux.org> - 4.18-1
+- v4.17 -> v4.18.
 
 * Wed May 24 2017 Dmitry V. Levin <ldv@altlinux.org> - 4.17-1
 - v4.16 -> v4.17.

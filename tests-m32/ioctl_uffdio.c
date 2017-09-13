@@ -44,6 +44,9 @@
 # include <linux/ioctl.h>
 # include <linux/userfaultfd.h>
 
+#include "xlat.h"
+#include "xlat/uffd_api_features.h"
+
 int
 main(void)
 {
@@ -70,10 +73,14 @@ main(void)
 	api_struct->api = UFFD_API;
 	api_struct->features = 0;
 	rc = ioctl(fd, UFFDIO_API, api_struct);
-	printf("ioctl(%d, UFFDIO_API, {api=0xaa, features=0, "
-	       "features.out=%#" PRIx64 ", ioctls=1<<_UFFDIO_REGISTER|"
-	       "1<<_UFFDIO_UNREGISTER|1<<_UFFDIO_API",
-	       fd, (uint64_t)api_struct->features);
+	printf("ioctl(%d, UFFDIO_API, {api=0xaa, features=0", fd);
+	if (api_struct->features) {
+		printf(" => features=");
+		printflags(uffd_api_features, api_struct->features,
+			   "UFFD_FEATURE_???");
+	}
+	printf(", ioctls=1<<_UFFDIO_REGISTER|"
+	       "1<<_UFFDIO_UNREGISTER|1<<_UFFDIO_API");
 	api_struct->ioctls &= ~(1ull<<_UFFDIO_REGISTER|
 				1ull<<_UFFDIO_UNREGISTER|
 				1ull<<_UFFDIO_API);

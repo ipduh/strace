@@ -16,11 +16,24 @@ print_quoted_string(const char *instr)
 }
 
 void
-print_quoted_memory(const char *instr, const size_t len)
+print_quoted_cstring(const char *instr, const size_t size)
+{
+	const size_t len = strnlen(instr, size);
+	if (len < size) {
+		print_quoted_memory(instr, len);
+	} else {
+		print_quoted_memory(instr, size - 1);
+		printf("...");
+	}
+}
+
+void
+print_quoted_memory(const void *const instr, const size_t len)
 {
 	const unsigned char *str = (const unsigned char *) instr;
 	size_t i;
 
+	putchar('"');
 	for (i = 0; i < len; ++i) {
 		const int c = str[i];
 		switch (c) {
@@ -72,4 +85,17 @@ print_quoted_memory(const char *instr, const size_t len)
 		}
 	}
 
+	putchar('"');
+}
+
+void
+print_quoted_hex(const void *const instr, const size_t len)
+{
+	const unsigned char *str = instr;
+	size_t i;
+
+	printf("\"");
+	for (i = 0; i < len; i++)
+		printf("\\x%02x", str[i]);
+	printf("\"");
 }

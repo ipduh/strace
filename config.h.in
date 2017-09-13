@@ -51,6 +51,9 @@
 /* Define to 1 if you have the <asm/sysmips.h> header file. */
 #undef HAVE_ASM_SYSMIPS_H
 
+/* Define to 1 if you have the `be64toh' function. */
+#undef HAVE_BE64TOH
+
 /* Define to 1 if you have BLKGETSIZE64. */
 #undef HAVE_BLKGETSIZE64
 
@@ -702,6 +705,9 @@
 /* Define to 1 if you have the <linux/btrfs.h> header file. */
 #undef HAVE_LINUX_BTRFS_H
 
+/* Define to 1 if you have the <linux/cryptouser.h> header file. */
+#undef HAVE_LINUX_CRYPTOUSER_H
+
 /* Define to 1 if you have the <linux/dm-ioctl.h> header file. */
 #undef HAVE_LINUX_DM_IOCTL_H
 
@@ -711,17 +717,23 @@
 /* Define to 1 if you have the <linux/falloc.h> header file. */
 #undef HAVE_LINUX_FALLOC_H
 
+/* Define to 1 if you have the <linux/fib_rules.h> header file. */
+#undef HAVE_LINUX_FIB_RULES_H
+
 /* Define to 1 if you have the <linux/fiemap.h> header file. */
 #undef HAVE_LINUX_FIEMAP_H
-
-/* Define to 1 if you have the <linux/filter.h> header file. */
-#undef HAVE_LINUX_FILTER_H
 
 /* Define to 1 if you have the <linux/genetlink.h> header file. */
 #undef HAVE_LINUX_GENETLINK_H
 
 /* Define to 1 if you have the <linux/hiddev.h> header file. */
 #undef HAVE_LINUX_HIDDEV_H
+
+/* Define to 1 if you have the <linux/if_addr.h> header file. */
+#undef HAVE_LINUX_IF_ADDR_H
+
+/* Define to 1 if you have the <linux/if_link.h> header file. */
+#undef HAVE_LINUX_IF_LINK_H
 
 /* Define to 1 if you have the <linux/input.h> header file. */
 #undef HAVE_LINUX_INPUT_H
@@ -740,6 +752,9 @@
 
 /* Define to 1 if you have the <linux/msg.h> header file. */
 #undef HAVE_LINUX_MSG_H
+
+/* Define to 1 if you have the <linux/neighbour.h> header file. */
+#undef HAVE_LINUX_NEIGHBOUR_H
 
 /* Define to 1 if you have the <linux/netfilter_arp/arp_tables.h> header file.
    */
@@ -906,6 +921,9 @@
 /* Define to 1 if the system has the type `struct blk_user_trace_setup'. */
 #undef HAVE_STRUCT_BLK_USER_TRACE_SETUP
 
+/* Define to 1 if the system has the type `struct br_port_msg'. */
+#undef HAVE_STRUCT_BR_PORT_MSG
+
 /* Define to 1 if `start' is a member of `struct
    btrfs_ioctl_defrag_range_args'. */
 #undef HAVE_STRUCT_BTRFS_IOCTL_DEFRAG_RANGE_ARGS_START
@@ -922,6 +940,27 @@
    btrfs_ioctl_search_args_v2'. */
 #undef HAVE_STRUCT_BTRFS_IOCTL_SEARCH_ARGS_V2_BUF_SIZE
 
+/* Define to 1 if the system has the type `struct crypto_report_aead'. */
+#undef HAVE_STRUCT_CRYPTO_REPORT_AEAD
+
+/* Define to 1 if the system has the type `struct crypto_report_blkcipher'. */
+#undef HAVE_STRUCT_CRYPTO_REPORT_BLKCIPHER
+
+/* Define to 1 if the system has the type `struct crypto_report_cipher'. */
+#undef HAVE_STRUCT_CRYPTO_REPORT_CIPHER
+
+/* Define to 1 if the system has the type `struct crypto_report_hash'. */
+#undef HAVE_STRUCT_CRYPTO_REPORT_HASH
+
+/* Define to 1 if the system has the type `struct crypto_report_rng'. */
+#undef HAVE_STRUCT_CRYPTO_REPORT_RNG
+
+/* Define to 1 if the system has the type `struct dcbmsg'. */
+#undef HAVE_STRUCT_DCBMSG
+
+/* Define to 1 if the system has the type `struct fib_rule_uid_range'. */
+#undef HAVE_STRUCT_FIB_RULE_UID_RANGE
+
 /* Define to 1 if the system has the type `struct flock'. */
 #undef HAVE_STRUCT_FLOCK
 
@@ -931,11 +970,35 @@
 /* Define to 1 if the system has the type `struct ia64_fpreg'. */
 #undef HAVE_STRUCT_IA64_FPREG
 
+/* Define to 1 if the system has the type `struct ifaddrlblmsg'. */
+#undef HAVE_STRUCT_IFADDRLBLMSG
+
+/* Define to 1 if the system has the type `struct ifla_bridge_id'. */
+#undef HAVE_STRUCT_IFLA_BRIDGE_ID
+
+/* Define to 1 if the system has the type `struct ifla_port_vsi'. */
+#undef HAVE_STRUCT_IFLA_PORT_VSI
+
 /* Define to 1 if `resolution' is a member of `struct input_absinfo'. */
 #undef HAVE_STRUCT_INPUT_ABSINFO_RESOLUTION
 
+/* Define to 1 if the system has the type `struct keyctl_kdf_params'. */
+#undef HAVE_STRUCT_KEYCTL_KDF_PARAMS
+
 /* Define to 1 if the system has the type `struct mmsghdr'. */
 #undef HAVE_STRUCT_MMSGHDR
+
+/* Define to 1 if the system has the type `struct ndt_config'. */
+#undef HAVE_STRUCT_NDT_CONFIG
+
+/* Define to 1 if the system has the type `struct ndt_stats'. */
+#undef HAVE_STRUCT_NDT_STATS
+
+/* Define to 1 if `ndts_table_fulls' is a member of `struct ndt_stats'. */
+#undef HAVE_STRUCT_NDT_STATS_NDTS_TABLE_FULLS
+
+/* Define to 1 if the system has the type `struct netconfmsg'. */
+#undef HAVE_STRUCT_NETCONFMSG
 
 /* Define to 1 if `aux_watermark' is a member of `struct perf_event_attr'. */
 #undef HAVE_STRUCT_PERF_EVENT_ATTR_AUX_WATERMARK
@@ -1012,6 +1075,21 @@
 
 /* Define to 1 if the system has the type `struct pt_all_user_regs'. */
 #undef HAVE_STRUCT_PT_ALL_USER_REGS
+
+/* Define to 1 if the system has the type `struct rta_mfc_stats'. */
+#undef HAVE_STRUCT_RTA_MFC_STATS
+
+/* Define to 1 if the system has the type `struct rtnl_link_stats64'. */
+#undef HAVE_STRUCT_RTNL_LINK_STATS64
+
+/* Define to 1 if `rx_nohandler' is a member of `struct rtnl_link_stats64'. */
+#undef HAVE_STRUCT_RTNL_LINK_STATS64_RX_NOHANDLER
+
+/* Define to 1 if `rx_nohandler' is a member of `struct rtnl_link_stats'. */
+#undef HAVE_STRUCT_RTNL_LINK_STATS_RX_NOHANDLER
+
+/* Define to 1 if the system has the type `struct rtvia'. */
+#undef HAVE_STRUCT_RTVIA
 
 /* Define to 1 if the system has the type `struct sigcontext'. */
 #undef HAVE_STRUCT_SIGCONTEXT
@@ -1124,14 +1202,20 @@
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF
 
-/* Define to 1 if union bpf_attr.attach_flags initialization works */
+/* Define to 1 if attr_text initialization works */
 #undef HAVE_UNION_BPF_ATTR_ATTACH_FLAGS
 
-/* Define to 1 if union bpf_attr.bpf_fd initialization works */
+/* Define to 1 if attr_text initialization works */
 #undef HAVE_UNION_BPF_ATTR_BPF_FD
 
-/* Define to 1 if union bpf_attr.log_buf initialization works */
-#undef HAVE_UNION_BPF_ATTR_LOG_BUF
+/* Define to 1 if attr_text initialization works */
+#undef HAVE_UNION_BPF_ATTR_FLAGS
+
+/* Define to 1 if attr_text initialization works */
+#undef HAVE_UNION_BPF_ATTR_INNER_MAP_FD
+
+/* Define to 1 if attr_text initialization works */
+#undef HAVE_UNION_BPF_ATTR_PROG_FLAGS
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
@@ -1171,6 +1255,9 @@
 
 /* Define for the m68k architecture. */
 #undef M68K
+
+/* Date */
+#undef MANPAGE_DATE
 
 /* Define for the Meta architecture. */
 #undef METAG

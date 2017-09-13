@@ -28,15 +28,19 @@
  */
 
 #include "defs.h"
+#include <endian.h>
 #include "netlink.h"
 #include "nlattr.h"
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <linux/sock_diag.h>
 
 static bool
 fetch_nlattr(struct tcb *const tcp, struct nlattr *const nlattr,
-	     const kernel_ulong_t addr, const kernel_ulong_t len)
+	     const kernel_ulong_t addr, const unsigned int len)
 {
 	if (len < sizeof(struct nlattr)) {
-		printstrn(tcp, addr, len);
+		printstr_ex(tcp, addr, len, QUOTE_FORCE_HEX);
 		return false;
 	}
 
@@ -64,7 +68,7 @@ static void
 decode_nlattr_with_data(struct tcb *const tcp,
 			const struct nlattr *const nla,
 			const kernel_ulong_t addr,
-			const kernel_ulong_t len,
+			const unsigned int len,
 			const struct xlat *const table,
 			const char *const dflt,
 			const nla_decoder_t *const decoders,
@@ -86,7 +90,8 @@ decode_nlattr_with_data(struct tcb *const tcp,
 		    || !decoders[nla->nla_type](tcp, addr + NLA_HDRLEN,
 						nla_len - NLA_HDRLEN,
 						opaque_data))
-			printstrn(tcp, addr + NLA_HDRLEN, len - NLA_HDRLEN);
+			printstr_ex(tcp, addr + NLA_HDRLEN,
+				    nla_len - NLA_HDRLEN, QUOTE_FORCE_HEX);
 		tprints("}");
 	}
 }
@@ -94,7 +99,7 @@ decode_nlattr_with_data(struct tcb *const tcp,
 void
 decode_nlattr(struct tcb *const tcp,
 	      kernel_ulong_t addr,
-	      kernel_ulong_t len,
+	      unsigned int len,
 	      const struct xlat *const table,
 	      const char *const dflt,
 	      const nla_decoder_t *const decoders,
@@ -111,9 +116,9 @@ decode_nlattr(struct tcb *const tcp,
 			break;
 		}
 
-		const unsigned long nla_len = NLA_ALIGN(nla.nla_len);
+		const unsigned int nla_len = NLA_ALIGN(nla.nla_len);
 		kernel_ulong_t next_addr = 0;
-		kernel_ulong_t next_len = 0;
+		unsigned int next_len = 0;
 
 		if (nla.nla_len >= NLA_HDRLEN) {
 			next_len = (len >= nla_len) ? len - nla_len : 0;
@@ -146,7 +151,7 @@ decode_nlattr(struct tcb *const tcp,
 bool
 decode_nla_str(struct tcb *const tcp,
 	       const kernel_ulong_t addr,
-	       const kernel_ulong_t len,
+	       const unsigned int len,
 	       const void *const opaque_data)
 {
 	printstr_ex(tcp, addr, len, QUOTE_0_TERMINATED);
@@ -157,7 +162,7 @@ decode_nla_str(struct tcb *const tcp,
 bool
 decode_nla_strn(struct tcb *const tcp,
 		const kernel_ulong_t addr,
-		const kernel_ulong_t len,
+		const unsigned int len,
 		const void *const opaque_data)
 {
 	printstrn(tcp, addr, len);
@@ -165,11 +170,100 @@ decode_nla_strn(struct tcb *const tcp,
 	return true;
 }
 
+static bool
+print_meminfo(struct tcb *const tcp,
+	      void *const elem_buf,
+	      const size_t elem_size,
+	      void *const opaque_data)
+{
+	unsigned int *const count = opaque_data;
+
+	if ((*count)++ >= SK_MEMINFO_VARS) {
+		tprints("...");
+		return false;
+	}
+
+	tprintf("%" PRIu32, *(uint32_t *) elem_buf);
+
+	return true;
+}
+
+bool
+decode_nla_meminfo(struct tcb *const tcp,
+		   const kernel_ulong_t addr,
+		   const unsigned int len,
+		   const void *const opaque_data)
+{
+	uint32_t mem;
+	const size_t nmemb = len / sizeof(mem);
+
+	if (!nmemb)
+		return false;
+
+	unsigned int count = 0;
+	print_array(tcp, addr, nmemb, &mem, sizeof(mem),
+		    umoven_or_printaddr, print_meminfo, &count);
+
+	return true;
+}
+
+bool
+decode_nla_ifindex(struct tcb *const tcp,
+	       const kernel_ulong_t addr,
+	       const unsigned int len,
+	       const void *const opaque_data)
+{
+	uint32_t ifindex;
+
+	if (len < sizeof(ifindex))
+		return false;
+	else if (!umove_or_printaddr(tcp, addr, &ifindex))
+		print_ifindex(ifindex);
+
+	return true;
+}
+
+bool
+decode_nla_be16(struct tcb *const tcp,
+		const kernel_ulong_t addr,
+		const unsigned int len,
+		const void *const opaque_data)
+{
+	uint16_t num;
+
+	if (len < sizeof(num))
+		return false;
+	else if (!umove_or_printaddr(tcp, addr, &num))
+		tprintf("htons(%u)", ntohs(num));
+
+	return true;
+}
+
+bool
+decode_nla_be64(struct tcb *const tcp,
+		const kernel_ulong_t addr,
+		const unsigned int len,
+		const void *const opaque_data)
+{
+#if defined HAVE_BE64TOH || defined be64toh
+	uint64_t num;
+
+	if (len < sizeof(num))
+		return false;
+	else if (!umove_or_printaddr(tcp, addr, &num))
+		tprintf("htobe64(%" PRIu64 ")", be64toh(num));
+
+	return true;
+#else
+	return false;
+#endif
+}
+
 #define DECODE_NLA_INTEGER(name, type, fmt)		\
 bool							\
 decode_nla_ ## name(struct tcb *const tcp,		\
 		    const kernel_ulong_t addr,		\
-		    const kernel_ulong_t len,		\
+		    const unsigned int len,		\
 		    const void *const opaque_data)	\
 {							\
 	type num;					\

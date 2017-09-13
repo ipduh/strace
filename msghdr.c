@@ -4,6 +4,7 @@
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-2000 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +31,7 @@
  */
 
 #include "defs.h"
+#include "print_fields.h"
 #include "msghdr.h"
 #include <limits.h>
 #include <arpa/inet.h>
@@ -84,8 +86,10 @@ print_scm_creds(struct tcb *tcp, const void *cmsg_data,
 {
 	const struct ucred *uc = cmsg_data;
 
-	tprintf("{pid=%u, uid=%u, gid=%u}",
-		(unsigned) uc->pid, (unsigned) uc->uid, (unsigned) uc->gid);
+	PRINT_FIELD_U("{", *uc, pid);
+	PRINT_FIELD_UID(", ", *uc, uid);
+	PRINT_FIELD_UID(", ", *uc, gid);
+	tprints("}");
 }
 
 static void
@@ -122,12 +126,10 @@ print_cmsg_ip_pktinfo(struct tcb *tcp, const void *cmsg_data,
 {
 	const struct in_pktinfo *info = cmsg_data;
 
-	tprints("{ipi_ifindex=");
-	print_ifindex(info->ipi_ifindex);
-	tprintf(", ipi_spec_dst=inet_addr(\"%s\")",
-		inet_ntoa(info->ipi_spec_dst));
-	tprintf(", ipi_addr=inet_addr(\"%s\")}",
-		inet_ntoa(info->ipi_addr));
+	PRINT_FIELD_IFINDEX("{", *info, ipi_ifindex);
+	PRINT_FIELD_INET4_ADDR(", ", *info, ipi_spec_dst);
+	PRINT_FIELD_INET4_ADDR(", ", *info, ipi_addr);
+	tprints("}");
 }
 
 static void
@@ -185,11 +187,13 @@ print_cmsg_ip_recverr(struct tcb *tcp, const void *cmsg_data,
 {
 	const struct sock_ee *const err = cmsg_data;
 
-	tprintf("{ee_errno=%u, ee_origin=%u, ee_type=%u, ee_code=%u"
-		", ee_info=%u, ee_data=%u, offender=",
-		err->ee_errno, err->ee_origin, err->ee_type,
-		err->ee_code, err->ee_info, err->ee_data);
-	print_sockaddr(tcp, &err->offender, sizeof(err->offender));
+	PRINT_FIELD_U("{", *err, ee_errno);
+	PRINT_FIELD_U(", ", *err, ee_origin);
+	PRINT_FIELD_U(", ", *err, ee_type);
+	PRINT_FIELD_U(", ", *err, ee_code);
+	PRINT_FIELD_U(", ", *err, ee_info);
+	PRINT_FIELD_U(", ", *err, ee_data);
+	PRINT_FIELD_SOCKADDR(", ", *err, offender);
 	tprints("}");
 }
 
@@ -201,7 +205,7 @@ print_cmsg_ip_origdstaddr(struct tcb *tcp, const void *cmsg_data,
 		data_len > sizeof(struct sockaddr_storage)
 		? sizeof(struct sockaddr_storage) : data_len;
 
-	print_sockaddr(tcp, cmsg_data, addr_len);
+	print_sockaddr(cmsg_data, addr_len);
 }
 
 typedef void (* const cmsg_printer)(struct tcb *, const void *, unsigned int);
@@ -376,17 +380,15 @@ print_struct_msghdr(struct tcb *tcp, const struct msghdr *msg,
 	tprintf("%d", msg->msg_namelen);
 
 	tprints(", msg_iov=");
-
 	tprint_iov_upto(tcp, msg->msg_iovlen,
 			ptr_to_kulong(msg->msg_iov), decode, data_size);
-	tprintf(", msg_iovlen=%" PRI_klu, (kernel_ulong_t) msg->msg_iovlen);
+	PRINT_FIELD_U(", ", *msg, msg_iovlen);
 
 	decode_msg_control(tcp, ptr_to_kulong(msg->msg_control),
 			   msg->msg_controllen);
-	tprintf(", msg_controllen=%" PRI_klu, (kernel_ulong_t) msg->msg_controllen);
+	PRINT_FIELD_U(", ", *msg, msg_controllen);
 
-	tprints(", msg_flags=");
-	printflags(msg_flags, msg->msg_flags, "MSG_???");
+	PRINT_FIELD_FLAGS(", ", *msg, msg_flags, msg_flags, "MSG_???");
 	tprints("}");
 }
 

@@ -5,1002 +5,999 @@
 #else
 # define SYSCALL_BIT 0
 #endif
-#ifndef __NR_read
-# define __NR_read (SYSCALL_BIT | 0)
-#endif
-#ifndef __NR_write
-# define __NR_write (SYSCALL_BIT | 1)
-#endif
-#ifndef __NR_open
-# define __NR_open (SYSCALL_BIT | 2)
-#endif
-#ifndef __NR_close
-# define __NR_close (SYSCALL_BIT | 3)
-#endif
-#ifndef __NR_stat
-# define __NR_stat (SYSCALL_BIT | 4)
-#endif
-#ifndef __NR_fstat
-# define __NR_fstat (SYSCALL_BIT | 5)
-#endif
-#ifndef __NR_lstat
-# define __NR_lstat (SYSCALL_BIT | 6)
-#endif
-#ifndef __NR_poll
-# define __NR_poll (SYSCALL_BIT | 7)
-#endif
-#ifndef __NR_lseek
-# define __NR_lseek (SYSCALL_BIT | 8)
-#endif
-#ifndef __NR_mmap
-# define __NR_mmap (SYSCALL_BIT | 9)
-#endif
-#ifndef __NR_mprotect
-# define __NR_mprotect (SYSCALL_BIT | 10)
-#endif
-#ifndef __NR_munmap
-# define __NR_munmap (SYSCALL_BIT | 11)
-#endif
-#ifndef __NR_brk
-# define __NR_brk (SYSCALL_BIT | 12)
-#endif
-#ifndef __NR_rt_sigaction
-# define __NR_rt_sigaction (SYSCALL_BIT | 13)
-#endif
-#ifndef __NR_rt_sigprocmask
-# define __NR_rt_sigprocmask (SYSCALL_BIT | 14)
-#endif
-#ifndef __NR_rt_sigreturn
-# define __NR_rt_sigreturn (SYSCALL_BIT | 15)
-#endif
-#ifndef __NR_ioctl
-# define __NR_ioctl (SYSCALL_BIT | 16)
-#endif
-#ifndef __NR_pread64
-# define __NR_pread64 (SYSCALL_BIT | 17)
-#endif
-#ifndef __NR_pwrite64
-# define __NR_pwrite64 (SYSCALL_BIT | 18)
-#endif
-#ifndef __NR_readv
-# define __NR_readv (SYSCALL_BIT | 19)
-#endif
-#ifndef __NR_writev
-# define __NR_writev (SYSCALL_BIT | 20)
-#endif
-#ifndef __NR_access
-# define __NR_access (SYSCALL_BIT | 21)
-#endif
-#ifndef __NR_pipe
-# define __NR_pipe (SYSCALL_BIT | 22)
-#endif
-#ifndef __NR_select
-# define __NR_select (SYSCALL_BIT | 23)
-#endif
-#ifndef __NR_sched_yield
-# define __NR_sched_yield (SYSCALL_BIT | 24)
-#endif
-#ifndef __NR_mremap
-# define __NR_mremap (SYSCALL_BIT | 25)
-#endif
-#ifndef __NR_msync
-# define __NR_msync (SYSCALL_BIT | 26)
-#endif
-#ifndef __NR_mincore
-# define __NR_mincore (SYSCALL_BIT | 27)
-#endif
-#ifndef __NR_madvise
-# define __NR_madvise (SYSCALL_BIT | 28)
-#endif
-#ifndef __NR_shmget
-# define __NR_shmget (SYSCALL_BIT | 29)
-#endif
-#ifndef __NR_shmat
-# define __NR_shmat (SYSCALL_BIT | 30)
-#endif
-#ifndef __NR_shmctl
-# define __NR_shmctl (SYSCALL_BIT | 31)
-#endif
-#ifndef __NR_dup
-# define __NR_dup (SYSCALL_BIT | 32)
-#endif
-#ifndef __NR_dup2
-# define __NR_dup2 (SYSCALL_BIT | 33)
-#endif
-#ifndef __NR_pause
-# define __NR_pause (SYSCALL_BIT | 34)
-#endif
-#ifndef __NR_nanosleep
-# define __NR_nanosleep (SYSCALL_BIT | 35)
-#endif
-#ifndef __NR_getitimer
-# define __NR_getitimer (SYSCALL_BIT | 36)
-#endif
-#ifndef __NR_alarm
-# define __NR_alarm (SYSCALL_BIT | 37)
-#endif
-#ifndef __NR_setitimer
-# define __NR_setitimer (SYSCALL_BIT | 38)
-#endif
-#ifndef __NR_getpid
-# define __NR_getpid (SYSCALL_BIT | 39)
-#endif
-#ifndef __NR_sendfile
-# define __NR_sendfile (SYSCALL_BIT | 40)
-#endif
-#ifndef __NR_socket
-# define __NR_socket (SYSCALL_BIT | 41)
-#endif
-#ifndef __NR_connect
-# define __NR_connect (SYSCALL_BIT | 42)
-#endif
-#ifndef __NR_accept
-# define __NR_accept (SYSCALL_BIT | 43)
-#endif
-#ifndef __NR_sendto
-# define __NR_sendto (SYSCALL_BIT | 44)
-#endif
-#ifndef __NR_recvfrom
-# define __NR_recvfrom (SYSCALL_BIT | 45)
-#endif
-#ifndef __NR_sendmsg
-# define __NR_sendmsg (SYSCALL_BIT | 46)
-#endif
-#ifndef __NR_recvmsg
-# define __NR_recvmsg (SYSCALL_BIT | 47)
-#endif
-#ifndef __NR_shutdown
-# define __NR_shutdown (SYSCALL_BIT | 48)
-#endif
-#ifndef __NR_bind
-# define __NR_bind (SYSCALL_BIT | 49)
-#endif
-#ifndef __NR_listen
-# define __NR_listen (SYSCALL_BIT | 50)
-#endif
-#ifndef __NR_getsockname
-# define __NR_getsockname (SYSCALL_BIT | 51)
-#endif
-#ifndef __NR_getpeername
-# define __NR_getpeername (SYSCALL_BIT | 52)
-#endif
-#ifndef __NR_socketpair
-# define __NR_socketpair (SYSCALL_BIT | 53)
-#endif
-#ifndef __NR_setsockopt
-# define __NR_setsockopt (SYSCALL_BIT | 54)
-#endif
-#ifndef __NR_getsockopt
-# define __NR_getsockopt (SYSCALL_BIT | 55)
-#endif
-#ifndef __NR_clone
-# define __NR_clone (SYSCALL_BIT | 56)
-#endif
-#ifndef __NR_fork
-# define __NR_fork (SYSCALL_BIT | 57)
-#endif
-#ifndef __NR_vfork
-# define __NR_vfork (SYSCALL_BIT | 58)
-#endif
-#ifndef __NR_execve
-# define __NR_execve (SYSCALL_BIT | 59)
-#endif
-#ifndef __NR_exit
-# define __NR_exit (SYSCALL_BIT | 60)
-#endif
-#ifndef __NR_wait4
-# define __NR_wait4 (SYSCALL_BIT | 61)
-#endif
-#ifndef __NR_kill
-# define __NR_kill (SYSCALL_BIT | 62)
-#endif
-#ifndef __NR_uname
-# define __NR_uname (SYSCALL_BIT | 63)
-#endif
-#ifndef __NR_semget
-# define __NR_semget (SYSCALL_BIT | 64)
-#endif
-#ifndef __NR_semop
-# define __NR_semop (SYSCALL_BIT | 65)
-#endif
-#ifndef __NR_semctl
-# define __NR_semctl (SYSCALL_BIT | 66)
-#endif
-#ifndef __NR_shmdt
-# define __NR_shmdt (SYSCALL_BIT | 67)
-#endif
-#ifndef __NR_msgget
-# define __NR_msgget (SYSCALL_BIT | 68)
-#endif
-#ifndef __NR_msgsnd
-# define __NR_msgsnd (SYSCALL_BIT | 69)
-#endif
-#ifndef __NR_msgrcv
-# define __NR_msgrcv (SYSCALL_BIT | 70)
-#endif
-#ifndef __NR_msgctl
-# define __NR_msgctl (SYSCALL_BIT | 71)
-#endif
-#ifndef __NR_fcntl
-# define __NR_fcntl (SYSCALL_BIT | 72)
-#endif
-#ifndef __NR_flock
-# define __NR_flock (SYSCALL_BIT | 73)
-#endif
-#ifndef __NR_fsync
-# define __NR_fsync (SYSCALL_BIT | 74)
-#endif
-#ifndef __NR_fdatasync
-# define __NR_fdatasync (SYSCALL_BIT | 75)
-#endif
-#ifndef __NR_truncate
-# define __NR_truncate (SYSCALL_BIT | 76)
-#endif
-#ifndef __NR_ftruncate
-# define __NR_ftruncate (SYSCALL_BIT | 77)
-#endif
-#ifndef __NR_getdents
-# define __NR_getdents (SYSCALL_BIT | 78)
-#endif
-#ifndef __NR_getcwd
-# define __NR_getcwd (SYSCALL_BIT | 79)
-#endif
-#ifndef __NR_chdir
-# define __NR_chdir (SYSCALL_BIT | 80)
-#endif
-#ifndef __NR_fchdir
-# define __NR_fchdir (SYSCALL_BIT | 81)
-#endif
-#ifndef __NR_rename
-# define __NR_rename (SYSCALL_BIT | 82)
-#endif
-#ifndef __NR_mkdir
-# define __NR_mkdir (SYSCALL_BIT | 83)
-#endif
-#ifndef __NR_rmdir
-# define __NR_rmdir (SYSCALL_BIT | 84)
-#endif
-#ifndef __NR_creat
-# define __NR_creat (SYSCALL_BIT | 85)
-#endif
-#ifndef __NR_link
-# define __NR_link (SYSCALL_BIT | 86)
-#endif
-#ifndef __NR_unlink
-# define __NR_unlink (SYSCALL_BIT | 87)
-#endif
-#ifndef __NR_symlink
-# define __NR_symlink (SYSCALL_BIT | 88)
-#endif
-#ifndef __NR_readlink
-# define __NR_readlink (SYSCALL_BIT | 89)
-#endif
-#ifndef __NR_chmod
-# define __NR_chmod (SYSCALL_BIT | 90)
-#endif
-#ifndef __NR_fchmod
-# define __NR_fchmod (SYSCALL_BIT | 91)
-#endif
-#ifndef __NR_chown
-# define __NR_chown (SYSCALL_BIT | 92)
-#endif
-#ifndef __NR_fchown
-# define __NR_fchown (SYSCALL_BIT | 93)
-#endif
-#ifndef __NR_lchown
-# define __NR_lchown (SYSCALL_BIT | 94)
-#endif
-#ifndef __NR_umask
-# define __NR_umask (SYSCALL_BIT | 95)
-#endif
-#ifndef __NR_gettimeofday
-# define __NR_gettimeofday (SYSCALL_BIT | 96)
-#endif
-#ifndef __NR_getrlimit
-# define __NR_getrlimit (SYSCALL_BIT | 97)
-#endif
-#ifndef __NR_getrusage
-# define __NR_getrusage (SYSCALL_BIT | 98)
-#endif
-#ifndef __NR_sysinfo
-# define __NR_sysinfo (SYSCALL_BIT | 99)
-#endif
-#ifndef __NR_times
-# define __NR_times (SYSCALL_BIT | 100)
-#endif
-#ifndef __NR_ptrace
-# define __NR_ptrace (SYSCALL_BIT | 101)
-#endif
-#ifndef __NR_getuid
-# define __NR_getuid (SYSCALL_BIT | 102)
-#endif
-#ifndef __NR_syslog
-# define __NR_syslog (SYSCALL_BIT | 103)
-#endif
-#ifndef __NR_getgid
-# define __NR_getgid (SYSCALL_BIT | 104)
-#endif
-#ifndef __NR_setuid
-# define __NR_setuid (SYSCALL_BIT | 105)
-#endif
-#ifndef __NR_setgid
-# define __NR_setgid (SYSCALL_BIT | 106)
-#endif
-#ifndef __NR_geteuid
-# define __NR_geteuid (SYSCALL_BIT | 107)
-#endif
-#ifndef __NR_getegid
-# define __NR_getegid (SYSCALL_BIT | 108)
-#endif
-#ifndef __NR_setpgid
-# define __NR_setpgid (SYSCALL_BIT | 109)
-#endif
-#ifndef __NR_getppid
-# define __NR_getppid (SYSCALL_BIT | 110)
-#endif
-#ifndef __NR_getpgrp
-# define __NR_getpgrp (SYSCALL_BIT | 111)
-#endif
-#ifndef __NR_setsid
-# define __NR_setsid (SYSCALL_BIT | 112)
-#endif
-#ifndef __NR_setreuid
-# define __NR_setreuid (SYSCALL_BIT | 113)
-#endif
-#ifndef __NR_setregid
-# define __NR_setregid (SYSCALL_BIT | 114)
-#endif
-#ifndef __NR_getgroups
-# define __NR_getgroups (SYSCALL_BIT | 115)
-#endif
-#ifndef __NR_setgroups
-# define __NR_setgroups (SYSCALL_BIT | 116)
-#endif
-#ifndef __NR_setresuid
-# define __NR_setresuid (SYSCALL_BIT | 117)
-#endif
-#ifndef __NR_getresuid
-# define __NR_getresuid (SYSCALL_BIT | 118)
-#endif
-#ifndef __NR_setresgid
-# define __NR_setresgid (SYSCALL_BIT | 119)
-#endif
-#ifndef __NR_getresgid
-# define __NR_getresgid (SYSCALL_BIT | 120)
-#endif
-#ifndef __NR_getpgid
-# define __NR_getpgid (SYSCALL_BIT | 121)
-#endif
-#ifndef __NR_setfsuid
-# define __NR_setfsuid (SYSCALL_BIT | 122)
-#endif
-#ifndef __NR_setfsgid
-# define __NR_setfsgid (SYSCALL_BIT | 123)
-#endif
-#ifndef __NR_getsid
-# define __NR_getsid (SYSCALL_BIT | 124)
-#endif
-#ifndef __NR_capget
-# define __NR_capget (SYSCALL_BIT | 125)
-#endif
-#ifndef __NR_capset
-# define __NR_capset (SYSCALL_BIT | 126)
-#endif
-#ifndef __NR_rt_sigpending
-# define __NR_rt_sigpending (SYSCALL_BIT | 127)
-#endif
-#ifndef __NR_rt_sigtimedwait
-# define __NR_rt_sigtimedwait (SYSCALL_BIT | 128)
-#endif
-#ifndef __NR_rt_sigqueueinfo
-# define __NR_rt_sigqueueinfo (SYSCALL_BIT | 129)
-#endif
-#ifndef __NR_rt_sigsuspend
-# define __NR_rt_sigsuspend (SYSCALL_BIT | 130)
-#endif
-#ifndef __NR_sigaltstack
-# define __NR_sigaltstack (SYSCALL_BIT | 131)
-#endif
-#ifndef __NR_utime
-# define __NR_utime (SYSCALL_BIT | 132)
-#endif
-#ifndef __NR_mknod
-# define __NR_mknod (SYSCALL_BIT | 133)
-#endif
-#ifndef __NR_uselib
-# define __NR_uselib (SYSCALL_BIT | 134)
-#endif
-#ifndef __NR_personality
-# define __NR_personality (SYSCALL_BIT | 135)
-#endif
-#ifndef __NR_ustat
-# define __NR_ustat (SYSCALL_BIT | 136)
-#endif
-#ifndef __NR_statfs
-# define __NR_statfs (SYSCALL_BIT | 137)
-#endif
-#ifndef __NR_fstatfs
-# define __NR_fstatfs (SYSCALL_BIT | 138)
-#endif
-#ifndef __NR_sysfs
-# define __NR_sysfs (SYSCALL_BIT | 139)
-#endif
-#ifndef __NR_getpriority
-# define __NR_getpriority (SYSCALL_BIT | 140)
-#endif
-#ifndef __NR_setpriority
-# define __NR_setpriority (SYSCALL_BIT | 141)
-#endif
-#ifndef __NR_sched_setparam
-# define __NR_sched_setparam (SYSCALL_BIT | 142)
-#endif
-#ifndef __NR_sched_getparam
-# define __NR_sched_getparam (SYSCALL_BIT | 143)
-#endif
-#ifndef __NR_sched_setscheduler
-# define __NR_sched_setscheduler (SYSCALL_BIT | 144)
-#endif
-#ifndef __NR_sched_getscheduler
-# define __NR_sched_getscheduler (SYSCALL_BIT | 145)
-#endif
-#ifndef __NR_sched_get_priority_max
-# define __NR_sched_get_priority_max (SYSCALL_BIT | 146)
-#endif
-#ifndef __NR_sched_get_priority_min
-# define __NR_sched_get_priority_min (SYSCALL_BIT | 147)
-#endif
-#ifndef __NR_sched_rr_get_interval
-# define __NR_sched_rr_get_interval (SYSCALL_BIT | 148)
-#endif
-#ifndef __NR_mlock
-# define __NR_mlock (SYSCALL_BIT | 149)
-#endif
-#ifndef __NR_munlock
-# define __NR_munlock (SYSCALL_BIT | 150)
-#endif
-#ifndef __NR_mlockall
-# define __NR_mlockall (SYSCALL_BIT | 151)
-#endif
-#ifndef __NR_munlockall
-# define __NR_munlockall (SYSCALL_BIT | 152)
-#endif
-#ifndef __NR_vhangup
-# define __NR_vhangup (SYSCALL_BIT | 153)
-#endif
-#ifndef __NR_modify_ldt
-# define __NR_modify_ldt (SYSCALL_BIT | 154)
-#endif
-#ifndef __NR_pivot_root
-# define __NR_pivot_root (SYSCALL_BIT | 155)
-#endif
-#ifndef __NR__sysctl
-# define __NR__sysctl (SYSCALL_BIT | 156)
-#endif
-#ifndef __NR_prctl
-# define __NR_prctl (SYSCALL_BIT | 157)
-#endif
-#ifndef __NR_arch_prctl
-# define __NR_arch_prctl (SYSCALL_BIT | 158)
-#endif
-#ifndef __NR_adjtimex
-# define __NR_adjtimex (SYSCALL_BIT | 159)
-#endif
-#ifndef __NR_setrlimit
-# define __NR_setrlimit (SYSCALL_BIT | 160)
-#endif
-#ifndef __NR_chroot
-# define __NR_chroot (SYSCALL_BIT | 161)
-#endif
-#ifndef __NR_sync
-# define __NR_sync (SYSCALL_BIT | 162)
-#endif
-#ifndef __NR_acct
-# define __NR_acct (SYSCALL_BIT | 163)
-#endif
-#ifndef __NR_settimeofday
-# define __NR_settimeofday (SYSCALL_BIT | 164)
-#endif
-#ifndef __NR_mount
-# define __NR_mount (SYSCALL_BIT | 165)
-#endif
-#ifndef __NR_umount2
-# define __NR_umount2 (SYSCALL_BIT | 166)
-#endif
-#ifndef __NR_swapon
-# define __NR_swapon (SYSCALL_BIT | 167)
-#endif
-#ifndef __NR_swapoff
-# define __NR_swapoff (SYSCALL_BIT | 168)
-#endif
-#ifndef __NR_reboot
-# define __NR_reboot (SYSCALL_BIT | 169)
-#endif
-#ifndef __NR_sethostname
-# define __NR_sethostname (SYSCALL_BIT | 170)
-#endif
-#ifndef __NR_setdomainname
-# define __NR_setdomainname (SYSCALL_BIT | 171)
-#endif
-#ifndef __NR_iopl
-# define __NR_iopl (SYSCALL_BIT | 172)
-#endif
-#ifndef __NR_ioperm
-# define __NR_ioperm (SYSCALL_BIT | 173)
-#endif
-#ifndef __NR_create_module
-# define __NR_create_module (SYSCALL_BIT | 174)
-#endif
-#ifndef __NR_init_module
-# define __NR_init_module (SYSCALL_BIT | 175)
-#endif
-#ifndef __NR_delete_module
-# define __NR_delete_module (SYSCALL_BIT | 176)
-#endif
-#ifndef __NR_get_kernel_syms
-# define __NR_get_kernel_syms (SYSCALL_BIT | 177)
-#endif
-#ifndef __NR_query_module
-# define __NR_query_module (SYSCALL_BIT | 178)
-#endif
-#ifndef __NR_quotactl
-# define __NR_quotactl (SYSCALL_BIT | 179)
-#endif
-#ifndef __NR_nfsservctl
-# define __NR_nfsservctl (SYSCALL_BIT | 180)
-#endif
-#ifndef __NR_getpmsg
-# define __NR_getpmsg (SYSCALL_BIT | 181)
-#endif
-#ifndef __NR_putpmsg
-# define __NR_putpmsg (SYSCALL_BIT | 182)
-#endif
-#ifndef __NR_afs_syscall
-# define __NR_afs_syscall (SYSCALL_BIT | 183)
-#endif
-#ifndef __NR_tuxcall
-# define __NR_tuxcall (SYSCALL_BIT | 184)
-#endif
-#ifndef __NR_security
-# define __NR_security (SYSCALL_BIT | 185)
-#endif
-#ifndef __NR_gettid
-# define __NR_gettid (SYSCALL_BIT | 186)
-#endif
-#ifndef __NR_readahead
-# define __NR_readahead (SYSCALL_BIT | 187)
-#endif
-#ifndef __NR_setxattr
-# define __NR_setxattr (SYSCALL_BIT | 188)
-#endif
-#ifndef __NR_lsetxattr
-# define __NR_lsetxattr (SYSCALL_BIT | 189)
-#endif
-#ifndef __NR_fsetxattr
-# define __NR_fsetxattr (SYSCALL_BIT | 190)
-#endif
-#ifndef __NR_getxattr
-# define __NR_getxattr (SYSCALL_BIT | 191)
-#endif
-#ifndef __NR_lgetxattr
-# define __NR_lgetxattr (SYSCALL_BIT | 192)
-#endif
-#ifndef __NR_fgetxattr
-# define __NR_fgetxattr (SYSCALL_BIT | 193)
-#endif
-#ifndef __NR_listxattr
-# define __NR_listxattr (SYSCALL_BIT | 194)
-#endif
-#ifndef __NR_llistxattr
-# define __NR_llistxattr (SYSCALL_BIT | 195)
-#endif
-#ifndef __NR_flistxattr
-# define __NR_flistxattr (SYSCALL_BIT | 196)
-#endif
-#ifndef __NR_removexattr
-# define __NR_removexattr (SYSCALL_BIT | 197)
-#endif
-#ifndef __NR_lremovexattr
-# define __NR_lremovexattr (SYSCALL_BIT | 198)
-#endif
-#ifndef __NR_fremovexattr
-# define __NR_fremovexattr (SYSCALL_BIT | 199)
-#endif
-#ifndef __NR_tkill
-# define __NR_tkill (SYSCALL_BIT | 200)
-#endif
-#ifndef __NR_time
-# define __NR_time (SYSCALL_BIT | 201)
-#endif
-#ifndef __NR_futex
-# define __NR_futex (SYSCALL_BIT | 202)
-#endif
-#ifndef __NR_sched_setaffinity
-# define __NR_sched_setaffinity (SYSCALL_BIT | 203)
-#endif
-#ifndef __NR_sched_getaffinity
-# define __NR_sched_getaffinity (SYSCALL_BIT | 204)
-#endif
-#ifndef __NR_set_thread_area
-# define __NR_set_thread_area (SYSCALL_BIT | 205)
-#endif
 #ifndef __NR_io_setup
-# define __NR_io_setup (SYSCALL_BIT | 206)
+# define __NR_io_setup (SYSCALL_BIT | 0)
 #endif
 #ifndef __NR_io_destroy
-# define __NR_io_destroy (SYSCALL_BIT | 207)
-#endif
-#ifndef __NR_io_getevents
-# define __NR_io_getevents (SYSCALL_BIT | 208)
+# define __NR_io_destroy (SYSCALL_BIT | 1)
 #endif
 #ifndef __NR_io_submit
-# define __NR_io_submit (SYSCALL_BIT | 209)
+# define __NR_io_submit (SYSCALL_BIT | 2)
 #endif
 #ifndef __NR_io_cancel
-# define __NR_io_cancel (SYSCALL_BIT | 210)
+# define __NR_io_cancel (SYSCALL_BIT | 3)
 #endif
-#ifndef __NR_get_thread_area
-# define __NR_get_thread_area (SYSCALL_BIT | 211)
+#ifndef __NR_io_getevents
+# define __NR_io_getevents (SYSCALL_BIT | 4)
+#endif
+#ifndef __NR_setxattr
+# define __NR_setxattr (SYSCALL_BIT | 5)
+#endif
+#ifndef __NR_lsetxattr
+# define __NR_lsetxattr (SYSCALL_BIT | 6)
+#endif
+#ifndef __NR_fsetxattr
+# define __NR_fsetxattr (SYSCALL_BIT | 7)
+#endif
+#ifndef __NR_getxattr
+# define __NR_getxattr (SYSCALL_BIT | 8)
+#endif
+#ifndef __NR_lgetxattr
+# define __NR_lgetxattr (SYSCALL_BIT | 9)
+#endif
+#ifndef __NR_fgetxattr
+# define __NR_fgetxattr (SYSCALL_BIT | 10)
+#endif
+#ifndef __NR_listxattr
+# define __NR_listxattr (SYSCALL_BIT | 11)
+#endif
+#ifndef __NR_llistxattr
+# define __NR_llistxattr (SYSCALL_BIT | 12)
+#endif
+#ifndef __NR_flistxattr
+# define __NR_flistxattr (SYSCALL_BIT | 13)
+#endif
+#ifndef __NR_removexattr
+# define __NR_removexattr (SYSCALL_BIT | 14)
+#endif
+#ifndef __NR_lremovexattr
+# define __NR_lremovexattr (SYSCALL_BIT | 15)
+#endif
+#ifndef __NR_fremovexattr
+# define __NR_fremovexattr (SYSCALL_BIT | 16)
+#endif
+#ifndef __NR_getcwd
+# define __NR_getcwd (SYSCALL_BIT | 17)
 #endif
 #ifndef __NR_lookup_dcookie
-# define __NR_lookup_dcookie (SYSCALL_BIT | 212)
-#endif
-#ifndef __NR_epoll_create
-# define __NR_epoll_create (SYSCALL_BIT | 213)
-#endif
-#ifndef __NR_epoll_ctl_old
-# define __NR_epoll_ctl_old (SYSCALL_BIT | 214)
-#endif
-#ifndef __NR_epoll_wait_old
-# define __NR_epoll_wait_old (SYSCALL_BIT | 215)
-#endif
-#ifndef __NR_remap_file_pages
-# define __NR_remap_file_pages (SYSCALL_BIT | 216)
-#endif
-#ifndef __NR_getdents64
-# define __NR_getdents64 (SYSCALL_BIT | 217)
-#endif
-#ifndef __NR_set_tid_address
-# define __NR_set_tid_address (SYSCALL_BIT | 218)
-#endif
-#ifndef __NR_restart_syscall
-# define __NR_restart_syscall (SYSCALL_BIT | 219)
-#endif
-#ifndef __NR_semtimedop
-# define __NR_semtimedop (SYSCALL_BIT | 220)
-#endif
-#ifndef __NR_fadvise64
-# define __NR_fadvise64 (SYSCALL_BIT | 221)
-#endif
-#ifndef __NR_timer_create
-# define __NR_timer_create (SYSCALL_BIT | 222)
-#endif
-#ifndef __NR_timer_settime
-# define __NR_timer_settime (SYSCALL_BIT | 223)
-#endif
-#ifndef __NR_timer_gettime
-# define __NR_timer_gettime (SYSCALL_BIT | 224)
-#endif
-#ifndef __NR_timer_getoverrun
-# define __NR_timer_getoverrun (SYSCALL_BIT | 225)
-#endif
-#ifndef __NR_timer_delete
-# define __NR_timer_delete (SYSCALL_BIT | 226)
-#endif
-#ifndef __NR_clock_settime
-# define __NR_clock_settime (SYSCALL_BIT | 227)
-#endif
-#ifndef __NR_clock_gettime
-# define __NR_clock_gettime (SYSCALL_BIT | 228)
-#endif
-#ifndef __NR_clock_getres
-# define __NR_clock_getres (SYSCALL_BIT | 229)
-#endif
-#ifndef __NR_clock_nanosleep
-# define __NR_clock_nanosleep (SYSCALL_BIT | 230)
-#endif
-#ifndef __NR_exit_group
-# define __NR_exit_group (SYSCALL_BIT | 231)
-#endif
-#ifndef __NR_epoll_wait
-# define __NR_epoll_wait (SYSCALL_BIT | 232)
-#endif
-#ifndef __NR_epoll_ctl
-# define __NR_epoll_ctl (SYSCALL_BIT | 233)
-#endif
-#ifndef __NR_tgkill
-# define __NR_tgkill (SYSCALL_BIT | 234)
-#endif
-#ifndef __NR_utimes
-# define __NR_utimes (SYSCALL_BIT | 235)
-#endif
-#ifndef __NR_vserver
-# define __NR_vserver (SYSCALL_BIT | 236)
-#endif
-#ifndef __NR_mbind
-# define __NR_mbind (SYSCALL_BIT | 237)
-#endif
-#ifndef __NR_set_mempolicy
-# define __NR_set_mempolicy (SYSCALL_BIT | 238)
-#endif
-#ifndef __NR_get_mempolicy
-# define __NR_get_mempolicy (SYSCALL_BIT | 239)
-#endif
-#ifndef __NR_mq_open
-# define __NR_mq_open (SYSCALL_BIT | 240)
-#endif
-#ifndef __NR_mq_unlink
-# define __NR_mq_unlink (SYSCALL_BIT | 241)
-#endif
-#ifndef __NR_mq_timedsend
-# define __NR_mq_timedsend (SYSCALL_BIT | 242)
-#endif
-#ifndef __NR_mq_timedreceive
-# define __NR_mq_timedreceive (SYSCALL_BIT | 243)
-#endif
-#ifndef __NR_mq_notify
-# define __NR_mq_notify (SYSCALL_BIT | 244)
-#endif
-#ifndef __NR_mq_getsetattr
-# define __NR_mq_getsetattr (SYSCALL_BIT | 245)
-#endif
-#ifndef __NR_kexec_load
-# define __NR_kexec_load (SYSCALL_BIT | 246)
-#endif
-#ifndef __NR_waitid
-# define __NR_waitid (SYSCALL_BIT | 247)
-#endif
-#ifndef __NR_add_key
-# define __NR_add_key (SYSCALL_BIT | 248)
-#endif
-#ifndef __NR_request_key
-# define __NR_request_key (SYSCALL_BIT | 249)
-#endif
-#ifndef __NR_keyctl
-# define __NR_keyctl (SYSCALL_BIT | 250)
-#endif
-#ifndef __NR_ioprio_set
-# define __NR_ioprio_set (SYSCALL_BIT | 251)
-#endif
-#ifndef __NR_ioprio_get
-# define __NR_ioprio_get (SYSCALL_BIT | 252)
-#endif
-#ifndef __NR_inotify_init
-# define __NR_inotify_init (SYSCALL_BIT | 253)
-#endif
-#ifndef __NR_inotify_add_watch
-# define __NR_inotify_add_watch (SYSCALL_BIT | 254)
-#endif
-#ifndef __NR_inotify_rm_watch
-# define __NR_inotify_rm_watch (SYSCALL_BIT | 255)
-#endif
-#ifndef __NR_migrate_pages
-# define __NR_migrate_pages (SYSCALL_BIT | 256)
-#endif
-#ifndef __NR_openat
-# define __NR_openat (SYSCALL_BIT | 257)
-#endif
-#ifndef __NR_mkdirat
-# define __NR_mkdirat (SYSCALL_BIT | 258)
-#endif
-#ifndef __NR_mknodat
-# define __NR_mknodat (SYSCALL_BIT | 259)
-#endif
-#ifndef __NR_fchownat
-# define __NR_fchownat (SYSCALL_BIT | 260)
-#endif
-#ifndef __NR_futimesat
-# define __NR_futimesat (SYSCALL_BIT | 261)
-#endif
-#ifndef __NR_newfstatat
-# define __NR_newfstatat (SYSCALL_BIT | 262)
-#endif
-#ifndef __NR_unlinkat
-# define __NR_unlinkat (SYSCALL_BIT | 263)
-#endif
-#ifndef __NR_renameat
-# define __NR_renameat (SYSCALL_BIT | 264)
-#endif
-#ifndef __NR_linkat
-# define __NR_linkat (SYSCALL_BIT | 265)
-#endif
-#ifndef __NR_symlinkat
-# define __NR_symlinkat (SYSCALL_BIT | 266)
-#endif
-#ifndef __NR_readlinkat
-# define __NR_readlinkat (SYSCALL_BIT | 267)
-#endif
-#ifndef __NR_fchmodat
-# define __NR_fchmodat (SYSCALL_BIT | 268)
-#endif
-#ifndef __NR_faccessat
-# define __NR_faccessat (SYSCALL_BIT | 269)
-#endif
-#ifndef __NR_pselect6
-# define __NR_pselect6 (SYSCALL_BIT | 270)
-#endif
-#ifndef __NR_ppoll
-# define __NR_ppoll (SYSCALL_BIT | 271)
-#endif
-#ifndef __NR_unshare
-# define __NR_unshare (SYSCALL_BIT | 272)
-#endif
-#ifndef __NR_set_robust_list
-# define __NR_set_robust_list (SYSCALL_BIT | 273)
-#endif
-#ifndef __NR_get_robust_list
-# define __NR_get_robust_list (SYSCALL_BIT | 274)
-#endif
-#ifndef __NR_splice
-# define __NR_splice (SYSCALL_BIT | 275)
-#endif
-#ifndef __NR_tee
-# define __NR_tee (SYSCALL_BIT | 276)
-#endif
-#ifndef __NR_sync_file_range
-# define __NR_sync_file_range (SYSCALL_BIT | 277)
-#endif
-#ifndef __NR_vmsplice
-# define __NR_vmsplice (SYSCALL_BIT | 278)
-#endif
-#ifndef __NR_move_pages
-# define __NR_move_pages (SYSCALL_BIT | 279)
-#endif
-#ifndef __NR_utimensat
-# define __NR_utimensat (SYSCALL_BIT | 280)
-#endif
-#ifndef __NR_epoll_pwait
-# define __NR_epoll_pwait (SYSCALL_BIT | 281)
-#endif
-#ifndef __NR_signalfd
-# define __NR_signalfd (SYSCALL_BIT | 282)
-#endif
-#ifndef __NR_timerfd_create
-# define __NR_timerfd_create (SYSCALL_BIT | 283)
-#endif
-#ifndef __NR_eventfd
-# define __NR_eventfd (SYSCALL_BIT | 284)
-#endif
-#ifndef __NR_fallocate
-# define __NR_fallocate (SYSCALL_BIT | 285)
-#endif
-#ifndef __NR_timerfd_settime
-# define __NR_timerfd_settime (SYSCALL_BIT | 286)
-#endif
-#ifndef __NR_timerfd_gettime
-# define __NR_timerfd_gettime (SYSCALL_BIT | 287)
-#endif
-#ifndef __NR_accept4
-# define __NR_accept4 (SYSCALL_BIT | 288)
-#endif
-#ifndef __NR_signalfd4
-# define __NR_signalfd4 (SYSCALL_BIT | 289)
+# define __NR_lookup_dcookie (SYSCALL_BIT | 18)
 #endif
 #ifndef __NR_eventfd2
-# define __NR_eventfd2 (SYSCALL_BIT | 290)
+# define __NR_eventfd2 (SYSCALL_BIT | 19)
 #endif
 #ifndef __NR_epoll_create1
-# define __NR_epoll_create1 (SYSCALL_BIT | 291)
+# define __NR_epoll_create1 (SYSCALL_BIT | 20)
+#endif
+#ifndef __NR_epoll_ctl
+# define __NR_epoll_ctl (SYSCALL_BIT | 21)
+#endif
+#ifndef __NR_epoll_pwait
+# define __NR_epoll_pwait (SYSCALL_BIT | 22)
+#endif
+#ifndef __NR_dup
+# define __NR_dup (SYSCALL_BIT | 23)
 #endif
 #ifndef __NR_dup3
-# define __NR_dup3 (SYSCALL_BIT | 292)
+# define __NR_dup3 (SYSCALL_BIT | 24)
 #endif
-#ifndef __NR_pipe2
-# define __NR_pipe2 (SYSCALL_BIT | 293)
+#ifndef __NR_fcntl
+# define __NR_fcntl (SYSCALL_BIT | 25)
 #endif
 #ifndef __NR_inotify_init1
-# define __NR_inotify_init1 (SYSCALL_BIT | 294)
+# define __NR_inotify_init1 (SYSCALL_BIT | 26)
+#endif
+#ifndef __NR_inotify_add_watch
+# define __NR_inotify_add_watch (SYSCALL_BIT | 27)
+#endif
+#ifndef __NR_inotify_rm_watch
+# define __NR_inotify_rm_watch (SYSCALL_BIT | 28)
+#endif
+#ifndef __NR_ioctl
+# define __NR_ioctl (SYSCALL_BIT | 29)
+#endif
+#ifndef __NR_ioprio_set
+# define __NR_ioprio_set (SYSCALL_BIT | 30)
+#endif
+#ifndef __NR_ioprio_get
+# define __NR_ioprio_get (SYSCALL_BIT | 31)
+#endif
+#ifndef __NR_flock
+# define __NR_flock (SYSCALL_BIT | 32)
+#endif
+#ifndef __NR_mknodat
+# define __NR_mknodat (SYSCALL_BIT | 33)
+#endif
+#ifndef __NR_mkdirat
+# define __NR_mkdirat (SYSCALL_BIT | 34)
+#endif
+#ifndef __NR_unlinkat
+# define __NR_unlinkat (SYSCALL_BIT | 35)
+#endif
+#ifndef __NR_symlinkat
+# define __NR_symlinkat (SYSCALL_BIT | 36)
+#endif
+#ifndef __NR_linkat
+# define __NR_linkat (SYSCALL_BIT | 37)
+#endif
+#ifndef __NR_renameat
+# define __NR_renameat (SYSCALL_BIT | 38)
+#endif
+#ifndef __NR_umount2
+# define __NR_umount2 (SYSCALL_BIT | 39)
+#endif
+#ifndef __NR_mount
+# define __NR_mount (SYSCALL_BIT | 40)
+#endif
+#ifndef __NR_pivot_root
+# define __NR_pivot_root (SYSCALL_BIT | 41)
+#endif
+#ifndef __NR_nfsservctl
+# define __NR_nfsservctl (SYSCALL_BIT | 42)
+#endif
+#ifndef __NR_statfs
+# define __NR_statfs (SYSCALL_BIT | 43)
+#endif
+#ifndef __NR_fstatfs
+# define __NR_fstatfs (SYSCALL_BIT | 44)
+#endif
+#ifndef __NR_truncate
+# define __NR_truncate (SYSCALL_BIT | 45)
+#endif
+#ifndef __NR_ftruncate
+# define __NR_ftruncate (SYSCALL_BIT | 46)
+#endif
+#ifndef __NR_fallocate
+# define __NR_fallocate (SYSCALL_BIT | 47)
+#endif
+#ifndef __NR_faccessat
+# define __NR_faccessat (SYSCALL_BIT | 48)
+#endif
+#ifndef __NR_chdir
+# define __NR_chdir (SYSCALL_BIT | 49)
+#endif
+#ifndef __NR_fchdir
+# define __NR_fchdir (SYSCALL_BIT | 50)
+#endif
+#ifndef __NR_chroot
+# define __NR_chroot (SYSCALL_BIT | 51)
+#endif
+#ifndef __NR_fchmod
+# define __NR_fchmod (SYSCALL_BIT | 52)
+#endif
+#ifndef __NR_fchmodat
+# define __NR_fchmodat (SYSCALL_BIT | 53)
+#endif
+#ifndef __NR_fchownat
+# define __NR_fchownat (SYSCALL_BIT | 54)
+#endif
+#ifndef __NR_fchown
+# define __NR_fchown (SYSCALL_BIT | 55)
+#endif
+#ifndef __NR_openat
+# define __NR_openat (SYSCALL_BIT | 56)
+#endif
+#ifndef __NR_close
+# define __NR_close (SYSCALL_BIT | 57)
+#endif
+#ifndef __NR_vhangup
+# define __NR_vhangup (SYSCALL_BIT | 58)
+#endif
+#ifndef __NR_pipe2
+# define __NR_pipe2 (SYSCALL_BIT | 59)
+#endif
+#ifndef __NR_quotactl
+# define __NR_quotactl (SYSCALL_BIT | 60)
+#endif
+#ifndef __NR_getdents64
+# define __NR_getdents64 (SYSCALL_BIT | 61)
+#endif
+#ifndef __NR_lseek
+# define __NR_lseek (SYSCALL_BIT | 62)
+#endif
+#ifndef __NR_read
+# define __NR_read (SYSCALL_BIT | 63)
+#endif
+#ifndef __NR_write
+# define __NR_write (SYSCALL_BIT | 64)
+#endif
+#ifndef __NR_readv
+# define __NR_readv (SYSCALL_BIT | 65)
+#endif
+#ifndef __NR_writev
+# define __NR_writev (SYSCALL_BIT | 66)
+#endif
+#ifndef __NR_pread64
+# define __NR_pread64 (SYSCALL_BIT | 67)
+#endif
+#ifndef __NR_pwrite64
+# define __NR_pwrite64 (SYSCALL_BIT | 68)
 #endif
 #ifndef __NR_preadv
-# define __NR_preadv (SYSCALL_BIT | 295)
+# define __NR_preadv (SYSCALL_BIT | 69)
 #endif
 #ifndef __NR_pwritev
-# define __NR_pwritev (SYSCALL_BIT | 296)
+# define __NR_pwritev (SYSCALL_BIT | 70)
 #endif
-#ifndef __NR_rt_tgsigqueueinfo
-# define __NR_rt_tgsigqueueinfo (SYSCALL_BIT | 297)
+#ifndef __NR_sendfile
+# define __NR_sendfile (SYSCALL_BIT | 71)
 #endif
-#ifndef __NR_perf_event_open
-# define __NR_perf_event_open (SYSCALL_BIT | 298)
+#ifndef __NR_pselect6
+# define __NR_pselect6 (SYSCALL_BIT | 72)
 #endif
-#ifndef __NR_recvmmsg
-# define __NR_recvmmsg (SYSCALL_BIT | 299)
+#ifndef __NR_ppoll
+# define __NR_ppoll (SYSCALL_BIT | 73)
 #endif
-#ifndef __NR_fanotify_init
-# define __NR_fanotify_init (SYSCALL_BIT | 300)
+#ifndef __NR_signalfd4
+# define __NR_signalfd4 (SYSCALL_BIT | 74)
 #endif
-#ifndef __NR_fanotify_mark
-# define __NR_fanotify_mark (SYSCALL_BIT | 301)
+#ifndef __NR_vmsplice
+# define __NR_vmsplice (SYSCALL_BIT | 75)
 #endif
-#ifndef __NR_prlimit64
-# define __NR_prlimit64 (SYSCALL_BIT | 302)
+#ifndef __NR_splice
+# define __NR_splice (SYSCALL_BIT | 76)
 #endif
-#ifndef __NR_name_to_handle_at
-# define __NR_name_to_handle_at (SYSCALL_BIT | 303)
+#ifndef __NR_tee
+# define __NR_tee (SYSCALL_BIT | 77)
 #endif
-#ifndef __NR_open_by_handle_at
-# define __NR_open_by_handle_at (SYSCALL_BIT | 304)
+#ifndef __NR_readlinkat
+# define __NR_readlinkat (SYSCALL_BIT | 78)
 #endif
-#ifndef __NR_clock_adjtime
-# define __NR_clock_adjtime (SYSCALL_BIT | 305)
+#ifndef __NR_newfstatat
+# define __NR_newfstatat (SYSCALL_BIT | 79)
 #endif
-#ifndef __NR_syncfs
-# define __NR_syncfs (SYSCALL_BIT | 306)
+#ifndef __NR_fstat
+# define __NR_fstat (SYSCALL_BIT | 80)
 #endif
-#ifndef __NR_sendmmsg
-# define __NR_sendmmsg (SYSCALL_BIT | 307)
+#ifndef __NR_sync
+# define __NR_sync (SYSCALL_BIT | 81)
 #endif
-#ifndef __NR_setns
-# define __NR_setns (SYSCALL_BIT | 308)
+#ifndef __NR_fsync
+# define __NR_fsync (SYSCALL_BIT | 82)
+#endif
+#ifndef __NR_fdatasync
+# define __NR_fdatasync (SYSCALL_BIT | 83)
+#endif
+#ifndef __NR_sync_file_range
+# define __NR_sync_file_range (SYSCALL_BIT | 84)
+#endif
+#ifndef __NR_timerfd_create
+# define __NR_timerfd_create (SYSCALL_BIT | 85)
+#endif
+#ifndef __NR_timerfd_settime
+# define __NR_timerfd_settime (SYSCALL_BIT | 86)
+#endif
+#ifndef __NR_timerfd_gettime
+# define __NR_timerfd_gettime (SYSCALL_BIT | 87)
+#endif
+#ifndef __NR_utimensat
+# define __NR_utimensat (SYSCALL_BIT | 88)
+#endif
+#ifndef __NR_acct
+# define __NR_acct (SYSCALL_BIT | 89)
+#endif
+#ifndef __NR_capget
+# define __NR_capget (SYSCALL_BIT | 90)
+#endif
+#ifndef __NR_capset
+# define __NR_capset (SYSCALL_BIT | 91)
+#endif
+#ifndef __NR_personality
+# define __NR_personality (SYSCALL_BIT | 92)
+#endif
+#ifndef __NR_exit
+# define __NR_exit (SYSCALL_BIT | 93)
+#endif
+#ifndef __NR_exit_group
+# define __NR_exit_group (SYSCALL_BIT | 94)
+#endif
+#ifndef __NR_waitid
+# define __NR_waitid (SYSCALL_BIT | 95)
+#endif
+#ifndef __NR_set_tid_address
+# define __NR_set_tid_address (SYSCALL_BIT | 96)
+#endif
+#ifndef __NR_unshare
+# define __NR_unshare (SYSCALL_BIT | 97)
+#endif
+#ifndef __NR_futex
+# define __NR_futex (SYSCALL_BIT | 98)
+#endif
+#ifndef __NR_set_robust_list
+# define __NR_set_robust_list (SYSCALL_BIT | 99)
+#endif
+#ifndef __NR_get_robust_list
+# define __NR_get_robust_list (SYSCALL_BIT | 100)
+#endif
+#ifndef __NR_nanosleep
+# define __NR_nanosleep (SYSCALL_BIT | 101)
+#endif
+#ifndef __NR_getitimer
+# define __NR_getitimer (SYSCALL_BIT | 102)
+#endif
+#ifndef __NR_setitimer
+# define __NR_setitimer (SYSCALL_BIT | 103)
+#endif
+#ifndef __NR_kexec_load
+# define __NR_kexec_load (SYSCALL_BIT | 104)
+#endif
+#ifndef __NR_init_module
+# define __NR_init_module (SYSCALL_BIT | 105)
+#endif
+#ifndef __NR_delete_module
+# define __NR_delete_module (SYSCALL_BIT | 106)
+#endif
+#ifndef __NR_timer_create
+# define __NR_timer_create (SYSCALL_BIT | 107)
+#endif
+#ifndef __NR_timer_gettime
+# define __NR_timer_gettime (SYSCALL_BIT | 108)
+#endif
+#ifndef __NR_timer_getoverrun
+# define __NR_timer_getoverrun (SYSCALL_BIT | 109)
+#endif
+#ifndef __NR_timer_settime
+# define __NR_timer_settime (SYSCALL_BIT | 110)
+#endif
+#ifndef __NR_timer_delete
+# define __NR_timer_delete (SYSCALL_BIT | 111)
+#endif
+#ifndef __NR_clock_settime
+# define __NR_clock_settime (SYSCALL_BIT | 112)
+#endif
+#ifndef __NR_clock_gettime
+# define __NR_clock_gettime (SYSCALL_BIT | 113)
+#endif
+#ifndef __NR_clock_getres
+# define __NR_clock_getres (SYSCALL_BIT | 114)
+#endif
+#ifndef __NR_clock_nanosleep
+# define __NR_clock_nanosleep (SYSCALL_BIT | 115)
+#endif
+#ifndef __NR_syslog
+# define __NR_syslog (SYSCALL_BIT | 116)
+#endif
+#ifndef __NR_ptrace
+# define __NR_ptrace (SYSCALL_BIT | 117)
+#endif
+#ifndef __NR_sched_setparam
+# define __NR_sched_setparam (SYSCALL_BIT | 118)
+#endif
+#ifndef __NR_sched_setscheduler
+# define __NR_sched_setscheduler (SYSCALL_BIT | 119)
+#endif
+#ifndef __NR_sched_getscheduler
+# define __NR_sched_getscheduler (SYSCALL_BIT | 120)
+#endif
+#ifndef __NR_sched_getparam
+# define __NR_sched_getparam (SYSCALL_BIT | 121)
+#endif
+#ifndef __NR_sched_setaffinity
+# define __NR_sched_setaffinity (SYSCALL_BIT | 122)
+#endif
+#ifndef __NR_sched_getaffinity
+# define __NR_sched_getaffinity (SYSCALL_BIT | 123)
+#endif
+#ifndef __NR_sched_yield
+# define __NR_sched_yield (SYSCALL_BIT | 124)
+#endif
+#ifndef __NR_sched_get_priority_max
+# define __NR_sched_get_priority_max (SYSCALL_BIT | 125)
+#endif
+#ifndef __NR_sched_get_priority_min
+# define __NR_sched_get_priority_min (SYSCALL_BIT | 126)
+#endif
+#ifndef __NR_sched_rr_get_interval
+# define __NR_sched_rr_get_interval (SYSCALL_BIT | 127)
+#endif
+#ifndef __NR_restart_syscall
+# define __NR_restart_syscall (SYSCALL_BIT | 128)
+#endif
+#ifndef __NR_kill
+# define __NR_kill (SYSCALL_BIT | 129)
+#endif
+#ifndef __NR_tkill
+# define __NR_tkill (SYSCALL_BIT | 130)
+#endif
+#ifndef __NR_tgkill
+# define __NR_tgkill (SYSCALL_BIT | 131)
+#endif
+#ifndef __NR_sigaltstack
+# define __NR_sigaltstack (SYSCALL_BIT | 132)
+#endif
+#ifndef __NR_rt_sigsuspend
+# define __NR_rt_sigsuspend (SYSCALL_BIT | 133)
+#endif
+#ifndef __NR_rt_sigaction
+# define __NR_rt_sigaction (SYSCALL_BIT | 134)
+#endif
+#ifndef __NR_rt_sigprocmask
+# define __NR_rt_sigprocmask (SYSCALL_BIT | 135)
+#endif
+#ifndef __NR_rt_sigpending
+# define __NR_rt_sigpending (SYSCALL_BIT | 136)
+#endif
+#ifndef __NR_rt_sigtimedwait
+# define __NR_rt_sigtimedwait (SYSCALL_BIT | 137)
+#endif
+#ifndef __NR_rt_sigqueueinfo
+# define __NR_rt_sigqueueinfo (SYSCALL_BIT | 138)
+#endif
+#ifndef __NR_rt_sigreturn
+# define __NR_rt_sigreturn (SYSCALL_BIT | 139)
+#endif
+#ifndef __NR_setpriority
+# define __NR_setpriority (SYSCALL_BIT | 140)
+#endif
+#ifndef __NR_getpriority
+# define __NR_getpriority (SYSCALL_BIT | 141)
+#endif
+#ifndef __NR_reboot
+# define __NR_reboot (SYSCALL_BIT | 142)
+#endif
+#ifndef __NR_setregid
+# define __NR_setregid (SYSCALL_BIT | 143)
+#endif
+#ifndef __NR_setgid
+# define __NR_setgid (SYSCALL_BIT | 144)
+#endif
+#ifndef __NR_setreuid
+# define __NR_setreuid (SYSCALL_BIT | 145)
+#endif
+#ifndef __NR_setuid
+# define __NR_setuid (SYSCALL_BIT | 146)
+#endif
+#ifndef __NR_setresuid
+# define __NR_setresuid (SYSCALL_BIT | 147)
+#endif
+#ifndef __NR_getresuid
+# define __NR_getresuid (SYSCALL_BIT | 148)
+#endif
+#ifndef __NR_setresgid
+# define __NR_setresgid (SYSCALL_BIT | 149)
+#endif
+#ifndef __NR_getresgid
+# define __NR_getresgid (SYSCALL_BIT | 150)
+#endif
+#ifndef __NR_setfsuid
+# define __NR_setfsuid (SYSCALL_BIT | 151)
+#endif
+#ifndef __NR_setfsgid
+# define __NR_setfsgid (SYSCALL_BIT | 152)
+#endif
+#ifndef __NR_times
+# define __NR_times (SYSCALL_BIT | 153)
+#endif
+#ifndef __NR_setpgid
+# define __NR_setpgid (SYSCALL_BIT | 154)
+#endif
+#ifndef __NR_getpgid
+# define __NR_getpgid (SYSCALL_BIT | 155)
+#endif
+#ifndef __NR_getsid
+# define __NR_getsid (SYSCALL_BIT | 156)
+#endif
+#ifndef __NR_setsid
+# define __NR_setsid (SYSCALL_BIT | 157)
+#endif
+#ifndef __NR_getgroups
+# define __NR_getgroups (SYSCALL_BIT | 158)
+#endif
+#ifndef __NR_setgroups
+# define __NR_setgroups (SYSCALL_BIT | 159)
+#endif
+#ifndef __NR_uname
+# define __NR_uname (SYSCALL_BIT | 160)
+#endif
+#ifndef __NR_sethostname
+# define __NR_sethostname (SYSCALL_BIT | 161)
+#endif
+#ifndef __NR_setdomainname
+# define __NR_setdomainname (SYSCALL_BIT | 162)
+#endif
+#ifndef __NR_getrlimit
+# define __NR_getrlimit (SYSCALL_BIT | 163)
+#endif
+#ifndef __NR_setrlimit
+# define __NR_setrlimit (SYSCALL_BIT | 164)
+#endif
+#ifndef __NR_getrusage
+# define __NR_getrusage (SYSCALL_BIT | 165)
+#endif
+#ifndef __NR_umask
+# define __NR_umask (SYSCALL_BIT | 166)
+#endif
+#ifndef __NR_prctl
+# define __NR_prctl (SYSCALL_BIT | 167)
 #endif
 #ifndef __NR_getcpu
-# define __NR_getcpu (SYSCALL_BIT | 309)
+# define __NR_getcpu (SYSCALL_BIT | 168)
+#endif
+#ifndef __NR_gettimeofday
+# define __NR_gettimeofday (SYSCALL_BIT | 169)
+#endif
+#ifndef __NR_settimeofday
+# define __NR_settimeofday (SYSCALL_BIT | 170)
+#endif
+#ifndef __NR_adjtimex
+# define __NR_adjtimex (SYSCALL_BIT | 171)
+#endif
+#ifndef __NR_getpid
+# define __NR_getpid (SYSCALL_BIT | 172)
+#endif
+#ifndef __NR_getppid
+# define __NR_getppid (SYSCALL_BIT | 173)
+#endif
+#ifndef __NR_getuid
+# define __NR_getuid (SYSCALL_BIT | 174)
+#endif
+#ifndef __NR_geteuid
+# define __NR_geteuid (SYSCALL_BIT | 175)
+#endif
+#ifndef __NR_getgid
+# define __NR_getgid (SYSCALL_BIT | 176)
+#endif
+#ifndef __NR_getegid
+# define __NR_getegid (SYSCALL_BIT | 177)
+#endif
+#ifndef __NR_gettid
+# define __NR_gettid (SYSCALL_BIT | 178)
+#endif
+#ifndef __NR_sysinfo
+# define __NR_sysinfo (SYSCALL_BIT | 179)
+#endif
+#ifndef __NR_mq_open
+# define __NR_mq_open (SYSCALL_BIT | 180)
+#endif
+#ifndef __NR_mq_unlink
+# define __NR_mq_unlink (SYSCALL_BIT | 181)
+#endif
+#ifndef __NR_mq_timedsend
+# define __NR_mq_timedsend (SYSCALL_BIT | 182)
+#endif
+#ifndef __NR_mq_timedreceive
+# define __NR_mq_timedreceive (SYSCALL_BIT | 183)
+#endif
+#ifndef __NR_mq_notify
+# define __NR_mq_notify (SYSCALL_BIT | 184)
+#endif
+#ifndef __NR_mq_getsetattr
+# define __NR_mq_getsetattr (SYSCALL_BIT | 185)
+#endif
+#ifndef __NR_msgget
+# define __NR_msgget (SYSCALL_BIT | 186)
+#endif
+#ifndef __NR_msgctl
+# define __NR_msgctl (SYSCALL_BIT | 187)
+#endif
+#ifndef __NR_msgrcv
+# define __NR_msgrcv (SYSCALL_BIT | 188)
+#endif
+#ifndef __NR_msgsnd
+# define __NR_msgsnd (SYSCALL_BIT | 189)
+#endif
+#ifndef __NR_semget
+# define __NR_semget (SYSCALL_BIT | 190)
+#endif
+#ifndef __NR_semctl
+# define __NR_semctl (SYSCALL_BIT | 191)
+#endif
+#ifndef __NR_semtimedop
+# define __NR_semtimedop (SYSCALL_BIT | 192)
+#endif
+#ifndef __NR_semop
+# define __NR_semop (SYSCALL_BIT | 193)
+#endif
+#ifndef __NR_shmget
+# define __NR_shmget (SYSCALL_BIT | 194)
+#endif
+#ifndef __NR_shmctl
+# define __NR_shmctl (SYSCALL_BIT | 195)
+#endif
+#ifndef __NR_shmat
+# define __NR_shmat (SYSCALL_BIT | 196)
+#endif
+#ifndef __NR_shmdt
+# define __NR_shmdt (SYSCALL_BIT | 197)
+#endif
+#ifndef __NR_socket
+# define __NR_socket (SYSCALL_BIT | 198)
+#endif
+#ifndef __NR_socketpair
+# define __NR_socketpair (SYSCALL_BIT | 199)
+#endif
+#ifndef __NR_bind
+# define __NR_bind (SYSCALL_BIT | 200)
+#endif
+#ifndef __NR_listen
+# define __NR_listen (SYSCALL_BIT | 201)
+#endif
+#ifndef __NR_accept
+# define __NR_accept (SYSCALL_BIT | 202)
+#endif
+#ifndef __NR_connect
+# define __NR_connect (SYSCALL_BIT | 203)
+#endif
+#ifndef __NR_getsockname
+# define __NR_getsockname (SYSCALL_BIT | 204)
+#endif
+#ifndef __NR_getpeername
+# define __NR_getpeername (SYSCALL_BIT | 205)
+#endif
+#ifndef __NR_sendto
+# define __NR_sendto (SYSCALL_BIT | 206)
+#endif
+#ifndef __NR_recvfrom
+# define __NR_recvfrom (SYSCALL_BIT | 207)
+#endif
+#ifndef __NR_setsockopt
+# define __NR_setsockopt (SYSCALL_BIT | 208)
+#endif
+#ifndef __NR_getsockopt
+# define __NR_getsockopt (SYSCALL_BIT | 209)
+#endif
+#ifndef __NR_shutdown
+# define __NR_shutdown (SYSCALL_BIT | 210)
+#endif
+#ifndef __NR_sendmsg
+# define __NR_sendmsg (SYSCALL_BIT | 211)
+#endif
+#ifndef __NR_recvmsg
+# define __NR_recvmsg (SYSCALL_BIT | 212)
+#endif
+#ifndef __NR_readahead
+# define __NR_readahead (SYSCALL_BIT | 213)
+#endif
+#ifndef __NR_brk
+# define __NR_brk (SYSCALL_BIT | 214)
+#endif
+#ifndef __NR_munmap
+# define __NR_munmap (SYSCALL_BIT | 215)
+#endif
+#ifndef __NR_mremap
+# define __NR_mremap (SYSCALL_BIT | 216)
+#endif
+#ifndef __NR_add_key
+# define __NR_add_key (SYSCALL_BIT | 217)
+#endif
+#ifndef __NR_request_key
+# define __NR_request_key (SYSCALL_BIT | 218)
+#endif
+#ifndef __NR_keyctl
+# define __NR_keyctl (SYSCALL_BIT | 219)
+#endif
+#ifndef __NR_clone
+# define __NR_clone (SYSCALL_BIT | 220)
+#endif
+#ifndef __NR_execve
+# define __NR_execve (SYSCALL_BIT | 221)
+#endif
+#ifndef __NR_mmap
+# define __NR_mmap (SYSCALL_BIT | 222)
+#endif
+#ifndef __NR_fadvise64
+# define __NR_fadvise64 (SYSCALL_BIT | 223)
+#endif
+#ifndef __NR_swapon
+# define __NR_swapon (SYSCALL_BIT | 224)
+#endif
+#ifndef __NR_swapoff
+# define __NR_swapoff (SYSCALL_BIT | 225)
+#endif
+#ifndef __NR_mprotect
+# define __NR_mprotect (SYSCALL_BIT | 226)
+#endif
+#ifndef __NR_msync
+# define __NR_msync (SYSCALL_BIT | 227)
+#endif
+#ifndef __NR_mlock
+# define __NR_mlock (SYSCALL_BIT | 228)
+#endif
+#ifndef __NR_munlock
+# define __NR_munlock (SYSCALL_BIT | 229)
+#endif
+#ifndef __NR_mlockall
+# define __NR_mlockall (SYSCALL_BIT | 230)
+#endif
+#ifndef __NR_munlockall
+# define __NR_munlockall (SYSCALL_BIT | 231)
+#endif
+#ifndef __NR_mincore
+# define __NR_mincore (SYSCALL_BIT | 232)
+#endif
+#ifndef __NR_madvise
+# define __NR_madvise (SYSCALL_BIT | 233)
+#endif
+#ifndef __NR_remap_file_pages
+# define __NR_remap_file_pages (SYSCALL_BIT | 234)
+#endif
+#ifndef __NR_mbind
+# define __NR_mbind (SYSCALL_BIT | 235)
+#endif
+#ifndef __NR_get_mempolicy
+# define __NR_get_mempolicy (SYSCALL_BIT | 236)
+#endif
+#ifndef __NR_set_mempolicy
+# define __NR_set_mempolicy (SYSCALL_BIT | 237)
+#endif
+#ifndef __NR_migrate_pages
+# define __NR_migrate_pages (SYSCALL_BIT | 238)
+#endif
+#ifndef __NR_move_pages
+# define __NR_move_pages (SYSCALL_BIT | 239)
+#endif
+#ifndef __NR_rt_tgsigqueueinfo
+# define __NR_rt_tgsigqueueinfo (SYSCALL_BIT | 240)
+#endif
+#ifndef __NR_perf_event_open
+# define __NR_perf_event_open (SYSCALL_BIT | 241)
+#endif
+#ifndef __NR_accept4
+# define __NR_accept4 (SYSCALL_BIT | 242)
+#endif
+#ifndef __NR_recvmmsg
+# define __NR_recvmmsg (SYSCALL_BIT | 243)
+#endif
+#ifndef __NR_wait4
+# define __NR_wait4 (SYSCALL_BIT | 260)
+#endif
+#ifndef __NR_prlimit64
+# define __NR_prlimit64 (SYSCALL_BIT | 261)
+#endif
+#ifndef __NR_fanotify_init
+# define __NR_fanotify_init (SYSCALL_BIT | 262)
+#endif
+#ifndef __NR_fanotify_mark
+# define __NR_fanotify_mark (SYSCALL_BIT | 263)
+#endif
+#ifndef __NR_name_to_handle_at
+# define __NR_name_to_handle_at (SYSCALL_BIT | 264)
+#endif
+#ifndef __NR_open_by_handle_at
+# define __NR_open_by_handle_at (SYSCALL_BIT | 265)
+#endif
+#ifndef __NR_clock_adjtime
+# define __NR_clock_adjtime (SYSCALL_BIT | 266)
+#endif
+#ifndef __NR_syncfs
+# define __NR_syncfs (SYSCALL_BIT | 267)
+#endif
+#ifndef __NR_setns
+# define __NR_setns (SYSCALL_BIT | 268)
+#endif
+#ifndef __NR_sendmmsg
+# define __NR_sendmmsg (SYSCALL_BIT | 269)
 #endif
 #ifndef __NR_process_vm_readv
-# define __NR_process_vm_readv (SYSCALL_BIT | 310)
+# define __NR_process_vm_readv (SYSCALL_BIT | 270)
 #endif
 #ifndef __NR_process_vm_writev
-# define __NR_process_vm_writev (SYSCALL_BIT | 311)
+# define __NR_process_vm_writev (SYSCALL_BIT | 271)
 #endif
 #ifndef __NR_kcmp
-# define __NR_kcmp (SYSCALL_BIT | 312)
+# define __NR_kcmp (SYSCALL_BIT | 272)
 #endif
 #ifndef __NR_finit_module
-# define __NR_finit_module (SYSCALL_BIT | 313)
+# define __NR_finit_module (SYSCALL_BIT | 273)
 #endif
 #ifndef __NR_sched_setattr
-# define __NR_sched_setattr (SYSCALL_BIT | 314)
+# define __NR_sched_setattr (SYSCALL_BIT | 274)
 #endif
 #ifndef __NR_sched_getattr
-# define __NR_sched_getattr (SYSCALL_BIT | 315)
+# define __NR_sched_getattr (SYSCALL_BIT | 275)
 #endif
 #ifndef __NR_renameat2
-# define __NR_renameat2 (SYSCALL_BIT | 316)
+# define __NR_renameat2 (SYSCALL_BIT | 276)
 #endif
 #ifndef __NR_seccomp
-# define __NR_seccomp (SYSCALL_BIT | 317)
+# define __NR_seccomp (SYSCALL_BIT | 277)
 #endif
 #ifndef __NR_getrandom
-# define __NR_getrandom (SYSCALL_BIT | 318)
+# define __NR_getrandom (SYSCALL_BIT | 278)
 #endif
 #ifndef __NR_memfd_create
-# define __NR_memfd_create (SYSCALL_BIT | 319)
-#endif
-#ifndef __NR_kexec_file_load
-# define __NR_kexec_file_load (SYSCALL_BIT | 320)
+# define __NR_memfd_create (SYSCALL_BIT | 279)
 #endif
 #ifndef __NR_bpf
-# define __NR_bpf (SYSCALL_BIT | 321)
+# define __NR_bpf (SYSCALL_BIT | 280)
 #endif
 #ifndef __NR_execveat
-# define __NR_execveat (SYSCALL_BIT | 322)
+# define __NR_execveat (SYSCALL_BIT | 281)
 #endif
 #ifndef __NR_userfaultfd
-# define __NR_userfaultfd (SYSCALL_BIT | 323)
+# define __NR_userfaultfd (SYSCALL_BIT | 282)
 #endif
 #ifndef __NR_membarrier
-# define __NR_membarrier (SYSCALL_BIT | 324)
+# define __NR_membarrier (SYSCALL_BIT | 283)
 #endif
 #ifndef __NR_mlock2
-# define __NR_mlock2 (SYSCALL_BIT | 325)
+# define __NR_mlock2 (SYSCALL_BIT | 284)
 #endif
 #ifndef __NR_copy_file_range
-# define __NR_copy_file_range (SYSCALL_BIT | 326)
+# define __NR_copy_file_range (SYSCALL_BIT | 285)
 #endif
 #ifndef __NR_preadv2
-# define __NR_preadv2 (SYSCALL_BIT | 327)
+# define __NR_preadv2 (SYSCALL_BIT | 286)
 #endif
 #ifndef __NR_pwritev2
-# define __NR_pwritev2 (SYSCALL_BIT | 328)
+# define __NR_pwritev2 (SYSCALL_BIT | 287)
 #endif
 #ifndef __NR_pkey_mprotect
-# define __NR_pkey_mprotect (SYSCALL_BIT | 329)
+# define __NR_pkey_mprotect (SYSCALL_BIT | 288)
 #endif
 #ifndef __NR_pkey_alloc
-# define __NR_pkey_alloc (SYSCALL_BIT | 330)
+# define __NR_pkey_alloc (SYSCALL_BIT | 289)
 #endif
 #ifndef __NR_pkey_free
-# define __NR_pkey_free (SYSCALL_BIT | 331)
+# define __NR_pkey_free (SYSCALL_BIT | 290)
 #endif
 #ifndef __NR_statx
-# define __NR_statx (SYSCALL_BIT | 332)
+# define __NR_statx (SYSCALL_BIT | 291)
+#endif
+#ifndef __NR_open
+# define __NR_open (SYSCALL_BIT | 1024)
+#endif
+#ifndef __NR_link
+# define __NR_link (SYSCALL_BIT | 1025)
+#endif
+#ifndef __NR_unlink
+# define __NR_unlink (SYSCALL_BIT | 1026)
+#endif
+#ifndef __NR_mknod
+# define __NR_mknod (SYSCALL_BIT | 1027)
+#endif
+#ifndef __NR_chmod
+# define __NR_chmod (SYSCALL_BIT | 1028)
+#endif
+#ifndef __NR_chown
+# define __NR_chown (SYSCALL_BIT | 1029)
+#endif
+#ifndef __NR_mkdir
+# define __NR_mkdir (SYSCALL_BIT | 1030)
+#endif
+#ifndef __NR_rmdir
+# define __NR_rmdir (SYSCALL_BIT | 1031)
+#endif
+#ifndef __NR_lchown
+# define __NR_lchown (SYSCALL_BIT | 1032)
+#endif
+#ifndef __NR_access
+# define __NR_access (SYSCALL_BIT | 1033)
+#endif
+#ifndef __NR_rename
+# define __NR_rename (SYSCALL_BIT | 1034)
+#endif
+#ifndef __NR_readlink
+# define __NR_readlink (SYSCALL_BIT | 1035)
+#endif
+#ifndef __NR_symlink
+# define __NR_symlink (SYSCALL_BIT | 1036)
+#endif
+#ifndef __NR_utimes
+# define __NR_utimes (SYSCALL_BIT | 1037)
+#endif
+#ifndef __NR_stat
+# define __NR_stat (SYSCALL_BIT | 1038)
+#endif
+#ifndef __NR_lstat
+# define __NR_lstat (SYSCALL_BIT | 1039)
+#endif
+#ifndef __NR_pipe
+# define __NR_pipe (SYSCALL_BIT | 1040)
+#endif
+#ifndef __NR_dup2
+# define __NR_dup2 (SYSCALL_BIT | 1041)
+#endif
+#ifndef __NR_epoll_create
+# define __NR_epoll_create (SYSCALL_BIT | 1042)
+#endif
+#ifndef __NR_inotify_init
+# define __NR_inotify_init (SYSCALL_BIT | 1043)
+#endif
+#ifndef __NR_eventfd
+# define __NR_eventfd (SYSCALL_BIT | 1044)
+#endif
+#ifndef __NR_signalfd
+# define __NR_signalfd (SYSCALL_BIT | 1045)
+#endif
+#ifndef __NR_sendfile
+# define __NR_sendfile (SYSCALL_BIT | 1046)
+#endif
+#ifndef __NR_ftruncate
+# define __NR_ftruncate (SYSCALL_BIT | 1047)
+#endif
+#ifndef __NR_truncate
+# define __NR_truncate (SYSCALL_BIT | 1048)
+#endif
+#ifndef __NR_stat
+# define __NR_stat (SYSCALL_BIT | 1049)
+#endif
+#ifndef __NR_lstat
+# define __NR_lstat (SYSCALL_BIT | 1050)
+#endif
+#ifndef __NR_fstat
+# define __NR_fstat (SYSCALL_BIT | 1051)
+#endif
+#ifndef __NR_fcntl
+# define __NR_fcntl (SYSCALL_BIT | 1052)
+#endif
+#ifndef __NR_fadvise64
+# define __NR_fadvise64 (SYSCALL_BIT | 1053)
+#endif
+#ifndef __NR_newfstatat
+# define __NR_newfstatat (SYSCALL_BIT | 1054)
+#endif
+#ifndef __NR_fstatfs
+# define __NR_fstatfs (SYSCALL_BIT | 1055)
+#endif
+#ifndef __NR_statfs
+# define __NR_statfs (SYSCALL_BIT | 1056)
+#endif
+#ifndef __NR_lseek
+# define __NR_lseek (SYSCALL_BIT | 1057)
+#endif
+#ifndef __NR_mmap
+# define __NR_mmap (SYSCALL_BIT | 1058)
+#endif
+#ifndef __NR_alarm
+# define __NR_alarm (SYSCALL_BIT | 1059)
+#endif
+#ifndef __NR_getpgrp
+# define __NR_getpgrp (SYSCALL_BIT | 1060)
+#endif
+#ifndef __NR_pause
+# define __NR_pause (SYSCALL_BIT | 1061)
+#endif
+#ifndef __NR_time
+# define __NR_time (SYSCALL_BIT | 1062)
+#endif
+#ifndef __NR_utime
+# define __NR_utime (SYSCALL_BIT | 1063)
+#endif
+#ifndef __NR_creat
+# define __NR_creat (SYSCALL_BIT | 1064)
+#endif
+#ifndef __NR_getdents
+# define __NR_getdents (SYSCALL_BIT | 1065)
+#endif
+#ifndef __NR_futimesat
+# define __NR_futimesat (SYSCALL_BIT | 1066)
+#endif
+#ifndef __NR_select
+# define __NR_select (SYSCALL_BIT | 1067)
+#endif
+#ifndef __NR_poll
+# define __NR_poll (SYSCALL_BIT | 1068)
+#endif
+#ifndef __NR_epoll_wait
+# define __NR_epoll_wait (SYSCALL_BIT | 1069)
+#endif
+#ifndef __NR_ustat
+# define __NR_ustat (SYSCALL_BIT | 1070)
+#endif
+#ifndef __NR_vfork
+# define __NR_vfork (SYSCALL_BIT | 1071)
+#endif
+#ifndef __NR_wait4
+# define __NR_wait4 (SYSCALL_BIT | 1072)
+#endif
+#ifndef __NR_recv
+# define __NR_recv (SYSCALL_BIT | 1073)
+#endif
+#ifndef __NR_send
+# define __NR_send (SYSCALL_BIT | 1074)
+#endif
+#ifndef __NR_bdflush
+# define __NR_bdflush (SYSCALL_BIT | 1075)
+#endif
+#ifndef __NR_umount
+# define __NR_umount (SYSCALL_BIT | 1076)
+#endif
+#ifndef __NR_uselib
+# define __NR_uselib (SYSCALL_BIT | 1077)
+#endif
+#ifndef __NR_sysctl
+# define __NR_sysctl (SYSCALL_BIT | 1078)
+#endif
+#ifndef __NR_fork
+# define __NR_fork (SYSCALL_BIT | 1079)
 #endif
