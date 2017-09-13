@@ -83,13 +83,15 @@ send_query(const int fd)
 
 	/* whole message length < sizeof(struct nlmsghdr) */
 	rc = sendto(fd, req->magic, sizeof(req->magic), MSG_DONTWAIT, NULL, 0);
-	printf("sendto(%d, \"abcd\", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	printf("sendto(%d, \"\\x61\\x62\\x63\\x64\""
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, (unsigned) sizeof(req->magic), sprintrc(rc));
 
 	/* a single message with some data */
 	rc = sendto(fd, req, sizeof(*req), MSG_DONTWAIT, NULL, 0);
 	printf("sendto(%d, {{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
-	       ", seq=0, pid=0}, \"abcd\"}, %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}"
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, req->nlh.nlmsg_len, NLM_F_DUMP,
 	       (unsigned) sizeof(*req), sprintrc(rc));
 
@@ -105,7 +107,8 @@ send_query(const int fd)
 	req->nlh.nlmsg_len = sizeof(*req) + 8;
 	rc = sendto(fd, req, sizeof(*req), MSG_DONTWAIT, NULL, 0);
 	printf("sendto(%d, {{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
-	       ", seq=0, pid=0}, \"abcd\"}, %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}"
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, req->nlh.nlmsg_len, NLM_F_DUMP,
 	       (unsigned) sizeof(*req), sprintrc(rc));
 
@@ -128,8 +131,9 @@ send_query(const int fd)
 
 	rc = sendto(fd, reqs, sizeof(*reqs), MSG_DONTWAIT, NULL, 0);
 	printf("sendto(%d, [{{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
-	       ", seq=0, pid=0}, \"abcd\"}, {{len=%u, type=NLMSG_NOOP"
-	       ", flags=NLM_F_REQUEST|0x%x, seq=0, pid=0}, \"abcd\"}]"
+	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}"
+	       ", {{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
+	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}]"
 	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, reqs->req1.nlh.nlmsg_len, NLM_F_DUMP,
 	       reqs->req2.nlh.nlmsg_len, NLM_F_DUMP,
@@ -139,8 +143,8 @@ send_query(const int fd)
 	void *const efault2 = tail_memdup(&reqs->req1, sizeof(reqs->req1));
 	rc = sendto(fd, efault2, sizeof(*reqs), MSG_DONTWAIT, NULL, 0);
 	printf("sendto(%d, [{{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
-	       ", seq=0, pid=0}, \"abcd\"}, %p], %u, MSG_DONTWAIT, NULL, 0)"
-	       " = %s\n",
+	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}"
+	       ", %p], %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, reqs->req1.nlh.nlmsg_len, NLM_F_DUMP,
 	       &((struct reqs *) efault2)->req2, (unsigned) sizeof(*reqs),
 	       sprintrc(rc));
@@ -150,20 +154,20 @@ send_query(const int fd)
 		    NULL, 0);
 	errstr = sprintrc(rc);
 	printf("sendto(%d, [{{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
-	       ", seq=0, pid=0}, \"abcd\"}, \"",
+	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}, ",
 	       fd, reqs->req1.nlh.nlmsg_len, NLM_F_DUMP);
-	print_quoted_memory((void *) &reqs->req2.nlh,
-			    sizeof(reqs->req2) - sizeof(req->nlh));
-	printf("\"], %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	print_quoted_hex(&reqs->req2.nlh,
+			 sizeof(reqs->req2) - sizeof(req->nlh));
+	printf("], %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       (unsigned) (sizeof(*reqs) - sizeof(req->nlh)), errstr);
 
 	/* second nlmsg_len < sizeof(struct nlmsghdr) */
 	reqs->req2.nlh.nlmsg_len = 4;
 	rc = sendto(fd, reqs, sizeof(*reqs), MSG_DONTWAIT, NULL, 0);
 	printf("sendto(%d, [{{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
-	       ", seq=0, pid=0}, \"abcd\"}, {len=%u, type=NLMSG_NOOP"
-	       ", flags=NLM_F_REQUEST|0x%x, seq=0, pid=0}], %u"
-	       ", MSG_DONTWAIT, NULL, 0) = %s\n",
+	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}"
+	       ", {len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
+	       ", seq=0, pid=0}], %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, reqs->req1.nlh.nlmsg_len, NLM_F_DUMP,
 	       reqs->req2.nlh.nlmsg_len, NLM_F_DUMP,
 	       (unsigned) sizeof(*reqs), sprintrc(rc));
@@ -223,7 +227,8 @@ test_nlmsgerr(const int fd)
 
 	rc = sendto(fd, nlh, NLMSG_HDRLEN + 2, MSG_DONTWAIT, NULL, 0);
 	printf("sendto(%d, {{len=%u, type=NLMSG_ERROR, flags=NLM_F_REQUEST"
-	       ", seq=0, pid=0}, \"42\"}, %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	       ", seq=0, pid=0}, \"\\x34\\x32\"}"
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, NLMSG_HDRLEN + 2, NLMSG_HDRLEN + 2, sprintrc(rc));
 
 	/* error message with room for the error code only */
@@ -302,8 +307,8 @@ test_nlmsgerr(const int fd)
 	printf("sendto(%d, {{len=%u, type=NLMSG_ERROR, flags=NLM_F_REQUEST"
 	       ", seq=0, pid=0}, {error=-EACCES"
 	       ", msg={{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
-	       ", seq=%u, pid=%u}, \"abcd\"}}}, %u, MSG_DONTWAIT, NULL, 0)"
-	       " = %s\n",
+	       ", seq=%u, pid=%u}, \"\\x61\\x62\\x63\\x64\"}}}"
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, nlh->nlmsg_len, err->msg.nlmsg_len, NLM_F_DUMP,
 	       err->msg.nlmsg_seq, err->msg.nlmsg_pid,
 	       nlh->nlmsg_len, sprintrc(rc));
@@ -339,8 +344,8 @@ test_nlmsg_done(const int fd)
 	memcpy(NLMSG_DATA(nlh), "42", 2);
 
 	rc = sendto(fd, nlh, NLMSG_HDRLEN + 2, MSG_DONTWAIT, NULL, 0);
-	printf("sendto(%d, {{len=%u, type=NLMSG_DONE, flags=NLM_F_MULTI"
-	       ", seq=0, pid=0}, \"42\"}, %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	printf("sendto(%d, {{len=%u, type=NLMSG_DONE, flags=NLM_F_MULTI, seq=0"
+	       ", pid=0}, \"\\x34\\x32\"}, %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, NLMSG_HDRLEN + 2, NLMSG_HDRLEN + 2, sprintrc(rc));
 
 	/* NLMSG_DONE message with enough room for an integer payload */
@@ -358,6 +363,45 @@ test_nlmsg_done(const int fd)
 	       fd, nlh->nlmsg_len, num, nlh->nlmsg_len, sprintrc(rc));
 }
 
+#if defined NLM_F_CAPPED || defined NLM_F_ACK_TLVS
+static void
+test_ack_flags(const int fd)
+{
+	long rc;
+	struct nlmsghdr nlh = {
+		.nlmsg_len = sizeof(nlh),
+		.nlmsg_type = NLMSG_ERROR,
+	};
+
+#ifdef NLM_F_CAPPED
+	nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_CAPPED,
+	rc = sendto(fd, &nlh, sizeof(nlh), MSG_DONTWAIT, NULL, 0);
+	printf("sendto(%d, {len=%u, type=NLMSG_ERROR"
+	       ", flags=NLM_F_REQUEST|NLM_F_CAPPED, seq=0, pid=0}"
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	       fd, nlh.nlmsg_len, (unsigned) sizeof(nlh), sprintrc(rc));
+#endif
+
+#ifdef NLM_F_ACK_TLVS
+	nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK_TLVS;
+	rc = sendto(fd, &nlh, sizeof(nlh), MSG_DONTWAIT, NULL, 0);
+	printf("sendto(%d, {len=%u, type=NLMSG_ERROR"
+	       ", flags=NLM_F_REQUEST|NLM_F_ACK_TLVS, seq=0, pid=0}"
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	       fd, nlh.nlmsg_len, (unsigned) sizeof(nlh), sprintrc(rc));
+#endif
+
+#if defined NLM_F_CAPPED && defined NLM_F_ACK_TLVS
+	nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_CAPPED | NLM_F_ACK_TLVS;
+	rc = sendto(fd, &nlh, sizeof(nlh), MSG_DONTWAIT, NULL, 0);
+	printf("sendto(%d, {len=%u, type=NLMSG_ERROR"
+	       ", flags=NLM_F_REQUEST|NLM_F_CAPPED|NLM_F_ACK_TLVS, seq=0, pid=0}"
+	       ", %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	       fd, nlh.nlmsg_len, (unsigned) sizeof(nlh), sprintrc(rc));
+#endif
+}
+#endif
+
 int main(void)
 {
 	const int fd = create_nl_socket(NETLINK_SOCK_DIAG);
@@ -373,6 +417,9 @@ int main(void)
 	send_query(fd);
 	test_nlmsgerr(fd);
 	test_nlmsg_done(fd);
+#if defined NLM_F_CAPPED || defined NLM_F_ACK_TLVS
+	test_ack_flags(fd);
+#endif
 
 	puts("+++ exited with 0 +++");
 	return 0;

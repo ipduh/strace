@@ -52,6 +52,7 @@ typedef struct btrfs_ioctl_vol_args_v2
 
 #ifdef HAVE_LINUX_BTRFS_H
 
+#include "print_fields.h"
 #include <linux/fs.h>
 
 /*
@@ -646,10 +647,9 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		if (valid)
 			tprintf("uuid=%s, ", uuid);
 		tprintf("bytes_used=%" PRI__u64
-			", total_bytes=%" PRI__u64 ", path=",
+			", total_bytes=%" PRI__u64,
 			args.bytes_used, args.total_bytes);
-		print_quoted_string((const char *)args.path, sizeof(args.path),
-				    QUOTE_0_TERMINATED);
+		PRINT_FIELD_CSTRING(", ", args, path);
 		tprints("}");
 		break;
 	}
@@ -680,14 +680,12 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 				   (uint64_t) args.start.cont_reading_from_srcdev_mode);
 
 				str = (const char *) args.start.srcdev_name;
-				print_quoted_string(str,
-						sizeof(args.start.srcdev_name),
-						QUOTE_0_TERMINATED);
+				print_quoted_cstring(str,
+						sizeof(args.start.srcdev_name));
 				tprints(", tgtdev_name=");
 				str = (const char *) args.start.tgtdev_name;
-				print_quoted_string(str,
-						sizeof(args.start.tgtdev_name),
-						QUOTE_0_TERMINATED);
+				print_quoted_cstring(str,
+						sizeof(args.start.tgtdev_name));
 				tprints("}");
 
 			}
@@ -901,9 +899,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 			tprints(", ");
 		}
 
-		tprints("name=");
-		print_quoted_string(args.name, sizeof(args.name),
-				    QUOTE_0_TERMINATED);
+		PRINT_FIELD_CSTRING("", args, name);
 		tprints("}");
 		break;
 	}
@@ -1279,9 +1275,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 
 		tprints("{fd=");
 		printfd(tcp, args.fd);
-		tprints(", name=");
-		print_quoted_string(args.name, sizeof(args.name),
-				    QUOTE_0_TERMINATED);
+		PRINT_FIELD_CSTRING(", ", args, name);
 		tprints("}");
 		break;
 	}
@@ -1313,9 +1307,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 				btrfs_print_qgroup_inherit(tcp,
 					ptr_to_kulong(args.qgroup_inherit));
 			}
-			tprints(", name=");
-			print_quoted_string(args.name, sizeof(args.name),
-					    QUOTE_0_TERMINATED);
+			PRINT_FIELD_CSTRING(", ", args, name);
 			tprints("}");
 			return 0;
 		}
@@ -1333,7 +1325,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		tprints(", ");
 		if (umove_or_printaddr(tcp, arg, &label))
 			break;
-		print_quoted_string(label, sizeof(label), QUOTE_0_TERMINATED);
+		print_quoted_cstring(label, sizeof(label));
 		break;
 	}
 
@@ -1353,6 +1345,6 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 	default:
 		return RVAL_DECODED;
 	};
-	return RVAL_DECODED | 1;
+	return RVAL_IOCTL_DECODED;
 }
 #endif /* HAVE_LINUX_BTRFS_H */

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,11 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "defs.h"
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
-static void die_out_of_memory(void)
+#include <stdlib.h>
+#include <string.h>
+
+#include "error_prints.h"
+#include "xmalloc.h"
+
+static void
+die_out_of_memory(void)
 {
-	static bool recursed;
+	static int recursed;
 
 	if (recursed)
 		exit(1);
@@ -38,7 +48,8 @@ static void die_out_of_memory(void)
 	error_msg_and_die("Out of memory");
 }
 
-void *xmalloc(size_t size)
+void *
+xmalloc(size_t size)
 {
 	void *p = malloc(size);
 
@@ -48,7 +59,8 @@ void *xmalloc(size_t size)
 	return p;
 }
 
-void *xcalloc(size_t nmemb, size_t size)
+void *
+xcalloc(size_t nmemb, size_t size)
 {
 	void *p = calloc(nmemb, size);
 
@@ -60,7 +72,8 @@ void *xcalloc(size_t nmemb, size_t size)
 
 #define HALF_SIZE_T	(((size_t) 1) << (sizeof(size_t) * 4))
 
-void *xreallocarray(void *ptr, size_t nmemb, size_t size)
+void *
+xreallocarray(void *ptr, size_t nmemb, size_t size)
 {
 	size_t bytes = nmemb * size;
 
@@ -76,8 +89,12 @@ void *xreallocarray(void *ptr, size_t nmemb, size_t size)
 	return p;
 }
 
-char *xstrdup(const char *str)
+char *
+xstrdup(const char *str)
 {
+	if (!str)
+		return NULL;
+
 	char *p = strdup(str);
 
 	if (!p)
@@ -86,9 +103,13 @@ char *xstrdup(const char *str)
 	return p;
 }
 
-char *xstrndup(const char *str, size_t n)
+char *
+xstrndup(const char *str, size_t n)
 {
 	char *p;
+
+	if (!str)
+		return NULL;
 
 #ifdef HAVE_STRNDUP
 	p = strndup(str, n);

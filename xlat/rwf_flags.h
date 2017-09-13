@@ -8,6 +8,9 @@
 #if !(defined(RWF_SYNC) || (defined(HAVE_DECL_RWF_SYNC) && HAVE_DECL_RWF_SYNC))
 # define RWF_SYNC 4
 #endif
+#if !(defined(RWF_NOWAIT) || (defined(HAVE_DECL_RWF_NOWAIT) && HAVE_DECL_RWF_NOWAIT))
+# define RWF_NOWAIT 8
+#endif
 
 #ifdef IN_MPERS
 
@@ -20,6 +23,7 @@ const struct xlat rwf_flags[] = {
  XLAT(RWF_HIPRI),
  XLAT(RWF_DSYNC),
  XLAT(RWF_SYNC),
+ XLAT(RWF_NOWAIT),
  XLAT_END
 };
 

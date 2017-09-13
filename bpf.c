@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2017 Quentin Monnet <quentin.monnet@6wind.com>
  * All rights reserved.
  *
@@ -27,6 +27,7 @@
  */
 
 #include "defs.h"
+#include "print_fields.h"
 
 #ifdef HAVE_LINUX_BPF_H
 # include <linux/bpf.h>
@@ -34,39 +35,101 @@
 
 #include "xlat/bpf_commands.h"
 #include "xlat/bpf_map_types.h"
+#include "xlat/bpf_map_flags.h"
 #include "xlat/bpf_prog_types.h"
+#include "xlat/bpf_prog_flags.h"
 #include "xlat/bpf_map_update_elem_flags.h"
 #include "xlat/bpf_attach_type.h"
 #include "xlat/bpf_attach_flags.h"
 
+#define DECL_BPF_CMD_DECODER(bpf_cmd_decoder)				\
+int									\
+bpf_cmd_decoder(struct tcb *const tcp,					\
+		const kernel_ulong_t addr,				\
+		const unsigned int size,				\
+		void *const data)					\
+/* End of DECL_BPF_CMD_DECODER definition. */
+
+#define DEF_BPF_CMD_DECODER(bpf_cmd)					\
+	static DECL_BPF_CMD_DECODER(decode_ ## bpf_cmd)
+
+#define BPF_CMD_ENTRY(bpf_cmd)						\
+	[bpf_cmd] = decode_ ## bpf_cmd
+
+typedef DECL_BPF_CMD_DECODER((*bpf_cmd_decoder_t));
+
 static int
-bpf_map_create(struct tcb *const tcp, const kernel_ulong_t addr,
-	       unsigned int size)
+decode_attr_extra_data(struct tcb *const tcp,
+		       const char *data,
+		       unsigned int size,
+		       const size_t attr_size)
+{
+	if (size <= attr_size)
+		return 0;
+
+	data += attr_size;
+	size -= attr_size;
+
+	unsigned int i;
+	for (i = 0; i < size; ++i) {
+		if (data[i]) {
+			tprints(", ");
+			if (abbrev(tcp))
+				tprints("...");
+			else
+				print_quoted_string(data, size,
+						    QUOTE_FORCE_HEX);
+			return RVAL_DECODED;
+		}
+	}
+
+	return 0;
+}
+
+DEF_BPF_CMD_DECODER(BPF_MAP_CREATE)
 {
 	struct {
-		uint32_t map_type, key_size, value_size, max_entries;
+		uint32_t map_type, key_size, value_size, max_entries,
+			 map_flags, inner_map_fd;
 	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
 
-	if (!size) {
-		printaddr(addr);
-		return RVAL_DECODED | RVAL_FD;
-	}
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return RVAL_DECODED | RVAL_FD;
+	memcpy(&attr, data, len);
 
-	tprints("{map_type=");
-	printxval(bpf_map_types, attr.map_type, "BPF_MAP_TYPE_???");
-	tprintf(", key_size=%u, value_size=%u, max_entries=%u}",
-		attr.key_size, attr.value_size, attr.max_entries);
+	PRINT_FIELD_XVAL("{", attr, map_type, bpf_map_types,
+			 "BPF_MAP_TYPE_???");
+	PRINT_FIELD_U(", ", attr, key_size);
+	PRINT_FIELD_U(", ", attr, value_size);
+	PRINT_FIELD_U(", ", attr, max_entries);
+	PRINT_FIELD_FLAGS(", ", attr, map_flags, bpf_map_flags, "BPF_F_???");
+	PRINT_FIELD_FD(", ", attr, inner_map_fd, tcp);
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
 
 	return RVAL_DECODED | RVAL_FD;
 }
 
-static void
-bpf_map_update_elem(struct tcb *const tcp, const kernel_ulong_t addr,
-		    unsigned int size)
+DEF_BPF_CMD_DECODER(BPF_MAP_LOOKUP_ELEM)
+{
+	struct bpf_io_elem_struct {
+		uint32_t map_fd;
+		uint64_t ATTRIBUTE_ALIGNED(8) key, value;
+	} attr = {};
+
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_FD("{", attr, map_fd, tcp);
+	PRINT_FIELD_X(", ", attr, key);
+	PRINT_FIELD_X(", ", attr, value);
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
+}
+
+DEF_BPF_CMD_DECODER(BPF_MAP_UPDATE_ELEM)
 {
 	struct {
 		uint32_t map_fd;
@@ -74,233 +137,192 @@ bpf_map_update_elem(struct tcb *const tcp, const kernel_ulong_t addr,
 		uint64_t ATTRIBUTE_ALIGNED(8) value;
 		uint64_t flags;
 	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
 
-	if (!size) {
-		printaddr(addr);
-		return;
-	}
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return;
+	memcpy(&attr, data, len);
 
-	tprints("{map_fd=");
-	printfd(tcp, attr.map_fd);
-	tprintf(", key=%#" PRIx64 ", value=%#" PRIx64 ", flags=",
-		attr.key, attr.value);
-	printxval64(bpf_map_update_elem_flags, attr.flags, "BPF_???");
-	tprints("}");
-}
-
-static void
-bpf_map_delete_elem(struct tcb *const tcp, const kernel_ulong_t addr,
-		    unsigned int size)
-{
-	struct {
-		uint32_t map_fd;
-		uint64_t ATTRIBUTE_ALIGNED(8) key;
-	} attr = {};
-
-	if (!size) {
-		printaddr(addr);
-		return;
-	}
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return;
-
-	tprints("{map_fd=");
-	printfd(tcp, attr.map_fd);
-	tprintf(", key=%#" PRIx64 "}", attr.key);
-}
-
-static int
-bpf_map_io(struct tcb *const tcp, const kernel_ulong_t addr, unsigned int size,
-	   const char *const text)
-{
-	struct bpf_io_elem_struct {
-		uint32_t map_fd;
-		uint64_t ATTRIBUTE_ALIGNED(8) key;
-		uint64_t ATTRIBUTE_ALIGNED(8) value;
-	} attr = {};
-
-	if (exiting(tcp)) {
-		if (!syserror(tcp) && !umove_or_printaddr(tcp, addr, &attr))
-			tprintf(", %s=%#" PRIx64, text, attr.value);
-		tprints("}");
-		return RVAL_DECODED;
-	}
-
-	if (!size) {
-		printaddr(addr);
-		return RVAL_DECODED;
-	}
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return RVAL_DECODED;
-
-	tprints("{map_fd=");
-	printfd(tcp, attr.map_fd);
-	tprintf(", key=%#" PRIx64, attr.key);
-
-	return 0;
-}
-
-static int
-bpf_prog_load(struct tcb *const tcp, const kernel_ulong_t addr,
-	      unsigned int size)
-{
-	struct {
-		uint32_t prog_type, insn_cnt;
-		uint64_t ATTRIBUTE_ALIGNED(8) insns, license;
-		uint32_t log_level, log_size;
-		uint64_t ATTRIBUTE_ALIGNED(8) log_buf;
-		uint32_t kern_version;
-	} attr = {};
-
-	if (!size) {
-		printaddr(addr);
-		return RVAL_DECODED | RVAL_FD;
-	}
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return RVAL_DECODED | RVAL_FD;
-
-	tprints("{prog_type=");
-	printxval(bpf_prog_types, attr.prog_type, "BPF_PROG_TYPE_???");
-	tprintf(", insn_cnt=%u, insns=%#" PRIx64 ", license=",
-		attr.insn_cnt, attr.insns);
-	printstr(tcp, attr.license);
-	tprintf(", log_level=%u, log_size=%u, log_buf=%#" PRIx64 ", kern_version=%u}",
-		attr.log_level, attr.log_size, attr.log_buf, attr.kern_version);
-
-	return RVAL_DECODED | RVAL_FD;
-}
-
-static int
-bpf_obj_manage(struct tcb *const tcp, const kernel_ulong_t addr,
-	       unsigned int size)
-{
-	struct {
-		uint64_t ATTRIBUTE_ALIGNED(8) pathname;
-		uint32_t bpf_fd;
-	} attr = {};
-
-	if (!size) {
-		printaddr(addr);
-		return RVAL_DECODED | RVAL_FD;
-	}
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return RVAL_DECODED | RVAL_FD;
-
-	tprints("{pathname=");
-	printpath(tcp, attr.pathname);
-	tprints(", bpf_fd=");
-	printfd(tcp, attr.bpf_fd);
-	tprints("}");
-
-	return RVAL_DECODED | RVAL_FD;
-}
-
-static int
-bpf_prog_attach_detach(struct tcb *const tcp, const kernel_ulong_t addr,
-		       unsigned int size, bool print_attach)
-{
-	struct {
-		uint32_t target_fd, attach_bpf_fd, attach_type, attach_flags;
-	} attr = {};
-
-	if (!size) {
-		printaddr(addr);
-		return RVAL_DECODED;
-	}
-	if (size > sizeof(attr))
-		size = sizeof(attr);
-	if (umoven_or_printaddr(tcp, addr, size, &attr))
-		return RVAL_DECODED;
-
-	tprints("{target_fd=");
-	printfd(tcp, attr.target_fd);
-	if (print_attach) {
-		tprints(", attach_bpf_fd=");
-		printfd(tcp, attr.attach_bpf_fd);
-	}
-	tprints(", attach_type=");
-	printxval(bpf_attach_type, attr.attach_type, "BPF_???");
-	if (print_attach) {
-		tprints(", attach_flags=");
-		printflags(bpf_attach_flags, attr.attach_flags, "BPF_F_???");
-	}
+	PRINT_FIELD_FD("{", attr, map_fd, tcp);
+	PRINT_FIELD_X(", ", attr, key);
+	PRINT_FIELD_X(", ", attr, value);
+	PRINT_FIELD_XVAL(", ", attr, flags, bpf_map_update_elem_flags,
+			 "BPF_???");
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
 	tprints("}");
 
 	return RVAL_DECODED;
 }
 
-static int
-bpf_prog_attach(struct tcb *const tcp, const kernel_ulong_t addr,
-		unsigned int size)
+DEF_BPF_CMD_DECODER(BPF_MAP_DELETE_ELEM)
 {
-	return bpf_prog_attach_detach(tcp, addr, size, true);
+	struct {
+		uint32_t map_fd;
+		uint64_t ATTRIBUTE_ALIGNED(8) key;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_FD("{", attr, map_fd, tcp);
+	PRINT_FIELD_X(", ", attr, key);
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
 }
 
-static int
-bpf_prog_detach(struct tcb *const tcp, const kernel_ulong_t addr,
-		unsigned int size)
+DEF_BPF_CMD_DECODER(BPF_MAP_GET_NEXT_KEY)
 {
-	return bpf_prog_attach_detach(tcp, addr, size, false);
+	struct bpf_io_elem_struct {
+		uint32_t map_fd;
+		uint64_t ATTRIBUTE_ALIGNED(8) key, next_key;
+	} attr = {};
+
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_FD("{", attr, map_fd, tcp);
+	PRINT_FIELD_X(", ", attr, key);
+	PRINT_FIELD_X(", ", attr, next_key);
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
+}
+
+DEF_BPF_CMD_DECODER(BPF_PROG_LOAD)
+{
+	struct bpf_prog_load {
+		uint32_t prog_type, insn_cnt;
+		uint64_t ATTRIBUTE_ALIGNED(8) insns, license;
+		uint32_t log_level, log_size;
+		uint64_t ATTRIBUTE_ALIGNED(8) log_buf;
+		uint32_t kern_version, prog_flags;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_XVAL("{", attr, prog_type, bpf_prog_types,
+			 "BPF_PROG_TYPE_???");
+	PRINT_FIELD_U(", ", attr, insn_cnt);
+	PRINT_FIELD_X(", ", attr, insns);
+	PRINT_FIELD_STR(", ", attr, license, tcp);
+	PRINT_FIELD_U(", ", attr, log_level);
+	PRINT_FIELD_U(", ", attr, log_size);
+	PRINT_FIELD_X(", ", attr, log_buf);
+	PRINT_FIELD_U(", ", attr, kern_version);
+	PRINT_FIELD_FLAGS(", ", attr, prog_flags, bpf_prog_flags, "BPF_F_???");
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED | RVAL_FD;
+}
+
+DEF_BPF_CMD_DECODER(BPF_OBJ_PIN)
+{
+	struct bpf_obj {
+		uint64_t ATTRIBUTE_ALIGNED(8) pathname;
+		uint32_t bpf_fd;
+	} attr = {};
+	const size_t attr_size =
+		offsetofend(struct bpf_obj, bpf_fd);
+	const unsigned int len = size < attr_size ? size : attr_size;
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_PATH("{", attr, pathname, tcp);
+	PRINT_FIELD_FD(", ", attr, bpf_fd, tcp);
+	decode_attr_extra_data(tcp, data, size, attr_size);
+	tprints("}");
+
+	return RVAL_DECODED | RVAL_FD;
+}
+
+#define decode_BPF_OBJ_GET decode_BPF_OBJ_PIN
+
+DEF_BPF_CMD_DECODER(BPF_PROG_ATTACH)
+{
+	struct {
+		uint32_t target_fd, attach_bpf_fd, attach_type, attach_flags;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_FD("{", attr, target_fd, tcp);
+	PRINT_FIELD_FD(", ", attr, attach_bpf_fd, tcp);
+	PRINT_FIELD_XVAL(", ", attr, attach_type, bpf_attach_type, "BPF_???");
+	PRINT_FIELD_FLAGS(", ", attr, attach_flags, bpf_attach_flags,
+			  "BPF_F_???");
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
+}
+
+DEF_BPF_CMD_DECODER(BPF_PROG_DETACH)
+{
+	struct {
+		uint32_t target_fd, dummy, attach_type;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_FD("{", attr, target_fd, tcp);
+	PRINT_FIELD_XVAL(", ", attr, attach_type, bpf_attach_type, "BPF_???");
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
 }
 
 SYS_FUNC(bpf)
 {
+	static const bpf_cmd_decoder_t bpf_cmd_decoders[] = {
+		BPF_CMD_ENTRY(BPF_MAP_CREATE),
+		BPF_CMD_ENTRY(BPF_MAP_LOOKUP_ELEM),
+		BPF_CMD_ENTRY(BPF_MAP_UPDATE_ELEM),
+		BPF_CMD_ENTRY(BPF_MAP_DELETE_ELEM),
+		BPF_CMD_ENTRY(BPF_MAP_GET_NEXT_KEY),
+		BPF_CMD_ENTRY(BPF_PROG_LOAD),
+		BPF_CMD_ENTRY(BPF_OBJ_PIN),
+		BPF_CMD_ENTRY(BPF_OBJ_GET),
+		BPF_CMD_ENTRY(BPF_PROG_ATTACH),
+		BPF_CMD_ENTRY(BPF_PROG_DETACH),
+	};
+
 	const unsigned int cmd = tcp->u_arg[0];
 	const kernel_ulong_t addr = tcp->u_arg[1];
 	const unsigned int size = tcp->u_arg[2];
-	int rc = RVAL_DECODED;
+	int rc;
 
 	if (entering(tcp)) {
+		static size_t page_size;
+		static char *buf;
+
+		if (!buf) {
+			page_size = get_pagesize();
+			buf = xmalloc(page_size);
+		}
+
 		printxval(bpf_commands, cmd, "BPF_???");
 		tprints(", ");
-	}
 
-	switch (cmd) {
-	case BPF_MAP_CREATE:
-		rc = bpf_map_create(tcp, addr, size);
-		break;
-	case BPF_MAP_LOOKUP_ELEM:
-		rc = bpf_map_io(tcp, addr, size, "value");
-		break;
-	case BPF_MAP_UPDATE_ELEM:
-		bpf_map_update_elem(tcp, addr, size);
-		break;
-	case BPF_MAP_DELETE_ELEM:
-		bpf_map_delete_elem(tcp, addr, size);
-		break;
-	case BPF_MAP_GET_NEXT_KEY:
-		rc = bpf_map_io(tcp, addr, size, "next_key");
-		break;
-	case BPF_PROG_LOAD:
-		rc = bpf_prog_load(tcp, addr, size);
-		break;
-	case BPF_OBJ_PIN:
-		rc = bpf_obj_manage(tcp, addr, size);
-		break;
-	case BPF_OBJ_GET:
-		rc = bpf_obj_manage(tcp, addr, size);
-		break;
-	case BPF_PROG_ATTACH:
-		rc = bpf_prog_attach(tcp, addr, size);
-		break;
-	case BPF_PROG_DETACH:
-		rc = bpf_prog_detach(tcp, addr, size);
-		break;
-	default:
-		printaddr(addr);
-		break;
+		if (size > 0
+		    && size <= get_pagesize()
+		    && cmd < ARRAY_SIZE(bpf_cmd_decoders)
+		    && bpf_cmd_decoders[cmd]) {
+			rc = umoven_or_printaddr(tcp, addr, size, buf)
+			     ? RVAL_DECODED
+			     : bpf_cmd_decoders[cmd](tcp, addr, size, buf);
+		} else {
+			printaddr(addr);
+			rc = RVAL_DECODED;
+		}
+	} else {
+		rc = bpf_cmd_decoders[cmd](tcp, addr, size, NULL) | RVAL_DECODED;
 	}
 
 	if (rc & RVAL_DECODED)

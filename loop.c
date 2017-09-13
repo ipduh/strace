@@ -36,6 +36,7 @@ typedef struct loop_info struct_loop_info;
 
 #include MPERS_DEFS
 
+#include "print_fields.h"
 #include "xlat/loop_cmds.h"
 #include "xlat/loop_flags_options.h"
 #include "xlat/loop_crypt_type_options.h"
@@ -52,11 +53,9 @@ decode_loop_info(struct tcb *const tcp, const kernel_ulong_t addr)
 	tprintf("{lo_number=%d", info.lo_number);
 
 	if (!abbrev(tcp)) {
-		tprints(", lo_device=");
-		print_dev_t(info.lo_device);
+		PRINT_FIELD_DEV(", ", info, lo_device);
 		tprintf(", lo_inode=%" PRI_klu, (kernel_ulong_t) info.lo_inode);
-		tprints(", lo_rdevice=");
-		print_dev_t(info.lo_rdevice);
+		PRINT_FIELD_DEV(", ", info, lo_rdevice);
 	}
 
 	tprintf(", lo_offset=%#x", info.lo_offset);
@@ -76,15 +75,13 @@ decode_loop_info(struct tcb *const tcp, const kernel_ulong_t addr)
 	tprints(", lo_flags=");
 	printflags(loop_flags_options, info.lo_flags, "LO_FLAGS_???");
 
-	tprints(", lo_name=");
-	print_quoted_string(info.lo_name, LO_NAME_SIZE,
-			    QUOTE_0_TERMINATED);
+	PRINT_FIELD_CSTRING(", ", info, lo_name);
 
 	if (!abbrev(tcp) || info.lo_encrypt_type != LO_CRYPT_NONE) {
-		tprints(", lo_encrypt_key=");
-		print_quoted_string((void *) info.lo_encrypt_key,
-				    MIN((uint32_t) info.lo_encrypt_key_size,
-				    LO_KEY_SIZE), 0);
+		const unsigned int lo_encrypt_key_size =
+			MIN((unsigned) info.lo_encrypt_key_size, LO_KEY_SIZE);
+		PRINT_FIELD_STRING(", ", info, lo_encrypt_key,
+					  lo_encrypt_key_size, 0);
 	}
 
 	if (!abbrev(tcp))
@@ -108,11 +105,9 @@ decode_loop_info64(struct tcb *const tcp, const kernel_ulong_t addr)
 		return;
 
 	if (!abbrev(tcp)) {
-		tprints("{lo_device=");
-		print_dev_t(info64.lo_device);
+		PRINT_FIELD_DEV("{", info64, lo_device);
 		tprintf(", lo_inode=%" PRIu64, (uint64_t) info64.lo_inode);
-		tprints(", lo_rdevice=");
-		print_dev_t(info64.lo_rdevice);
+		PRINT_FIELD_DEV(", ", info64, lo_rdevice);
 		tprintf(", lo_offset=%#" PRIx64 ", lo_sizelimit=%" PRIu64
 			", lo_number=%" PRIu32,
 			(uint64_t) info64.lo_offset,
@@ -135,18 +130,14 @@ decode_loop_info64(struct tcb *const tcp, const kernel_ulong_t addr)
 	tprints(", lo_flags=");
 	printflags(loop_flags_options, info64.lo_flags, "LO_FLAGS_???");
 
-	tprints(", lo_file_name=");
-	print_quoted_string((void *) info64.lo_file_name,
-			    LO_NAME_SIZE, QUOTE_0_TERMINATED);
+	PRINT_FIELD_CSTRING(", ", info64, lo_file_name);
 
 	if (!abbrev(tcp) || info64.lo_encrypt_type != LO_CRYPT_NONE) {
-		tprints(", lo_crypt_name=");
-		print_quoted_string((void *) info64.lo_crypt_name,
-				    LO_NAME_SIZE, QUOTE_0_TERMINATED);
-		tprints(", lo_encrypt_key=");
-		print_quoted_string((void *) info64.lo_encrypt_key,
-				    MIN(info64.lo_encrypt_key_size,
-				    LO_KEY_SIZE), 0);
+		PRINT_FIELD_CSTRING(", ", info64, lo_crypt_name);
+		const unsigned int lo_encrypt_key_size =
+			MIN((unsigned) info64.lo_encrypt_key_size, LO_KEY_SIZE);
+		PRINT_FIELD_STRING(", ", info64, lo_encrypt_key,
+					  lo_encrypt_key_size, 0);
 	}
 
 	if (!abbrev(tcp))
@@ -205,5 +196,5 @@ MPERS_PRINTER_DECL(int, loop_ioctl,
 		return RVAL_DECODED;
 	}
 
-	return RVAL_DECODED | 1;
+	return RVAL_IOCTL_DECODED;
 }

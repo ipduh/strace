@@ -1,5 +1,5 @@
 # ===========================================================================
-#     http://www.gnu.org/software/autoconf-archive/ax_valgrind_check.html
+#    https://www.gnu.org/software/autoconf-archive/ax_valgrind_check.html
 # ===========================================================================
 #
 # SYNOPSIS
@@ -61,13 +61,14 @@
 # LICENSE
 #
 #   Copyright (c) 2014, 2015, 2016 Philip Withnall <philip.withnall@collabora.co.uk>
+#   Copyright (c) 2016-2017 The strace developers.
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
 #   and this notice are preserved.  This file is offered as-is, without any
 #   warranty.
 
-#serial 13
+#serial 15
 #modified for strace project
 
 dnl Configured tools
@@ -102,6 +103,7 @@ AC_DEFUN([AX_VALGRIND_CHECK],[
 
 	AM_CONDITIONAL([VALGRIND_ENABLED],[test "$enable_valgrind" = "yes"])
 	AC_SUBST([VALGRIND_ENABLED],[$enable_valgrind])
+	AM_EXTRA_RECURSIVE_TARGETS([check-valgrind])
 
 	# Check for Valgrind tools we care about.
 	[valgrind_enabled_tools=]
@@ -140,6 +142,7 @@ m4_if(m4_defn([en_dflt_valgrind_]vgtool), [off], [= "yes"], [!= "no"]),[
 			valgrind_enabled_tools="$valgrind_enabled_tools ]m4_bpatsubst(vgtool,[^exp-])["
 		])
 		AC_SUBST([ENABLE_VALGRIND_]vgtool,[$enable_valgrind_]vgtool)
+		AM_EXTRA_RECURSIVE_TARGETS([check-valgrind-]vgtool)
 	])
 	AC_SUBST([valgrind_tools],["]m4_join([ ], valgrind_tool_list)["])
 	AC_SUBST([valgrind_enabled_tools],[$valgrind_enabled_tools])
@@ -188,9 +191,8 @@ endif
 # Use recursive makes in order to ignore errors during check
 check-valgrind:
 ifeq ($(VALGRIND_ENABLED),yes)
-	-$(A''M_V_at)$(foreach tool,$(valgrind_enabled_tools), \
-		$(MAKE) $(AM_MAKEFLAGS) -k check-valgrind-$(tool); \
-	)
+	$(A''M_V_at)$(MAKE) $(AM_MAKEFLAGS) -k \
+		$(foreach tool, $(valgrind_enabled_tools), check-valgrind-$(tool))
 else
 	@echo "Need to reconfigure with --enable-valgrind"
 endif
@@ -206,7 +208,7 @@ VALGRIND_LOG_COMPILER = \
 	$(valgrind_lt) \
 	$(VALGRIND) $(VALGRIND_SUPPRESSIONS) --error-exitcode=1 $(VALGRIND_FLAGS)
 
-define valgrind_tool_rule =
+define valgrind_tool_rule
 check-valgrind-$(1): $$(BUILT_SOURCES)
 ifeq ($$(VALGRIND_ENABLED)-$$(ENABLE_VALGRIND_$(1)),yes-yes)
 	$$(valgrind_v_use)$$(MAKE) $$(AM_MAKEFLAGS) check-am \
