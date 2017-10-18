@@ -298,6 +298,4 @@ cc_binary {
 
     name: "strace",
 
-    tags: ["debug"],
-
 }
