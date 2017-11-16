@@ -24,6 +24,7 @@ const struct xlat inet_diag_extended_flags[] = {
  XLAT(1<<(INET_DIAG_PAD-1)),
  XLAT(1<<(INET_DIAG_MARK-1)),
  XLAT(1<<(INET_DIAG_BBRINFO-1)),
+ XLAT(1<<(INET_DIAG_CLASS_ID-1)),
  XLAT_END
 };
 

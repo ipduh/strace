@@ -104,6 +104,9 @@
 #if !(defined(SOL_KCM) || (defined(HAVE_DECL_SOL_KCM) && HAVE_DECL_SOL_KCM))
 # define SOL_KCM 281
 #endif
+#if !(defined(SOL_TLS) || (defined(HAVE_DECL_SOL_TLS) && HAVE_DECL_SOL_TLS))
+# define SOL_TLS 282
+#endif
 
 #ifndef IN_MPERS
 
@@ -143,6 +146,7 @@ const struct xlat socketlayers[] = {
  XLAT(SOL_ALG),
  XLAT(SOL_NFC),
  XLAT(SOL_KCM),
+ XLAT(SOL_TLS),
  XLAT_END
 };
 

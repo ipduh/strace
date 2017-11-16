@@ -122,6 +122,7 @@ ipc_msgbuf
 ipc_sem
 ipc_shm
 kcmp
+kcmp-y
 kexec_file_load
 kexec_load
 keyctl
@@ -179,6 +180,17 @@ netlink_selinux
 netlink_sock_diag
 netlink_xfrm
 newfstatat
+nfnetlink_acct
+nfnetlink_cthelper
+nfnetlink_ctnetlink
+nfnetlink_ctnetlink_exp
+nfnetlink_cttimeout
+nfnetlink_nft_compat
+nfnetlink_nftables
+nfnetlink_ipset
+nfnetlink_osf
+nfnetlink_queue
+nfnetlink_ulog
 nlattr
 nlattr_crypto_user_alg
 nlattr_br_port_msg
@@ -193,6 +205,8 @@ nlattr_ifla_xdp
 nlattr_inet_diag_msg
 nlattr_inet_diag_req_compat
 nlattr_inet_diag_req_v2
+nlattr_mdba_mdb_entry
+nlattr_mdba_router_port
 nlattr_ndmsg
 nlattr_ndtmsg
 nlattr_netconfmsg
@@ -202,6 +216,8 @@ nlattr_packet_diag_msg
 nlattr_rtgenmsg
 nlattr_rtmsg
 nlattr_smc_diag_msg
+nlattr_tc_stats
+nlattr_tca_stab
 nlattr_tcamsg
 nlattr_tcmsg
 nlattr_unix_diag_msg
@@ -282,6 +298,7 @@ sched_xetparam
 sched_xetscheduler
 sched_yield
 seccomp-filter
+seccomp_get_action_avail
 select
 semop
 sendfile

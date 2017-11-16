@@ -75,6 +75,9 @@ const struct xlat ethernet_protocols[] = {
 #if defined(ETH_P_8021Q) || (defined(HAVE_DECL_ETH_P_8021Q) && HAVE_DECL_ETH_P_8021Q)
   XLAT(ETH_P_8021Q),
 #endif
+#if defined(ETH_P_ERSPAN) || (defined(HAVE_DECL_ETH_P_ERSPAN) && HAVE_DECL_ETH_P_ERSPAN)
+  XLAT(ETH_P_ERSPAN),
+#endif
 #if defined(ETH_P_IPX) || (defined(HAVE_DECL_ETH_P_IPX) && HAVE_DECL_ETH_P_IPX)
   XLAT(ETH_P_IPX),
 #endif
@@ -159,6 +162,9 @@ const struct xlat ethernet_protocols[] = {
 #if defined(ETH_P_HSR) || (defined(HAVE_DECL_ETH_P_HSR) && HAVE_DECL_ETH_P_HSR)
   XLAT(ETH_P_HSR),
 #endif
+#if defined(ETH_P_NSH) || (defined(HAVE_DECL_ETH_P_NSH) && HAVE_DECL_ETH_P_NSH)
+  XLAT(ETH_P_NSH),
+#endif
 #if defined(ETH_P_LOOPBACK) || (defined(HAVE_DECL_ETH_P_LOOPBACK) && HAVE_DECL_ETH_P_LOOPBACK)
   XLAT(ETH_P_LOOPBACK),
 #endif
@@ -173,6 +179,9 @@ const struct xlat ethernet_protocols[] = {
 #endif
 #if defined(ETH_P_EDSA) || (defined(HAVE_DECL_ETH_P_EDSA) && HAVE_DECL_ETH_P_EDSA)
   XLAT(ETH_P_EDSA),
+#endif
+#if defined(ETH_P_IFE) || (defined(HAVE_DECL_ETH_P_IFE) && HAVE_DECL_ETH_P_IFE)
+  XLAT(ETH_P_IFE),
 #endif
 #if defined(ETH_P_AF_IUCV) || (defined(HAVE_DECL_ETH_P_AF_IUCV) && HAVE_DECL_ETH_P_AF_IUCV)
   XLAT(ETH_P_AF_IUCV),
@@ -254,6 +263,9 @@ const struct xlat ethernet_protocols[] = {
 #endif
 #if defined(ETH_P_XDSA) || (defined(HAVE_DECL_ETH_P_XDSA) && HAVE_DECL_ETH_P_XDSA)
   XLAT(ETH_P_XDSA),
+#endif
+#if defined(ETH_P_MAP) || (defined(HAVE_DECL_ETH_P_MAP) && HAVE_DECL_ETH_P_MAP)
+  XLAT(ETH_P_MAP),
 #endif
  XLAT_END
 };

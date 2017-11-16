@@ -20,6 +20,9 @@
 #if !(defined(KCMP_SYSVSEM) || (defined(HAVE_DECL_KCMP_SYSVSEM) && HAVE_DECL_KCMP_SYSVSEM))
 # define KCMP_SYSVSEM 6
 #endif
+#if !(defined(KCMP_EPOLL_TFD) || (defined(HAVE_DECL_KCMP_EPOLL_TFD) && HAVE_DECL_KCMP_EPOLL_TFD))
+# define KCMP_EPOLL_TFD 7
+#endif
 
 #ifdef IN_MPERS
 
@@ -36,6 +39,7 @@ const struct xlat kcmp_types[] = {
  XLAT(KCMP_SIGHAND),
  XLAT(KCMP_IO),
  XLAT(KCMP_SYSVSEM),
+ XLAT(KCMP_EPOLL_TFD),
  XLAT_END
 };
 

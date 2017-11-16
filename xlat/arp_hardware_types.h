@@ -93,6 +93,9 @@ const struct xlat arp_hardware_types[] = {
 #if defined(ARPHRD_RAWHDLC) || (defined(HAVE_DECL_ARPHRD_RAWHDLC) && HAVE_DECL_ARPHRD_RAWHDLC)
   XLAT(ARPHRD_RAWHDLC),
 #endif
+#if defined(ARPHRD_RAWIP) || (defined(HAVE_DECL_ARPHRD_RAWIP) && HAVE_DECL_ARPHRD_RAWIP)
+  XLAT(ARPHRD_RAWIP),
+#endif
 #if defined(ARPHRD_TUNNEL) || (defined(HAVE_DECL_ARPHRD_TUNNEL) && HAVE_DECL_ARPHRD_TUNNEL)
   XLAT(ARPHRD_TUNNEL),
 #endif

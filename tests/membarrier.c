@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,10 +44,28 @@ main(void)
 	printf("membarrier(0x3 /* MEMBARRIER_CMD_??? */, 255) = %s\n",
 	       sprintrc(-1));
 	if (saved_errno != ENOSYS) {
-		/* the test needs to be updated? */
-		assert(syscall(__NR_membarrier, 0, 0) == 1);
-		puts("membarrier(MEMBARRIER_CMD_QUERY, 0)"
-		     " = 0x1 (MEMBARRIER_CMD_SHARED)");
+		const char *text;
+		int rc = syscall(__NR_membarrier, 0, 0);
+
+		switch (rc) {
+		case 1:
+			text = "MEMBARRIER_CMD_SHARED";
+			break;
+		case 1|8:
+			text = "MEMBARRIER_CMD_SHARED|"
+			       "MEMBARRIER_CMD_PRIVATE_EXPEDITED";
+			break;
+		case 1|8|16:
+			text = "MEMBARRIER_CMD_SHARED|"
+			       "MEMBARRIER_CMD_PRIVATE_EXPEDITED|"
+			       "MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED";
+			break;
+		default:
+			error_msg_and_fail("membarrier returned %#x, does"
+					   " the test have to be updated?", rc);
+		}
+		printf("membarrier(MEMBARRIER_CMD_QUERY, 0) = %#x (%s)\n",
+		       rc, text);
 	}
 	puts("+++ exited with 0 +++");
 	return 0;

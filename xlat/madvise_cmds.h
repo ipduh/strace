@@ -59,6 +59,12 @@ const struct xlat madvise_cmds[] = {
 #if defined(MADV_DODUMP) || (defined(HAVE_DECL_MADV_DODUMP) && HAVE_DECL_MADV_DODUMP)
   XLAT(MADV_DODUMP),
 #endif
+#if defined(MADV_WIPEONFORK) || (defined(HAVE_DECL_MADV_WIPEONFORK) && HAVE_DECL_MADV_WIPEONFORK)
+  XLAT(MADV_WIPEONFORK),
+#endif
+#if defined(MADV_KEEPONFORK) || (defined(HAVE_DECL_MADV_KEEPONFORK) && HAVE_DECL_MADV_KEEPONFORK)
+  XLAT(MADV_KEEPONFORK),
+#endif
  XLAT_END
 };
 
