@@ -98,6 +98,12 @@ const struct xlat socktcpoptions[] = {
 #if defined(TCP_FASTOPEN_CONNECT) || (defined(HAVE_DECL_TCP_FASTOPEN_CONNECT) && HAVE_DECL_TCP_FASTOPEN_CONNECT)
   XLAT(TCP_FASTOPEN_CONNECT),
 #endif
+#if defined(TCP_ULP) || (defined(HAVE_DECL_TCP_ULP) && HAVE_DECL_TCP_ULP)
+  XLAT(TCP_ULP),
+#endif
+#if defined(TCP_MD5SIG_EXT) || (defined(HAVE_DECL_TCP_MD5SIG_EXT) && HAVE_DECL_TCP_MD5SIG_EXT)
+  XLAT(TCP_MD5SIG_EXT),
+#endif
  XLAT_END
 };
 

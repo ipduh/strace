@@ -26,11 +26,23 @@ const struct xlat bpf_op_jmp[] = {
 #if defined(BPF_JNE) || (defined(HAVE_DECL_BPF_JNE) && HAVE_DECL_BPF_JNE)
   XLAT(BPF_JNE),
 #endif
+#if defined(BPF_JLT) || (defined(HAVE_DECL_BPF_JLT) && HAVE_DECL_BPF_JLT)
+  XLAT(BPF_JLT),
+#endif
+#if defined(BPF_JLE) || (defined(HAVE_DECL_BPF_JLE) && HAVE_DECL_BPF_JLE)
+  XLAT(BPF_JLE),
+#endif
 #if defined(BPF_JSGT) || (defined(HAVE_DECL_BPF_JSGT) && HAVE_DECL_BPF_JSGT)
   XLAT(BPF_JSGT),
 #endif
 #if defined(BPF_JSGE) || (defined(HAVE_DECL_BPF_JSGE) && HAVE_DECL_BPF_JSGE)
   XLAT(BPF_JSGE),
+#endif
+#if defined(BPF_JSLT) || (defined(HAVE_DECL_BPF_JSLT) && HAVE_DECL_BPF_JSLT)
+  XLAT(BPF_JSLT),
+#endif
+#if defined(BPF_JSLE) || (defined(HAVE_DECL_BPF_JSLE) && HAVE_DECL_BPF_JSLE)
+  XLAT(BPF_JSLE),
 #endif
 #if defined(BPF_CALL) || (defined(HAVE_DECL_BPF_CALL) && HAVE_DECL_BPF_CALL)
   XLAT(BPF_CALL),

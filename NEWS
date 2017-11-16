@@ -1,3 +1,19 @@
+Noteworthy changes in release 4.20 (2017-11-13)
+===============================================
+
+* Improvements
+  * Implemented decoding of NETLINK_NETFILTER netlink message types and flags.
+  * Implemented decoding of SECCOMP_GET_ACTION_AVAIL operation of seccomp
+    syscall.
+  * Updated lists of ARPHRD_*, BPF_*, ETH_P_*, LOOP_*, MADV_*,
+    MEMBARRIER_CMD_*, MFD_*, SECCOMP_*, SO_*, SOL_*, TCP_*, and UFFD_FEATURE_*
+    constants.
+  * Added decoding of statx syscall on hppa.
+  * Updated lists of ioctl commands from Linux 4.14.
+
+* Bug fixes
+  * Fixed powerpc personality support on powerpc64.
+
 Noteworthy changes in release 4.19 (2017-09-05)
 ===============================================
 

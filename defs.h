@@ -75,15 +75,6 @@ const char *strerror(int);
 extern char *stpcpy(char *dst, const char *src);
 #endif
 
-/* macros */
-#ifndef MAX
-# define MAX(a, b)		(((a) > (b)) ? (a) : (b))
-#endif
-#ifndef MIN
-# define MIN(a, b)		(((a) < (b)) ? (a) : (b))
-#endif
-#define CLAMP(val, min, max) MIN(MAX(min, val), max)
-
 /* Glibc has an efficient macro for sigemptyset
  * (it just does one or two assignments of 0 to internal vector of longs).
  */
@@ -295,6 +286,7 @@ extern const struct xlat resource_flags[];
 extern const struct xlat routing_scopes[];
 extern const struct xlat routing_table_ids[];
 extern const struct xlat routing_types[];
+extern const struct xlat seccomp_ret_action[];
 extern const struct xlat setns_types[];
 extern const struct xlat sg_io_info[];
 extern const struct xlat socketlayers[];

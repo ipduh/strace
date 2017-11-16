@@ -139,7 +139,8 @@ DIST_COMMON = $(srcdir)/pure_executables.am $(srcdir)/gen_tests.am \
 check_PROGRAMS = $(am__EXEEXT_1) answer$(EXEEXT) attach-f-p$(EXEEXT) \
 	attach-f-p-cmd$(EXEEXT) attach-p-cmd-cmd$(EXEEXT) \
 	attach-p-cmd-p$(EXEEXT) block_reset_raise_run$(EXEEXT) \
-	caps-abbrev$(EXEEXT) clone_parent$(EXEEXT) \
+	caps-abbrev$(EXEEXT) check_sigblock$(EXEEXT) \
+	check_sigign$(EXEEXT) clone_parent$(EXEEXT) \
 	clone_ptrace$(EXEEXT) count-f$(EXEEXT) execve-v$(EXEEXT) \
 	execveat-v$(EXEEXT) filter-unavailable$(EXEEXT) \
 	fork-f$(EXEEXT) getpid$(EXEEXT) getppid$(EXEEXT) \
@@ -147,10 +148,11 @@ check_PROGRAMS = $(am__EXEEXT_1) answer$(EXEEXT) attach-f-p$(EXEEXT) \
 	ioctl_evdev-v$(EXEEXT) ioctl_loop-nv$(EXEEXT) \
 	ioctl_loop-v$(EXEEXT) ioctl_nsfs$(EXEEXT) ioctl_rtc-v$(EXEEXT) \
 	is_linux_mips_n64$(EXEEXT) ksysent$(EXEEXT) \
-	mmsg-silent$(EXEEXT) mmsg_name-v$(EXEEXT) \
-	msg_control-v$(EXEEXT) net-accept-connect$(EXEEXT) \
-	netlink_inet_diag$(EXEEXT) netlink_netlink_diag$(EXEEXT) \
-	netlink_unix_diag$(EXEEXT) nsyscalls$(EXEEXT) pc$(EXEEXT) \
+	list_sigaction_signum$(EXEEXT) mmsg-silent$(EXEEXT) \
+	mmsg_name-v$(EXEEXT) msg_control-v$(EXEEXT) \
+	net-accept-connect$(EXEEXT) netlink_inet_diag$(EXEEXT) \
+	netlink_netlink_diag$(EXEEXT) netlink_unix_diag$(EXEEXT) \
+	nsyscalls$(EXEEXT) pc$(EXEEXT) \
 	perf_event_open_nonverbose$(EXEEXT) \
 	perf_event_open_unabbrev$(EXEEXT) ppoll-v$(EXEEXT) \
 	prctl-seccomp-filter-v$(EXEEXT) prctl-seccomp-strict$(EXEEXT) \
@@ -161,8 +163,9 @@ check_PROGRAMS = $(am__EXEEXT_1) answer$(EXEEXT) attach-f-p$(EXEEXT) \
 	redirect-fds$(EXEEXT) restart_syscall$(EXEEXT) \
 	run_expect_termsig$(EXEEXT) scm_rights$(EXEEXT) \
 	seccomp-filter-v$(EXEEXT) seccomp-strict$(EXEEXT) \
-	set_ptracer_any$(EXEEXT) signal_receive$(EXEEXT) \
-	sleep$(EXEEXT) stack-fcall$(EXEEXT) threads-execve$(EXEEXT) \
+	set_ptracer_any$(EXEEXT) set_sigblock$(EXEEXT) \
+	set_sigign$(EXEEXT) signal_receive$(EXEEXT) sleep$(EXEEXT) \
+	stack-fcall$(EXEEXT) threads-execve$(EXEEXT) \
 	unblock_reset_raise$(EXEEXT) unix-pair-send-recv$(EXEEXT) \
 	unix-pair-sendto-recvfrom$(EXEEXT) vfork-f$(EXEEXT) \
 	wait4-v$(EXEEXT) waitid-v$(EXEEXT) zeroargc$(EXEEXT)
@@ -253,9 +256,9 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	ioctl_uffdio$(EXEEXT) ioctl_v4l2$(EXEEXT) ioperm$(EXEEXT) \
 	iopl$(EXEEXT) ioprio$(EXEEXT) ip_mreq$(EXEEXT) ipc$(EXEEXT) \
 	ipc_msg$(EXEEXT) ipc_msgbuf$(EXEEXT) ipc_sem$(EXEEXT) \
-	ipc_shm$(EXEEXT) kcmp$(EXEEXT) kexec_file_load$(EXEEXT) \
-	kexec_load$(EXEEXT) keyctl$(EXEEXT) kill$(EXEEXT) \
-	lchown$(EXEEXT) lchown32$(EXEEXT) link$(EXEEXT) \
+	ipc_shm$(EXEEXT) kcmp$(EXEEXT) kcmp-y$(EXEEXT) \
+	kexec_file_load$(EXEEXT) kexec_load$(EXEEXT) keyctl$(EXEEXT) \
+	kill$(EXEEXT) lchown$(EXEEXT) lchown32$(EXEEXT) link$(EXEEXT) \
 	linkat$(EXEEXT) llseek$(EXEEXT) lookup_dcookie$(EXEEXT) \
 	lseek$(EXEEXT) lstat$(EXEEXT) lstat64$(EXEEXT) \
 	madvise$(EXEEXT) mbind$(EXEEXT) membarrier$(EXEEXT) \
@@ -275,19 +278,27 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	netlink_netfilter$(EXEEXT) netlink_protocol$(EXEEXT) \
 	netlink_route$(EXEEXT) netlink_selinux$(EXEEXT) \
 	netlink_sock_diag$(EXEEXT) netlink_xfrm$(EXEEXT) \
-	newfstatat$(EXEEXT) nlattr$(EXEEXT) \
-	nlattr_crypto_user_alg$(EXEEXT) nlattr_br_port_msg$(EXEEXT) \
-	nlattr_dcbmsg$(EXEEXT) nlattr_fib_rule_hdr$(EXEEXT) \
-	nlattr_ifaddrlblmsg$(EXEEXT) nlattr_ifaddrmsg$(EXEEXT) \
-	nlattr_ifinfomsg$(EXEEXT) nlattr_ifla_brport$(EXEEXT) \
-	nlattr_ifla_port$(EXEEXT) nlattr_ifla_xdp$(EXEEXT) \
-	nlattr_inet_diag_msg$(EXEEXT) \
+	newfstatat$(EXEEXT) nfnetlink_acct$(EXEEXT) \
+	nfnetlink_cthelper$(EXEEXT) nfnetlink_ctnetlink$(EXEEXT) \
+	nfnetlink_ctnetlink_exp$(EXEEXT) nfnetlink_cttimeout$(EXEEXT) \
+	nfnetlink_nft_compat$(EXEEXT) nfnetlink_nftables$(EXEEXT) \
+	nfnetlink_ipset$(EXEEXT) nfnetlink_osf$(EXEEXT) \
+	nfnetlink_queue$(EXEEXT) nfnetlink_ulog$(EXEEXT) \
+	nlattr$(EXEEXT) nlattr_crypto_user_alg$(EXEEXT) \
+	nlattr_br_port_msg$(EXEEXT) nlattr_dcbmsg$(EXEEXT) \
+	nlattr_fib_rule_hdr$(EXEEXT) nlattr_ifaddrlblmsg$(EXEEXT) \
+	nlattr_ifaddrmsg$(EXEEXT) nlattr_ifinfomsg$(EXEEXT) \
+	nlattr_ifla_brport$(EXEEXT) nlattr_ifla_port$(EXEEXT) \
+	nlattr_ifla_xdp$(EXEEXT) nlattr_inet_diag_msg$(EXEEXT) \
 	nlattr_inet_diag_req_compat$(EXEEXT) \
-	nlattr_inet_diag_req_v2$(EXEEXT) nlattr_ndmsg$(EXEEXT) \
+	nlattr_inet_diag_req_v2$(EXEEXT) \
+	nlattr_mdba_mdb_entry$(EXEEXT) \
+	nlattr_mdba_router_port$(EXEEXT) nlattr_ndmsg$(EXEEXT) \
 	nlattr_ndtmsg$(EXEEXT) nlattr_netconfmsg$(EXEEXT) \
 	nlattr_netlink_diag_msg$(EXEEXT) nlattr_nlmsgerr$(EXEEXT) \
 	nlattr_packet_diag_msg$(EXEEXT) nlattr_rtgenmsg$(EXEEXT) \
 	nlattr_rtmsg$(EXEEXT) nlattr_smc_diag_msg$(EXEEXT) \
+	nlattr_tc_stats$(EXEEXT) nlattr_tca_stab$(EXEEXT) \
 	nlattr_tcamsg$(EXEEXT) nlattr_tcmsg$(EXEEXT) \
 	nlattr_unix_diag_msg$(EXEEXT) old_mmap$(EXEEXT) \
 	oldfstat$(EXEEXT) oldlstat$(EXEEXT) oldselect$(EXEEXT) \
@@ -321,7 +332,8 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	sched_get_priority_mxx$(EXEEXT) sched_rr_get_interval$(EXEEXT) \
 	sched_xetaffinity$(EXEEXT) sched_xetattr$(EXEEXT) \
 	sched_xetparam$(EXEEXT) sched_xetscheduler$(EXEEXT) \
-	sched_yield$(EXEEXT) seccomp-filter$(EXEEXT) select$(EXEEXT) \
+	sched_yield$(EXEEXT) seccomp-filter$(EXEEXT) \
+	seccomp_get_action_avail$(EXEEXT) select$(EXEEXT) \
 	semop$(EXEEXT) sendfile$(EXEEXT) sendfile64$(EXEEXT) \
 	set_mempolicy$(EXEEXT) setdomainname$(EXEEXT) \
 	setfsgid$(EXEEXT) setfsgid32$(EXEEXT) setfsuid$(EXEEXT) \
@@ -439,6 +451,14 @@ caps_abbrev_SOURCES = caps-abbrev.c
 caps_abbrev_OBJECTS = caps-abbrev.$(OBJEXT)
 caps_abbrev_LDADD = $(LDADD)
 caps_abbrev_DEPENDENCIES = libtests.a
+check_sigblock_SOURCES = check_sigblock.c
+check_sigblock_OBJECTS = check_sigblock.$(OBJEXT)
+check_sigblock_LDADD = $(LDADD)
+check_sigblock_DEPENDENCIES = libtests.a
+check_sigign_SOURCES = check_sigign.c
+check_sigign_OBJECTS = check_sigign.$(OBJEXT)
+check_sigign_LDADD = $(LDADD)
+check_sigign_DEPENDENCIES = libtests.a
 chmod_SOURCES = chmod.c
 chmod_OBJECTS = chmod.$(OBJEXT)
 chmod_LDADD = $(LDADD)
@@ -936,6 +956,10 @@ kcmp_SOURCES = kcmp.c
 kcmp_OBJECTS = kcmp.$(OBJEXT)
 kcmp_LDADD = $(LDADD)
 kcmp_DEPENDENCIES = libtests.a
+kcmp_y_SOURCES = kcmp-y.c
+kcmp_y_OBJECTS = kcmp-y.$(OBJEXT)
+kcmp_y_LDADD = $(LDADD)
+kcmp_y_DEPENDENCIES = libtests.a
 kexec_file_load_SOURCES = kexec_file_load.c
 kexec_file_load_OBJECTS = kexec_file_load.$(OBJEXT)
 kexec_file_load_LDADD = $(LDADD)
@@ -972,6 +996,10 @@ linkat_SOURCES = linkat.c
 linkat_OBJECTS = linkat.$(OBJEXT)
 linkat_LDADD = $(LDADD)
 linkat_DEPENDENCIES = libtests.a
+list_sigaction_signum_SOURCES = list_sigaction_signum.c
+list_sigaction_signum_OBJECTS = list_sigaction_signum.$(OBJEXT)
+list_sigaction_signum_LDADD = $(LDADD)
+list_sigaction_signum_DEPENDENCIES = libtests.a
 llseek_SOURCES = llseek.c
 llseek_OBJECTS = llseek.$(OBJEXT)
 llseek_LDADD = $(LDADD)
@@ -1192,6 +1220,50 @@ newfstatat_SOURCES = newfstatat.c
 newfstatat_OBJECTS = newfstatat-newfstatat.$(OBJEXT)
 newfstatat_LDADD = $(LDADD)
 newfstatat_DEPENDENCIES = libtests.a
+nfnetlink_acct_SOURCES = nfnetlink_acct.c
+nfnetlink_acct_OBJECTS = nfnetlink_acct.$(OBJEXT)
+nfnetlink_acct_LDADD = $(LDADD)
+nfnetlink_acct_DEPENDENCIES = libtests.a
+nfnetlink_cthelper_SOURCES = nfnetlink_cthelper.c
+nfnetlink_cthelper_OBJECTS = nfnetlink_cthelper.$(OBJEXT)
+nfnetlink_cthelper_LDADD = $(LDADD)
+nfnetlink_cthelper_DEPENDENCIES = libtests.a
+nfnetlink_ctnetlink_SOURCES = nfnetlink_ctnetlink.c
+nfnetlink_ctnetlink_OBJECTS = nfnetlink_ctnetlink.$(OBJEXT)
+nfnetlink_ctnetlink_LDADD = $(LDADD)
+nfnetlink_ctnetlink_DEPENDENCIES = libtests.a
+nfnetlink_ctnetlink_exp_SOURCES = nfnetlink_ctnetlink_exp.c
+nfnetlink_ctnetlink_exp_OBJECTS = nfnetlink_ctnetlink_exp.$(OBJEXT)
+nfnetlink_ctnetlink_exp_LDADD = $(LDADD)
+nfnetlink_ctnetlink_exp_DEPENDENCIES = libtests.a
+nfnetlink_cttimeout_SOURCES = nfnetlink_cttimeout.c
+nfnetlink_cttimeout_OBJECTS = nfnetlink_cttimeout.$(OBJEXT)
+nfnetlink_cttimeout_LDADD = $(LDADD)
+nfnetlink_cttimeout_DEPENDENCIES = libtests.a
+nfnetlink_ipset_SOURCES = nfnetlink_ipset.c
+nfnetlink_ipset_OBJECTS = nfnetlink_ipset.$(OBJEXT)
+nfnetlink_ipset_LDADD = $(LDADD)
+nfnetlink_ipset_DEPENDENCIES = libtests.a
+nfnetlink_nft_compat_SOURCES = nfnetlink_nft_compat.c
+nfnetlink_nft_compat_OBJECTS = nfnetlink_nft_compat.$(OBJEXT)
+nfnetlink_nft_compat_LDADD = $(LDADD)
+nfnetlink_nft_compat_DEPENDENCIES = libtests.a
+nfnetlink_nftables_SOURCES = nfnetlink_nftables.c
+nfnetlink_nftables_OBJECTS = nfnetlink_nftables.$(OBJEXT)
+nfnetlink_nftables_LDADD = $(LDADD)
+nfnetlink_nftables_DEPENDENCIES = libtests.a
+nfnetlink_osf_SOURCES = nfnetlink_osf.c
+nfnetlink_osf_OBJECTS = nfnetlink_osf.$(OBJEXT)
+nfnetlink_osf_LDADD = $(LDADD)
+nfnetlink_osf_DEPENDENCIES = libtests.a
+nfnetlink_queue_SOURCES = nfnetlink_queue.c
+nfnetlink_queue_OBJECTS = nfnetlink_queue.$(OBJEXT)
+nfnetlink_queue_LDADD = $(LDADD)
+nfnetlink_queue_DEPENDENCIES = libtests.a
+nfnetlink_ulog_SOURCES = nfnetlink_ulog.c
+nfnetlink_ulog_OBJECTS = nfnetlink_ulog.$(OBJEXT)
+nfnetlink_ulog_LDADD = $(LDADD)
+nfnetlink_ulog_DEPENDENCIES = libtests.a
 nlattr_SOURCES = nlattr.c
 nlattr_OBJECTS = nlattr.$(OBJEXT)
 nlattr_LDADD = $(LDADD)
@@ -1249,6 +1321,14 @@ nlattr_inet_diag_req_v2_SOURCES = nlattr_inet_diag_req_v2.c
 nlattr_inet_diag_req_v2_OBJECTS = nlattr_inet_diag_req_v2.$(OBJEXT)
 nlattr_inet_diag_req_v2_LDADD = $(LDADD)
 nlattr_inet_diag_req_v2_DEPENDENCIES = libtests.a
+nlattr_mdba_mdb_entry_SOURCES = nlattr_mdba_mdb_entry.c
+nlattr_mdba_mdb_entry_OBJECTS = nlattr_mdba_mdb_entry.$(OBJEXT)
+nlattr_mdba_mdb_entry_LDADD = $(LDADD)
+nlattr_mdba_mdb_entry_DEPENDENCIES = libtests.a
+nlattr_mdba_router_port_SOURCES = nlattr_mdba_router_port.c
+nlattr_mdba_router_port_OBJECTS = nlattr_mdba_router_port.$(OBJEXT)
+nlattr_mdba_router_port_LDADD = $(LDADD)
+nlattr_mdba_router_port_DEPENDENCIES = libtests.a
 nlattr_ndmsg_SOURCES = nlattr_ndmsg.c
 nlattr_ndmsg_OBJECTS = nlattr_ndmsg.$(OBJEXT)
 nlattr_ndmsg_LDADD = $(LDADD)
@@ -1285,6 +1365,14 @@ nlattr_smc_diag_msg_SOURCES = nlattr_smc_diag_msg.c
 nlattr_smc_diag_msg_OBJECTS = nlattr_smc_diag_msg.$(OBJEXT)
 nlattr_smc_diag_msg_LDADD = $(LDADD)
 nlattr_smc_diag_msg_DEPENDENCIES = libtests.a
+nlattr_tc_stats_SOURCES = nlattr_tc_stats.c
+nlattr_tc_stats_OBJECTS = nlattr_tc_stats.$(OBJEXT)
+nlattr_tc_stats_LDADD = $(LDADD)
+nlattr_tc_stats_DEPENDENCIES = libtests.a
+nlattr_tca_stab_SOURCES = nlattr_tca_stab.c
+nlattr_tca_stab_OBJECTS = nlattr_tca_stab.$(OBJEXT)
+nlattr_tca_stab_LDADD = $(LDADD)
+nlattr_tca_stab_DEPENDENCIES = libtests.a
 nlattr_tcamsg_SOURCES = nlattr_tcamsg.c
 nlattr_tcamsg_OBJECTS = nlattr_tcamsg.$(OBJEXT)
 nlattr_tcamsg_LDADD = $(LDADD)
@@ -1696,6 +1784,10 @@ seccomp_strict_SOURCES = seccomp-strict.c
 seccomp_strict_OBJECTS = seccomp-strict.$(OBJEXT)
 seccomp_strict_LDADD = $(LDADD)
 seccomp_strict_DEPENDENCIES = libtests.a
+seccomp_get_action_avail_SOURCES = seccomp_get_action_avail.c
+seccomp_get_action_avail_OBJECTS = seccomp_get_action_avail.$(OBJEXT)
+seccomp_get_action_avail_LDADD = $(LDADD)
+seccomp_get_action_avail_DEPENDENCIES = libtests.a
 select_SOURCES = select.c
 select_OBJECTS = select.$(OBJEXT)
 select_LDADD = $(LDADD)
@@ -1720,6 +1812,14 @@ set_ptracer_any_SOURCES = set_ptracer_any.c
 set_ptracer_any_OBJECTS = set_ptracer_any.$(OBJEXT)
 set_ptracer_any_LDADD = $(LDADD)
 set_ptracer_any_DEPENDENCIES = libtests.a
+set_sigblock_SOURCES = set_sigblock.c
+set_sigblock_OBJECTS = set_sigblock.$(OBJEXT)
+set_sigblock_LDADD = $(LDADD)
+set_sigblock_DEPENDENCIES = libtests.a
+set_sigign_SOURCES = set_sigign.c
+set_sigign_OBJECTS = set_sigign.$(OBJEXT)
+set_sigign_LDADD = $(LDADD)
+set_sigign_DEPENDENCIES = libtests.a
 setdomainname_SOURCES = setdomainname.c
 setdomainname_OBJECTS = setdomainname.$(OBJEXT)
 setdomainname_LDADD = $(LDADD)
@@ -2169,10 +2269,11 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	access.c acct.c add_key.c adjtimex.c aio.c alarm.c answer.c \
 	attach-f-p.c attach-f-p-cmd.c attach-p-cmd-cmd.c \
 	attach-p-cmd-p.c block_reset_raise_run.c bpf.c bpf-v.c brk.c \
-	btrfs.c caps.c caps-abbrev.c chmod.c chown.c chown32.c \
-	chroot.c clock_adjtime.c clock_nanosleep.c clock_xettime.c \
-	clone_parent.c clone_ptrace.c copy_file_range.c count-f.c \
-	creat.c delete_module.c dup.c dup2.c dup3.c epoll_create.c \
+	btrfs.c caps.c caps-abbrev.c check_sigblock.c check_sigign.c \
+	chmod.c chown.c chown32.c chroot.c clock_adjtime.c \
+	clock_nanosleep.c clock_xettime.c clone_parent.c \
+	clone_ptrace.c copy_file_range.c count-f.c creat.c \
+	delete_module.c dup.c dup2.c dup3.c epoll_create.c \
 	epoll_create1.c epoll_ctl.c epoll_pwait.c epoll_wait.c \
 	erestartsys.c eventfd.c execve.c execve-v.c execveat.c \
 	execveat-v.c faccessat.c fadvise64.c fadvise64_64.c \
@@ -2195,39 +2296,45 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	ioctl_scsi.c ioctl_sg_io_v3.c ioctl_sg_io_v4.c \
 	ioctl_sock_gifconf.c ioctl_uffdio.c ioctl_v4l2.c ioperm.c \
 	iopl.c ioprio.c ip_mreq.c ipc.c ipc_msg.c ipc_msgbuf.c \
-	ipc_sem.c ipc_shm.c is_linux_mips_n64.c kcmp.c \
+	ipc_sem.c ipc_shm.c is_linux_mips_n64.c kcmp.c kcmp-y.c \
 	kexec_file_load.c kexec_load.c keyctl.c kill.c ksysent.c \
-	lchown.c lchown32.c link.c linkat.c llseek.c lookup_dcookie.c \
-	lseek.c lstat.c lstat64.c madvise.c mbind.c membarrier.c \
-	memfd_create.c migrate_pages.c mincore.c mkdir.c mkdirat.c \
-	mknod.c mknodat.c mlock.c mlock2.c mlockall.c mmap.c mmap64.c \
-	mmsg.c mmsg-silent.c mmsg_name.c mmsg_name-v.c mount.c \
-	move_pages.c mq.c mq_sendrecv.c mq_sendrecv-read.c \
-	mq_sendrecv-write.c msg_control.c msg_control-v.c msg_name.c \
-	munlockall.c nanosleep.c net-accept-connect.c \
-	net-icmp_filter.c net-sockaddr.c net-y-unix.c net-yy-inet.c \
-	net-yy-netlink.c net-yy-unix.c netlink_audit.c \
-	netlink_crypto.c netlink_generic.c netlink_inet_diag.c \
-	netlink_kobject_uevent.c netlink_netfilter.c \
-	netlink_netlink_diag.c netlink_protocol.c netlink_route.c \
-	netlink_selinux.c netlink_sock_diag.c netlink_unix_diag.c \
-	netlink_xfrm.c newfstatat.c nlattr.c nlattr_br_port_msg.c \
-	nlattr_crypto_user_alg.c nlattr_dcbmsg.c nlattr_fib_rule_hdr.c \
-	nlattr_ifaddrlblmsg.c nlattr_ifaddrmsg.c nlattr_ifinfomsg.c \
-	nlattr_ifla_brport.c nlattr_ifla_port.c nlattr_ifla_xdp.c \
-	nlattr_inet_diag_msg.c nlattr_inet_diag_req_compat.c \
-	nlattr_inet_diag_req_v2.c nlattr_ndmsg.c nlattr_ndtmsg.c \
-	nlattr_netconfmsg.c nlattr_netlink_diag_msg.c \
-	nlattr_nlmsgerr.c nlattr_packet_diag_msg.c nlattr_rtgenmsg.c \
-	nlattr_rtmsg.c nlattr_smc_diag_msg.c nlattr_tcamsg.c \
-	nlattr_tcmsg.c nlattr_unix_diag_msg.c nsyscalls.c old_mmap.c \
-	oldfstat.c oldlstat.c oldselect.c oldstat.c open.c openat.c \
-	osf_utimes.c pause.c pc.c perf_event_open.c \
-	perf_event_open_nonverbose.c perf_event_open_unabbrev.c \
-	personality.c pipe.c pipe2.c pkey_alloc.c pkey_free.c \
-	pkey_mprotect.c poll.c ppoll.c ppoll-v.c prctl-arg2-intptr.c \
-	prctl-dumpable.c prctl-name.c prctl-no-args.c \
-	prctl-pdeathsig.c prctl-seccomp-filter-v.c \
+	lchown.c lchown32.c link.c linkat.c list_sigaction_signum.c \
+	llseek.c lookup_dcookie.c lseek.c lstat.c lstat64.c madvise.c \
+	mbind.c membarrier.c memfd_create.c migrate_pages.c mincore.c \
+	mkdir.c mkdirat.c mknod.c mknodat.c mlock.c mlock2.c \
+	mlockall.c mmap.c mmap64.c mmsg.c mmsg-silent.c mmsg_name.c \
+	mmsg_name-v.c mount.c move_pages.c mq.c mq_sendrecv.c \
+	mq_sendrecv-read.c mq_sendrecv-write.c msg_control.c \
+	msg_control-v.c msg_name.c munlockall.c nanosleep.c \
+	net-accept-connect.c net-icmp_filter.c net-sockaddr.c \
+	net-y-unix.c net-yy-inet.c net-yy-netlink.c net-yy-unix.c \
+	netlink_audit.c netlink_crypto.c netlink_generic.c \
+	netlink_inet_diag.c netlink_kobject_uevent.c \
+	netlink_netfilter.c netlink_netlink_diag.c netlink_protocol.c \
+	netlink_route.c netlink_selinux.c netlink_sock_diag.c \
+	netlink_unix_diag.c netlink_xfrm.c newfstatat.c \
+	nfnetlink_acct.c nfnetlink_cthelper.c nfnetlink_ctnetlink.c \
+	nfnetlink_ctnetlink_exp.c nfnetlink_cttimeout.c \
+	nfnetlink_ipset.c nfnetlink_nft_compat.c nfnetlink_nftables.c \
+	nfnetlink_osf.c nfnetlink_queue.c nfnetlink_ulog.c nlattr.c \
+	nlattr_br_port_msg.c nlattr_crypto_user_alg.c nlattr_dcbmsg.c \
+	nlattr_fib_rule_hdr.c nlattr_ifaddrlblmsg.c nlattr_ifaddrmsg.c \
+	nlattr_ifinfomsg.c nlattr_ifla_brport.c nlattr_ifla_port.c \
+	nlattr_ifla_xdp.c nlattr_inet_diag_msg.c \
+	nlattr_inet_diag_req_compat.c nlattr_inet_diag_req_v2.c \
+	nlattr_mdba_mdb_entry.c nlattr_mdba_router_port.c \
+	nlattr_ndmsg.c nlattr_ndtmsg.c nlattr_netconfmsg.c \
+	nlattr_netlink_diag_msg.c nlattr_nlmsgerr.c \
+	nlattr_packet_diag_msg.c nlattr_rtgenmsg.c nlattr_rtmsg.c \
+	nlattr_smc_diag_msg.c nlattr_tc_stats.c nlattr_tca_stab.c \
+	nlattr_tcamsg.c nlattr_tcmsg.c nlattr_unix_diag_msg.c \
+	nsyscalls.c old_mmap.c oldfstat.c oldlstat.c oldselect.c \
+	oldstat.c open.c openat.c osf_utimes.c pause.c pc.c \
+	perf_event_open.c perf_event_open_nonverbose.c \
+	perf_event_open_unabbrev.c personality.c pipe.c pipe2.c \
+	pkey_alloc.c pkey_free.c pkey_mprotect.c poll.c ppoll.c \
+	ppoll-v.c prctl-arg2-intptr.c prctl-dumpable.c prctl-name.c \
+	prctl-no-args.c prctl-pdeathsig.c prctl-seccomp-filter-v.c \
 	prctl-seccomp-strict.c prctl-securebits.c prctl-tid_address.c \
 	prctl-tsc.c pread64-pwrite64.c preadv.c preadv-pwritev.c \
 	preadv2-pwritev2.c print_maxfd.c printpath-umovestr.c \
@@ -2248,8 +2355,9 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	sched_rr_get_interval.c sched_xetaffinity.c sched_xetattr.c \
 	sched_xetparam.c sched_xetscheduler.c sched_yield.c \
 	scm_rights.c seccomp-filter.c seccomp-filter-v.c \
-	seccomp-strict.c select.c semop.c sendfile.c sendfile64.c \
-	set_mempolicy.c set_ptracer_any.c setdomainname.c setfsgid.c \
+	seccomp-strict.c seccomp_get_action_avail.c select.c semop.c \
+	sendfile.c sendfile64.c set_mempolicy.c set_ptracer_any.c \
+	set_sigblock.c set_sigign.c setdomainname.c setfsgid.c \
 	setfsgid32.c setfsuid.c setfsuid32.c setgid.c setgid32.c \
 	setgroups.c setgroups32.c sethostname.c setns.c setregid.c \
 	setregid32.c setresgid.c setresgid32.c setresuid.c \
@@ -2275,10 +2383,11 @@ DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	access.c acct.c add_key.c adjtimex.c aio.c alarm.c answer.c \
 	attach-f-p.c attach-f-p-cmd.c attach-p-cmd-cmd.c \
 	attach-p-cmd-p.c block_reset_raise_run.c bpf.c bpf-v.c brk.c \
-	btrfs.c caps.c caps-abbrev.c chmod.c chown.c chown32.c \
-	chroot.c clock_adjtime.c clock_nanosleep.c clock_xettime.c \
-	clone_parent.c clone_ptrace.c copy_file_range.c count-f.c \
-	creat.c delete_module.c dup.c dup2.c dup3.c epoll_create.c \
+	btrfs.c caps.c caps-abbrev.c check_sigblock.c check_sigign.c \
+	chmod.c chown.c chown32.c chroot.c clock_adjtime.c \
+	clock_nanosleep.c clock_xettime.c clone_parent.c \
+	clone_ptrace.c copy_file_range.c count-f.c creat.c \
+	delete_module.c dup.c dup2.c dup3.c epoll_create.c \
 	epoll_create1.c epoll_ctl.c epoll_pwait.c epoll_wait.c \
 	erestartsys.c eventfd.c execve.c execve-v.c execveat.c \
 	execveat-v.c faccessat.c fadvise64.c fadvise64_64.c \
@@ -2301,39 +2410,45 @@ DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	ioctl_scsi.c ioctl_sg_io_v3.c ioctl_sg_io_v4.c \
 	ioctl_sock_gifconf.c ioctl_uffdio.c ioctl_v4l2.c ioperm.c \
 	iopl.c ioprio.c ip_mreq.c ipc.c ipc_msg.c ipc_msgbuf.c \
-	ipc_sem.c ipc_shm.c is_linux_mips_n64.c kcmp.c \
+	ipc_sem.c ipc_shm.c is_linux_mips_n64.c kcmp.c kcmp-y.c \
 	kexec_file_load.c kexec_load.c keyctl.c kill.c ksysent.c \
-	lchown.c lchown32.c link.c linkat.c llseek.c lookup_dcookie.c \
-	lseek.c lstat.c lstat64.c madvise.c mbind.c membarrier.c \
-	memfd_create.c migrate_pages.c mincore.c mkdir.c mkdirat.c \
-	mknod.c mknodat.c mlock.c mlock2.c mlockall.c mmap.c mmap64.c \
-	mmsg.c mmsg-silent.c mmsg_name.c mmsg_name-v.c mount.c \
-	move_pages.c mq.c mq_sendrecv.c mq_sendrecv-read.c \
-	mq_sendrecv-write.c msg_control.c msg_control-v.c msg_name.c \
-	munlockall.c nanosleep.c net-accept-connect.c \
-	net-icmp_filter.c net-sockaddr.c net-y-unix.c net-yy-inet.c \
-	net-yy-netlink.c net-yy-unix.c netlink_audit.c \
-	netlink_crypto.c netlink_generic.c netlink_inet_diag.c \
-	netlink_kobject_uevent.c netlink_netfilter.c \
-	netlink_netlink_diag.c netlink_protocol.c netlink_route.c \
-	netlink_selinux.c netlink_sock_diag.c netlink_unix_diag.c \
-	netlink_xfrm.c newfstatat.c nlattr.c nlattr_br_port_msg.c \
-	nlattr_crypto_user_alg.c nlattr_dcbmsg.c nlattr_fib_rule_hdr.c \
-	nlattr_ifaddrlblmsg.c nlattr_ifaddrmsg.c nlattr_ifinfomsg.c \
-	nlattr_ifla_brport.c nlattr_ifla_port.c nlattr_ifla_xdp.c \
-	nlattr_inet_diag_msg.c nlattr_inet_diag_req_compat.c \
-	nlattr_inet_diag_req_v2.c nlattr_ndmsg.c nlattr_ndtmsg.c \
-	nlattr_netconfmsg.c nlattr_netlink_diag_msg.c \
-	nlattr_nlmsgerr.c nlattr_packet_diag_msg.c nlattr_rtgenmsg.c \
-	nlattr_rtmsg.c nlattr_smc_diag_msg.c nlattr_tcamsg.c \
-	nlattr_tcmsg.c nlattr_unix_diag_msg.c nsyscalls.c old_mmap.c \
-	oldfstat.c oldlstat.c oldselect.c oldstat.c open.c openat.c \
-	osf_utimes.c pause.c pc.c perf_event_open.c \
-	perf_event_open_nonverbose.c perf_event_open_unabbrev.c \
-	personality.c pipe.c pipe2.c pkey_alloc.c pkey_free.c \
-	pkey_mprotect.c poll.c ppoll.c ppoll-v.c prctl-arg2-intptr.c \
-	prctl-dumpable.c prctl-name.c prctl-no-args.c \
-	prctl-pdeathsig.c prctl-seccomp-filter-v.c \
+	lchown.c lchown32.c link.c linkat.c list_sigaction_signum.c \
+	llseek.c lookup_dcookie.c lseek.c lstat.c lstat64.c madvise.c \
+	mbind.c membarrier.c memfd_create.c migrate_pages.c mincore.c \
+	mkdir.c mkdirat.c mknod.c mknodat.c mlock.c mlock2.c \
+	mlockall.c mmap.c mmap64.c mmsg.c mmsg-silent.c mmsg_name.c \
+	mmsg_name-v.c mount.c move_pages.c mq.c mq_sendrecv.c \
+	mq_sendrecv-read.c mq_sendrecv-write.c msg_control.c \
+	msg_control-v.c msg_name.c munlockall.c nanosleep.c \
+	net-accept-connect.c net-icmp_filter.c net-sockaddr.c \
+	net-y-unix.c net-yy-inet.c net-yy-netlink.c net-yy-unix.c \
+	netlink_audit.c netlink_crypto.c netlink_generic.c \
+	netlink_inet_diag.c netlink_kobject_uevent.c \
+	netlink_netfilter.c netlink_netlink_diag.c netlink_protocol.c \
+	netlink_route.c netlink_selinux.c netlink_sock_diag.c \
+	netlink_unix_diag.c netlink_xfrm.c newfstatat.c \
+	nfnetlink_acct.c nfnetlink_cthelper.c nfnetlink_ctnetlink.c \
+	nfnetlink_ctnetlink_exp.c nfnetlink_cttimeout.c \
+	nfnetlink_ipset.c nfnetlink_nft_compat.c nfnetlink_nftables.c \
+	nfnetlink_osf.c nfnetlink_queue.c nfnetlink_ulog.c nlattr.c \
+	nlattr_br_port_msg.c nlattr_crypto_user_alg.c nlattr_dcbmsg.c \
+	nlattr_fib_rule_hdr.c nlattr_ifaddrlblmsg.c nlattr_ifaddrmsg.c \
+	nlattr_ifinfomsg.c nlattr_ifla_brport.c nlattr_ifla_port.c \
+	nlattr_ifla_xdp.c nlattr_inet_diag_msg.c \
+	nlattr_inet_diag_req_compat.c nlattr_inet_diag_req_v2.c \
+	nlattr_mdba_mdb_entry.c nlattr_mdba_router_port.c \
+	nlattr_ndmsg.c nlattr_ndtmsg.c nlattr_netconfmsg.c \
+	nlattr_netlink_diag_msg.c nlattr_nlmsgerr.c \
+	nlattr_packet_diag_msg.c nlattr_rtgenmsg.c nlattr_rtmsg.c \
+	nlattr_smc_diag_msg.c nlattr_tc_stats.c nlattr_tca_stab.c \
+	nlattr_tcamsg.c nlattr_tcmsg.c nlattr_unix_diag_msg.c \
+	nsyscalls.c old_mmap.c oldfstat.c oldlstat.c oldselect.c \
+	oldstat.c open.c openat.c osf_utimes.c pause.c pc.c \
+	perf_event_open.c perf_event_open_nonverbose.c \
+	perf_event_open_unabbrev.c personality.c pipe.c pipe2.c \
+	pkey_alloc.c pkey_free.c pkey_mprotect.c poll.c ppoll.c \
+	ppoll-v.c prctl-arg2-intptr.c prctl-dumpable.c prctl-name.c \
+	prctl-no-args.c prctl-pdeathsig.c prctl-seccomp-filter-v.c \
 	prctl-seccomp-strict.c prctl-securebits.c prctl-tid_address.c \
 	prctl-tsc.c pread64-pwrite64.c preadv.c preadv-pwritev.c \
 	preadv2-pwritev2.c print_maxfd.c printpath-umovestr.c \
@@ -2354,8 +2469,9 @@ DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c accept.c accept4.c \
 	sched_rr_get_interval.c sched_xetaffinity.c sched_xetattr.c \
 	sched_xetparam.c sched_xetscheduler.c sched_yield.c \
 	scm_rights.c seccomp-filter.c seccomp-filter-v.c \
-	seccomp-strict.c select.c semop.c sendfile.c sendfile64.c \
-	set_mempolicy.c set_ptracer_any.c setdomainname.c setfsgid.c \
+	seccomp-strict.c seccomp_get_action_avail.c select.c semop.c \
+	sendfile.c sendfile64.c set_mempolicy.c set_ptracer_any.c \
+	set_sigblock.c set_sigign.c setdomainname.c setfsgid.c \
 	setfsgid32.c setfsuid.c setfsuid32.c setgid.c setgid32.c \
 	setgroups.c setgroups32.c sethostname.c setns.c setregid.c \
 	setregid32.c setresgid.c setresgid32.c setresuid.c \
@@ -2924,6 +3040,7 @@ PURE_EXECUTABLES = \
   ipc_sem \
   ipc_shm \
   kcmp \
+  kcmp-y \
   kexec_file_load \
   kexec_load \
   keyctl \
@@ -2981,6 +3098,17 @@ PURE_EXECUTABLES = \
   netlink_sock_diag \
   netlink_xfrm \
   newfstatat \
+  nfnetlink_acct \
+  nfnetlink_cthelper \
+  nfnetlink_ctnetlink \
+  nfnetlink_ctnetlink_exp \
+  nfnetlink_cttimeout \
+  nfnetlink_nft_compat \
+  nfnetlink_nftables \
+  nfnetlink_ipset \
+  nfnetlink_osf \
+  nfnetlink_queue \
+  nfnetlink_ulog \
   nlattr \
   nlattr_crypto_user_alg \
   nlattr_br_port_msg \
@@ -2995,6 +3123,8 @@ PURE_EXECUTABLES = \
   nlattr_inet_diag_msg \
   nlattr_inet_diag_req_compat \
   nlattr_inet_diag_req_v2 \
+  nlattr_mdba_mdb_entry \
+  nlattr_mdba_router_port \
   nlattr_ndmsg \
   nlattr_ndtmsg \
   nlattr_netconfmsg \
@@ -3004,6 +3134,8 @@ PURE_EXECUTABLES = \
   nlattr_rtgenmsg \
   nlattr_rtmsg \
   nlattr_smc_diag_msg \
+  nlattr_tc_stats \
+  nlattr_tca_stab \
   nlattr_tcamsg \
   nlattr_tcmsg \
   nlattr_unix_diag_msg \
@@ -3084,6 +3216,7 @@ PURE_EXECUTABLES = \
   sched_xetscheduler \
   sched_yield \
   seccomp-filter \
+  seccomp_get_action_avail \
   select \
   semop \
   sendfile \
@@ -3253,39 +3386,47 @@ GEN_TESTS = _newselect.gen.test accept.gen.test accept4.gen.test \
 	ioctl_uffdio.gen.test ioctl_v4l2.gen.test ioperm.gen.test \
 	iopl.gen.test ioprio.gen.test ip_mreq.gen.test ipc.gen.test \
 	ipc_msg.gen.test ipc_sem.gen.test ipc_shm.gen.test \
-	kcmp.gen.test kexec_file_load.gen.test kexec_load.gen.test \
-	keyctl.gen.test kill.gen.test lchown.gen.test \
-	lchown32.gen.test link.gen.test linkat.gen.test \
-	lookup_dcookie.gen.test lstat.gen.test lstat64.gen.test \
-	madvise.gen.test mbind.gen.test membarrier.gen.test \
-	memfd_create.gen.test migrate_pages.gen.test mincore.gen.test \
-	mkdir.gen.test mkdirat.gen.test mknod.gen.test \
-	mknodat.gen.test mlock.gen.test mlock2.gen.test \
-	mlockall.gen.test mmap64.gen.test mmsg.gen.test \
-	mmsg-silent.gen.test mmsg_name.gen.test mmsg_name-v.gen.test \
-	mount.gen.test move_pages.gen.test mq.gen.test \
-	mq_sendrecv.gen.test mq_sendrecv-read.gen.test \
-	mq_sendrecv-write.gen.test msg_control.gen.test \
-	msg_control-v.gen.test msg_name.gen.test munlockall.gen.test \
-	nanosleep.gen.test net-icmp_filter.gen.test \
-	net-sockaddr.gen.test netlink_audit.gen.test \
-	netlink_crypto.gen.test netlink_generic.gen.test \
-	netlink_kobject_uevent.gen.test netlink_netfilter.gen.test \
-	netlink_protocol.gen.test netlink_route.gen.test \
-	netlink_selinux.gen.test netlink_xfrm.gen.test \
-	newfstatat.gen.test nlattr.gen.test \
-	nlattr_crypto_user_alg.gen.test nlattr_br_port_msg.gen.test \
-	nlattr_dcbmsg.gen.test nlattr_fib_rule_hdr.gen.test \
-	nlattr_ifaddrlblmsg.gen.test nlattr_ifaddrmsg.gen.test \
-	nlattr_ifinfomsg.gen.test nlattr_ifla_brport.gen.test \
-	nlattr_ifla_port.gen.test nlattr_ifla_xdp.gen.test \
-	nlattr_inet_diag_msg.gen.test \
+	kcmp.gen.test kcmp-y.gen.test kexec_file_load.gen.test \
+	kexec_load.gen.test keyctl.gen.test kill.gen.test \
+	lchown.gen.test lchown32.gen.test link.gen.test \
+	linkat.gen.test lookup_dcookie.gen.test lstat.gen.test \
+	lstat64.gen.test madvise.gen.test mbind.gen.test \
+	membarrier.gen.test memfd_create.gen.test \
+	migrate_pages.gen.test mincore.gen.test mkdir.gen.test \
+	mkdirat.gen.test mknod.gen.test mknodat.gen.test \
+	mlock.gen.test mlock2.gen.test mlockall.gen.test \
+	mmap64.gen.test mmsg.gen.test mmsg-silent.gen.test \
+	mmsg_name.gen.test mmsg_name-v.gen.test mount.gen.test \
+	move_pages.gen.test mq.gen.test mq_sendrecv.gen.test \
+	mq_sendrecv-read.gen.test mq_sendrecv-write.gen.test \
+	msg_control.gen.test msg_control-v.gen.test msg_name.gen.test \
+	munlockall.gen.test nanosleep.gen.test \
+	net-icmp_filter.gen.test net-sockaddr.gen.test \
+	netlink_audit.gen.test netlink_crypto.gen.test \
+	netlink_generic.gen.test netlink_kobject_uevent.gen.test \
+	netlink_netfilter.gen.test netlink_protocol.gen.test \
+	netlink_route.gen.test netlink_selinux.gen.test \
+	netlink_xfrm.gen.test newfstatat.gen.test nlattr.gen.test \
+	nfnetlink_acct.gen.test nfnetlink_cthelper.gen.test \
+	nfnetlink_ctnetlink.gen.test nfnetlink_ctnetlink_exp.gen.test \
+	nfnetlink_cttimeout.gen.test nfnetlink_ipset.gen.test \
+	nfnetlink_nft_compat.gen.test nfnetlink_nftables.gen.test \
+	nfnetlink_osf.gen.test nfnetlink_queue.gen.test \
+	nfnetlink_ulog.gen.test nlattr_crypto_user_alg.gen.test \
+	nlattr_br_port_msg.gen.test nlattr_dcbmsg.gen.test \
+	nlattr_fib_rule_hdr.gen.test nlattr_ifaddrlblmsg.gen.test \
+	nlattr_ifaddrmsg.gen.test nlattr_ifinfomsg.gen.test \
+	nlattr_ifla_brport.gen.test nlattr_ifla_port.gen.test \
+	nlattr_ifla_xdp.gen.test nlattr_inet_diag_msg.gen.test \
 	nlattr_inet_diag_req_compat.gen.test \
-	nlattr_inet_diag_req_v2.gen.test nlattr_ndmsg.gen.test \
+	nlattr_inet_diag_req_v2.gen.test \
+	nlattr_mdba_mdb_entry.gen.test \
+	nlattr_mdba_router_port.gen.test nlattr_ndmsg.gen.test \
 	nlattr_ndtmsg.gen.test nlattr_netconfmsg.gen.test \
 	nlattr_netlink_diag_msg.gen.test nlattr_nlmsgerr.gen.test \
 	nlattr_packet_diag_msg.gen.test nlattr_rtgenmsg.gen.test \
 	nlattr_rtmsg.gen.test nlattr_smc_diag_msg.gen.test \
+	nlattr_tc_stats.gen.test nlattr_tca_stab.gen.test \
 	nlattr_tcamsg.gen.test nlattr_tcmsg.gen.test \
 	nlattr_unix_diag_msg.gen.test old_mmap.gen.test \
 	oldfstat.gen.test oldlstat.gen.test oldstat.gen.test \
@@ -3319,20 +3460,21 @@ GEN_TESTS = _newselect.gen.test accept.gen.test accept4.gen.test \
 	sched_xetattr.gen.test sched_xetparam.gen.test \
 	sched_xetscheduler.gen.test sched_yield.gen.test \
 	seccomp-filter.gen.test seccomp-filter-v.gen.test \
-	select.gen.test semop.gen.test sendfile.gen.test \
-	sendfile64.gen.test set_mempolicy.gen.test \
-	setdomainname.gen.test setfsgid.gen.test setfsgid32.gen.test \
-	setfsuid.gen.test setfsuid32.gen.test setgid.gen.test \
-	setgid32.gen.test setgroups.gen.test setgroups32.gen.test \
-	sethostname.gen.test setns.gen.test setregid.gen.test \
-	setregid32.gen.test setresgid.gen.test setresgid32.gen.test \
-	setresuid.gen.test setresuid32.gen.test setreuid.gen.test \
-	setreuid32.gen.test setrlimit.gen.test setuid.gen.test \
-	setuid32.gen.test shmxt.gen.test shutdown.gen.test \
-	sigaction.gen.test siginfo.gen.test signal.gen.test \
-	signal_receive.gen.test signalfd4.gen.test sigpending.gen.test \
-	sigprocmask.gen.test sigreturn.gen.test sigsuspend.gen.test \
-	so_linger.gen.test so_peercred.gen.test sock_filter-v.gen.test \
+	seccomp_get_action_avail.gen.test select.gen.test \
+	semop.gen.test sendfile.gen.test sendfile64.gen.test \
+	set_mempolicy.gen.test setdomainname.gen.test \
+	setfsgid.gen.test setfsgid32.gen.test setfsuid.gen.test \
+	setfsuid32.gen.test setgid.gen.test setgid32.gen.test \
+	setgroups.gen.test setgroups32.gen.test sethostname.gen.test \
+	setns.gen.test setregid.gen.test setregid32.gen.test \
+	setresgid.gen.test setresgid32.gen.test setresuid.gen.test \
+	setresuid32.gen.test setreuid.gen.test setreuid32.gen.test \
+	setrlimit.gen.test setuid.gen.test setuid32.gen.test \
+	shmxt.gen.test shutdown.gen.test sigaction.gen.test \
+	siginfo.gen.test signal.gen.test signal_receive.gen.test \
+	signalfd4.gen.test sigpending.gen.test sigprocmask.gen.test \
+	sigreturn.gen.test sigsuspend.gen.test so_linger.gen.test \
+	so_peercred.gen.test sock_filter-v.gen.test \
 	socketcall.gen.test splice.gen.test stat.gen.test \
 	stat64.gen.test statfs.gen.test statfs64.gen.test \
 	statx.gen.test swap.gen.test sxetmask.gen.test \
@@ -3451,6 +3593,8 @@ MISC_TESTS = \
 	redirect-fds.test \
 	redirect.test \
 	restart_syscall.test \
+	sigblock.test \
+	sigign.test \
 	strace-C.test \
 	strace-E.test \
 	strace-S.test \
@@ -3691,6 +3835,14 @@ caps$(EXEEXT): $(caps_OBJECTS) $(caps_DEPENDENCIES) $(EXTRA_caps_DEPENDENCIES)
 caps-abbrev$(EXEEXT): $(caps_abbrev_OBJECTS) $(caps_abbrev_DEPENDENCIES) $(EXTRA_caps_abbrev_DEPENDENCIES) 
 	@rm -f caps-abbrev$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(caps_abbrev_OBJECTS) $(caps_abbrev_LDADD) $(LIBS)
+
+check_sigblock$(EXEEXT): $(check_sigblock_OBJECTS) $(check_sigblock_DEPENDENCIES) $(EXTRA_check_sigblock_DEPENDENCIES) 
+	@rm -f check_sigblock$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(check_sigblock_OBJECTS) $(check_sigblock_LDADD) $(LIBS)
+
+check_sigign$(EXEEXT): $(check_sigign_OBJECTS) $(check_sigign_DEPENDENCIES) $(EXTRA_check_sigign_DEPENDENCIES) 
+	@rm -f check_sigign$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(check_sigign_OBJECTS) $(check_sigign_LDADD) $(LIBS)
 
 chmod$(EXEEXT): $(chmod_OBJECTS) $(chmod_DEPENDENCIES) $(EXTRA_chmod_DEPENDENCIES) 
 	@rm -f chmod$(EXEEXT)
@@ -4192,6 +4344,10 @@ kcmp$(EXEEXT): $(kcmp_OBJECTS) $(kcmp_DEPENDENCIES) $(EXTRA_kcmp_DEPENDENCIES)
 	@rm -f kcmp$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(kcmp_OBJECTS) $(kcmp_LDADD) $(LIBS)
 
+kcmp-y$(EXEEXT): $(kcmp_y_OBJECTS) $(kcmp_y_DEPENDENCIES) $(EXTRA_kcmp_y_DEPENDENCIES) 
+	@rm -f kcmp-y$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(kcmp_y_OBJECTS) $(kcmp_y_LDADD) $(LIBS)
+
 kexec_file_load$(EXEEXT): $(kexec_file_load_OBJECTS) $(kexec_file_load_DEPENDENCIES) $(EXTRA_kexec_file_load_DEPENDENCIES) 
 	@rm -f kexec_file_load$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(kexec_file_load_OBJECTS) $(kexec_file_load_LDADD) $(LIBS)
@@ -4227,6 +4383,10 @@ link$(EXEEXT): $(link_OBJECTS) $(link_DEPENDENCIES) $(EXTRA_link_DEPENDENCIES)
 linkat$(EXEEXT): $(linkat_OBJECTS) $(linkat_DEPENDENCIES) $(EXTRA_linkat_DEPENDENCIES) 
 	@rm -f linkat$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(linkat_OBJECTS) $(linkat_LDADD) $(LIBS)
+
+list_sigaction_signum$(EXEEXT): $(list_sigaction_signum_OBJECTS) $(list_sigaction_signum_DEPENDENCIES) $(EXTRA_list_sigaction_signum_DEPENDENCIES) 
+	@rm -f list_sigaction_signum$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(list_sigaction_signum_OBJECTS) $(list_sigaction_signum_LDADD) $(LIBS)
 
 llseek$(EXEEXT): $(llseek_OBJECTS) $(llseek_DEPENDENCIES) $(EXTRA_llseek_DEPENDENCIES) 
 	@rm -f llseek$(EXEEXT)
@@ -4452,6 +4612,50 @@ newfstatat$(EXEEXT): $(newfstatat_OBJECTS) $(newfstatat_DEPENDENCIES) $(EXTRA_ne
 	@rm -f newfstatat$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(newfstatat_OBJECTS) $(newfstatat_LDADD) $(LIBS)
 
+nfnetlink_acct$(EXEEXT): $(nfnetlink_acct_OBJECTS) $(nfnetlink_acct_DEPENDENCIES) $(EXTRA_nfnetlink_acct_DEPENDENCIES) 
+	@rm -f nfnetlink_acct$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_acct_OBJECTS) $(nfnetlink_acct_LDADD) $(LIBS)
+
+nfnetlink_cthelper$(EXEEXT): $(nfnetlink_cthelper_OBJECTS) $(nfnetlink_cthelper_DEPENDENCIES) $(EXTRA_nfnetlink_cthelper_DEPENDENCIES) 
+	@rm -f nfnetlink_cthelper$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_cthelper_OBJECTS) $(nfnetlink_cthelper_LDADD) $(LIBS)
+
+nfnetlink_ctnetlink$(EXEEXT): $(nfnetlink_ctnetlink_OBJECTS) $(nfnetlink_ctnetlink_DEPENDENCIES) $(EXTRA_nfnetlink_ctnetlink_DEPENDENCIES) 
+	@rm -f nfnetlink_ctnetlink$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_ctnetlink_OBJECTS) $(nfnetlink_ctnetlink_LDADD) $(LIBS)
+
+nfnetlink_ctnetlink_exp$(EXEEXT): $(nfnetlink_ctnetlink_exp_OBJECTS) $(nfnetlink_ctnetlink_exp_DEPENDENCIES) $(EXTRA_nfnetlink_ctnetlink_exp_DEPENDENCIES) 
+	@rm -f nfnetlink_ctnetlink_exp$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_ctnetlink_exp_OBJECTS) $(nfnetlink_ctnetlink_exp_LDADD) $(LIBS)
+
+nfnetlink_cttimeout$(EXEEXT): $(nfnetlink_cttimeout_OBJECTS) $(nfnetlink_cttimeout_DEPENDENCIES) $(EXTRA_nfnetlink_cttimeout_DEPENDENCIES) 
+	@rm -f nfnetlink_cttimeout$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_cttimeout_OBJECTS) $(nfnetlink_cttimeout_LDADD) $(LIBS)
+
+nfnetlink_ipset$(EXEEXT): $(nfnetlink_ipset_OBJECTS) $(nfnetlink_ipset_DEPENDENCIES) $(EXTRA_nfnetlink_ipset_DEPENDENCIES) 
+	@rm -f nfnetlink_ipset$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_ipset_OBJECTS) $(nfnetlink_ipset_LDADD) $(LIBS)
+
+nfnetlink_nft_compat$(EXEEXT): $(nfnetlink_nft_compat_OBJECTS) $(nfnetlink_nft_compat_DEPENDENCIES) $(EXTRA_nfnetlink_nft_compat_DEPENDENCIES) 
+	@rm -f nfnetlink_nft_compat$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_nft_compat_OBJECTS) $(nfnetlink_nft_compat_LDADD) $(LIBS)
+
+nfnetlink_nftables$(EXEEXT): $(nfnetlink_nftables_OBJECTS) $(nfnetlink_nftables_DEPENDENCIES) $(EXTRA_nfnetlink_nftables_DEPENDENCIES) 
+	@rm -f nfnetlink_nftables$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_nftables_OBJECTS) $(nfnetlink_nftables_LDADD) $(LIBS)
+
+nfnetlink_osf$(EXEEXT): $(nfnetlink_osf_OBJECTS) $(nfnetlink_osf_DEPENDENCIES) $(EXTRA_nfnetlink_osf_DEPENDENCIES) 
+	@rm -f nfnetlink_osf$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_osf_OBJECTS) $(nfnetlink_osf_LDADD) $(LIBS)
+
+nfnetlink_queue$(EXEEXT): $(nfnetlink_queue_OBJECTS) $(nfnetlink_queue_DEPENDENCIES) $(EXTRA_nfnetlink_queue_DEPENDENCIES) 
+	@rm -f nfnetlink_queue$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_queue_OBJECTS) $(nfnetlink_queue_LDADD) $(LIBS)
+
+nfnetlink_ulog$(EXEEXT): $(nfnetlink_ulog_OBJECTS) $(nfnetlink_ulog_DEPENDENCIES) $(EXTRA_nfnetlink_ulog_DEPENDENCIES) 
+	@rm -f nfnetlink_ulog$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nfnetlink_ulog_OBJECTS) $(nfnetlink_ulog_LDADD) $(LIBS)
+
 nlattr$(EXEEXT): $(nlattr_OBJECTS) $(nlattr_DEPENDENCIES) $(EXTRA_nlattr_DEPENDENCIES) 
 	@rm -f nlattr$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(nlattr_OBJECTS) $(nlattr_LDADD) $(LIBS)
@@ -4508,6 +4712,14 @@ nlattr_inet_diag_req_v2$(EXEEXT): $(nlattr_inet_diag_req_v2_OBJECTS) $(nlattr_in
 	@rm -f nlattr_inet_diag_req_v2$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(nlattr_inet_diag_req_v2_OBJECTS) $(nlattr_inet_diag_req_v2_LDADD) $(LIBS)
 
+nlattr_mdba_mdb_entry$(EXEEXT): $(nlattr_mdba_mdb_entry_OBJECTS) $(nlattr_mdba_mdb_entry_DEPENDENCIES) $(EXTRA_nlattr_mdba_mdb_entry_DEPENDENCIES) 
+	@rm -f nlattr_mdba_mdb_entry$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_mdba_mdb_entry_OBJECTS) $(nlattr_mdba_mdb_entry_LDADD) $(LIBS)
+
+nlattr_mdba_router_port$(EXEEXT): $(nlattr_mdba_router_port_OBJECTS) $(nlattr_mdba_router_port_DEPENDENCIES) $(EXTRA_nlattr_mdba_router_port_DEPENDENCIES) 
+	@rm -f nlattr_mdba_router_port$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_mdba_router_port_OBJECTS) $(nlattr_mdba_router_port_LDADD) $(LIBS)
+
 nlattr_ndmsg$(EXEEXT): $(nlattr_ndmsg_OBJECTS) $(nlattr_ndmsg_DEPENDENCIES) $(EXTRA_nlattr_ndmsg_DEPENDENCIES) 
 	@rm -f nlattr_ndmsg$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(nlattr_ndmsg_OBJECTS) $(nlattr_ndmsg_LDADD) $(LIBS)
@@ -4543,6 +4755,14 @@ nlattr_rtmsg$(EXEEXT): $(nlattr_rtmsg_OBJECTS) $(nlattr_rtmsg_DEPENDENCIES) $(EX
 nlattr_smc_diag_msg$(EXEEXT): $(nlattr_smc_diag_msg_OBJECTS) $(nlattr_smc_diag_msg_DEPENDENCIES) $(EXTRA_nlattr_smc_diag_msg_DEPENDENCIES) 
 	@rm -f nlattr_smc_diag_msg$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(nlattr_smc_diag_msg_OBJECTS) $(nlattr_smc_diag_msg_LDADD) $(LIBS)
+
+nlattr_tc_stats$(EXEEXT): $(nlattr_tc_stats_OBJECTS) $(nlattr_tc_stats_DEPENDENCIES) $(EXTRA_nlattr_tc_stats_DEPENDENCIES) 
+	@rm -f nlattr_tc_stats$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_tc_stats_OBJECTS) $(nlattr_tc_stats_LDADD) $(LIBS)
+
+nlattr_tca_stab$(EXEEXT): $(nlattr_tca_stab_OBJECTS) $(nlattr_tca_stab_DEPENDENCIES) $(EXTRA_nlattr_tca_stab_DEPENDENCIES) 
+	@rm -f nlattr_tca_stab$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(nlattr_tca_stab_OBJECTS) $(nlattr_tca_stab_LDADD) $(LIBS)
 
 nlattr_tcamsg$(EXEEXT): $(nlattr_tcamsg_OBJECTS) $(nlattr_tcamsg_DEPENDENCIES) $(EXTRA_nlattr_tcamsg_DEPENDENCIES) 
 	@rm -f nlattr_tcamsg$(EXEEXT)
@@ -4948,6 +5168,10 @@ seccomp-strict$(EXEEXT): $(seccomp_strict_OBJECTS) $(seccomp_strict_DEPENDENCIES
 	@rm -f seccomp-strict$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(seccomp_strict_OBJECTS) $(seccomp_strict_LDADD) $(LIBS)
 
+seccomp_get_action_avail$(EXEEXT): $(seccomp_get_action_avail_OBJECTS) $(seccomp_get_action_avail_DEPENDENCIES) $(EXTRA_seccomp_get_action_avail_DEPENDENCIES) 
+	@rm -f seccomp_get_action_avail$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(seccomp_get_action_avail_OBJECTS) $(seccomp_get_action_avail_LDADD) $(LIBS)
+
 select$(EXEEXT): $(select_OBJECTS) $(select_DEPENDENCIES) $(EXTRA_select_DEPENDENCIES) 
 	@rm -f select$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(select_OBJECTS) $(select_LDADD) $(LIBS)
@@ -4971,6 +5195,14 @@ set_mempolicy$(EXEEXT): $(set_mempolicy_OBJECTS) $(set_mempolicy_DEPENDENCIES) $
 set_ptracer_any$(EXEEXT): $(set_ptracer_any_OBJECTS) $(set_ptracer_any_DEPENDENCIES) $(EXTRA_set_ptracer_any_DEPENDENCIES) 
 	@rm -f set_ptracer_any$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(set_ptracer_any_OBJECTS) $(set_ptracer_any_LDADD) $(LIBS)
+
+set_sigblock$(EXEEXT): $(set_sigblock_OBJECTS) $(set_sigblock_DEPENDENCIES) $(EXTRA_set_sigblock_DEPENDENCIES) 
+	@rm -f set_sigblock$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(set_sigblock_OBJECTS) $(set_sigblock_LDADD) $(LIBS)
+
+set_sigign$(EXEEXT): $(set_sigign_OBJECTS) $(set_sigign_DEPENDENCIES) $(EXTRA_set_sigign_DEPENDENCIES) 
+	@rm -f set_sigign$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(set_sigign_OBJECTS) $(set_sigign_LDADD) $(LIBS)
 
 setdomainname$(EXEEXT): $(setdomainname_OBJECTS) $(setdomainname_DEPENDENCIES) $(EXTRA_setdomainname_DEPENDENCIES) 
 	@rm -f setdomainname$(EXEEXT)
@@ -5411,6 +5643,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btrfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/caps-abbrev.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/caps.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_sigblock.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_sigign.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chmod.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chown.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/chown32.Po@am__quote@
@@ -5535,6 +5769,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ipc_sem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ipc_shm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/is_linux_mips_n64.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kcmp-y.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kcmp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kexec_file_load.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kexec_load.Po@am__quote@
@@ -5571,6 +5806,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libtests_a-tprintf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/link.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linkat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list_sigaction_signum.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/llseek.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lookup_dcookie.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lseek.Po@am__quote@
@@ -5627,6 +5863,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_unix_diag.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_xfrm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/newfstatat-newfstatat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_acct.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_cthelper.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_ctnetlink.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_ctnetlink_exp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_cttimeout.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_ipset.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_nft_compat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_nftables.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_osf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_queue.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nfnetlink_ulog.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_br_port_msg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_crypto_user_alg.Po@am__quote@
@@ -5641,6 +5888,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_inet_diag_msg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_inet_diag_req_compat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_inet_diag_req_v2.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_mdba_mdb_entry.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_mdba_router_port.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_ndmsg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_ndtmsg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_netconfmsg.Po@am__quote@
@@ -5650,6 +5899,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_rtgenmsg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_rtmsg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_smc_diag_msg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_tc_stats.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_tca_stab.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_tcamsg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_tcmsg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nlattr_unix_diag_msg.Po@am__quote@
@@ -5751,12 +6002,15 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seccomp-filter-v.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seccomp-filter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seccomp-strict.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/seccomp_get_action_avail.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/select.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/semop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sendfile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sendfile64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_mempolicy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_ptracer_any.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_sigblock.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/set_sigign.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setdomainname.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setfsgid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setfsgid32.Po@am__quote@
@@ -7194,6 +7448,9 @@ $(srcdir)/ipc_shm.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 $(srcdir)/kcmp.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/kcmp-y.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/kexec_file_load.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
@@ -7353,6 +7610,39 @@ $(srcdir)/newfstatat.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 $(srcdir)/nlattr.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/nfnetlink_acct.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_cthelper.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_ctnetlink.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_ctnetlink_exp.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_cttimeout.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_ipset.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_nft_compat.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_nftables.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_osf.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_queue.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nfnetlink_ulog.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/nlattr_crypto_user_alg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
@@ -7392,6 +7682,12 @@ $(srcdir)/nlattr_inet_diag_req_compat.gen.test: $(abs_srcdir)/gen_tests.sh $(src
 $(srcdir)/nlattr_inet_diag_req_v2.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/nlattr_mdba_mdb_entry.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nlattr_mdba_router_port.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/nlattr_ndmsg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
@@ -7417,6 +7713,12 @@ $(srcdir)/nlattr_rtmsg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/nlattr_smc_diag_msg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nlattr_tc_stats.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/nlattr_tca_stab.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/nlattr_tcamsg.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
@@ -7639,6 +7941,9 @@ $(srcdir)/seccomp-filter.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_test
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/seccomp-filter-v.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/seccomp_get_action_avail.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/select.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in

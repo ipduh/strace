@@ -1,3 +1,786 @@
+2017-11-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Prepare for 4.20 release.
+	* NEWS: Update for 4.20 release.
+
+	CREDITS.in: remove entries listed by maint/gen-contributors-list.sh.
+
+2017-11-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Makefile.am: use gen-contributors-list.sh for CREDITS.
+	* Makefile.am ($(srcdir)/CREDITS): Employ maint/gen-contributors-list.sh
+	for the contributor list generation.
+
+2017-11-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	maint: make gen-contributors-list.sh suitable for generation of CREDITS.
+	Implement various features in order to make it suitable for the
+	generation of the CREDITS file:
+	- add an option for including contributor e-mail;
+	- add an option to read additional list of contributors from stdin;
+	- add shorthand for referring to the initial commit of the branch;
+	- document all of the above in a help message.
+
+	* maint/gen-contributors-list.sh (print_help): New function.
+	(script): Rename to SCRIPT.
+	(SCRIPT_NORM_EMAILS, MATCH_OUT, OUT_EMAILS, OUT_NO_EMAILS, read_stdin,
+	include_email): New variables.
+	Add parsing of options, rewrite input processing.
+
+2017-11-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	.mailmap: add more entries to avoid duplication in CREDITS.
+
+	.mailmap: sort entries.
+
+2017-11-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	.mailmap: more deduplication.
+	Of course there are no two persons in the whole world that share
+	the same name.
+
+2017-11-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	CREDITS.in: use UTF-8 consistently.
+	In particular, do not use " symbols in names.
+
+2017-11-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	CREDITS.in: add Jiri Slaby as a contributor.
+	Unfortunately, he wasn't mentioned in the message of the commit
+	v4.19-68-g48cb633, so let's fix that omission.
+
+	References: https://github.com/strace/strace/pull/16
+
+2017-11-13  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	s390, s390x: update ioctl entries from linux 4.14.
+	* linux/s390/ioctls_arch0.h: Update from linux v4.14 using ioctls_gen.sh.
+	* linux/s390x/ioctls_arch0.h: Likewise.
+
+	s390x: remove some of non-s390 KVM ioctls.
+	* linux/s390x/ioctls_arch0.h: Regenerate.
+
+	maint: remove KVM_PPC_CONFIGURE_V3_MMU ioctl from non-powerpc arches.
+	* maint/ioctls_sym.sh (ppc_list): Update.
+
+2017-11-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update copyright headers.
+	Headers updated semi-automatically using
+	maint/update_copyright_years.sh script.
+
+	* m4/mpers.m4: Update copyright years.
+	* tests/kcmp.c: Likewise.
+	* tests/membarrier.c: Likewise.
+
+2017-11-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	maint/update_copyright_years.sh: fix typo in help output.
+	* maint/update_copyright_years.sh (print_help): Fix typo, disable
+	here-document expansion.
+
+2017-11-10  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Move MIN, MAX, and CLAMP to macros.h.
+	We shouldn't have to include the whole defs.h to get them.
+
+	* defs.h (MIN, MAX, CLAMP): Move ...
+	* macros.h: ... here.
+
+2017-11-10  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Update .mailmap.
+	* .mailmap (Eugene Syromyatnikov): Add work address.
+
+2017-11-07  Steve McIntyre  <steve@einval.com>
+
+	debian: update debhelper compat level to 10, replace -s with -a in some calls
+
+	debian: update Standards-Version to 3.9.8.
+
+2017-11-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mpers.m4: check for size of long and kernel_long_t.
+	The primary purpose of this new check is diagnostics.
+
+	* m4/mpers.m4 (st_MPERS): Check for size of long and kernel_long_t.
+
+2017-11-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat/gen.sh: speedup xlat generation.
+	This commit implements the following changes:
+	- increases the number of concurrent jobs to twice the CPU count;
+	- creates a circular buffer, so instead of running multiple jobs
+	  at once, the generator tries to keep about the same number of jobs
+	  being run concurrently;
+	- runs gen_git and gen_make concurrently in order to squeeze in
+	  one more bit of concurrency.
+
+	With my deeply scientific measurements, this approach achieves
+	up to 15% speedup with dash and about 30-40% with bash as /bin/sh
+	on a 4-core machine.
+
+	* xlat/gen.sh (main): Declare pids local variable, append pid of every
+	run job to it; increase the limit of jobs to ncpus * 2; when the limit
+	is reached, wait for the first pid in pids instead of resetting jobs
+	to zero and waiting for all the run jobs; put gen_git and gen_make
+	into background.
+
+2017-11-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	hppa: wire up statx syscall.
+	* linux/hppa/syscallent.h [349]: Add statx entry.
+
+2017-11-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check signal mask transparency.
+	Starting with commit v4.17-5-gf83b49b strace is expected
+	to forward the signal mask to tracees unchanged.
+
+	* tests/check_sigblock.c: New file.
+	* tests/set_sigblock.c: Likewise.
+	* tests/sigblock.test: New test.
+	* tests/.gitignore: Add check_sigblock and set_sigblock.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(MISC_TESTS): Add sigblock.test.
+
+2017-11-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check signal disposition transparency.
+	Starting with commit v4.17-8-ge97a66f strace is expected
+	to forward the signal disposition to tracees unchanged.
+
+	* tests/check_sigign.c: New file.
+	* tests/list_sigaction_signum.c: Likewise.
+	* tests/set_sigign.c: Likewise.
+	* tests/sigign.test: New test.
+	* tests/.gitignore: Add check_sigign, list_sigaction_signum,
+	and set_sigign.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(MISC_TESTS): Add sigign.test.
+
+2017-11-03  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: update futex test to accommodate the recent kernel change.
+	Kernel commit v4.14-rc1~162^2~8 refactored futex implementation and
+	introduced checks for invalid shift sizes.  Accommodate this change
+	by allowing EINVAL in the corresponding futex checks.
+
+	* tests/futex.c (CHECK_FUTEX_GENERIC): Reset errno before the syscall.
+	(main) <wake_ops>: Add err2 field, describe err/err2 fields.
+	Add EINVAL as a possible errno to the checks that contain invalid
+	shift values.
+	Update return value check so it checks that values are strictly
+	as expected.
+
+	Closes: https://github.com/strace/strace/pull/16
+
+2017-11-03  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: cleanup futex test.
+	* tests/futex.c (main) <wake_ops>: Remove unused errstr field
+	from the structure type definition.
+
+2017-11-02  Dmitry V. Levin  <ldv@altlinux.org>
+
+	seccomp: decode SECCOMP_GET_ACTION_AVAIL operation.
+	* defs.h (seccomp_ret_action): New xlat prototype.
+	* seccomp.c (decode_seccomp_set_mode_strict): Remove.
+	(SYS_FUNC(seccomp)): Decode SECCOMP_GET_ACTION_AVAIL operation.
+	* NEWS: Mention this.
+	* tests/seccomp_get_action_avail.c: New file.
+	* tests/gen_tests.in (seccomp_get_action_avail): New entry.
+	* tests/pure_executables.list: Add seccomp_get_action_avail.
+	* tests/.gitignore: Likewise.
+
+2017-11-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Add SECCOMP_RET_KILL_PROCESS decoding support.
+	* bpf_seccomp_filter.c [!SECCOMP_RET_ACTION]: Remove.
+	[!SECCOMP_RET_ACTION_FULL] (SECCOMP_RET_ACTION_FULL): Define.
+	(print_seccomp_filter_k): Use SECCOMP_RET_ACTION_FULL
+	instead of SECCOMP_RET_ACTION.
+	* xlat/seccomp_ret_action.in: Add SECCOMP_RET_KILL_PROCESS introduced
+	by linux kernel commit v4.14-rc2~15^2~3.
+
+2017-11-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Rename SECCOMP_RET_KILL to SECCOMP_RET_KILL_THREAD.
+	Follow linux kernel commit v4.14-rc2~15^2~4 and rename SECCOMP_RET_KILL
+	to SECCOMP_RET_KILL_THREAD.
+
+	* xlat/seccomp_ret_action.in (SECCOMP_RET_KILL): Rename
+	to SECCOMP_RET_KILL_THREAD.
+	* tests/prctl-seccomp-filter-v.c (main): Update expected output.
+	* tests/seccomp-filter-v.c (main): Likewise.
+
+2017-11-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update SECCOMP_* constants.
+	* xlat/seccomp_filter_flags.in: Add SECCOMP_FILTER_FLAG_LOG introduced
+	by kernel commit v4.14-rc2~15^2~6.
+	* xlat/seccomp_ops.in: Add SECCOMP_GET_ACTION_AVAIL introduced
+	by kernel commit v4.14-rc2~15^2~9.
+	* xlat/seccomp_ret_action.in: Add SECCOMP_RET_LOG introduced
+	by kernel commit v4.14-rc2~15^2~5.
+	* NEWS: Mention this.
+	* tests/seccomp-filter.c (main): Update expected output.
+	* tests/seccomp-filter-v.c (main): Likewise.
+
+	Provide fallback definitions for SECCOMP_RET_* constants.
+	* xlat/seccomp_ret_action.in: Add fallback definitions.
+
+2017-11-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify options-syntax.test against inquisitive musl.
+	Workaround musl >= 1.1.17 ability to use AT_EXECFN during
+	program_invocation_name initialization.
+
+	* tests/options-syntax.test: Check for two valid variants
+	of "zeroargc strace" expected output.
+
+2017-11-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update MEMBARRIER_CMD_* constants.
+	* xlat/membarrier_cmds.in: Add MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED
+	introduced by kernel commit v4.14-rc6~26.
+	* tests/membarrier.c (main): Update expected output.
+
+2017-10-31  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of NFNL_SUBSYS_NFT_COMPAT netlink message flags.
+	* tests/nfnetlink_nft_compat.c (test_nlmsg_flags): New function.
+	(main): Use it.
+
+	tests: check decoding of NFNL_SUBSYS_NFTABLES netlink message flags.
+	* tests/nfnetlink_nftables.c (test_nlmsg_flags): New function.
+	(main): Use it.
+
+	tests: check decoding of NFNL_SUBSYS_CTHELPER netlink message flags.
+	* tests/nfnetlink_cthelper.c (test_nlmsg_flags): New function.
+	(main): Use it.
+
+	tests: check decoding of NFNL_SUBSYS_CTNETLINK_TIMEOUT netlink message flags
+	* tests/nfnetlink_cttimeout.c (test_nlmsg_flags): New function.
+	(main): Use it.
+
+	tests: check decoding of NFNL_SUBSYS_ACCT netlink message flags.
+	* tests/nfnetlink_acct.c (test_nlmsg_flags): New function.
+	(main): Use it.
+
+	tests: check decoding of NFNL_SUBSYS_CTNETLINK_EXP netlink message flags
+	* tests/nfnetlink_ctnetlink_exp.c (test_nlmsg_flags): New function.
+	(main): Use it.
+
+	tests: check decoding of NFNL_SUBSYS_CTNETLINK netlink message flags.
+	* tests/nfnetlink_ctnetlink.c (test_nlmsg_flags): New function.
+	(main): Use it.
+
+2017-10-26  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: decode NETLINK_NETFILTER netlink message flags.
+	* netlink.c (decode_nlmsg_flags_netfilter): New function.
+	(nlmsg_flags): Add NETLINK_NETFILTER.
+	* NEWS: Mention this.
+
+	netlink: decode netlink message delete flags.
+	* netlink.c: Include "xlat/netlink_delete_flags.h".
+	(decode_nlmsg_flags_crypto, decode_nlmsg_flags_route,
+	decode_nlmsg_flags_xfrm): Decode delete flags.
+	* netlink.h (NLM_F_NONREC): New macro.
+	* xlat/netlink_delete_flags.in: New file.
+	* tests/netlink_crypto.c (test_nlmsg_flags): Check this.
+	* tests/netlink_route.c (test_nlmsg_flags): Likewise.
+	* tests/netlink_xfrm.c (test_nlmsg_flags): Likewise.
+
+2017-10-26  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	netlink: refactor decode_nlmsg_flags.
+	Refactor decode_nlmsg_flags to make it family-specific, just like
+	decode_nlmsg_type and decode_payload.
+
+	* netlink.c (decode_nlmsg_flags_crypto, decode_nlmsg_flags_route,
+	decode_nlmsg_flags_sock_diag, decode_nlmsg_flags_xfrm): New functions.
+	(nlmsg_flags_decoder_t): New typedef.
+	(nlmsg_flags): New array.
+	(decode_nlmsg_flags): Use it.
+
+2017-10-14  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	Workaround historic linux/netfilter/xt_osf.h deficiencies.
+	When using linux kernel headers without commit v4.5-rc1~128^2~115^2~22
+	("netfilter: fix include files for compilation"), both <linux/ip.h>
+	and <linux/tcp.h> have to be included before <linux/netfilter/xt_osf.h>.
+
+	* configure.ac (AC_CHECK_HEADERS): Include <linux/ip.h>
+	and <linux/tcp.h> when checking for linux/netfilter/xt_osf.h header.
+	* tests/nfnetlink_osf.c: Include <linux/ip.h> and <linux/tcp.h>
+	before <linux/netfilter/xt_osf.h>.
+
+2017-09-24  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of NFNL_SUBSYS_NFT_COMPAT netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add
+	linux/netfilter/nf_tables_compat.h.
+	* tests/nfnetlink_nft_compat.c: New file.
+	* tests/gen_tests.in (nfnetlink_nft_compat): New entry.
+	* tests/pure_executables.list: Add nfnetlink_nft_compat.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_NFTABLES netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add linux/netfilter/nf_tables.h.
+	* tests/nfnetlink_nftables.c: New file.
+	* tests/gen_tests.in (nfnetlink_nftables): New entry.
+	* tests/pure_executables.list: Add nfnetlink_nftables.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_CTHELPER netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add
+	linux/netfilter/nfnetlink_cthelper.h.
+	* tests/nfnetlink_cthelper.c: New file.
+	* tests/gen_tests.in (nfnetlink_cthelper): New entry.
+	* tests/pure_executables.list: Add nfnetlink_cthelper.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_CTNETLINK_TIMEOUT netlink message types
+	* configure.ac (AC_CHECK_HEADERS): Add
+	linux/netfilter/nfnetlink_cttimeout.h.
+	* tests/nfnetlink_cttimeout.c: New file.
+	* tests/gen_tests.in (nfnetlink_cttimeout): New entry.
+	* tests/pure_executables.list: Add nfnetlink_cttimeout.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_ACCT netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add
+	linux/netfilter/nfnetlink_acct.h.
+	* tests/nfnetlink_acct.c: New file.
+	* tests/gen_tests.in (nfnetlink_acct): New entry.
+	* tests/pure_executables.list: Add nfnetlink_acct.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_IPSET netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add linux/netfilter/ipset/ip_set.h.
+	* tests/nfnetlink_ipset.c: New file.
+	* tests/gen_tests.in (nfnetlink_ipset): New entry.
+	* tests/pure_executables.list: Add nfnetlink_ipset.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_OSF netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add linux/netfilter/xt_osf.h.
+	* tests/nfnetlink_osf.c: New file.
+	* tests/gen_tests.in (nfnetlink_osf): New entry.
+	* tests/pure_executables.list: Add nfnetlink_osf.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_ULOG netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add
+	linux/netfilter/nfnetlink_log.h.
+	* tests/nfnetlink_ulog.c: New file.
+	* tests/gen_tests.in (nfnetlink_ulog): New entry.
+	* tests/pure_executables.list: Add nfnetlink_ulog.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_QUEUE netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add
+	linux/netfilter/nfnetlink_queue.h.
+	* tests/nfnetlink_queue.c: New file.
+	* tests/gen_tests.in (nfnetlink_queue): New entry.
+	* tests/pure_executables.list: Add nfnetlink_queue.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_CTNETLINK_EXP netlink message types
+	* tests/nfnetlink_ctnetlink_exp.c: New file.
+	* tests/gen_tests.in (nfnetlink_ctnetlink_exp): New entry.
+	* tests/pure_executables.list: Add nfnetlink_ctnetlink_exp.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of NFNL_SUBSYS_CTNETLINK netlink message types.
+	* configure.ac (AC_CHECK_HEADERS): Add
+	linux/netfilter/nfnetlink_conntrack.h.
+	* tests/nfnetlink_ctnetlink.c: New file.
+	* tests/gen_tests.in (nfnetlink_ctnetlink): New entry.
+	* tests/pure_executables.list: Add nfnetlink_ctnetlink.
+	* tests/.gitignore: Likewise.
+
+	netlink: decode NETLINK_NETFILTER netlink message types.
+	* netlink.c: Include "xlat/nf_acct_msg_types.h",
+	"xlat/nf_cthelper_msg_types.h", "xlat/nf_ctnetlink_exp_msg_types.h",
+	"xlat/nf_ctnetlink_msg_types.h", "xlat/nf_cttimeout_msg_types.h",
+	"xlat/nf_ipset_msg_types.h", "xlat/nf_nft_compat_msg_types.h",
+	"xlat/nf_nftables_msg_types.h", "xlat/nf_osf_msg_types.h",
+	"xlat/nf_queue_msg_types.h", and "xlat/nf_ulog_msg_types.h".
+	(nf_nlmsg_types): New array.
+	(decode_nlmsg_type_netfilter): Use it.
+	* NEWS: Mention this.
+	* xlat/nf_acct_msg_types.in: New file.
+	* xlat/nf_cthelper_msg_types.in: Likewise.
+	* xlat/nf_ctnetlink_exp_msg_types.in: Likewise.
+	* xlat/nf_ctnetlink_msg_types.in: Likewise.
+	* xlat/nf_cttimeout_msg_types.in: Likewise.
+	* xlat/nf_ipset_msg_types.in: Likewise.
+	* xlat/nf_nft_compat_msg_types.in: Likewise.
+	* xlat/nf_nftables_msg_types.in: Likewise.
+	* xlat/nf_osf_msg_types.in: Likewise.
+	* xlat/nf_queue_msg_types.in: Likewise.
+	* xlat/nf_ulog_msg_types.in: Likewise.
+	* tests/netlink_netfilter.c (test_nlmsg_type): Update expected output.
+
+2017-09-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ppc64: fix sigreturn parser for ppc personality.
+	* linux/powerpc/arch_sigreturn.c (arch_sigreturn) [POWERPC64]: Rewrite.
+
+	ppc64: truncate syscall args for 32-bit personality tracees.
+	* linux/powerpc/get_syscall_args.c (get_syscall_args): Clear upper
+	32 bits of syscall args for 32-bit personality tracees.
+	* NEWS: Mention this fix.
+
+	ppc64: fix PRI__64 macro definition when compiled with -m32.
+	* kernel_types.h [SIZEOF_LONG != 4]: Check for __powerpc64__ instead
+	of POWERPC to handle -m32 case properly.
+
+2017-09-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	loop: decode LOOP_SET_BLOCK_SIZE.
+	* loop.c (loop_ioctl) <LOOP_SET_BLOCK_SIZE>: Handle LOOP_SET_BLOCK_SIZE.
+	* tests/ioctl_loop.c (main): Check it.
+
+	Update ioctl entries from linux v4.14-rc1.
+	* linux/32/ioctls_inc_align16.h: Update from linux v4.14-rc1
+	using ioctls_gen.sh.
+	* linux/32/ioctls_inc_align32.h: Likewise.
+	* linux/32/ioctls_inc_align64.h: Likewise.
+	* linux/64/ioctls_inc.h: Likewise.
+	* linux/x32/ioctls_inc0.h: Likewise.
+	* xlat/loop_cmds.in: Add LOOP_SET_BLOCK_SIZE introduced
+	by kernel commit v4.13-rc7-176-g89e4fde.
+	* NEWS: Mention this.
+	* tests/ioctl_loop.c (main): Update.
+
+2017-09-19  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	maint: generate ioctl entries without target architecture code execution
+	ioctls_sym.sh used to generate and invoke target architecture
+	executables that limited its applicability.
+	After this change, the generated code is just compiled to the target
+	architecture object files and all required information is obtained
+	from the dwarf sections.
+	This approach allows to generate ioctl entries for any target
+	architecture supported by compiler.
+
+	* maint/ioctls_sym.awk: New file.
+	* maint/ioctls_sym.sh (LC_ALL): Define to C and export.
+	(uname_m): Make configurable.
+	(CFLAGS): Add -gdwarf-2.
+	(LDFLAGS): Remove.
+	Do not use print_ioctlent.c.
+	Change asm-generic/ioctl.h and asm/ioctl.h hook.
+	Dump and process dwarf sections of generated object files.
+	* maint/print_ioctlent.c: Remove.
+
+2017-09-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove KVM_S390_* ioctls from non-s390 architectures.
+	* maint/ioctls_sym.sh <linux/kvm.h> (s390_list): New variable.
+	Use it to exclude KVM_S390_* ioctls on non-s390 architectures.
+	* linux/arm/ioctls_arch0.h: Regenerate.
+	* linux/i386/ioctls_arch0.h: Likewise.
+	* linux/powerpc/ioctls_arch0.h: Likewise.
+	* linux/s390/ioctls_arch0.h: Likewise.
+	* linux/x86_64/ioctls_arch0.h: Likewise.
+
+2017-09-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove some of arch-specific KVM ioctls from non-matching architectures.
+	* maint/ioctls_sym.sh (arm_list, ppc_list, x86_list): Use bracket
+	expressions to generalize arch-specific regular expressions.
+	* linux/arm/ioctls_arch0.h: Regenerate.
+	* linux/i386/ioctls_arch0.h: Likewise.
+	* linux/powerpc/ioctls_arch0.h: Likewise.
+	* linux/s390/ioctls_arch0.h: Likewise.
+	* linux/x86_64/ioctls_arch0.h: Likewise.
+
+2017-09-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	dm: add support for DM_DEV_ARM_POLL.
+	Added in Linux commit v4.13-rc1~137^2~14.
+
+	* dm.c [!DM_LIST_VERSIONS] (DM_LIST_VERSIONS): Add leading zero.
+	[!DM_TARGET_MSG] (DM_TARGET_MSG): Likewise.
+	[!DM_DEV_SET_GEOMETRY_CMD] (DM_DEV_SET_GEOMETRY_CMD): Likewise.
+	[!DM_DEV_ARM_POLL] (DM_DEV_ARM_POLL): New macro.
+	(dm_ioctl_has_params, dm_ioctl): Handle DM_DEV_ARM_POLL.
+	* tests/ioctl_dm.c [!DM_DEV_ARM_POLL] (DM_DEV_ARM_POLL): New macro.
+	(main) <dummy_check_cmds>: Add DM_DEV_ARM_POLL.
+
+2017-09-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	kcmp: add KCMP_EPOLL_TFD support.
+	* configure.ac (AC_CHECK_TYPES): Add check for struct kcmp_epoll_slot.
+	* kcmp.c (SYS_FUNC(kcmp)) <case KCMP_EPOLL_TFD>: Implement idx1/idx2
+	argument parsing.
+	* tests/kcmp.c: Update test.
+	* xlat/kcmp_types.in (KCMP_EPOLL_TFD): New entry.
+
+2017-09-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add kcmp-y test.
+	It is not very useful as of now, but it will allow tracking changes
+	in fd output once they are implemented.
+
+	* tests/gen_tests.in (kcmp-y): New test.
+	* tests/kcmp-y.c: New file, wrapper for kcmp.c
+	* tests/kcmp.c: Add opening of some files for which info may be printed
+	in the future.
+	* tests/pure_executables.list: Add kcmp-y.
+	* tests/.gitignore: Likewise.
+
+2017-09-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	kcmp: output fds using a separate function.
+	This is a preparation for the future introduction of cross-NS PID
+	derivation, which would enable us to print fd information for fds
+	related to all processes, not just traced ones.
+
+	Note the change in output type for idx1/idx2 in KCMP_FILE command from
+	unsigned to int, it follows printfd output format.
+
+	* kcmp.c (printpidfd): New function.
+	(PRINT_FIELD_PIDFD): New macro.
+	(SYS_FUNC(kcmp)) <case KCMP_FILE>: Use printpidfd for printing
+	idx1/idx2, as they are fds, after all.
+
+2017-09-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/kcmp: add more checks.
+	Let's check all kcmp commands that they indeed do not print idx1/idx2.
+	Also, check that upper bits of pid arguments are ignored.
+
+	* tests/gen_tests.in (kcmp): Decrease -a argument's value from 27 to 22.
+	* tests/kcmp.c: Add checks for upper bits of pid1/pid2 and for all
+	kcmp types not tested before.
+
+2017-09-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/kcmp: use <linux/kcmp.h> if it is available.
+	I see it as a good idea to stick to system headers whenever possible
+	in order to also check for possible discrepancies between strace's
+	internal definitions and definitions present in the system headers.
+
+	* configure.ac (AC_CHECK_HEADERS): Add linux/kcmp.h.
+	* tests/kcmp.h [HAVE_LINUX_KCMP_H]: Include <linux/kcmp.h>,
+	do not define KCMP_FILE and KCMP_SYSVSEM.
+
+2017-09-17  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: check decoding of MDBA_ROUTER_PORT netlink attribute.
+	* tests/nlattr_mdba_router_port.c: New file.
+	* tests/gen_tests.in (nlattr_mdba_router_port): New entry.
+	* tests/pure_executables.list: Add nlattr_mdba_router_port.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of MDBA_MDB_ENTRY_INFO netlink attributes.
+	* tests/nlattr_mdba_mdb_entry.c: New file.
+	* tests/gen_tests.in (nlattr_mdba_mdb_entry): New entry.
+	* tests/pure_executables.list: Add nlattr_mdba_mdb_entry.
+	* tests/.gitignore: Likewise.
+
+2017-09-17  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	tests: extend TEST_NESTED_NLATTR_OBJECT macro.
+	Extend TEST_NESTED_NLATTR_OBJECT macro for multi-nested netlink
+	attributes, such as
+
+		[MDBA_MDB] = {
+			[MDBA_MDB_ENTRY] = {
+				[MDBA_MDB_ENTRY_INFO] {
+					struct br_mdb_entry
+					[MDBA_MDB_EATTR attributes]
+				}
+			}
+		}
+
+	* tests/test_nlattr.h (TEST_NESTED_NLATTR_OBJECT_EX_,
+	TEST_NESTED_NLATTR_OBJECT_EX): New macros.
+	(TEST_NESTED_NLATTR_OBJECT): Use TEST_NESTED_NLATTR_OBJECT_EX_.
+
+2017-09-17  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	rtnl_mdb: decode br_port_msg netlink attributes.
+	* configure.ac (AC_CHECK_TYPES): Check for struct br_mdb_entry
+	in <linux/if_bridge.h>.
+	(AC_CHECK_MEMBERS): Check for flags and vid fields in struct br_mdb_entry.
+	* rtnl_mdb.c: Include "xlat/mdb_flags.h", "xlat/mdb_states.h",
+	"xlat/rtnl_mdba_mdb_attrs.h", "xlat/rtnl_mdba_mdb_eattr_attrs.h",
+	"xlat/rtnl_mdba_mdb_entry_attrs.h" ,"xlat/rtnl_mdba_router_attrs.h"
+	and "xlat/rtnl_mdba_router_pattr_attrs.h".
+	(decode_mdba_mdb_entry_info, decode_mdba_mdb_entry,
+	decode_mdba_mdb, decode_multicast_router_type,
+	decode_mdba_router_port, decode_mdba_router): New functions.
+	(mdba_mdb_eattr_nla_decoders, mdba_mdb_entry_nla_decoders,
+	mdba_mdb_nla_decoders, mdba_router_pattr_nla_decoders,
+	mdba_router_nla_decoders, br_port_msg_nla_decoders): New arrays.
+	(decode_br_port_msg): Use br_port_msg_nla_decoders.
+	* xlat/mdb_flags.in: New file.
+	* xlat/mdb_states.in: Likewise.
+	* xlat/multicast_router_types.in: Likewise.
+	* xlat/rtnl_mdba_mdb_attrs.in: Likewise.
+	* xlat/rtnl_mdba_mdb_eattr_attrs.in: Likewise.
+	* xlat/rtnl_mdba_mdb_entry_attrs.in: Likewise.
+	* xlat/rtnl_mdba_router_attrs.in: Likewise.
+	* xlat/rtnl_mdba_router_pattr_attrs.in: Likewise.
+
+2017-09-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	netlink: implement decoding of INET_DIAG_CLASS_ID attribute.
+	This is a new netlink attribute introduced by linux kernel commit
+	v4.14-rc1~130^2~207.
+
+	* linux/inet_diag.h (INET_DIAG_CLASS_ID): New enum.
+	* netlink_inet_diag.c (inet_diag_msg_nla_decoders): Add
+	INET_DIAG_CLASS_ID.
+	* xlat/inet_diag_attrs.in: Add INET_DIAG_CLASS_ID.
+	* xlat/inet_diag_extended_flags.in: Add 1<<(INET_DIAG_CLASS_ID-1).
+	* tests/nlattr_inet_diag_msg.c (main): Check INET_DIAG_CLASS_ID
+	decoding.
+
+2017-09-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update MEMBARRIER_CMD_* constants.
+	* xlat/membarrier_cmds.in: Add MEMBARRIER_CMD_PRIVATE_EXPEDITED
+	introduced by kernel commit v4.14-rc1~174^2^2^4.
+	* NEWS: Mention this.
+	* tests/membarrier.c (main): Update expected output.
+
+	Update UFFD_FEATURE_* constants.
+	* xlat/memfd_create_flags.in: Remove UFFD_FEATURE_EVENT_EXIT removed
+	by kernel commit v4.11-rc2~15^2~18.
+	Add UFFD_FEATURE_SIGBUS and UFFD_FEATURE_THREAD_ID introduced by kernel
+	commits v4.14-rc1~126^2~28 and v4.14-rc1~126^2~23, repsectively.
+	* NEWS: Mention this.
+
+	Update MFD_* constants.
+	* xlat/memfd_create_flags.in: Add MFD_HUGETLB introduced
+	by kernel commit v4.14-rc1~126^2~17.
+	* NEWS: Mention this.
+	* tests/memfd_create.c (main): Update expected output.
+
+	Update ETH_P_* constants.
+	* xlat/ethernet_protocols.in: Add ETH_P_ERSPAN, ETH_P_NSH, ETH_P_IFE,
+	and ETH_P_MAP introduced by kernel commits v4.14-rc1~130^2~164,
+	v4.14-rc1~130^2~89^2~3, v4.14-rc1~130^2~90^2~2, and
+	v4.14-rc1~130^2~78^2~2, respectively.
+	* NEWS: Mention this.
+
+	Update ARPHRD_* constants.
+	* xlat/arp_hardware_types.in: Add ARPHRD_RAWIP introduced
+	by kernel commit v4.14-rc1~130^2~78^2~1.
+	* NEWS: Mention this.
+
+	Update BPF_* constants.
+	* xlat/bpf_attach_type.in: Add BPF_SK_SKB_STREAM_PARSER
+	and BPF_SK_SKB_STREAM_VERDICT introduced by kernel commit
+	v4.14-rc1~130^2~123^2~8.
+	* xlat/bpf_map_flags.in: Add BPF_F_NO_COMMON_LRU and BPF_F_NUMA_NODE
+	introduced by kernel commits v4.10-rc1~202^2~271^2~2
+	and v4.14-rc1~130^2~196^2~1, respectively.
+	* xlat/bpf_map_types.in: Add BPF_MAP_TYPE_DEVMAP
+	and BPF_MAP_TYPE_SOCKMAP introduced by kernel commits
+	v4.14-rc1~130^2~497^2~4 and v4.14-rc1~130^2~234^2~4,
+	respectively.
+	* xlat/bpf_op_jmp.in: Add BPF_JLT, BPF_JLE, BPF_JSLT, and BPF_JSLE
+	introduced by kernel commit v4.14-rc1~130^2~309^2~8.
+	* xlat/bpf_prog_types.in: Add BPF_PROG_TYPE_SK_SKB introduced
+	by kernel commit v4.14-rc1~130^2~234^2~6.
+	* NEWS: Mention this.
+
+	Update SO_* constants.
+	* xlat/sockoptions.in: Add SO_ZEROCOPY introduced by kernel commit
+	v4.14-rc1~130^2~376^2~5.
+	* NEWS: Mention this.
+
+	Update MADV_* constants.
+	* xlat/madvise_cmds.in: Add MADV_WIPEONFORK and MADV_KEEPONFORK
+	introduced by kernel commit v4.14-rc1~126^2.
+	* NEWS: Mention this.
+
+2017-09-08  Baruch Siach  <baruch@tkos.co.il>
+
+	error_prints: fix potential program_invocation_name type conflict.
+	uClibc-ng declares program_invocation_name as const.
+	This causes the build failure below:
+
+	error_prints.c:40:14: error: conflicting types for ‘program_invocation_name’
+	 extern char *program_invocation_name;
+	              ^~~~~~~~~~~~~~~~~~~~~~~
+	In file included from error_prints.c:32:0:
+	.../output/host/x86_64-buildroot-linux-uclibc/sysroot/usr/include/errno.h:54:20: note: previous declaration of ‘program_invocation_name’ was here
+	 extern const char *program_invocation_name, *program_invocation_short_name;
+	                    ^~~~~~~~~~~~~~~~~~~~~~~
+
+	* error_prints.c (program_invocation_name): Declare only in case
+	of [!HAVE_PROGRAM_INVOCATION_NAME].
+
+2017-09-07  JingPiao Chen  <chenjingpiao@gmail.com>
+
+	rtnl_tc_action: decode tcamsg netlink attributes.
+	* rtnl_tc_action.c (tcamsg_nla_decoders): New array.
+	(decode_tcamsg): Use it.
+
+	tests: check decoding of TCA_STAB netlink attribute of tcmsg.
+	* tests/test_nlattr.h (TEST_NESTED_NLATTR_ARRAY): New macro.
+	* tests/nlattr_tca_stab.c: New file.
+	* tests/gen_tests.in (nlattr_tca_stab): New entry.
+	* tests/pure_executables.list: Add nlattr_tca_stab.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of TCA_STATS2 netlink attribute of tcmsg.
+	* tests/nlattr_tc_stats.c: New file.
+	* tests/gen_tests.in (nlattr_tc_stats): New entry.
+	* tests/pure_executables.list: Add nlattr_tc_stats.
+	* tests/.gitignore: Likewise.
+
+	tests: check decoding of tcmsg netlink attributes.
+	* tests/nlattr_tcmsg.c: Include <stddef.h> and <linux/pkt_sched.h>.
+	(main): Check decoding of TCA_STATS and TCA_RATE.
+
+	rtnl_tc: decode tcmsg netlink attributes.
+	* configure.ac (AC_CHECK_TYPES): Check for gnet_stats_basic,
+	gnet_stats_queue, gnet_stats_rate_est,
+	and gnet_stats_rate_est64 structures in <linux/gen_stats.h>.
+	And check for struct tc_sizespec in <linux/pkt_sched.h>.
+	* nlattr.h (tc_stats): New prototype.
+	* rtnl_tc.c: Include <linux/gen_stats.h>, <linux/pkt_sched.h>,
+	"xlat/rtnl_tca_stab_attrs.h" and "xlat/rtnl_tca_stats_attrs.h".
+	(decode_tc_stats, decode_tc_estimator, decode_gnet_stats_basic,
+	decode_gnet_stats_rate_est, decode_gnet_stats_queue,
+	decode_gnet_stats_rate_est64, decode_nla_tc_stats,
+	decode_tc_sizespec, print_stab_data, decode_tca_stab_data,
+	decode_tca_stab): New functions.
+	(tca_stats_nla_decoders, tca_stab_nla_decoders,
+	tcmsg_nla_decoders): New arrays.
+	(decode_tcmsg): Use tcmsg_nla_decoders.
+	* xlat/rtnl_tca_stab_attrs.in: New file.
+	* xlat/rtnl_tca_stats_attrs.in: Likewise.
+
+2017-09-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update TCP_* constants.
+	* xlat/socktcpoptions.in: Add TCP_ULP and TCP_MD5SIG_EXT.
+	* NEWS: Mention this.
+
+	Update SOL_* constants.
+	* xlat/socketlayers.in: Add SOL_TLS.
+	* NEWS: Mention this.
+
+2017-09-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Post-release administrivia.
+	* NEWS: Add a header line for the next release.
+	* debian/changelog.in: Add a changelog entry for 4.19-1.
+	* strace.spec.in: Likewise.
+
 2017-09-05  Dmitry V. Levin  <ldv@altlinux.org>
 
 	Prepare for 4.19 release.

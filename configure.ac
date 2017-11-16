@@ -334,6 +334,10 @@ AC_CHECK_TYPES(m4_normalize([
 ]),,, [#include <linux/cryptouser.h>])
 
 AC_CHECK_TYPES(m4_normalize([
+	struct kcmp_epoll_slot
+]),,, [#include <linux/kcmp.h>])
+
+AC_CHECK_TYPES(m4_normalize([
 	struct keyctl_kdf_params
 ]),,, [#include <linux/keyctl.h>])
 
@@ -390,10 +394,20 @@ AC_CHECK_HEADERS(m4_normalize([
 	linux/if_link.h
 	linux/ip_vs.h
 	linux/ipc.h
+	linux/kcmp.h
 	linux/mmtimer.h
 	linux/msg.h
 	linux/neighbour.h
+	linux/netfilter/ipset/ip_set.h
+	linux/netfilter/nf_tables.h
+	linux/netfilter/nf_tables_compat.h
 	linux/netfilter/nfnetlink.h
+	linux/netfilter/nfnetlink_acct.h
+	linux/netfilter/nfnetlink_conntrack.h
+	linux/netfilter/nfnetlink_cthelper.h
+	linux/netfilter/nfnetlink_cttimeout.h
+	linux/netfilter/nfnetlink_log.h
+	linux/netfilter/nfnetlink_queue.h
 	linux/nsfs.h
 	linux/perf_event.h
 	linux/quota.h
@@ -428,6 +442,9 @@ AC_CHECK_HEADERS([netinet/tcp.h netinet/udp.h],,, [#include <netinet/in.h>])
 
 AC_CHECK_HEADERS([linux/mqueue.h],,, [#include <linux/types.h>])
 
+AC_CHECK_HEADERS([linux/netfilter/xt_osf.h],,, [#include <linux/ip.h>
+#include <linux/tcp.h>])
+
 AC_CHECK_HEADERS(m4_normalize([
 	linux/netfilter_arp/arp_tables.h
 	linux/netfilter_bridge/ebtables.h
@@ -448,7 +465,15 @@ AC_CHECK_HEADERS([linux/bpf.h], [
 	st_CHECK_UNION_BPF_ATTR([prog_flags])
 ])
 
-AC_CHECK_TYPES([struct br_port_msg],,, [#include <linux/if_bridge.h>])
+AC_CHECK_TYPES(m4_normalize([
+	struct br_mdb_entry,
+	struct br_port_msg
+]),,, [#include <linux/if_bridge.h>])
+AC_CHECK_MEMBERS(m4_normalize([
+	struct br_mdb_entry.flags,
+	struct br_mdb_entry.vid
+]),,, [#include <linux/if_bridge.h>])
+
 AC_CHECK_TYPES([struct dcbmsg],,, [#include <linux/dcbnl.h>])
 AC_CHECK_TYPES([struct ifaddrlblmsg],,, [#include <linux/if_addrlabel.h>])
 AC_CHECK_TYPES([struct netconfmsg],,, [#include <linux/netconf.h>])
@@ -473,6 +498,15 @@ AC_CHECK_MEMBERS(m4_normalize([
 	struct rtnl_link_stats.rx_nohandler,
 	struct rtnl_link_stats64.rx_nohandler
 ]),,, [#include <linux/if_link.h>])
+
+AC_CHECK_TYPES(m4_normalize([
+	struct gnet_stats_basic,
+	struct gnet_stats_queue,
+	struct gnet_stats_rate_est,
+	struct gnet_stats_rate_est64
+]),,, [#include <linux/gen_stats.h>])
+
+AC_CHECK_TYPES([struct tc_sizespec],,, [#include <linux/pkt_sched.h>])
 
 AC_CHECK_TYPES([struct fib_rule_uid_range],,, [#include <linux/fib_rules.h>])
 

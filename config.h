@@ -1,9 +1,6 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* Define for the AArch64 architecture. */
-/* #undef AARCH64 */
-
 /* Define if building universal (internal helper macro) */
 /* #undef AC_APPLE_UNIVERSAL_BUILD */
 
@@ -745,6 +742,9 @@
 /* Define to 1 if you have the <linux/ip_vs.h> header file. */
 #define HAVE_LINUX_IP_VS_H 1
 
+/* Define to 1 if you have the <linux/kcmp.h> header file. */
+#define HAVE_LINUX_KCMP_H 1
+
 /* Define to 1 if you have the <linux/mmtimer.h> header file. */
 #define HAVE_LINUX_MMTIMER_H 1
 
@@ -765,6 +765,10 @@
    file. */
 #define HAVE_LINUX_NETFILTER_BRIDGE_EBTABLES_H 1
 
+/* Define to 1 if you have the <linux/netfilter/ipset/ip_set.h> header file.
+   */
+#define HAVE_LINUX_NETFILTER_IPSET_IP_SET_H 1
+
 /* Define to 1 if you have the <linux/netfilter_ipv4/ip_tables.h> header file.
    */
 #define HAVE_LINUX_NETFILTER_IPV4_IP_TABLES_H 1
@@ -773,8 +777,42 @@
    file. */
 #define HAVE_LINUX_NETFILTER_IPV6_IP6_TABLES_H 1
 
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_acct.h> header file.
+   */
+#define HAVE_LINUX_NETFILTER_NFNETLINK_ACCT_H 1
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_conntrack.h> header
+   file. */
+#define HAVE_LINUX_NETFILTER_NFNETLINK_CONNTRACK_H 1
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_cthelper.h> header
+   file. */
+#define HAVE_LINUX_NETFILTER_NFNETLINK_CTHELPER_H 1
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_cttimeout.h> header
+   file. */
+#define HAVE_LINUX_NETFILTER_NFNETLINK_CTTIMEOUT_H 1
+
 /* Define to 1 if you have the <linux/netfilter/nfnetlink.h> header file. */
 #define HAVE_LINUX_NETFILTER_NFNETLINK_H 1
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_log.h> header file.
+   */
+#define HAVE_LINUX_NETFILTER_NFNETLINK_LOG_H 1
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_queue.h> header
+   file. */
+#define HAVE_LINUX_NETFILTER_NFNETLINK_QUEUE_H 1
+
+/* Define to 1 if you have the <linux/netfilter/nf_tables_compat.h> header
+   file. */
+#define HAVE_LINUX_NETFILTER_NF_TABLES_COMPAT_H 1
+
+/* Define to 1 if you have the <linux/netfilter/nf_tables.h> header file. */
+#define HAVE_LINUX_NETFILTER_NF_TABLES_H 1
+
+/* Define to 1 if you have the <linux/netfilter/xt_osf.h> header file. */
+#define HAVE_LINUX_NETFILTER_XT_OSF_H 1
 
 /* Define to 1 if you have the <linux/nsfs.h> header file. */
 #define HAVE_LINUX_NSFS_H 1
@@ -922,6 +960,15 @@
 /* Define to 1 if the system has the type `struct blk_user_trace_setup'. */
 #define HAVE_STRUCT_BLK_USER_TRACE_SETUP 1
 
+/* Define to 1 if the system has the type `struct br_mdb_entry'. */
+#define HAVE_STRUCT_BR_MDB_ENTRY 1
+
+/* Define to 1 if `flags' is a member of `struct br_mdb_entry'. */
+#define HAVE_STRUCT_BR_MDB_ENTRY_FLAGS 1
+
+/* Define to 1 if `vid' is a member of `struct br_mdb_entry'. */
+#define HAVE_STRUCT_BR_MDB_ENTRY_VID 1
+
 /* Define to 1 if the system has the type `struct br_port_msg'. */
 #define HAVE_STRUCT_BR_PORT_MSG 1
 
@@ -968,6 +1015,18 @@
 /* Define to 1 if the system has the type `struct flock64'. */
 #define HAVE_STRUCT_FLOCK64 1
 
+/* Define to 1 if the system has the type `struct gnet_stats_basic'. */
+#define HAVE_STRUCT_GNET_STATS_BASIC 1
+
+/* Define to 1 if the system has the type `struct gnet_stats_queue'. */
+#define HAVE_STRUCT_GNET_STATS_QUEUE 1
+
+/* Define to 1 if the system has the type `struct gnet_stats_rate_est'. */
+#define HAVE_STRUCT_GNET_STATS_RATE_EST 1
+
+/* Define to 1 if the system has the type `struct gnet_stats_rate_est64'. */
+#define HAVE_STRUCT_GNET_STATS_RATE_EST64 1
+
 /* Define to 1 if the system has the type `struct ia64_fpreg'. */
 /* #undef HAVE_STRUCT_IA64_FPREG */
 
@@ -982,6 +1041,9 @@
 
 /* Define to 1 if `resolution' is a member of `struct input_absinfo'. */
 #define HAVE_STRUCT_INPUT_ABSINFO_RESOLUTION 1
+
+/* Define to 1 if the system has the type `struct kcmp_epoll_slot'. */
+/* #undef HAVE_STRUCT_KCMP_EPOLL_SLOT */
 
 /* Define to 1 if the system has the type `struct keyctl_kdf_params'. */
 #define HAVE_STRUCT_KEYCTL_KDF_PARAMS 1
@@ -1134,6 +1196,9 @@
 /* Define to 1 if `st_mtime_nsec' is a member of `struct stat'. */
 #define HAVE_STRUCT_STAT_ST_MTIME_NSEC 1
 
+/* Define to 1 if the system has the type `struct tc_sizespec'. */
+#define HAVE_STRUCT_TC_SIZESPEC 1
+
 /* Define to 1 if `tai' is a member of `struct timex'. */
 #define HAVE_STRUCT_TIMEX_TAI 1
 
@@ -1254,6 +1319,12 @@
 /* Define for _ABIO32. */
 /* #undef LINUX_MIPSO32 */
 
+/* The size of `kernel_long_t', as computed by sizeof. */
+/* #undef M32_SIZEOF_KERNEL_LONG_T */
+
+/* The size of `long', as computed by sizeof. */
+/* #undef M32_SIZEOF_LONG */
+
 /* Define for the m68k architecture. */
 /* #undef M68K */
 
@@ -1268,6 +1339,12 @@
 
 /* Define for the MIPS architecture. */
 /* #undef MIPS */
+
+/* The size of `kernel_long_t', as computed by sizeof. */
+/* #undef MX32_SIZEOF_KERNEL_LONG_T */
+
+/* The size of `long', as computed by sizeof. */
+/* #undef MX32_SIZEOF_LONG */
 
 /* Define for the Nios-II architecture. */
 /* #undef NIOS2 */
@@ -1285,7 +1362,7 @@
 #define PACKAGE_NAME "strace"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "strace 4.19"
+#define PACKAGE_STRING "strace 4.20"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "strace"
@@ -1294,7 +1371,7 @@
 #define PACKAGE_URL "https://strace.io"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.19"
+#define PACKAGE_VERSION "4.20"
 
 /* Define for the PowerPC architecture. */
 /* #undef POWERPC */
@@ -1366,7 +1443,7 @@
 
 
 /* Version number of package */
-#define VERSION "4.19"
+#define VERSION "4.20"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
