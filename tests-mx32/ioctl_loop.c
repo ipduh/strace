@@ -188,11 +188,11 @@ main(void)
 	       _IOC_SIZE((unsigned int) unknown_loop_cmd),
 	       (unsigned long) magic);
 
-	ioctl(-1, LOOP_SET_DIRECT_IO + 1, magic);
+	ioctl(-1, LOOP_SET_BLOCK_SIZE + 1, magic);
 	printf("ioctl(-1, _IOC(0, 0x4c, %#x, %#x), %#lx) = "
 	       "-1 EBADF (%m)\n",
-	       _IOC_NR(LOOP_SET_DIRECT_IO + 1),
-	       _IOC_SIZE(LOOP_SET_DIRECT_IO + 1),
+	       _IOC_NR(LOOP_SET_BLOCK_SIZE + 1),
+	       _IOC_SIZE(LOOP_SET_BLOCK_SIZE + 1),
 	       (unsigned long) magic);
 
 	ioctl(-1, LOOP_CTL_GET_FREE + 1, magic);
@@ -301,6 +301,11 @@ main(void)
 	/* LOOP_SET_DIRECT_IO */
 	ioctl(-1, LOOP_SET_DIRECT_IO, magic);
 	printf("ioctl(-1, LOOP_SET_DIRECT_IO, %lu) = -1 EBADF (%m)\n",
+	       (unsigned long) magic);
+
+	/* LOOP_SET_BLOCK_SIZE */
+	ioctl(-1, LOOP_SET_BLOCK_SIZE, magic);
+	printf("ioctl(-1, LOOP_SET_BLOCK_SIZE, %lu) = -1 EBADF (%m)\n",
 	       (unsigned long) magic);
 
 	/* LOOP_CTL_ADD */

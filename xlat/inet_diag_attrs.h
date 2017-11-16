@@ -25,6 +25,7 @@ const struct xlat inet_diag_attrs[] = {
  XLAT(INET_DIAG_PAD),
  XLAT(INET_DIAG_MARK),
  XLAT(INET_DIAG_BBRINFO),
+ XLAT(INET_DIAG_CLASS_ID),
  XLAT_END
 };
 

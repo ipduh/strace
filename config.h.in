@@ -744,6 +744,9 @@
 /* Define to 1 if you have the <linux/ip_vs.h> header file. */
 #undef HAVE_LINUX_IP_VS_H
 
+/* Define to 1 if you have the <linux/kcmp.h> header file. */
+#undef HAVE_LINUX_KCMP_H
+
 /* Define to 1 if you have the <linux/mmtimer.h> header file. */
 #undef HAVE_LINUX_MMTIMER_H
 
@@ -764,6 +767,10 @@
    file. */
 #undef HAVE_LINUX_NETFILTER_BRIDGE_EBTABLES_H
 
+/* Define to 1 if you have the <linux/netfilter/ipset/ip_set.h> header file.
+   */
+#undef HAVE_LINUX_NETFILTER_IPSET_IP_SET_H
+
 /* Define to 1 if you have the <linux/netfilter_ipv4/ip_tables.h> header file.
    */
 #undef HAVE_LINUX_NETFILTER_IPV4_IP_TABLES_H
@@ -772,8 +779,42 @@
    file. */
 #undef HAVE_LINUX_NETFILTER_IPV6_IP6_TABLES_H
 
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_acct.h> header file.
+   */
+#undef HAVE_LINUX_NETFILTER_NFNETLINK_ACCT_H
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_conntrack.h> header
+   file. */
+#undef HAVE_LINUX_NETFILTER_NFNETLINK_CONNTRACK_H
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_cthelper.h> header
+   file. */
+#undef HAVE_LINUX_NETFILTER_NFNETLINK_CTHELPER_H
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_cttimeout.h> header
+   file. */
+#undef HAVE_LINUX_NETFILTER_NFNETLINK_CTTIMEOUT_H
+
 /* Define to 1 if you have the <linux/netfilter/nfnetlink.h> header file. */
 #undef HAVE_LINUX_NETFILTER_NFNETLINK_H
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_log.h> header file.
+   */
+#undef HAVE_LINUX_NETFILTER_NFNETLINK_LOG_H
+
+/* Define to 1 if you have the <linux/netfilter/nfnetlink_queue.h> header
+   file. */
+#undef HAVE_LINUX_NETFILTER_NFNETLINK_QUEUE_H
+
+/* Define to 1 if you have the <linux/netfilter/nf_tables_compat.h> header
+   file. */
+#undef HAVE_LINUX_NETFILTER_NF_TABLES_COMPAT_H
+
+/* Define to 1 if you have the <linux/netfilter/nf_tables.h> header file. */
+#undef HAVE_LINUX_NETFILTER_NF_TABLES_H
+
+/* Define to 1 if you have the <linux/netfilter/xt_osf.h> header file. */
+#undef HAVE_LINUX_NETFILTER_XT_OSF_H
 
 /* Define to 1 if you have the <linux/nsfs.h> header file. */
 #undef HAVE_LINUX_NSFS_H
@@ -921,6 +962,15 @@
 /* Define to 1 if the system has the type `struct blk_user_trace_setup'. */
 #undef HAVE_STRUCT_BLK_USER_TRACE_SETUP
 
+/* Define to 1 if the system has the type `struct br_mdb_entry'. */
+#undef HAVE_STRUCT_BR_MDB_ENTRY
+
+/* Define to 1 if `flags' is a member of `struct br_mdb_entry'. */
+#undef HAVE_STRUCT_BR_MDB_ENTRY_FLAGS
+
+/* Define to 1 if `vid' is a member of `struct br_mdb_entry'. */
+#undef HAVE_STRUCT_BR_MDB_ENTRY_VID
+
 /* Define to 1 if the system has the type `struct br_port_msg'. */
 #undef HAVE_STRUCT_BR_PORT_MSG
 
@@ -967,6 +1017,18 @@
 /* Define to 1 if the system has the type `struct flock64'. */
 #undef HAVE_STRUCT_FLOCK64
 
+/* Define to 1 if the system has the type `struct gnet_stats_basic'. */
+#undef HAVE_STRUCT_GNET_STATS_BASIC
+
+/* Define to 1 if the system has the type `struct gnet_stats_queue'. */
+#undef HAVE_STRUCT_GNET_STATS_QUEUE
+
+/* Define to 1 if the system has the type `struct gnet_stats_rate_est'. */
+#undef HAVE_STRUCT_GNET_STATS_RATE_EST
+
+/* Define to 1 if the system has the type `struct gnet_stats_rate_est64'. */
+#undef HAVE_STRUCT_GNET_STATS_RATE_EST64
+
 /* Define to 1 if the system has the type `struct ia64_fpreg'. */
 #undef HAVE_STRUCT_IA64_FPREG
 
@@ -981,6 +1043,9 @@
 
 /* Define to 1 if `resolution' is a member of `struct input_absinfo'. */
 #undef HAVE_STRUCT_INPUT_ABSINFO_RESOLUTION
+
+/* Define to 1 if the system has the type `struct kcmp_epoll_slot'. */
+#undef HAVE_STRUCT_KCMP_EPOLL_SLOT
 
 /* Define to 1 if the system has the type `struct keyctl_kdf_params'. */
 #undef HAVE_STRUCT_KEYCTL_KDF_PARAMS
@@ -1133,6 +1198,9 @@
 /* Define to 1 if `st_mtime_nsec' is a member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_MTIME_NSEC
 
+/* Define to 1 if the system has the type `struct tc_sizespec'. */
+#undef HAVE_STRUCT_TC_SIZESPEC
+
 /* Define to 1 if `tai' is a member of `struct timex'. */
 #undef HAVE_STRUCT_TIMEX_TAI
 
@@ -1253,6 +1321,12 @@
 /* Define for _ABIO32. */
 #undef LINUX_MIPSO32
 
+/* The size of `kernel_long_t', as computed by sizeof. */
+#undef M32_SIZEOF_KERNEL_LONG_T
+
+/* The size of `long', as computed by sizeof. */
+#undef M32_SIZEOF_LONG
+
 /* Define for the m68k architecture. */
 #undef M68K
 
@@ -1267,6 +1341,12 @@
 
 /* Define for the MIPS architecture. */
 #undef MIPS
+
+/* The size of `kernel_long_t', as computed by sizeof. */
+#undef MX32_SIZEOF_KERNEL_LONG_T
+
+/* The size of `long', as computed by sizeof. */
+#undef MX32_SIZEOF_LONG
 
 /* Define for the Nios-II architecture. */
 #undef NIOS2

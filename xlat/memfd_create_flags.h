@@ -5,6 +5,9 @@
 #if !(defined(MFD_ALLOW_SEALING) || (defined(HAVE_DECL_MFD_ALLOW_SEALING) && HAVE_DECL_MFD_ALLOW_SEALING))
 # define MFD_ALLOW_SEALING 2
 #endif
+#if !(defined(MFD_HUGETLB) || (defined(HAVE_DECL_MFD_HUGETLB) && HAVE_DECL_MFD_HUGETLB))
+# define MFD_HUGETLB 4
+#endif
 
 #ifdef IN_MPERS
 
@@ -16,6 +19,7 @@ static
 const struct xlat memfd_create_flags[] = {
  XLAT(MFD_CLOEXEC),
  XLAT(MFD_ALLOW_SEALING),
+ XLAT(MFD_HUGETLB),
  XLAT_END
 };
 

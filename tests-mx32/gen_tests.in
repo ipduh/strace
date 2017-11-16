@@ -143,7 +143,8 @@ ipc	-a19
 ipc_msg	+ipc.sh
 ipc_sem	+ipc.sh
 ipc_shm	+ipc.sh
-kcmp	-a27
+kcmp	-a22
+kcmp-y	-a22 -y -e trace=kcmp
 kexec_file_load	-s9
 kexec_load	-s9
 keyctl	-a31 -s10
@@ -197,6 +198,17 @@ netlink_selinux	+netlink_sock_diag.test
 netlink_xfrm	+netlink_sock_diag.test
 newfstatat	-a32 -v -P stat.sample -P /dev/full
 nlattr		+netlink_sock_diag.test
+nfnetlink_acct			+netlink_sock_diag.test
+nfnetlink_cthelper		+netlink_sock_diag.test
+nfnetlink_ctnetlink		+netlink_sock_diag.test
+nfnetlink_ctnetlink_exp		+netlink_sock_diag.test
+nfnetlink_cttimeout		+netlink_sock_diag.test
+nfnetlink_ipset			+netlink_sock_diag.test
+nfnetlink_nft_compat		+netlink_sock_diag.test
+nfnetlink_nftables		+netlink_sock_diag.test
+nfnetlink_osf			+netlink_sock_diag.test
+nfnetlink_queue			+netlink_sock_diag.test
+nfnetlink_ulog			+netlink_sock_diag.test
 nlattr_crypto_user_alg		+netlink_sock_diag.test
 nlattr_br_port_msg		+netlink_sock_diag.test
 nlattr_dcbmsg			+netlink_sock_diag.test
@@ -210,6 +222,8 @@ nlattr_ifla_xdp			+netlink_sock_diag.test
 nlattr_inet_diag_msg		+netlink_sock_diag.test
 nlattr_inet_diag_req_compat	+netlink_sock_diag.test
 nlattr_inet_diag_req_v2		+netlink_sock_diag.test
+nlattr_mdba_mdb_entry		+netlink_sock_diag.test
+nlattr_mdba_router_port		+netlink_sock_diag.test
 nlattr_ndmsg			+netlink_sock_diag.test
 nlattr_ndtmsg			+netlink_sock_diag.test
 nlattr_netconfmsg		+netlink_sock_diag.test
@@ -219,6 +233,8 @@ nlattr_packet_diag_msg		+netlink_sock_diag-v.sh
 nlattr_rtgenmsg			+netlink_sock_diag.test
 nlattr_rtmsg			+netlink_sock_diag.test
 nlattr_smc_diag_msg		+netlink_sock_diag.test
+nlattr_tc_stats			+netlink_sock_diag.test
+nlattr_tca_stab			+netlink_sock_diag.test
 nlattr_tcamsg			+netlink_sock_diag.test
 nlattr_tcmsg			+netlink_sock_diag.test
 nlattr_unix_diag_msg		+netlink_sock_diag.test
@@ -293,6 +309,7 @@ sched_xetscheduler	-a22 -e trace=sched_getscheduler,sched_setscheduler
 sched_yield	-a14
 seccomp-filter	-e trace=seccomp
 seccomp-filter-v	-v -e trace=seccomp
+seccomp_get_action_avail	-e trace=seccomp
 select	-a36
 semop	-a32 -e trace=semop,semtimedop
 sendfile	-a27
