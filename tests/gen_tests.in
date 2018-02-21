@@ -1,6 +1,6 @@
 # Input for gen_tests.sh
 #
-# Copyright (c) 2017 The strace developers.
+# Copyright (c) 2017-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _newselect
+_newselect-P	 -e trace=_newselect -P /dev/full 9>>/dev/full
 accept	-a22
 accept4	-a37
 access	-a30 -P access_sample
@@ -123,16 +124,22 @@ inotify	-a23 -e trace=inotify_add_watch,inotify_rm_watch
 inotify_init1	-a27
 int_0x80	-a11 -e trace=getgid32
 ioctl_block	+ioctl.test
+ioctl_dm	+ioctl.test -s9
+ioctl_dm-v	+ioctl.test -v -s9
 ioctl_evdev	+ioctl.test
-ioctl_evdev-v	+ioctl-v.sh
+ioctl_evdev-v	+ioctl.test -v
+ioctl_kvm_run	+ioctl.test -a36 -y
 ioctl_loop	+ioctl.test
-ioctl_loop-v	+ioctl-v.sh
+ioctl_loop-nv	+ioctl.test -a22 -e verbose=none
+ioctl_loop-v	+ioctl.test -v
 ioctl_mtd	+ioctl.test
+ioctl_nsfs	+ioctl.test -esignal=none
 ioctl_rtc	+ioctl.test
-ioctl_rtc-v	+ioctl-v.sh
+ioctl_rtc-v	+ioctl.test -v
 ioctl_scsi	+ioctl.test
 ioctl_sg_io_v3	+ioctl.test
 ioctl_sg_io_v4	+ioctl.test
+ioctl_sock_gifconf	+ioctl.test -a28 -s1
 ioctl_uffdio	+ioctl.test
 ioctl_v4l2	+ioctl.test
 ioperm	-a27
@@ -174,6 +181,7 @@ mmsg	-e read=0 -e write=1 -e trace=recvmmsg,sendmmsg
 mmsg-silent	-a25 -e verbose=none -e trace=sendmmsg,recvmmsg
 mmsg_name	-a25 -e trace=sendmmsg,recvmmsg
 mmsg_name-v	-v -a25 -e trace=sendmmsg,recvmmsg
+modify_ldt	-a23
 mount
 move_pages	-s3
 mq	-a32 -e trace=mq_getsetattr,mq_open,mq_unlink
@@ -239,11 +247,17 @@ nlattr_tcamsg			+netlink_sock_diag.test
 nlattr_tcmsg			+netlink_sock_diag.test
 nlattr_unix_diag_msg		+netlink_sock_diag.test
 old_mmap	-a11 -e trace=mmap
+old_mmap-P	-e trace=mmap -P "/dev/full" 9>>/dev/full
+old_mmap-v-none	-a11 -e trace=mmap -e verbose=none
 oldfstat	-a18 -v -P stat.sample
 oldlstat	-a32 -v -P stat.sample -P /dev/full
+oldselect	-a13 -e trace=select
+oldselect-P	-a13 -e trace=select -P /dev/full 9>>/dev/full
+oldselect-efault	-a13 -e trace=select
+oldselect-efault-P	-a13 -e trace=select -P /dev/full 9>>/dev/full
 oldstat	-a32 -v -P stat.sample -P /dev/full
 open	-a30 -P $NAME.sample
-openat	-P $NAME.sample
+openat	-a36 -P $NAME.sample
 osf_utimes	-a21
 pause	-a8 -esignal=none
 perf_event_open	-a1
@@ -254,6 +268,7 @@ pkey_alloc	-a17
 pkey_free	-a13
 pkey_mprotect	-a37
 ppoll	-s2
+ppoll-P	-s2 -e trace=ppoll -P /dev/full 9>>/dev/full
 ppoll-v	-v -s2 -e trace=ppoll
 pread64-pwrite64	-a21 -eread=0 -ewrite=1 -e trace=pread64,pwrite64 -P pread64-pwrite64-tmpfile -P /dev/zero -P /dev/null
 preadv	-a21
@@ -281,7 +296,7 @@ readahead	-a1
 readdir	-a16
 readlink	-xx
 readlinkat	-xx
-reboot
+reboot		-s 256
 recvfrom	-a35
 recvmmsg-timeout	-a25 -e trace=recvmmsg
 recvmsg	-eread=0 -ewrite=1 -e trace=recvmsg,sendmsg
@@ -291,6 +306,7 @@ rename	-a35
 renameat
 renameat2
 request_key	-a33 -s12
+riscv_flush_icache	-a34
 rmdir	-a22
 rt_sigpending	-a20
 rt_sigprocmask
@@ -299,6 +315,12 @@ rt_sigreturn	-esignal='!USR1'
 rt_sigsuspend	-a20 -esignal=none
 rt_sigtimedwait	-a38
 rt_tgsigqueueinfo	-esignal=none
+s390_guarded_storage	-a32
+s390_guarded_storage-v	-e trace=s390_guarded_storage -a32 -v
+s390_pci_mmio_read_write	-e trace=s390_pci_mmio_read,s390_pci_mmio_write -a30
+s390_runtime_instr	-a50
+s390_sthyi	-a47
+s390_sthyi-v	-e trace=s390_sthyi -a47 -v
 sched	test_trace_expr times -e/sched
 sched_get_priority_mxx	-a33 -e trace=sched_get_priority_min,sched_get_priority_max
 sched_rr_get_interval	-a31
@@ -311,6 +333,7 @@ seccomp-filter	-e trace=seccomp
 seccomp-filter-v	-v -e trace=seccomp
 seccomp_get_action_avail	-e trace=seccomp
 select	-a36
+select-P	-a36 -e trace=select -P /dev/full 9>>/dev/full
 semop	-a32 -e trace=semop,semtimedop
 sendfile	-a27
 sendfile64	-a29
@@ -352,6 +375,7 @@ so_linger	-e trace=getsockopt,setsockopt
 so_peercred	-e trace=getsockopt
 sock_filter-v	-v -e trace=getsockopt,setsockopt
 socketcall	-a20
+sockopt-sol_netlink	-e trace=getsockopt,setsockopt
 splice
 stat	-a32 -v -P stat.sample -P /dev/full
 stat64	-a32 -v -P stat.sample -P /dev/full

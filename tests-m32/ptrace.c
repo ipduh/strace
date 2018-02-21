@@ -2,7 +2,7 @@
  * Check decoding of ptrace syscall.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,12 +32,12 @@
 #include <asm/unistd.h>
 
 #include <errno.h>
+#include "ptrace.h"
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include "ptrace.h"
 #include <linux/audit.h>
 
 static const char *errstr;

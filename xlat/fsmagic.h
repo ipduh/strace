@@ -8,7 +8,7 @@
 
 static
 const struct xlat fsmagic[] = {
-/* sorted by value, suitable for bsearch(3) */
+
 { 0x0000002f,	"QNX4_SUPER_MAGIC"	},
 { 0x00000187,	"AUTOFS_SUPER_MAGIC"	},
 { 0x00001373,	"DEVFS_SUPER_MAGIC"	},

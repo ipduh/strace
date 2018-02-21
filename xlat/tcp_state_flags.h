@@ -3,7 +3,7 @@
 #ifndef IN_MPERS
 
 const struct xlat tcp_state_flags[] = {
-/* this file should be included after xlat/tcp_states.h */
+
 #if defined(TCP_ESTABLISHED) || (defined(HAVE_DECL_TCP_ESTABLISHED) && HAVE_DECL_TCP_ESTABLISHED)
   XLAT_PAIR(1ULL<<TCP_ESTABLISHED, "1<<TCP_ESTABLISHED"),
 #endif

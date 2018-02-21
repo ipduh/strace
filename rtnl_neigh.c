@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,7 @@ DECL_NETLINK_ROUTE_DECODER(decode_ndmsg)
 	if (len >= sizeof(ndmsg)) {
 		if (!umoven_or_printaddr(tcp, addr + offset,
 					 sizeof(ndmsg) - offset,
-					 (void *) &ndmsg + offset)) {
+					 (char *) &ndmsg + offset)) {
 			PRINT_FIELD_IFINDEX("", ndmsg, ndm_ifindex);
 			PRINT_FIELD_FLAGS(", ", ndmsg, ndm_state,
 					  neighbor_cache_entry_states,

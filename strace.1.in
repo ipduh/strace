@@ -165,38 +165,49 @@ read(0, 0x7ffff72cf5cf, 1)              = ? ERESTARTSYS (To be restarted)
 rt_sigreturn(0xe)                       = 0
 read(0, "", 1)                          = 0
 .CE
-Arguments are printed in symbolic form with a passion.
+Arguments are printed in symbolic form with passion.
 This example shows the shell performing ">>xyzzy" output redirection:
 .CW
 open("xyzzy", O_WRONLY|O_APPEND|O_CREAT, 0666) = 3
 .CE
-Here the third argument of open is decoded by breaking down the
+Here, the third argument of open is decoded by breaking down the
 flag argument into its three bitwise-OR constituents and printing the
-mode value in octal by tradition.  Where traditional or native
+mode value in octal by tradition.  Where the traditional or native
 usage differs from ANSI or POSIX, the latter forms are preferred.
 In some cases,
 .B strace
-output has proven to be more readable than the source.
+output is proven to be more readable than the source.
 .LP
 Structure pointers are dereferenced and the members are displayed
-as appropriate.  In all cases arguments are formatted in the most C-like
+as appropriate.  In most cases, arguments are formatted in the most C-like
 fashion possible.
 For example, the essence of the command "ls \-l /dev/null" is captured as:
 .CW
 lstat("/dev/null", {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 3), ...}) = 0
 .CE
 Notice how the 'struct stat' argument is dereferenced and how each member is
-displayed symbolically.  In particular, observe how the st_mode member
-is carefully decoded into a bitwise-OR of symbolic and numeric values.
-Also notice in this example that the first argument to lstat is an input
-to the system call and the second argument is an output.  Since output
-arguments are not modified if the system call fails, arguments may not
-always be dereferenced.  For example, retrying the "ls \-l" example
+displayed symbolically.  In particular, observe how the
+.B st_mode
+member is carefully decoded into a bitwise-OR of symbolic and numeric values.
+Also notice in this example that the first argument to
+.B lstat
+is an input to the system call and the second argument is an output.
+Since output arguments are not modified if the system call fails, arguments may
+not always be dereferenced.  For example, retrying the "ls \-l" example
 with a non-existent file produces the following line:
 .CW
 lstat("/foo/bar", 0xb004) = \-1 ENOENT (No such file or directory)
 .CE
 In this case the porch light is on but nobody is home.
+.LP
+Syscalls unknown to
+.B strace
+are printed raw, with the unknown system call number printed in hexadecimal form
+and prefixed with "syscall_":
+.CW
+syscall_0xbad(0xfedcba9876543210, 0xfedcba9876543211, 0xfedcba9876543212,
+0xfedcba9876543213, 0xfedcba9876543214, 0xfedcba9876543215) = -1 (errno 38)
+.CE
 .LP
 Character pointers are dereferenced and printed as C strings.
 Non-printing characters in strings are normally represented by
@@ -219,19 +230,20 @@ supplementary group ids:
 getgroups(32, [100, 0]) = 2
 .CE
 On the other hand, bit-sets are also shown using square brackets
-but set elements are separated only by a space.  Here is the shell
+but set elements are separated only by a space.  Here is the shell,
 preparing to execute an external command:
 .CW
 sigprocmask(SIG_BLOCK, [CHLD TTOU], []) = 0
 .CE
-Here the second argument is a bit-set of two signals, SIGCHLD and SIGTTOU.
-In some cases the bit-set is so full that printing out the unset
+Here, the second argument is a bit-set of two signals,
+.BR SIGCHLD " and " SIGTTOU .
+In some cases, the bit-set is so full that printing out the unset
 elements is more valuable.  In that case, the bit-set is prefixed by
 a tilde like this:
 .CW
 sigprocmask(SIG_UNBLOCK, ~[], NULL) = 0
 .CE
-Here the second argument represents the full set of all signals.
+Here, the second argument represents the full set of all signals.
 .SH OPTIONS
 .SS Output format
 .TP 12
@@ -251,15 +263,17 @@ is built with libunwind.
 Write the trace output to the file
 .I filename
 rather than to stderr.
-Use
-.I filename.pid
-if
+.IR filename . pid
+form is used if
 .B \-ff
-is used.
-If the argument begins with '|' or with '!' then the rest of the
+option is supplied.
+If the argument begins with '|' or '!', the rest of the
 argument is treated as a command and all output is piped to it.
 This is convenient for piping the debugging output to a program
 without affecting the redirections of executed programs.
+The latter is not compatible with
+.B \-ff
+option currently.
 .TP
 .B \-q
 Suppress messages about attaching, detaching etc.  This happens
@@ -280,7 +294,7 @@ that filenames are not considered strings and are always printed in
 full.
 .TP
 .B \-t
-Prefix each line of the trace with the time of day.
+Prefix each line of the trace with the wall clock time.
 .TP
 .B \-tt
 If given twice, the time printed will include the microseconds.
@@ -309,14 +323,12 @@ Print protocol specific information associated with socket file descriptors.
 .TP 12
 .B \-c
 Count time, calls, and errors for each system call and report a summary on
-program exit.  On Linux, this attempts to show system time (CPU time spent
-running in the kernel) independent of wall clock time.  If
+program exit.  This attempts to show system time (CPU time spent running
+in the kernel) independent of wall clock time.  If
 .B \-c
 is used with
-.B \-f
-or
-.B \-F
-, only aggregate totals for all traced processes are kept.
+.BR \-f ,
+only aggregate totals for all traced processes are kept.
 .TP
 .B \-C
 Like
@@ -497,6 +509,19 @@ and ustat).  The same effect can be achieved with
 .BR "\-e\ trace" = /statv?fs|fsstat|ustat
 regular expression.
 .TP
+.BR "\-e\ trace" = %pure
+Trace syscalls that always succeed and have no arguments.
+Currently, this list includes
+.BR arc_gettls "(2), " getdtablesize "(2), " getegid "(2), " getegid32 "(2),"
+.BR geteuid "(2), " geteuid32 "(2), " getgid "(2), " getgid32 "(2),"
+.BR getpagesize "(2), " getpgrp "(2), " getpid "(2), " getppid "(2),"
+.BR get_thread_area (2)
+(on architectures other than x86),
+.BR gettid "(2), " get_tls "(2), " getuid "(2), " getuid32 "(2),"
+.BR getxgid "(2), " getxpid "(2), " getxuid "(2), " kern_features "(2), and"
+.BR metag_get_tls "(2)"
+syscalls.
+.TP
 \fB\-e\ abbrev\fR=\,\fIset\fR
 Abbreviate the output from printing each member of large structures.
 The default is
@@ -522,10 +547,12 @@ argument.
 Trace only the specified subset of signals.  The default is
 .BR signal = all .
 For example,
-.B signal "=!" SIGIO
+.BR signal "=!" SIGIO
 (or
 .BR signal "=!" io )
-causes SIGIO signals not to be traced.
+causes
+.B SIGIO
+signals not to be traced.
 .TP
 \fB\-e\ read\fR=\,\fIset\fR
 Perform a full hexadecimal and ASCII dump of all the data read from
@@ -730,6 +757,10 @@ where pid is the numeric process id of each process.
 This is incompatible with
 .BR \-c ,
 since no per-process counts are kept.
+
+One might want to consider using
+.BR strace-log-merge (1)
+to obtain a combined strace log view.
 .TP
 .BI "\-I " interruptible
 When strace can be interrupted by signals (such as pressing ^C).
@@ -787,8 +818,15 @@ Show some debugging output of
 itself on the standard error.
 .TP
 .B \-F
-This option is now obsolete and it has the same functionality as
-.BR \-f .
+This option is deprecated.  It is retained for backward compatibility only
+and may be removed in future releases.
+Usage of multiple instances of
+.B \-F
+option is still equivalent to a single
+.BR \-f ,
+and it is ignored at all if used along with one or more instances of
+.B \-f
+option.
 .TP
 .B \-h
 Print the help summary.
@@ -846,9 +884,69 @@ where members of the
 .B trace
 group are trusted users.
 If you do use this feature, please remember to install
-a non-setuid version of
+a regular non-setuid version of
 .B strace
-for ordinary lusers to use.
+for ordinary users to use.
+.SH "MULTIPLE PERSONALITY SUPPORT"
+On some architectures,
+.B strace
+supports decoding of syscalls for processes that use different ABI rather than
+the one
+.B strace
+uses.
+Specifically, in addition to decoding native ABI,
+.B strace
+can decode the following ABIs on the following architectures:
+.TS H
+allbox;
+lb lb
+l l.
+Architecture	ABIs supported
+x86_64	i386, x32 (when built as an x86_64 application); i386 (when built as an x32 application)
+AArch64	ARM 32-bit EABI
+PowerPC 64-bit	PowerPC 32-bit
+RISC-V 64-bit	RISC-V 32-bit
+s390x	s390
+SPARC 64-bit	SPARC 32-bit
+TILE 64-bit	TILE 32-bit
+.TE
+.PP
+This support is optional and relies on ability to generate and parse structure
+definitions during the build time.
+Please refer to the output of the
+.B strace \-V
+command in order to figure out what support is available in your strace build
+("non-native" refers to an ABI that differs from the ABI strace has):
+.TP 15
+.B m32-mpers
+.B strace
+can trace and properly decode non-native 32-bit binaries.
+.TP
+.B no-m32-mpers
+.B strace
+can trace, but cannot properly decode non-native 32-bit binaries.
+.TP
+.B mx32-mpers
+.B strace
+can trace and properly decode non-native 32-on-64-bit binaries.
+.TP
+.B no-mx32-mpers
+.B strace
+can trace, but cannot properly decode non-native 32-on-64-bit binaries.
+.PP
+If the output contains neither
+.B m32-mpers
+nor
+.BR no-m32-mpers ,
+then decoding of non-native 32-bit binaries is not implemented at all
+or not applicable.
+.PP
+Likewise, if the output contains neither
+.B mx32-mpers
+nor
+.BR no-mx32-mpers ,
+then decoding of non-native 32-on-64-bit binaries is not implemented at all
+or not applicable.
 .SH NOTES
 It is a pity that so much tracing clutter is produced by systems
 employing shared libraries.
@@ -867,7 +965,7 @@ system call does not have
 argument, and the
 .BR setrlimit (2)
 library function uses
-.BR prlimit (2)
+.BR prlimit64 (2)
 system call on modern (2.6.38+) kernels.  These
 discrepancies are normal but idiosyncratic characteristics of the
 system call interface and are accounted for by C library wrapper
@@ -912,7 +1010,9 @@ may be left running after an interrupt signal (\c
 The original
 .B strace
 was written by Paul Kranenburg
-for SunOS and was inspired by its trace utility.
+for SunOS and was inspired by its
+.B trace
+utility.
 The SunOS version of
 .B strace
 was ported to Linux and enhanced
@@ -938,6 +1038,45 @@ automatic configuration support.  In 1995 he ported
 .B strace
 to Irix
 and tired of writing about himself in the third person.
+.PP
+Beginning with 1996,
+.B strace
+was maintained by Wichert Akkerman.
+During his tenure,
+.B strace
+development migrated to CVS; ports to FreeBSD and many architectures on Linux
+(including ARM, IA-64, MIPS, PA-RISC, PowerPC, s390, SPARC) were introduced.
+In 2002, the burden of
+.B strace
+maintainership was transferred to Ronald McGrath.
+Since then,
+.B strace
+gained support for several new Linux architectures (AMD64, s390x, SuperH),
+bi-architecture support for some of them, and received numerous additions and
+improvements in syscalls decoders on Linux;
+.B strace
+development migrated to
+.B git
+during that period.
+Since 2009,
+.B strace
+is actively maintained by Dmitry Levin.
+.B strace
+gained support for AArch64, ARC, AVR32, Blackfin, Meta, Nios II, OpenSISC 1000,
+RISC-V, Tile/TileGx, Xtensa architectures since that time.
+In 2012, unmaintained and apparently broken support for non-Linux operating
+systems was removed.
+Also, in 2012
+.B strace
+gained support for path tracing and file descriptor path decoding.
+In 2014, support for stack traces printing was added.
+In 2016, syscall fault injection was implemented.
+.PP
+For the additional information, please refer to the
+.B NEWS
+file and
+.B strace
+repository commit log.
 .SH REPORTING BUGS
 Problems with
 .B strace
@@ -945,7 +1084,10 @@ should be reported to the
 .B strace
 mailing list at <strace\-devel@lists.sourceforge.net>.
 .SH "SEE ALSO"
+.BR strace-log-merge (1),
 .BR ltrace (1),
+.BR perf-trace (1),
+.BR trace-cmd (1),
 .BR time (1),
 .BR ptrace (2),
 .BR proc (5)

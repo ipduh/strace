@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2017 The strace developers.
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ DECL_NETLINK_DIAG_DECODER(decode_netlink_diag_req)
 	if (len >= sizeof(req)) {
 		if (!umoven_or_printaddr(tcp, addr + offset,
 					 sizeof(req) - offset,
-					 (void *) &req + offset)) {
+					 (char *) &req + offset)) {
 			if (NDIAG_PROTO_ALL == req.sdiag_protocol)
 				tprintf("%s=%s",
 					"sdiag_protocol", "NDIAG_PROTO_ALL");
@@ -162,7 +162,7 @@ DECL_NETLINK_DIAG_DECODER(decode_netlink_diag_msg)
 	if (len >= sizeof(msg)) {
 		if (!umoven_or_printaddr(tcp, addr + offset,
 					 sizeof(msg) - offset,
-					 (void *) &msg + offset)) {
+					 (char *) &msg + offset)) {
 			PRINT_FIELD_XVAL("", msg, ndiag_type,
 					 socktypes, "SOCK_???");
 			PRINT_FIELD_XVAL(", ", msg, ndiag_protocol,

@@ -8,7 +8,7 @@
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
  * Copyright (c) 2000 PocketPenguins Inc.  Linux for Hitachi SuperH
  *                    port by Greg Banks <gbanks@pocketpenguins.com>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  *
  * All rights reserved.
  *
@@ -41,10 +41,10 @@
 # include <elf.h>
 #endif
 
-#include "xlat/nt_descriptor_types.h"
-
-#include "regs.h"
 #include "ptrace.h"
+#include "regs.h"
+
+#include "xlat/nt_descriptor_types.h"
 #include "xlat/ptrace_cmds.h"
 #include "xlat/ptrace_setoptions_flags.h"
 #include "xlat/ptrace_peeksiginfo_flags.h"

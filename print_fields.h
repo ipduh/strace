@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016-2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +45,10 @@
 	STRACE_PRINTF("%s%s=%llu", (prefix_), #field_,			\
 		      zero_extend_signed_to_ull((where_).field_))
 
+#define PRINT_FIELD_U_CAST(prefix_, where_, field_, type_)		\
+	STRACE_PRINTF("%s%s=%llu", (prefix_), #field_,			\
+		      zero_extend_signed_to_ull((type_) (where_).field_))
+
 #define PRINT_FIELD_X(prefix_, where_, field_)				\
 	STRACE_PRINTF("%s%s=%#llx", (prefix_), #field_,			\
 		      zero_extend_signed_to_ull((where_).field_))
@@ -74,7 +79,11 @@
 			    (dflt_));		\
 	} while (0)
 
-#define PRINT_FIELD_UID(prefix_, where_, field_)					\
+/*
+ * Generic "ID" printing. ID is considered unsigned except for the special value
+ * of -1.
+ */
+#define PRINT_FIELD_ID(prefix_, where_, field_)					\
 	do {										\
 		if (sign_extend_unsigned_to_ll((where_).field_) == -1LL)		\
 			STRACE_PRINTF("%s%s=-1", (prefix_), #field_);			\
@@ -82,6 +91,8 @@
 			STRACE_PRINTF("%s%s=%llu", (prefix_), #field_,			\
 				      zero_extend_signed_to_ull((where_).field_));	\
 	} while (0)
+
+#define PRINT_FIELD_UID PRINT_FIELD_ID
 
 #define PRINT_FIELD_STRING(prefix_, where_, field_, len_, style_)	\
 	do {								\
@@ -95,6 +106,15 @@
 		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
 		print_quoted_cstring((const char *)(where_).field_,	\
 				     sizeof((where_).field_));		\
+	} while (0)
+
+#define PRINT_FIELD_HEX_ARRAY(prefix_, where_, field_)			\
+	do {								\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		print_quoted_string((const char *)(where_).field_,	\
+				     sizeof((where_).field_) +		\
+					    MUST_BE_ARRAY((where_).field_), \
+				    QUOTE_FORCE_HEX); \
 	} while (0)
 
 #define PRINT_FIELD_INET_ADDR(prefix_, where_, field_, af_)		\

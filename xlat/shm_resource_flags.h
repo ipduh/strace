@@ -17,6 +17,9 @@ const struct xlat shm_resource_flags[] = {
 #if defined(SHM_HUGETLB) || (defined(HAVE_DECL_SHM_HUGETLB) && HAVE_DECL_SHM_HUGETLB)
   XLAT(SHM_HUGETLB),
 #endif
+#if defined(SHM_NORESERVE) || (defined(HAVE_DECL_SHM_NORESERVE) && HAVE_DECL_SHM_NORESERVE)
+  XLAT(SHM_NORESERVE),
+#endif
  XLAT_END
 };
 

@@ -2,6 +2,7 @@
  * This file is part of net-y-unix strace test.
  *
  * Copyright (c) 2013-2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +35,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
+#include "accept_compat.h"
 
 #define TEST_SOCKET "net-y-unix.socket"
 
@@ -106,7 +108,7 @@ main(void)
 	struct sockaddr * const accept_sa = tail_alloc(sizeof(addr));
 	memset(accept_sa, 0, sizeof(addr));
 	*len = sizeof(addr);
-	int accept_fd = accept(listen_fd, accept_sa, len);
+	int accept_fd = do_accept(listen_fd, accept_sa, len);
 	if (accept_fd < 0)
 		perror_msg_and_fail("accept");
 	unsigned long accept_inode = inode_of_sockfd(accept_fd);
@@ -177,7 +179,7 @@ main(void)
 
 	memset(accept_sa, 0, sizeof(addr));
 	*len = sizeof(addr);
-	accept_fd = accept(listen_fd, accept_sa, len);
+	accept_fd = do_accept(listen_fd, accept_sa, len);
 	if (accept_fd < 0)
 		perror_msg_and_fail("accept");
 	accept_inode = inode_of_sockfd(accept_fd);

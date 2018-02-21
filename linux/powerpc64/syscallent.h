@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995 Rick Sladkey <jrs@world.std.com>
- * Copyright (c) 1995-2017 The strace developers.
+ * Copyright (c) 1995-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,11 +47,11 @@
 [ 17] = { 0,	TM,		SEN(break),			"break"			},
 [ 18] = { 2,	TF|TST|TSTA,	SEN(oldstat),			"oldstat"		},
 [ 19] = { 3,	TD,		SEN(lseek),			"lseek"			},
-[ 20] = { 0,	NF,		SEN(getpid),			"getpid"		},
+[ 20] = { 0,	PU|NF,		SEN(getpid),			"getpid"		},
 [ 21] = { 5,	TF,		SEN(mount),			"mount"			},
 [ 22] = { 1,	TF,		SEN(umount),			"umount"		},
 [ 23] = { 1,	0,		SEN(setuid),			"setuid"		},
-[ 24] = { 0,	NF,		SEN(getuid),			"getuid"		},
+[ 24] = { 0,	PU|NF,		SEN(getuid),			"getuid"		},
 [ 25] = { 1,	0,		SEN(stime),			"stime"			},
 [ 26] = { 4,	0,		SEN(ptrace),			"ptrace"		},
 [ 27] = { 1,	0,		SEN(alarm),			"alarm"			},
@@ -74,10 +74,10 @@
 [ 44] = { 0,	0,		SEN(prof),			"prof"			},
 [ 45] = { 1,	TM|SI,		SEN(brk),			"brk"			},
 [ 46] = { 1,	0,		SEN(setgid),			"setgid"		},
-[ 47] = { 0,	NF,		SEN(getgid),			"getgid"		},
+[ 47] = { 0,	PU|NF,		SEN(getgid),			"getgid"		},
 [ 48] = { 2,	TS,		SEN(signal),			"signal"		},
-[ 49] = { 0,	NF,		SEN(geteuid),			"geteuid"		},
-[ 50] = { 0,	NF,		SEN(getegid),			"getegid"		},
+[ 49] = { 0,	PU|NF,		SEN(geteuid),			"geteuid"		},
+[ 50] = { 0,	PU|NF,		SEN(getegid),			"getegid"		},
 [ 51] = { 1,	TF,		SEN(acct),			"acct"			},
 [ 52] = { 2,	TF,		SEN(umount2),			"umount2"		},
 [ 53] = { 0,	0,		SEN(lock),			"lock"			},
@@ -91,8 +91,8 @@
 [ 61] = { 1,	TF,		SEN(chroot),			"chroot"		},
 [ 62] = { 2,	TSFA,		SEN(ustat),			"ustat"			},
 [ 63] = { 2,	TD,		SEN(dup2),			"dup2"			},
-[ 64] = { 0,	NF,		SEN(getppid),			"getppid"		},
-[ 65] = { 0,	0,		SEN(getpgrp),			"getpgrp"		},
+[ 64] = { 0,	PU|NF,		SEN(getppid),			"getppid"		},
+[ 65] = { 0,	PU|NF,		SEN(getpgrp),			"getpgrp"		},
 [ 66] = { 0,	0,		SEN(setsid),			"setsid"		},
 [ 67] = { 3,	TS,		SEN(sigaction),			"sigaction"		},
 [ 68] = { 0,	TS,		SEN(sgetmask),			"sgetmask"		},
@@ -229,7 +229,7 @@
 [204] = { },
 [205] = { 3,	TM,		SEN(madvise),			"madvise"		},
 [206] = { 3,	TM,		SEN(mincore),			"mincore"		},
-[207] = { 0,	NF,		SEN(gettid),			"gettid"		},
+[207] = { 0,	PU|NF,		SEN(gettid),			"gettid"		},
 [208] = { 2,	TS,		SEN(kill),			"tkill"			},
 [209] = { 5,	TF,		SEN(setxattr),			"setxattr"		},
 [210] = { 5,	TF,		SEN(setxattr),			"lsetxattr"		},
@@ -284,12 +284,12 @@
 [259] = { 6,	TM,		SEN(mbind),			"mbind"			},
 [260] = { 5,	TM,		SEN(get_mempolicy),		"get_mempolicy"		},
 [261] = { 3,	TM,		SEN(set_mempolicy),		"set_mempolicy"		},
-[262] = { 4,	0,		SEN(mq_open),			"mq_open"		},
+[262] = { 4,	TD,		SEN(mq_open),			"mq_open"		},
 [263] = { 1,	0,		SEN(mq_unlink),			"mq_unlink"		},
-[264] = { 5,	0,		SEN(mq_timedsend),		"mq_timedsend"		},
-[265] = { 5,	0,		SEN(mq_timedreceive),		"mq_timedreceive"	},
-[266] = { 2,	0,		SEN(mq_notify),			"mq_notify"		},
-[267] = { 3,	0,		SEN(mq_getsetattr),		"mq_getsetattr"		},
+[264] = { 5,	TD,		SEN(mq_timedsend),		"mq_timedsend"		},
+[265] = { 5,	TD,		SEN(mq_timedreceive),		"mq_timedreceive"	},
+[266] = { 2,	TD,		SEN(mq_notify),			"mq_notify"		},
+[267] = { 3,	TD,		SEN(mq_getsetattr),		"mq_getsetattr"		},
 [268] = { 4,	0,		SEN(kexec_load),		"kexec_load"		},
 [269] = { 5,	0,		SEN(add_key),			"add_key"		},
 [270] = { 4,	0,		SEN(request_key),		"request_key"		},
@@ -406,6 +406,9 @@
 [381] = { 6,	TD,		SEN(pwritev2),			"pwritev2"		},
 [382] = { 5,	TD,		SEN(kexec_file_load),		"kexec_file_load"	},
 [383] = { 5,	TD|TF|TSTA,	SEN(statx),			"statx"			},
+[384] = { 2,	0,		SEN(pkey_alloc),		"pkey_alloc"		},
+[385] = { 1,	0,		SEN(pkey_free),			"pkey_free"		},
+[386] = { 4,	TM|SI,		SEN(pkey_mprotect),		"pkey_mprotect"		},
 
 #define SYS_socket_subcall	400
 #include "subcall.h"

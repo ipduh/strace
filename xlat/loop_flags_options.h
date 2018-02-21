@@ -26,13 +26,13 @@ static
 # endif
 const struct xlat loop_flags_options[] = {
  XLAT(LO_FLAGS_READ_ONLY),
-/* Added in v2.6.11-732-gf3f28e4, Removed in v3.2-rc1~49^2~5^2~3 */
+
  XLAT(LO_FLAGS_USE_AOPS),
-/* Added in v2.6.25-rc1~758 */
+
  XLAT(LO_FLAGS_AUTOCLEAR),
-/* Added in v3.2-rc1~48^2~7 */
+
  XLAT(LO_FLAGS_PARTSCAN),
-/* Added in v4.4-rc1~133^2~22 */
+
  XLAT(LO_FLAGS_DIRECT_IO),
  XLAT_END
 };

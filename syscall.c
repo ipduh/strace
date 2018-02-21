@@ -6,7 +6,7 @@
  * Copyright (c) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *                     Linux for s390 port by D.J. Barrow
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,10 @@
 
 #include "defs.h"
 #include "native_defs.h"
+#include "ptrace.h"
 #include "nsig.h"
 #include "number_set.h"
-#include <sys/param.h>
+#include <limits.h>
 
 /* for struct iovec */
 #include <sys/uio.h>
@@ -45,7 +46,6 @@
 #include <asm/unistd.h>
 
 #include "regs.h"
-#include "ptrace.h"
 
 #if defined(SPARC64)
 # undef PTRACE_GETREGS
@@ -54,21 +54,12 @@
 # define PTRACE_SETREGS PTRACE_SETREGS64
 #endif
 
-#if defined SPARC64
-# include <asm/psrcompat.h>
-#elif defined SPARC
-# include <asm/psr.h>
-#endif
-
-#ifdef IA64
-# include <asm/rse.h>
-#endif
-
 #ifndef NT_PRSTATUS
 # define NT_PRSTATUS 1
 #endif
 
 #include "syscall.h"
+#include "xstring.h"
 
 /* Define these shorthand notations to simplify the syscallent files. */
 #include "sysent_shorthand_defs.h"
@@ -222,11 +213,24 @@ const struct_sysent *const sysent_vec[SUPPORTED_PERSONALITIES] = {
 #endif
 };
 
+const char *const personality_names[] =
+# if defined X86_64
+	{"64 bit", "32 bit", "x32"}
+# elif defined X32
+	{"x32", "32 bit"}
+# elif SUPPORTED_PERSONALITIES == 2
+	{"64 bit", "32 bit"}
+# else
+	{STRINGIFY_VAL(__WORDSIZE) " bit"}
+# endif
+	;
+
 #if SUPPORTED_PERSONALITIES > 1
+
 unsigned current_personality;
 
 # ifndef current_wordsize
-unsigned current_wordsize;
+unsigned current_wordsize = PERSONALITY0_WORDSIZE;
 static const int personality_wordsize[SUPPORTED_PERSONALITIES] = {
 	PERSONALITY0_WORDSIZE,
 	PERSONALITY1_WORDSIZE,
@@ -237,7 +241,7 @@ static const int personality_wordsize[SUPPORTED_PERSONALITIES] = {
 # endif
 
 # ifndef current_klongsize
-unsigned current_klongsize;
+unsigned current_klongsize = PERSONALITY0_KLONGSIZE;
 static const int personality_klongsize[SUPPORTED_PERSONALITIES] = {
 	PERSONALITY0_KLONGSIZE,
 	PERSONALITY1_KLONGSIZE,
@@ -248,8 +252,15 @@ static const int personality_klongsize[SUPPORTED_PERSONALITIES] = {
 # endif
 
 void
-set_personality(int personality)
+set_personality(unsigned int personality)
 {
+	if (personality == current_personality)
+		return;
+
+	if (personality >= SUPPORTED_PERSONALITIES)
+		error_msg_and_die("Requested switch to unsupported personality "
+				  "%u", personality);
+
 	nsyscalls = nsyscall_vec[personality];
 	sysent = sysent_vec[personality];
 
@@ -299,29 +310,26 @@ set_personality(int personality)
 static void
 update_personality(struct tcb *tcp, unsigned int personality)
 {
-	if (personality == current_personality)
-		return;
+	static bool need_mpers_warning[] =
+		{ false, !HAVE_PERSONALITY_1_MPERS, !HAVE_PERSONALITY_2_MPERS };
+
 	set_personality(personality);
 
 	if (personality == tcp->currpers)
 		return;
 	tcp->currpers = personality;
 
-# undef PERSONALITY_NAMES
-# if defined X86_64
-#  define PERSONALITY_NAMES {"64 bit", "32 bit", "x32"}
-# elif defined X32
-#  define PERSONALITY_NAMES {"x32", "32 bit"}
-# elif SUPPORTED_PERSONALITIES == 2
-#  define PERSONALITY_NAMES {"64 bit", "32 bit"}
-# endif
-# ifdef PERSONALITY_NAMES
 	if (!qflag) {
-		static const char *const names[] = PERSONALITY_NAMES;
 		error_msg("[ Process PID=%d runs in %s mode. ]",
-			  tcp->pid, names[personality]);
+			  tcp->pid, personality_names[personality]);
 	}
-# endif
+
+	if (need_mpers_warning[personality]) {
+		error_msg("WARNING: Proper structure decoding for this "
+			  "personality is not supported, please consider "
+			  "building strace with mpers support enabled.");
+		need_mpers_warning[personality] = false;
+	}
 }
 #endif
 
@@ -350,7 +358,7 @@ decode_socket_subcall(struct tcb *tcp)
 		tcp->u_arg[i] = (sizeof(uint32_t) == current_wordsize)
 				? ((uint32_t *) (void *) buf)[i] : buf[i];
 }
-#endif
+#endif /* SYS_socket_subcall */
 
 #ifdef SYS_ipc_subcall
 static void
@@ -390,11 +398,11 @@ decode_ipc_subcall(struct tcb *tcp)
 	for (i = 0; i < n; i++)
 		tcp->u_arg[i] = tcp->u_arg[i + 1];
 }
-#endif
+#endif /* SYS_ipc_subcall */
 
-#ifdef LINUX_MIPSO32
+#ifdef SYS_syscall_subcall
 static void
-decode_mips_subcall(struct tcb *tcp)
+decode_syscall_subcall(struct tcb *tcp)
 {
 	if (!scno_is_valid(tcp->u_arg[0]))
 		return;
@@ -403,6 +411,7 @@ decode_mips_subcall(struct tcb *tcp)
 	tcp->s_ent = &sysent[tcp->scno];
 	memmove(&tcp->u_arg[0], &tcp->u_arg[1],
 		sizeof(tcp->u_arg) - sizeof(tcp->u_arg[0]));
+# ifdef LINUX_MIPSO32
 	/*
 	 * Fetching the last arg of 7-arg syscalls (fadvise64_64
 	 * and sync_file_range) requires additional code,
@@ -415,8 +424,9 @@ decode_mips_subcall(struct tcb *tcp)
 			   &tcp->u_arg[MAX_ARGS - 1]) < 0)
 		tcp->u_arg[MAX_ARGS - 1] = 0;
 	}
+# endif /* LINUX_MIPSO32 */
 }
-#endif /* LINUX_MIPSO32 */
+#endif /* SYS_syscall_subcall */
 
 static void
 dumpio(struct tcb *tcp)
@@ -476,41 +486,6 @@ dumpio(struct tcb *tcp)
 	}
 }
 
-/*
- * Shuffle syscall numbers so that we don't have huge gaps in syscall table.
- * The shuffling should be an involution: shuffle_scno(shuffle_scno(n)) == n.
- */
-static kernel_ulong_t
-shuffle_scno(kernel_ulong_t scno)
-{
-#if defined(ARM) || defined(AARCH64) /* So far only 32-bit ARM needs this */
-	if (scno < ARM_FIRST_SHUFFLED_SYSCALL)
-		return scno;
-
-	/* __ARM_NR_cmpxchg? Swap with LAST_ORDINARY+1 */
-	if (scno == ARM_FIRST_SHUFFLED_SYSCALL)
-		return 0x000ffff0;
-	if (scno == 0x000ffff0)
-		return ARM_FIRST_SHUFFLED_SYSCALL;
-
-# define ARM_SECOND_SHUFFLED_SYSCALL (ARM_FIRST_SHUFFLED_SYSCALL + 1)
-	/*
-	 * Is it ARM specific syscall?
-	 * Swap [0x000f0000, 0x000f0000 + LAST_SPECIAL] range
-	 * with [SECOND_SHUFFLED, SECOND_SHUFFLED + LAST_SPECIAL] range.
-	 */
-	if (scno >= 0x000f0000 &&
-	    scno <= 0x000f0000 + ARM_LAST_SPECIAL_SYSCALL) {
-		return scno - 0x000f0000 + ARM_SECOND_SHUFFLED_SYSCALL;
-	}
-	if (scno <= ARM_SECOND_SHUFFLED_SYSCALL + ARM_LAST_SPECIAL_SYSCALL) {
-		return scno + 0x000f0000 - ARM_SECOND_SHUFFLED_SYSCALL;
-	}
-#endif /* ARM || AARCH64 */
-
-	return scno;
-}
-
 const char *
 err_name(unsigned long err)
 {
@@ -520,15 +495,7 @@ err_name(unsigned long err)
 	return NULL;
 }
 
-static long get_regs_error;
-
-void
-clear_regs(void)
-{
-	get_regs_error = -1;
-}
-
-static void get_regs(pid_t pid);
+static long get_regs(struct tcb *);
 static int get_syscall_args(struct tcb *);
 static int get_syscall_result(struct tcb *);
 static int arch_get_scno(struct tcb *tcp);
@@ -570,10 +537,13 @@ tamper_with_syscall_entering(struct tcb *tcp, unsigned int *signo)
 
 	opts->first = opts->step;
 
-	if (opts->data.flags & INJECT_F_SIGNAL)
-		*signo = opts->data.signo;
-	if (opts->data.flags & INJECT_F_RETVAL && !arch_set_scno(tcp, -1))
-		tcp->flags |= TCB_TAMPERED;
+	if (!recovering(tcp)) {
+		if (opts->data.flags & INJECT_F_SIGNAL)
+			*signo = opts->data.signo;
+		if (opts->data.flags & INJECT_F_RETVAL &&
+		    !arch_set_scno(tcp, -1))
+			tcp->flags |= TCB_TAMPERED;
+	}
 
 	return 0;
 }
@@ -581,7 +551,16 @@ tamper_with_syscall_entering(struct tcb *tcp, unsigned int *signo)
 static long
 tamper_with_syscall_exiting(struct tcb *tcp)
 {
+	if (!syserror(tcp)) {
+		error_msg("Failed to tamper with process %d: got no error "
+			  "(return value %#" PRI_klx ")",
+			  tcp->pid, tcp->u_rval);
+
+		return 1;
+	}
+
 	struct inject_opts *opts = tcb_inject_opts(tcp);
+	bool update_tcb = false;
 
 	if (!opts)
 		return 0;
@@ -593,6 +572,7 @@ tamper_with_syscall_exiting(struct tcb *tcp)
 		if (arch_set_success(tcp)) {
 			tcp->u_rval = u_rval;
 		} else {
+			update_tcb = true;
 			tcp->u_error = 0;
 		}
 	} else {
@@ -604,8 +584,15 @@ tamper_with_syscall_exiting(struct tcb *tcp)
 			tcp->u_error = new_error;
 			if (arch_set_error(tcp)) {
 				tcp->u_error = u_error;
+			} else {
+				update_tcb = true;
 			}
 		}
+	}
+
+	if (update_tcb) {
+		tcp->u_error = 0;
+		get_error(tcp, !(tcp->s_ent->sys_flags & SYSCALL_NEVER_FAILS));
 	}
 
 	return 0;
@@ -636,23 +623,30 @@ syscall_entering_decode(struct tcb *tcp)
 		return res;
 	}
 
-#ifdef LINUX_MIPSO32
-	if (SEN_syscall == tcp->s_ent->sen)
-		decode_mips_subcall(tcp);
-#endif
-
-#if defined(SYS_socket_subcall) || defined(SYS_ipc_subcall)
-	switch (tcp->s_ent->sen) {
-# ifdef SYS_socket_subcall
-		case SEN_socketcall:
-			decode_socket_subcall(tcp);
-			break;
-# endif
+#if defined SYS_ipc_subcall	\
+ || defined SYS_socket_subcall	\
+ || defined SYS_syscall_subcall
+	for (;;) {
+		switch (tcp->s_ent->sen) {
 # ifdef SYS_ipc_subcall
 		case SEN_ipc:
 			decode_ipc_subcall(tcp);
 			break;
 # endif
+# ifdef SYS_socket_subcall
+		case SEN_socketcall:
+			decode_socket_subcall(tcp);
+			break;
+# endif
+# ifdef SYS_syscall_subcall
+		case SEN_syscall:
+			decode_syscall_subcall(tcp);
+			if (tcp->s_ent->sen != SEN_syscall)
+				continue;
+			break;
+# endif
+		}
+		break;
 	}
 #endif
 
@@ -719,12 +713,6 @@ syscall_entering_finish(struct tcb *tcp, int res)
 		gettimeofday(&tcp->etime, NULL);
 }
 
-static bool
-syscall_tampered(struct tcb *tcp)
-{
-	return tcp->flags & TCB_TAMPERED;
-}
-
 /* Returns:
  * 0: "bail out".
  * 1: ok.
@@ -750,17 +738,17 @@ syscall_exiting_decode(struct tcb *tcp, struct timeval *ptv)
 	if (filtered(tcp) || hide_log(tcp))
 		return 0;
 
-	get_regs(tcp->pid);
 #if SUPPORTED_PERSONALITIES > 1
 	update_personality(tcp, tcp->currpers);
 #endif
-	return get_regs_error ? -1 : get_syscall_result(tcp);
+
+	return get_syscall_result(tcp);
 }
 
 int
 syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 {
-	if (syserror(tcp) && syscall_tampered(tcp))
+	if (syscall_tampered(tcp))
 		tamper_with_syscall_exiting(tcp);
 
 	if (cflag) {
@@ -820,6 +808,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 	tprints(") ");
 	tabto();
 	unsigned long u_error = tcp->u_error;
+	kernel_long_t u_rval;
 
 	if (raw(tcp)) {
 		if (u_error) {
@@ -887,13 +876,15 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 			tprints("= ? ERESTART_RESTARTBLOCK (Interrupted by signal)");
 			break;
 		default:
+			u_rval = sys_res & RVAL_PRINT_ERR_VAL ?
+				 tcp->u_rval : -1;
 			u_error_str = err_name(u_error);
 			if (u_error_str)
-				tprintf("= -1 %s (%s)",
-					u_error_str, strerror(u_error));
+				tprintf("= %" PRI_kld " %s (%s)",
+					u_rval, u_error_str, strerror(u_error));
 			else
-				tprintf("= -1 %lu (%s)",
-					u_error, strerror(u_error));
+				tprintf("= %" PRI_kld " %lu (%s)",
+					u_rval, u_error, strerror(u_error));
 			break;
 		}
 		if (syscall_tampered(tcp))
@@ -907,7 +898,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 			switch (sys_res & RVAL_MASK) {
 			case RVAL_HEX:
 #if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG
-				if (current_wordsize < sizeof(tcp->u_rval)) {
+				if (current_klongsize < sizeof(tcp->u_rval)) {
 					tprintf("= %#x",
 						(unsigned int) tcp->u_rval);
 				} else
@@ -922,7 +913,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 				break;
 			case RVAL_UDECIMAL:
 #if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG
-				if (current_wordsize < sizeof(tcp->u_rval)) {
+				if (current_klongsize < sizeof(tcp->u_rval)) {
 					tprintf("= %u",
 						(unsigned int) tcp->u_rval);
 				} else
@@ -1006,7 +997,7 @@ restore_cleared_syserror(struct tcb *tcp)
 
 #include "arch_regs.c"
 
-#ifdef HAVE_GETRVAL2
+#if HAVE_ARCH_GETRVAL2
 # include "arch_getrval2.c"
 #endif
 
@@ -1018,12 +1009,11 @@ print_pc(struct tcb *tcp)
 #elif defined ARCH_PC_PEEK_ADDR
 	kernel_ulong_t pc;
 # define ARCH_PC_REG pc
-# define ARCH_GET_PC upeek(tcp->pid, ARCH_PC_PEEK_ADDR, &pc)
+# define ARCH_GET_PC upeek(tcp, ARCH_PC_PEEK_ADDR, &pc)
 #else
 # error Neither ARCH_PC_REG nor ARCH_PC_PEEK_ADDR is defined
 #endif
-	get_regs(tcp->pid);
-	if (get_regs_error || ARCH_GET_PC)
+	if (get_regs(tcp) < 0 || ARCH_GET_PC)
 		tprints(current_wordsize == 4 ? "[????????] "
 					      : "[????????????????] ");
 	else
@@ -1108,14 +1098,25 @@ ptrace_setregs(pid_t pid)
 
 #endif /* ARCH_REGS_FOR_GETREGSET || ARCH_REGS_FOR_GETREGS */
 
-static void
-get_regs(pid_t pid)
+#ifdef ptrace_getregset_or_getregs
+static long get_regs_error;
+#endif
+
+void
+clear_regs(struct tcb *tcp)
 {
-#undef USE_GET_SYSCALL_RESULT_REGS
+#ifdef ptrace_getregset_or_getregs
+	get_regs_error = -1;
+#endif
+}
+
+static long
+get_regs(struct tcb *const tcp)
+{
 #ifdef ptrace_getregset_or_getregs
 
 	if (get_regs_error != -1)
-		return;
+		return get_regs_error;
 
 # ifdef HAVE_GETREGS_OLD
 	/*
@@ -1124,29 +1125,57 @@ get_regs(pid_t pid)
 	 */
 	static int use_getregs_old;
 	if (use_getregs_old < 0) {
-		get_regs_error = ptrace_getregset_or_getregs(pid);
-		return;
+		return get_regs_error = ptrace_getregset_or_getregs(tcp->pid);
 	} else if (use_getregs_old == 0) {
-		get_regs_error = ptrace_getregset_or_getregs(pid);
+		get_regs_error = ptrace_getregset_or_getregs(tcp->pid);
 		if (get_regs_error >= 0) {
 			use_getregs_old = -1;
-			return;
+			return get_regs_error;
 		}
 		if (errno == EPERM || errno == ESRCH)
-			return;
+			return get_regs_error;
 		use_getregs_old = 1;
 	}
-	get_regs_error = getregs_old(pid);
+	return get_regs_error = getregs_old(tcp);
 # else /* !HAVE_GETREGS_OLD */
 	/* Assume that PTRACE_GETREGSET/PTRACE_GETREGS works. */
-	get_regs_error = ptrace_getregset_or_getregs(pid);
+	get_regs_error = ptrace_getregset_or_getregs(tcp->pid);
+
+#  if defined ARCH_PERSONALITY_0_IOV_SIZE
+	if (get_regs_error)
+		return get_regs_error;
+
+	switch (ARCH_IOVEC_FOR_GETREGSET.iov_len) {
+	case ARCH_PERSONALITY_0_IOV_SIZE:
+		update_personality(tcp, 0);
+		break;
+	case ARCH_PERSONALITY_1_IOV_SIZE:
+		update_personality(tcp, 1);
+		break;
+	default: {
+		static bool printed = false;
+
+		if (!printed) {
+			error_msg("Unsupported regset size returned by "
+				  "PTRACE_GETREGSET: %zu",
+				  ARCH_IOVEC_FOR_GETREGSET.iov_len);
+
+			printed = true;
+		}
+
+		update_personality(tcp, 0);
+	}
+	}
+#  endif /* ARCH_PERSONALITY_0_IOV_SIZE */
+
+	return get_regs_error;
+
 # endif /* !HAVE_GETREGS_OLD */
 
 #else /* !ptrace_getregset_or_getregs */
 
-# define USE_GET_SYSCALL_RESULT_REGS 1
 # warning get_regs is not implemented for this architecture yet
-	get_regs_error = 0;
+	return 0;
 
 #endif /* !ptrace_getregset_or_getregs */
 }
@@ -1162,7 +1191,7 @@ set_regs(pid_t pid)
 struct sysent_buf {
 	struct tcb *tcp;
 	struct_sysent ent;
-	char buf[sizeof("syscall_%lu") + sizeof(kernel_ulong_t) * 3];
+	char buf[sizeof("syscall_0x") + sizeof(kernel_ulong_t) * 2];
 };
 
 static void
@@ -1184,14 +1213,14 @@ free_sysent_buf(void *ptr)
 int
 get_scno(struct tcb *tcp)
 {
-	get_regs(tcp->pid);
-
-	if (get_regs_error)
+	if (get_regs(tcp) < 0)
 		return -1;
 
 	int rc = arch_get_scno(tcp);
 	if (rc != 1)
 		return rc;
+
+	tcp->scno = shuffle_scno(tcp->scno);
 
 	if (scno_is_valid(tcp->scno)) {
 		tcp->s_ent = &sysent[tcp->scno];
@@ -1204,21 +1233,31 @@ get_scno(struct tcb *tcp)
 		s->ent.sen = SEN_printargs;
 		s->ent.sys_func = printargs;
 		s->ent.sys_name = s->buf;
-		sprintf(s->buf, "syscall_%" PRI_klu, shuffle_scno(tcp->scno));
+		xsprintf(s->buf, "syscall_%#" PRI_klx, shuffle_scno(tcp->scno));
 
 		tcp->s_ent = &s->ent;
 		tcp->qual_flg = QUAL_RAW | DEFAULT_QUAL_FLAGS;
 
 		set_tcb_priv_data(tcp, s, free_sysent_buf);
 
-		if (debug_flag)
-			error_msg("pid %d invalid syscall %" PRI_kld,
-				  tcp->pid, tcp->scno);
+		debug_msg("pid %d invalid syscall %#" PRI_klx,
+			  tcp->pid, shuffle_scno(tcp->scno));
 	}
+
+	/*
+	 * We refrain from argument decoding during recovering
+	 * as tracee memory mappings has changed and the registers
+	 * are very likely pointing to garbage already.
+	 */
+	if (recovering(tcp))
+		tcp->qual_flg |= QUAL_RAW;
+
 	return 1;
 }
 
-#ifdef USE_GET_SYSCALL_RESULT_REGS
+#ifdef ptrace_getregset_or_getregs
+# define get_syscall_result_regs get_regs
+#else
 static int get_syscall_result_regs(struct tcb *);
 #endif
 
@@ -1230,12 +1269,12 @@ static int get_syscall_result_regs(struct tcb *);
 static int
 get_syscall_result(struct tcb *tcp)
 {
-#ifdef USE_GET_SYSCALL_RESULT_REGS
-	if (get_syscall_result_regs(tcp))
+	if (get_syscall_result_regs(tcp) < 0)
 		return -1;
-#endif
 	tcp->u_error = 0;
-	get_error(tcp, !(tcp->s_ent->sys_flags & SYSCALL_NEVER_FAILS));
+	get_error(tcp,
+		  !(tcp->s_ent->sys_flags & SYSCALL_NEVER_FAILS)
+			|| syscall_tampered(tcp));
 
 	return 1;
 }
@@ -1243,7 +1282,7 @@ get_syscall_result(struct tcb *tcp)
 #include "get_scno.c"
 #include "set_scno.c"
 #include "get_syscall_args.c"
-#ifdef USE_GET_SYSCALL_RESULT_REGS
+#ifndef ptrace_getregset_or_getregs
 # include "get_syscall_result.c"
 #endif
 #include "get_error.c"
@@ -1251,13 +1290,10 @@ get_syscall_result(struct tcb *tcp)
 #ifdef HAVE_GETREGS_OLD
 # include "getregs_old.c"
 #endif
+#include "shuffle_scno.c"
 
 const char *
 syscall_name(kernel_ulong_t scno)
 {
-#if defined X32_PERSONALITY_NUMBER && defined __X32_SYSCALL_BIT
-	if (current_personality == X32_PERSONALITY_NUMBER)
-		scno &= ~__X32_SYSCALL_BIT;
-#endif
 	return scno_is_valid(scno) ? sysent[scno].sys_name : NULL;
 }

@@ -90,7 +90,7 @@ DEF_BPF_CMD_DECODER(BPF_MAP_CREATE)
 {
 	struct {
 		uint32_t map_type, key_size, value_size, max_entries,
-			 map_flags, inner_map_fd;
+			 map_flags, inner_map_fd, numa_node;
 	} attr = {};
 	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
 
@@ -103,6 +103,8 @@ DEF_BPF_CMD_DECODER(BPF_MAP_CREATE)
 	PRINT_FIELD_U(", ", attr, max_entries);
 	PRINT_FIELD_FLAGS(", ", attr, map_flags, bpf_map_flags, "BPF_F_???");
 	PRINT_FIELD_FD(", ", attr, inner_map_fd, tcp);
+	if (attr.map_flags & BPF_F_NUMA_NODE)
+		PRINT_FIELD_U(", ", attr, numa_node);
 	decode_attr_extra_data(tcp, data, size, sizeof(attr));
 	tprints("}");
 
@@ -278,6 +280,105 @@ DEF_BPF_CMD_DECODER(BPF_PROG_DETACH)
 	return RVAL_DECODED;
 }
 
+DEF_BPF_CMD_DECODER(BPF_PROG_TEST_RUN)
+{
+	struct {
+		uint32_t prog_fd, retval, data_size_in, data_size_out;
+		uint64_t ATTRIBUTE_ALIGNED(8) data_in, data_out;
+		uint32_t repeat, duration;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_FD("{test={", attr, prog_fd, tcp);
+	PRINT_FIELD_U(", ", attr, retval);
+	PRINT_FIELD_U(", ", attr, data_size_in);
+	PRINT_FIELD_U(", ", attr, data_size_out);
+	PRINT_FIELD_X(", ", attr, data_in);
+	PRINT_FIELD_X(", ", attr, data_out);
+	PRINT_FIELD_U(", ", attr, repeat);
+	PRINT_FIELD_U(", ", attr, duration);
+	tprints("}");
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
+}
+
+DEF_BPF_CMD_DECODER(BPF_PROG_GET_NEXT_ID)
+{
+	struct {
+		uint32_t start_id, next_id;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_U("{", attr, start_id);
+	PRINT_FIELD_U(", ", attr, next_id);
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
+}
+
+#define decode_BPF_MAP_GET_NEXT_ID decode_BPF_PROG_GET_NEXT_ID
+
+DEF_BPF_CMD_DECODER(BPF_PROG_GET_FD_BY_ID)
+{
+	struct {
+		uint32_t prog_id, next_id;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_U("{", attr, prog_id);
+	PRINT_FIELD_U(", ", attr, next_id);
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
+}
+
+DEF_BPF_CMD_DECODER(BPF_MAP_GET_FD_BY_ID)
+{
+	struct {
+		uint32_t map_id, next_id;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_U("{", attr, map_id);
+	PRINT_FIELD_U(", ", attr, next_id);
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED;
+}
+
+DEF_BPF_CMD_DECODER(BPF_OBJ_GET_INFO_BY_FD)
+{
+	struct {
+		uint32_t bpf_fd, info_len;
+		uint64_t ATTRIBUTE_ALIGNED(8) info;
+	} attr = {};
+	const unsigned int len = size < sizeof(attr) ? size : sizeof(attr);
+
+	memcpy(&attr, data, len);
+
+	PRINT_FIELD_FD("{info={", attr, bpf_fd, tcp);
+	PRINT_FIELD_U(", ", attr, info_len);
+	PRINT_FIELD_X(", ", attr, info);
+	tprints("}");
+	decode_attr_extra_data(tcp, data, size, sizeof(attr));
+	tprints("}");
+
+	return RVAL_DECODED | RVAL_FD;
+}
+
 SYS_FUNC(bpf)
 {
 	static const bpf_cmd_decoder_t bpf_cmd_decoders[] = {
@@ -291,6 +392,12 @@ SYS_FUNC(bpf)
 		BPF_CMD_ENTRY(BPF_OBJ_GET),
 		BPF_CMD_ENTRY(BPF_PROG_ATTACH),
 		BPF_CMD_ENTRY(BPF_PROG_DETACH),
+		BPF_CMD_ENTRY(BPF_PROG_TEST_RUN),
+		BPF_CMD_ENTRY(BPF_PROG_GET_NEXT_ID),
+		BPF_CMD_ENTRY(BPF_MAP_GET_NEXT_ID),
+		BPF_CMD_ENTRY(BPF_PROG_GET_FD_BY_ID),
+		BPF_CMD_ENTRY(BPF_MAP_GET_FD_BY_ID),
+		BPF_CMD_ENTRY(BPF_OBJ_GET_INFO_BY_FD),
 	};
 
 	const unsigned int cmd = tcp->u_arg[0];

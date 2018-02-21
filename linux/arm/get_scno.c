@@ -2,7 +2,7 @@
  * Copyright (c) 2003 Russell King <rmk@arm.linux.org.uk>
  * Copyright (c) 2011-2013 Denys Vlasenko <vda.linux@googlemail.com>
  * Copyright (c) 2011-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,18 +67,13 @@ scno_in_r7:
 
 #endif
 
-	scno = shuffle_scno(scno);
-
 	/*
 	 * Do some sanity checks to figure out
 	 * whether it's really a syscall entry.
 	 */
 	if (arm_regs.ARM_ip && !scno_in_range(scno)) {
-		if (debug_flag)
-			error_msg("pid %d stray syscall exit:"
-				  " ARM_ip = %ld, scno = %ld",
-				  tcp->pid, arm_regs.ARM_ip,
-				  shuffle_scno(scno));
+		debug_msg("pid %d stray syscall exit: ARM_ip = %ld, scno = %ld",
+			  tcp->pid, arm_regs.ARM_ip, scno);
 		return 0;
 	}
 

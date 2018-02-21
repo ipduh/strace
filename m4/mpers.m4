@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
 # Copyright (c) 2015 Elvira Khabirova <lineprinter0@gmail.com>
+# Copyright (c) 2015-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -82,13 +83,16 @@ pushdef([mpers_name], [$1])
 pushdef([MPERS_NAME], translit([$1], [a-z], [A-Z]))
 pushdef([HAVE_MPERS], [HAVE_]MPERS_NAME[_MPERS])
 pushdef([HAVE_RUNTIME], [HAVE_]MPERS_NAME[_RUNTIME])
-pushdef([CFLAG], [-$1])
+pushdef([MPERS_CFLAGS], [$cc_flags_$1])
 pushdef([st_cv_cc], [st_cv_$1_cc])
 pushdef([st_cv_runtime], [st_cv_$1_runtime])
 pushdef([st_cv_mpers], [st_cv_$1_mpers])
 
 case "$arch" in
 	[$2])
+	case "$enable_mpers" in
+	yes|check|[$1])
+
 	AH_TEMPLATE([HAVE_GNU_STUBS_32_H],
 		    [Define to 1 if you have the <gnu/stubs-32.h> header file.])
 	AH_TEMPLATE([HAVE_GNU_STUBS_X32_H],
@@ -101,29 +105,32 @@ case "$arch" in
 			  IFLAG=-I.])
 	popdef([gnu_stubs])
 	saved_CFLAGS="$CFLAGS"
-	CFLAGS="$CFLAGS CFLAG $IFLAG"
-	AC_CACHE_CHECK([for CFLAG compile support], [st_cv_cc],
+	CFLAGS="$CFLAGS MPERS_CFLAGS $IFLAG"
+	AC_CACHE_CHECK([for mpers_name personality compile support], [st_cv_cc],
 		[AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <stdint.h>
 						     int main(){return 0;}]])],
 				   [st_cv_cc=yes],
 				   [st_cv_cc=no])])
 	if test $st_cv_cc = yes; then
-		AC_CACHE_CHECK([for CFLAG runtime support], [st_cv_runtime],
+		AC_CACHE_CHECK([for mpers_name personality runtime support],
+			[st_cv_runtime],
 			[AC_RUN_IFELSE([AC_LANG_SOURCE([[#include <stdint.h>
 							 int main(){return 0;}]])],
 				       [st_cv_runtime=yes],
 				       [st_cv_runtime=no],
 				       [st_cv_runtime=no])])
-		AC_CACHE_CHECK([whether mpers.sh CFLAG works], [st_cv_mpers],
-			[if CC="$CC" CPP="$CPP" CPPFLAGS="$CPPFLAGS" \
-			    $srcdir/mpers_test.sh [$1]; then
+		AC_CACHE_CHECK([whether mpers.sh mpers_name MPERS_CFLAGS works],
+			[st_cv_mpers],
+			[if READELF="$READELF" \
+			    CC="$CC" CPP="$CPP" CPPFLAGS="$CPPFLAGS" \
+			    $srcdir/mpers_test.sh [$1] MPERS_CFLAGS; then
 				st_cv_mpers=yes
 			 else
 				st_cv_mpers=no
 			 fi])
 		if test $st_cv_mpers = yes; then
 			AC_DEFINE(HAVE_MPERS, [1],
-				  [Define to 1 if you have CFLAG mpers support])
+				  [Define to 1 if you have mpers_name mpers support])
 			st_MPERS_STRUCT_STAT([])
 			st_MPERS_STRUCT_STAT([64])
 
@@ -148,7 +155,25 @@ case "$arch" in
 	CFLAGS="$saved_CFLAGS"
 	;;
 
-	*)
+	*) # case "$enable_mpers"
+	st_cv_runtime=no
+	st_cv_mpers=no
+	;;
+	esac
+
+	test "$st_cv_mpers" = yes ||
+		st_cv_mpers=no
+	AC_MSG_CHECKING([whether to enable $1 personality support])
+	AC_MSG_RESULT([$st_cv_mpers])
+
+	case "$enable_mpers,$st_cv_mpers" in
+	yes,no|[$1],no)
+		AC_MSG_ERROR([Cannot enable $1 personality support])
+		;;
+	esac
+	;;
+
+	*) # case "$arch"
 	st_cv_runtime=no
 	st_cv_mpers=no
 	;;
@@ -160,7 +185,7 @@ AM_CONDITIONAL(HAVE_MPERS, [test "$st_cv_mpers" = yes])
 popdef([st_cv_mpers])
 popdef([st_cv_runtime])
 popdef([st_cv_cc])
-popdef([CFLAG])
+popdef([MPERS_CFLAGS])
 popdef([HAVE_RUNTIME])
 popdef([HAVE_MPERS])
 popdef([MPERS_NAME])

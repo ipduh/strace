@@ -140,7 +140,7 @@ const struct xlat v4l2_control_ids[] = {
 #if defined(V4L2_CID_ALPHA_COMPONENT) || (defined(HAVE_DECL_V4L2_CID_ALPHA_COMPONENT) && HAVE_DECL_V4L2_CID_ALPHA_COMPONENT)
   XLAT(V4L2_CID_ALPHA_COMPONENT),
 #endif
-/*  Camera class control IDs */
+
 #if defined(V4L2_CID_EXPOSURE_AUTO) || (defined(HAVE_DECL_V4L2_CID_EXPOSURE_AUTO) && HAVE_DECL_V4L2_CID_EXPOSURE_AUTO)
   XLAT(V4L2_CID_EXPOSURE_AUTO),
 #endif

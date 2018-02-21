@@ -103,6 +103,7 @@ ioctl
 ioctl_block
 ioctl_dm
 ioctl_evdev
+ioctl_kvm_run
 ioctl_loop
 ioctl_mtd
 ioctl_rtc
@@ -153,6 +154,7 @@ mmap
 mmap64
 mmsg
 mmsg_name
+modify_ldt
 mount
 move_pages
 mq
@@ -222,9 +224,12 @@ nlattr_tcamsg
 nlattr_tcmsg
 nlattr_unix_diag_msg
 old_mmap
+old_mmap-P
+old_mmap-v-none
 oldfstat
 oldlstat
 oldselect
+oldselect-efault
 oldstat
 open
 openat
@@ -238,7 +243,9 @@ pkey_alloc
 pkey_free
 pkey_mprotect
 poll
+poll-P
 ppoll
+ppoll-P
 prctl-arg2-intptr
 prctl-dumpable
 prctl-name
@@ -281,6 +288,7 @@ rename
 renameat
 renameat2
 request_key
+riscv_flush_icache
 rmdir
 rt_sigaction
 rt_sigpending
@@ -290,6 +298,12 @@ rt_sigreturn
 rt_sigsuspend
 rt_sigtimedwait
 rt_tgsigqueueinfo
+s390_guarded_storage
+s390_guarded_storage-v
+s390_pci_mmio_read_write
+s390_runtime_instr
+s390_sthyi
+s390_sthyi-v
 sched_get_priority_mxx
 sched_rr_get_interval
 sched_xetaffinity
@@ -341,6 +355,7 @@ so_linger
 so_peercred
 sock_filter-v
 socketcall
+sockopt-sol_netlink
 splice
 stat
 stat64
@@ -392,6 +407,7 @@ waitpid
 xattr
 xattr-strings
 xet_robust_list
+xet_thread_area_x86
 xetitimer
 xetpgid
 xetpriority

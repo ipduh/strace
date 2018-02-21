@@ -3,7 +3,7 @@
 # Check strace options syntax.
 #
 # Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
-# Copyright (c) 2016-2017 The strace developers.
+# Copyright (c) 2016-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,33 +37,10 @@ check_e "Invalid process id: 'a'" -p 1,a
 check_e "Syscall 'chdir' for -b isn't supported" -b chdir
 check_e "Syscall 'chdir' for -b isn't supported" -b execve -b chdir
 
-check_e "invalid system call '-1'" -e-1
-check_e "invalid system call '-2'" -e -2
-check_e "invalid system call '-3'" -etrace=-3
-check_e "invalid system call '-4'" -e trace=-4
-check_e "invalid system call '-5'" -e trace=1,-5
-check_e "invalid system call '/non_syscall'" -e trace=/non_syscall
-check_e "invalid system call '2147483647'" -e 2147483647
-check_e "invalid system call '2147483648'" -e 2147483648
-check_e "invalid system call '4294967295'" -e 4294967295
-check_e "invalid system call '4294967296'" -e 4294967296
+check_e_using_grep 'exec: File *name too long' "$(printf '%4096s' ' ')"
 
-check_e "invalid descriptor '-1'" -eread=-1
-check_e "invalid descriptor '-42'" -ewrite=-42
-check_e "invalid descriptor '2147483648'" -eread=2147483648
-check_e "invalid descriptor '4294967296'" -ewrite=4294967296
-check_e "invalid descriptor 'foo'" -eread=foo
-check_e "invalid descriptor ''" -ewrite=
-check_e "invalid descriptor ','" -eread=,
-check_e "invalid descriptor '!'" -ewrite='!'
-check_e "invalid descriptor '!'" -eread='0,!'
-check_e "invalid descriptor '!,'" -ewrite='!,'
-
-check_e_using_grep 'regcomp: \+id: [[:alpha:]].+' -e trace='/+id'
-check_e_using_grep 'regcomp: \*id: [[:alpha:]].+' -e trace='/*id'
-check_e_using_grep 'regcomp: \{id: [[:alpha:]].+' -e trace='/{id'
-check_e_using_grep 'regcomp: \(id: [[:alpha:]].+' -e trace='/(id'
-check_e_using_grep 'regcomp: \[id: [[:alpha:]].+' -e trace='/[id'
+ff_name="$(printf '%4084s' ' ')"
+check_e_using_grep "$ff_name: File *name too long" -ff -o "$ff_name" true
 
 check_h 'must have PROG [ARGS] or -p PID'
 check_h 'PROG [ARGS] must be specified with -D' -D -p $$
@@ -80,12 +57,12 @@ check_h "invalid -s argument: '-42'" -s -42
 check_h "invalid -s argument: '1073741824'" -s 1073741824
 check_h "invalid -I argument: '5'" -I 5
 
-../zeroargc "$strace_exp" /bin/true 2> "$LOG" &&
+../zeroargc "$STRACE_EXE" /bin/true 2> "$LOG" &&
 	dump_log_and_fail_with \
 		'zeroargc strace failed to handle the error properly'
 cat > "$EXP" << __EOF__
-$strace_exp: must have PROG [ARGS] or -p PID
-Try '$strace_exp -h' for more information.
+$STRACE_EXE: must have PROG [ARGS] or -p PID
+Try '$STRACE_EXE -h' for more information.
 __EOF__
 diff -u -- "$EXP" "$LOG" > /dev/null || {
 	cat > "$EXP" <<- '__EOF__'
@@ -107,17 +84,17 @@ if [ -n "${UID-}" ]; then
 
 	for c in i r t T y; do
 		check_e "-$c has no effect with -c
-$strace_exp: $umsg" -u :nosuchuser: -c -$c true
+$STRACE_EXE: $umsg" -u :nosuchuser: -c -$c true
 	done
 		check_e "-i has no effect with -c
-$strace_exp: -r has no effect with -c
-$strace_exp: -t has no effect with -c
-$strace_exp: -T has no effect with -c
-$strace_exp: -y has no effect with -c
-$strace_exp: $umsg" -u :nosuchuser: -cirtTy true
+$STRACE_EXE: -r has no effect with -c
+$STRACE_EXE: -t has no effect with -c
+$STRACE_EXE: -T has no effect with -c
+$STRACE_EXE: -y has no effect with -c
+$STRACE_EXE: $umsg" -u :nosuchuser: -cirtTy true
 
 	check_e "-tt has no effect with -r
-$strace_exp: $umsg" -u :nosuchuser: -r -tt true
+$STRACE_EXE: $umsg" -u :nosuchuser: -r -tt true
 fi
 
 args='-p 2147483647'
@@ -127,7 +104,7 @@ $STRACE $args 2> "$LOG" &&
 
 for cmd in PTRACE_SEIZE PTRACE_ATTACH; do
 	cat > "$EXP" << __EOF__
-$strace_exp: attach: ptrace($cmd, 2147483647): No such process
+$STRACE_EXE: attach: ptrace($cmd, 2147483647): No such process
 __EOF__
 	diff -- "$EXP" "$LOG" ||
 		continue

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,15 +44,13 @@ static struct number_set *verbose_set;
 static int
 sigstr_to_uint(const char *s)
 {
-	int i;
-
 	if (*s >= '0' && *s <= '9')
 		return string_to_uint_upto(s, 255);
 
 	if (strncasecmp(s, "SIG", 3) == 0)
 		s += 3;
 
-	for (i = 0; i <= 255; ++i) {
+	for (int i = 0; i <= 255; ++i) {
 		const char *name = signame(i);
 
 		if (strncasecmp(name, "SIG", 3) != 0)
@@ -72,9 +70,7 @@ sigstr_to_uint(const char *s)
 static int
 find_errno_by_name(const char *name)
 {
-	unsigned int i;
-
-	for (i = 1; i < nerrnos; ++i) {
+	for (unsigned int i = 1; i < nerrnos; ++i) {
 		if (errnoent[i] && (strcasecmp(name, errnoent[i]) == 0))
 			return i;
 	}
@@ -87,7 +83,7 @@ parse_inject_token(const char *const token, struct inject_opts *const fopts,
 		   const bool fault_tokens_only)
 {
 	const char *val;
-	int intval;
+	kernel_long_t intval;
 
 	if ((val = STR_STRIP_PREFIX(token, "when=")) != token) {
 		/*
@@ -133,9 +129,23 @@ parse_inject_token(const char *const token, struct inject_opts *const fopts,
 		   && (val = STR_STRIP_PREFIX(token, "retval=")) != token) {
 		if (fopts->data.flags & INJECT_F_RETVAL)
 			return false;
-		intval = string_to_uint(val);
+		intval = string_to_kulong(val);
 		if (intval < 0)
 			return false;
+
+#if ANY_WORDSIZE_LESS_THAN_KERNEL_LONG && !HAVE_ARCH_DEDICATED_ERR_REG
+		if ((int) intval != intval)
+			error_msg("Injected return value %" PRI_kld " will be"
+				  " clipped to %d in compat personality",
+				  intval, (int) intval);
+
+		if ((int) intval < 0 && (int) intval >= -MAX_ERRNO_VALUE)
+			error_msg("Inadvertent injection of error %d is"
+				  " possible in compat personality for"
+				  " retval=%" PRI_kld,
+				  -(int) intval, intval);
+#endif
+
 		fopts->data.rval = intval;
 		fopts->data.flags |= INJECT_F_RETVAL;
 	} else if (!fault_tokens_only
@@ -154,30 +164,24 @@ parse_inject_token(const char *const token, struct inject_opts *const fopts,
 	return true;
 }
 
-static char *
-parse_inject_expression(const char *const s, char **buf,
+static const char *
+parse_inject_expression(char *const str,
 			struct inject_opts *const fopts,
 			const bool fault_tokens_only)
 {
-	char *saveptr = NULL;
-	char *name = NULL;
-	char *token;
+	if (str[0] == '\0' || str[0] == ':')
+		return "";
 
-	*buf = xstrdup(s);
-	for (token = strtok_r(*buf, ":", &saveptr); token;
-	     token = strtok_r(NULL, ":", &saveptr)) {
-		if (!name)
-			name = token;
-		else if (!parse_inject_token(token, fopts, fault_tokens_only))
-			goto parse_error;
+	char *saveptr = NULL;
+	const char *name = strtok_r(str, ":", &saveptr);
+
+	char *token;
+	while ((token = strtok_r(NULL, ":", &saveptr))) {
+		if (!parse_inject_token(token, fopts, fault_tokens_only))
+			return NULL;
 	}
 
-	if (name)
-		return name;
-
-parse_error:
-	free(*buf);
-	return *buf = NULL;
+	return name;
 }
 
 static void
@@ -209,7 +213,7 @@ qualify_trace(const char *const str)
 {
 	if (!trace_set)
 		trace_set = alloc_number_set_array(SUPPORTED_PERSONALITIES);
-	qualify_syscall_tokens(str, trace_set, "system call");
+	qualify_syscall_tokens(str, trace_set);
 }
 
 static void
@@ -217,7 +221,7 @@ qualify_abbrev(const char *const str)
 {
 	if (!abbrev_set)
 		abbrev_set = alloc_number_set_array(SUPPORTED_PERSONALITIES);
-	qualify_syscall_tokens(str, abbrev_set, "system call");
+	qualify_syscall_tokens(str, abbrev_set);
 }
 
 static void
@@ -225,7 +229,7 @@ qualify_verbose(const char *const str)
 {
 	if (!verbose_set)
 		verbose_set = alloc_number_set_array(SUPPORTED_PERSONALITIES);
-	qualify_syscall_tokens(str, verbose_set, "system call");
+	qualify_syscall_tokens(str, verbose_set);
 }
 
 static void
@@ -233,7 +237,7 @@ qualify_raw(const char *const str)
 {
 	if (!raw_set)
 		raw_set = alloc_number_set_array(SUPPORTED_PERSONALITIES);
-	qualify_syscall_tokens(str, raw_set, "system call");
+	qualify_syscall_tokens(str, raw_set);
 }
 
 static void
@@ -245,11 +249,17 @@ qualify_inject_common(const char *const str,
 		.first = 1,
 		.step = 1
 	};
-	char *buf = NULL;
-	char *name = parse_inject_expression(str, &buf, &opts, fault_tokens_only);
-	if (!name) {
+	char *copy = xstrdup(str);
+	const char *name =
+		parse_inject_expression(copy, &opts, fault_tokens_only);
+	if (!name)
 		error_msg_and_die("invalid %s '%s'", description, str);
-	}
+
+	struct number_set *tmp_set =
+		alloc_number_set_array(SUPPORTED_PERSONALITIES);
+	qualify_syscall_tokens(name, tmp_set);
+
+	free(copy);
 
 	/* If neither of retval, error, or signal is specified, then ... */
 	if (!opts.data.flags) {
@@ -263,18 +273,11 @@ qualify_inject_common(const char *const str,
 		}
 	}
 
-	struct number_set *tmp_set =
-		alloc_number_set_array(SUPPORTED_PERSONALITIES);
-	qualify_syscall_tokens(name, tmp_set, description);
-
-	free(buf);
-
 	/*
-	 * Initialize inject_vec accourding to tmp_set.
+	 * Initialize inject_vec according to tmp_set.
 	 * Merge tmp_set into inject_set.
 	 */
-	unsigned int p;
-	for (p = 0; p < SUPPORTED_PERSONALITIES; ++p) {
+	for (unsigned int p = 0; p < SUPPORTED_PERSONALITIES; ++p) {
 		if (number_set_array_is_empty(tmp_set, p))
 			continue;
 
@@ -284,11 +287,10 @@ qualify_inject_common(const char *const str,
 		}
 		if (!inject_vec[p]) {
 			inject_vec[p] = xcalloc(nsyscall_vec[p],
-					       sizeof(*inject_vec[p]));
+						sizeof(*inject_vec[p]));
 		}
 
-		unsigned int i;
-		for (i = 0; i < nsyscall_vec[p]; ++i) {
+		for (unsigned int i = 0; i < nsyscall_vec[p]; ++i) {
 			if (is_number_in_set_array(i, tmp_set, p)) {
 				add_number_to_set_array(i, inject_set, p);
 				inject_vec[p][i] = opts;
@@ -340,9 +342,8 @@ void
 qualify(const char *str)
 {
 	const struct qual_options *opt = qual_options;
-	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(qual_options); ++i) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(qual_options); ++i) {
 		const char *name = qual_options[i].name;
 		const size_t len = strlen(name);
 		const char *val = str_strip_prefix_len(str, name, len);

@@ -89,7 +89,7 @@
 
 static
 const struct xlat fcntlcmds[] = {
-/* asm-generic/fcntl.h */
+
  XLAT(F_DUPFD),
  XLAT(F_GETFD),
  XLAT(F_SETFD),
@@ -109,7 +109,7 @@ const struct xlat fcntlcmds[] = {
  XLAT(F_OFD_SETLK),
  XLAT(F_OFD_SETLKW),
 
-/* linux/fcntl.h */
+
  XLAT(F_SETLEASE),
  XLAT(F_GETLEASE),
  XLAT(F_NOTIFY),

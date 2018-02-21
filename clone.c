@@ -4,7 +4,7 @@
  * Copyright (c) 2008 Jan Kratochvil <jan.kratochvil@redhat.com>
  * Copyright (c) 2009-2013 Denys Vlasenko <dvlasenk@redhat.com>
  * Copyright (c) 2006-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2014-2017 The strace developers.
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@
 # define ARG_PTID	(tcp->scno == __NR_clone2 ? 3 : 2)
 # define ARG_CTID	(tcp->scno == __NR_clone2 ? 4 : 3)
 # define ARG_TLS	(tcp->scno == __NR_clone2 ? 5 : 4)
-#elif defined S390 || defined S390X || defined CRISV10 || defined CRISV32
+#elif defined S390 || defined S390X
 # define ARG_STACK	0
 # define ARG_FLAGS	1
 # define ARG_PTID	2
@@ -84,7 +84,7 @@ print_tls_arg(struct tcb *const tcp, const kernel_ulong_t addr)
 	if (current_personality == 1)
 # endif
 	{
-		print_user_desc(tcp, tcp->u_arg[ARG_TLS]);
+		print_user_desc(tcp, tcp->u_arg[ARG_TLS], USER_DESC_BOTH);
 	}
 # if SUPPORTED_PERSONALITIES > 1
 	else

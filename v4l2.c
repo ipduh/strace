@@ -2,7 +2,7 @@
  * Copyright (c) 2014 Philippe De Muyter <phdm@macqel.be>
  * Copyright (c) 2014 William Manley <will@williammanley.net>
  * Copyright (c) 2011 Peter Zotov <whitequark@whitequark.org>
- * Copyright (c) 2014-2017 The strace developers.
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,16 @@
 
 #include "defs.h"
 
+#include <stdint.h>
+#include <linux/ioctl.h>
+#include <linux/types.h>
+#include <linux/videodev2.h>
+
 #include DEF_MPERS_TYPE(struct_v4l2_buffer)
 #include DEF_MPERS_TYPE(struct_v4l2_clip)
-#include DEF_MPERS_TYPE(struct_v4l2_create_buffers)
+#ifdef VIDIOC_CREATE_BUFS
+# include DEF_MPERS_TYPE(struct_v4l2_create_buffers)
+#endif
 #include DEF_MPERS_TYPE(struct_v4l2_ext_control)
 #include DEF_MPERS_TYPE(struct_v4l2_ext_controls)
 #include DEF_MPERS_TYPE(struct_v4l2_format)
@@ -40,14 +47,11 @@
 #include DEF_MPERS_TYPE(struct_v4l2_input)
 #include DEF_MPERS_TYPE(struct_v4l2_standard)
 
-#include <stdint.h>
-#include <linux/ioctl.h>
-#include <linux/types.h>
-#include <linux/videodev2.h>
-
 typedef struct v4l2_buffer struct_v4l2_buffer;
 typedef struct v4l2_clip struct_v4l2_clip;
+#ifdef VIDIOC_CREATE_BUFS
 typedef struct v4l2_create_buffers struct_v4l2_create_buffers;
+#endif
 typedef struct v4l2_ext_control struct_v4l2_ext_control;
 typedef struct v4l2_ext_controls struct_v4l2_ext_controls;
 typedef struct v4l2_format struct_v4l2_format;
@@ -58,6 +62,7 @@ typedef struct v4l2_standard struct_v4l2_standard;
 #include MPERS_DEFS
 
 #include "print_fields.h"
+#include "xstring.h"
 
 /* some historical constants */
 #ifndef V4L2_CID_HCENTER
@@ -975,7 +980,7 @@ print_v4l2_create_buffers(struct tcb *const tcp, const kernel_ulong_t arg)
 	if (syserror(tcp) || umove(tcp, arg, &b))
 		return RVAL_IOCTL_DECODED;
 
-	sprintf(outstr, fmt, b.index, b.count);
+	xsprintf(outstr, fmt, b.index, b.count);
 	tcp->auxstr = outstr;
 
 	return RVAL_IOCTL_DECODED | RVAL_STR;

@@ -1,5 +1,6 @@
 #if defined LINUX_MIPSO32
 /* For an O32 strace, decode the o32 syscalls.  */
+# define SYS_syscall_subcall	4000
 [4000] = { MA,	0,		SEN(syscall),			"syscall"		}, /* start of Linux o32 */
 [4001] = { 1,	TP|SE,		SEN(exit),			"exit"			},
 [4002] = { 0,	TP,		SEN(fork),			"fork"			},
@@ -271,12 +272,12 @@
 [4268] = { 6,	TM,		SEN(mbind),			"mbind"			},
 [4269] = { 5,	TM,		SEN(get_mempolicy),		"get_mempolicy"		},
 [4270] = { 3,	TM,		SEN(set_mempolicy),		"set_mempolicy"		},
-[4271] = { 4,	0,		SEN(mq_open),			"mq_open"		},
+[4271] = { 4,	TD,		SEN(mq_open),			"mq_open"		},
 [4272] = { 1,	0,		SEN(mq_unlink),			"mq_unlink"		},
-[4273] = { 5,	0,		SEN(mq_timedsend),		"mq_timedsend"		},
-[4274] = { 5,	0,		SEN(mq_timedreceive),		"mq_timedreceive"	},
-[4275] = { 2,	0,		SEN(mq_notify),			"mq_notify"		},
-[4276] = { 3,	0,		SEN(mq_getsetattr),		"mq_getsetattr"		},
+[4273] = { 5,	TD,		SEN(mq_timedsend),		"mq_timedsend"		},
+[4274] = { 5,	TD,		SEN(mq_timedreceive),		"mq_timedreceive"	},
+[4275] = { 2,	TD,		SEN(mq_notify),			"mq_notify"		},
+[4276] = { 3,	TD,		SEN(mq_getsetattr),		"mq_getsetattr"		},
 [4277] = { 5,	0,		SEN(vserver),			"vserver"		},
 [4278] = { 5,	TP,		SEN(waitid),			"waitid"		},
 [4279] = { },

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,10 +57,11 @@
 # include "xlat/futexwakecmps.h"
 
 void futex_error(int *uaddr, int op, unsigned long val, unsigned long timeout,
-	int *uaddr2, unsigned long val3, int rc)
+	int *uaddr2, unsigned long val3, int rc, const char *func, int line)
 {
-	perror_msg_and_fail("futex(%p, %#x, %#x, %#lx, %p, %#x) = %d",
-		uaddr, op, (unsigned) val, timeout, uaddr, (unsigned) val3, rc);
+	perror_msg_and_fail("%s:%d: futex(%p, %#x, %#x, %#lx, %p, %#x) = %d",
+		func, line, uaddr, op, (unsigned) val, timeout, uaddr,
+		(unsigned) val3, rc);
 }
 
 # define CHECK_FUTEX_GENERIC(uaddr, op, val, timeout, uaddr2, val3, check, \
@@ -77,7 +78,7 @@ void futex_error(int *uaddr, int op, unsigned long val, unsigned long timeout,
 		if (!(check)) \
 			futex_error((uaddr), (op), (val), \
 				(unsigned long) (timeout), (int *) (uaddr2), \
-				(val3), rc); \
+				(val3), rc, __func__, __LINE__); \
 	} while (0)
 
 # define CHECK_FUTEX_ENOSYS(uaddr, op, val, timeout, uaddr2, val3, check) \
@@ -151,14 +152,20 @@ void invalid_op(int *val, int op, uint32_t argmask, ...)
 	} while (0)
 
 /* Value which differs from one stored in int *val */
-# define VAL     ((unsigned long) 0xbadda7a0facefeedLLU)
-# define VAL_PR  ((unsigned) VAL)
+# define VAL      ((unsigned long) 0xbadda7a0facefeedLLU)
+# define VAL_PR   ((unsigned) VAL)
 
-# define VAL2    ((unsigned long) 0xbadda7a0ca7b100dLLU)
-# define VAL2_PR ((unsigned) VAL2)
+# define VALP     ((unsigned long) 0xbadda7a01acefeedLLU)
+# define VALP_PR  ((unsigned) VALP)
 
-# define VAL3    ((unsigned long) 0xbadda7a09caffee1LLU)
-# define VAL3_PR ((unsigned) VAL3)
+# define VAL2     ((unsigned long) 0xbadda7a0ca7b100dLLU)
+# define VAL2_PR  ((unsigned) VAL2)
+
+# define VAL2P    ((unsigned long) 0xbadda7a07a7b100dLLU)
+# define VAL2P_PR ((unsigned) VAL2P)
+
+# define VAL3     ((unsigned long) 0xbadda7a09caffee1LLU)
+# define VAL3_PR  ((unsigned) VAL3)
 
 int
 main(int argc, char *argv[])
@@ -418,15 +425,25 @@ main(int argc, char *argv[])
 
 	/* Trying to re-queue some processes but there's nothing to re-queue */
 	CHECK_FUTEX(uaddr, FUTEX_REQUEUE, VAL, VAL2, uaddr2, VAL3,
-		(rc == 0));
+		(rc == 0) || ((rc == -1) && (errno == EINVAL)));
 	printf("futex(%p, FUTEX_REQUEUE, %u, %u, %p) = %s\n",
 		uaddr, VAL_PR, VAL2_PR, uaddr2, sprintrc(rc));
 
+	CHECK_FUTEX(uaddr, FUTEX_REQUEUE, VALP, VAL2P, uaddr2, VAL3,
+		(rc == 0));
+	printf("futex(%p, FUTEX_REQUEUE, %u, %u, %p) = %s\n",
+		uaddr, VALP_PR, VAL2P_PR, uaddr2, sprintrc(rc));
+
 	/* Trying to re-queue some processes but there's nothing to re-queue */
 	CHECK_FUTEX_ENOSYS(uaddr, FUTEX_PRIVATE_FLAG | FUTEX_REQUEUE, VAL, VAL2,
-		uaddr2, VAL3, (rc == 0));
+		uaddr2, VAL3, (rc == 0) || ((rc == -1) && (errno == EINVAL)));
 	printf("futex(%p, FUTEX_REQUEUE_PRIVATE, %u, %u, %p) = %s\n",
 		uaddr, VAL_PR, VAL2_PR, uaddr2, sprintrc(rc));
+
+	CHECK_FUTEX_ENOSYS(uaddr, FUTEX_PRIVATE_FLAG | FUTEX_REQUEUE, VALP,
+		VAL2P, uaddr2, VAL3, (rc == 0));
+	printf("futex(%p, FUTEX_REQUEUE_PRIVATE, %u, %u, %p) = %s\n",
+		uaddr, VALP_PR, VAL2P_PR, uaddr2, sprintrc(rc));
 
 	CHECK_INVALID_CLOCKRT(FUTEX_REQUEUE, ARG3 | ARG4 | ARG5, "%u", "%u",
 		"%#lx");
@@ -444,21 +461,37 @@ main(int argc, char *argv[])
 
 	/* Comparison re-queue with wrong val value */
 	CHECK_FUTEX(uaddr, FUTEX_CMP_REQUEUE, VAL, VAL2, uaddr2, VAL3,
-		(rc == -1) && (errno == EAGAIN));
+		(rc == -1) && (errno == EAGAIN || errno == EINVAL));
 	printf("futex(%p, FUTEX_CMP_REQUEUE, %u, %u, %p, %u) = %s\n",
 		uaddr, VAL_PR, VAL2_PR, uaddr2, VAL3_PR, sprintrc(rc));
 
+	CHECK_FUTEX(uaddr, FUTEX_CMP_REQUEUE, VALP, VAL2P, uaddr2, VAL3,
+		(rc == -1) && (errno == EAGAIN));
+	printf("futex(%p, FUTEX_CMP_REQUEUE, %u, %u, %p, %u) = %s\n",
+		uaddr, VALP_PR, VAL2P_PR, uaddr2, VAL3_PR, sprintrc(rc));
+
 	/* Successful comparison re-queue */
 	CHECK_FUTEX(uaddr, FUTEX_CMP_REQUEUE, VAL, VAL2, uaddr2, *uaddr,
-		(rc == 0));
+		(rc == 0) || ((rc == -1) && (errno == EINVAL)));
 	printf("futex(%p, FUTEX_CMP_REQUEUE, %u, %u, %p, %u) = %s\n",
 		uaddr, VAL_PR, VAL2_PR, uaddr2, *uaddr, sprintrc(rc));
 
+	CHECK_FUTEX(uaddr, FUTEX_CMP_REQUEUE, VALP, VAL2P, uaddr2, *uaddr,
+		(rc == 0));
+	printf("futex(%p, FUTEX_CMP_REQUEUE, %u, %u, %p, %u) = %s\n",
+		uaddr, VALP_PR, VAL2P_PR, uaddr2, *uaddr, sprintrc(rc));
+
 	/* Successful comparison re-queue */
 	CHECK_FUTEX_ENOSYS(uaddr, FUTEX_PRIVATE_FLAG | FUTEX_CMP_REQUEUE, VAL,
-		VAL2, uaddr2, *uaddr, (rc == 0));
+		VAL2, uaddr2, *uaddr,
+		(rc == 0) || ((rc == -1) && (errno == EINVAL)));
 	printf("futex(%p, FUTEX_CMP_REQUEUE_PRIVATE, %u, %u, %p, %u) = %s\n",
 		uaddr, VAL_PR, VAL2_PR, uaddr2, *uaddr, sprintrc(rc));
+
+	CHECK_FUTEX_ENOSYS(uaddr, FUTEX_PRIVATE_FLAG | FUTEX_CMP_REQUEUE, VALP,
+		VAL2P, uaddr2, *uaddr, (rc == 0));
+	printf("futex(%p, FUTEX_CMP_REQUEUE_PRIVATE, %u, %u, %p, %u) = %s\n",
+		uaddr, VALP_PR, VAL2P_PR, uaddr2, *uaddr, sprintrc(rc));
 
 	CHECK_INVALID_CLOCKRT(FUTEX_CMP_REQUEUE, ARG3 | ARG4 | ARG5 | ARG6,
 		"%u", "%u", "%#lx", "%u");

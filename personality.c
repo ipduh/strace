@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +27,8 @@
  */
 
 #include "defs.h"
-#include <linux/personality.h>
-#include "xlat/personality_types.h"
 #include "xlat/personality_flags.h"
+#include "xlat/personality_types.h"
 
 
 SYS_FUNC(personality)
@@ -54,13 +54,9 @@ SYS_FUNC(personality)
 		return 0;
 
 	pers = tcp->u_rval;
-	const char *type = xlookup(personality_types, pers & PER_MASK);
-	char *p;
 	static char outstr[1024];
-	if (type)
-		p = stpcpy(outstr, type);
-	else
-		p = outstr + sprintf(outstr, "%#x /* %s */", pers & PER_MASK, "PER_???");
+	char *p = outstr + sprintxval(outstr, sizeof(outstr), personality_types,
+				      pers & PER_MASK, "PER_???");
 	pers &= ~PER_MASK;
 	if (pers)
 		strcpy(p, sprintflags("|", personality_flags, pers));

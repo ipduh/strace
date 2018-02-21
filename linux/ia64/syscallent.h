@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1999, 2001 Hewlett-Packard Co
  *                          David Mosberger-Tang <davidm@hpl.hp.com>
- * Copyright (c) 2000-2017 The strace developers.
+ * Copyright (c) 2000-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,13 +59,13 @@
 [1038] = { 2,	TF,		SEN(chmod),			"chmod"			},
 [1039] = { 3,	TF,		SEN(chown),			"chown"			},
 [1040] = { 3,	TD,		SEN(lseek),			"lseek"			},
-[1041] = { 0,	NF,		SEN(getpid),			"getpid"		},
-[1042] = { 0,	NF,		SEN(getppid),			"getppid"		},
+[1041] = { 0,	PU|NF,		SEN(getpid),			"getpid"		},
+[1042] = { 0,	PU|NF,		SEN(getppid),			"getppid"		},
 [1043] = { 5,	TF,		SEN(mount),			"mount"			},
 [1044] = { 2,	TF,		SEN(umount2),			"umount"		},
 [1045] = { 1,	0,		SEN(setuid),			"setuid"		},
-[1046] = { 0,	NF,		SEN(getuid),			"getuid"		},
-[1047] = { 0,	NF,		SEN(geteuid),			"geteuid"		},
+[1046] = { 0,	PU|NF,		SEN(getuid),			"getuid"		},
+[1047] = { 0,	PU|NF,		SEN(geteuid),			"geteuid"		},
 [1048] = { 4,	0,		SEN(ptrace),			"ptrace"		},
 [1049] = { 2,	TF,		SEN(access),			"access"		},
 [1050] = { 0,	0,		SEN(sync),			"sync"			},
@@ -80,8 +80,8 @@
 [1059] = { 1,	0,		SEN(times),			"times"			},
 [1060] = { 1,	TM|SI,		SEN(brk),			"brk"			},
 [1061] = { 1,	0,		SEN(setgid),			"setgid"		},
-[1062] = { 0,	NF,		SEN(getgid),			"getgid"		},
-[1063] = { 0,	NF,		SEN(getegid),			"getegid"		},
+[1062] = { 0,	PU|NF,		SEN(getgid),			"getgid"		},
+[1063] = { 0,	PU|NF,		SEN(getegid),			"getegid"		},
 [1064] = { 1,	TF,		SEN(acct),			"acct"			},
 [1065] = { 3,	TD,		SEN(ioctl),			"ioctl"			},
 [1066] = { 3,	TD,		SEN(fcntl),			"fcntl"			},
@@ -123,7 +123,7 @@
 [1102] = { 3,	0,		SEN(setpriority),		"setpriority"		},
 [1103] = { 2,	TF|TSF|TSFA,	SEN(statfs),			"statfs"		},
 [1104] = { 2,	TD|TFSF|TSFA,	SEN(fstatfs),			"fstatfs"		},
-[1105] = { 0,	NF,		SEN(gettid),			"gettid"		},
+[1105] = { 0,	PU|NF,		SEN(gettid),			"gettid"		},
 [1106] = { 3,	TI,		SEN(semget),			"semget"		},
 [1107] = { 3,	TI,		SEN(semop),			"semop"			},
 [1108] = { 4,	TI,		SEN(semctl),			"semctl"		},
@@ -189,7 +189,7 @@
 [1168] = { 2,	0,		SEN(nanosleep),			"nanosleep"		},
 [1169] = { 3,	0,		SEN(nfsservctl),		"nfsservctl"		},
 [1170] = { 5,	0,		SEN(prctl),			"prctl"			},
-[1171] = { 0,	0,		SEN(getpagesize),		"getpagesize"		},
+[1171] = { 0,	PU|NF,		SEN(getpagesize),		"getpagesize"		},
 [1172] = { 6,	TD|TM|SI,	SEN(mmap_pgoff),		"mmap2"			},
 [1173] = { 5,	0,		SEN(printargs),			"pciconfig_read"	},
 [1174] = { 5,	0,		SEN(printargs),			"pciconfig_write"	},
@@ -280,12 +280,12 @@
 [1259] = { 6,	TM,		SEN(mbind),			"mbind"			},
 [1260] = { 5,	TM,		SEN(get_mempolicy),		"get_mempolicy"		},
 [1261] = { 3,	TM,		SEN(set_mempolicy),		"set_mempolicy"		},
-[1262] = { 4,	0,		SEN(mq_open),			"mq_open"		},
+[1262] = { 4,	TD,		SEN(mq_open),			"mq_open"		},
 [1263] = { 1,	0,		SEN(mq_unlink),			"mq_unlink"		},
-[1264] = { 5,	0,		SEN(mq_timedsend),		"mq_timedsend"		},
-[1265] = { 5,	0,		SEN(mq_timedreceive),		"mq_timedreceive"	},
-[1266] = { 2,	0,		SEN(mq_notify),			"mq_notify"		},
-[1267] = { 3,	0,		SEN(mq_getsetattr),		"mq_getsetattr"		},
+[1264] = { 5,	TD,		SEN(mq_timedsend),		"mq_timedsend"		},
+[1265] = { 5,	TD,		SEN(mq_timedreceive),		"mq_timedreceive"	},
+[1266] = { 2,	TD,		SEN(mq_notify),			"mq_notify"		},
+[1267] = { 3,	TD,		SEN(mq_getsetattr),		"mq_getsetattr"		},
 [1268] = { 4,	0,		SEN(kexec_load),		"kexec_load"		},
 [1269] = { 5,	0,		SEN(vserver),			"vserver"		},
 [1270] = { 5,	TP,		SEN(waitid),			"waitid"		},

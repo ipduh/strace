@@ -1,3 +1,3258 @@
+2018-02-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Prepare for 4.21 release.
+	* NEWS: Update for 4.21 release.
+
+	Update copyright headers.
+	Headers updated automatically using maint/update_copyright_years.sh
+	script.
+
+2018-02-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Remove old and unused maintenance scripts.
+	Firewell, last witnesses of bygone era.
+
+	* linux/sparc/gen.pl: Remove.
+	* linux/x86_64/gentab.pl: Likewise.
+	* xlate.el: Likewise.
+	* Makefile.am (EXTRA_DIST): Remove them.
+
+	Suggested-by: Elvira Khabirova <lineprinter@altlinux.org>
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-02-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Consistently use MAX_ERRNO_VALUE.
+	* filter_qualify.c (parse_inject_token): Replace 4095
+	with MAX_ERRNO_VALUE.
+	* negated_errno.h (is_negated_errno): Likewise.  Remove redundant
+	comment.
+
+	Export SIZEOF_LONG and SIZEOF_KERNEL_LONG_T to tests.
+	* configure.ac (AC_SUBST): Add SIZEOF_LONG and SIZEOF_KERNEL_LONG_T.
+	* tests/Makefile.am (SIZEOF_LONG, SIZEOF_KERNEL_LONG_T): New variables.
+	(AM_TEST_LOG_FLAGS): Pass them.
+	* bootstrap: Substitute them.
+
+2018-02-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: avoid ioctl_kvm_run test failure when built with gcc -O0.
+	When built with -O0, gcc (rightfully) generates function prologue, which
+	results in writing %rbp to the stack, causing premature KVM_EXIT_MMIO.
+	It could be possible to avoid such problems by "naked" attribute but,
+	unfortunately, the latter is not available on x86 with older GCC.
+	A trick suggested in [1] is used instead: assembly is moved
+	to the global scope.
+
+	[1] https://gcc.gnu.org/bugzilla/show_bug.cgi?id=50242#c3
+
+	* tests/ioctl_kvm_run.c (code): Remove function.
+	Add globally scoped __asm__ with the function code and its size.
+	(code, code_size): New extern symbols declarations.
+	(run_kvm): Remove code_size definition and initialization.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-02-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/ioctl_kvm_run.c: add KVM_EXIT_MMIO diagnostics.
+	As it has proven itself useful.
+
+	* tests/ioctl_kvm_run.c (run_kvm) <case KVM_EXIT_MMIO:>: Fail
+	on unexpected KVM_EXIT_MMIO, providing relevant diagnostics.
+
+2018-02-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add compatibility layer for accept call.
+	Recent glibc (since version 2.26) uses accept4 syscall for implementing
+	accept call on sparc.  Unfortunately, it's impossible to simply fall
+	back on raw syscall as it had not been wired up until linux commit
+	v4.4-rc8~4^2~1.
+
+	* tests/accept_compat.h: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add it.
+	* tests/net-y-unix.c: Include accept_compat.h, use do_accept()
+	instead of accept() calls.
+	* tests/net-yy-inet.c: Likewise.
+	* tests/net-yy-unix.c: Likewise.
+	* tests/net.expected: Allow accept4.
+
+2018-02-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	debian: build strace-udeb separately.
+	* debian/rules (extra_build_targets): Add build-udeb-stamp.
+	(build-udeb/Makefile): New rule.
+	(clean): Remove build-udeb.
+	* debian/strace-udeb.install: Update.
+
+	Fixes: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826223
+
+2018-02-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Enable symbol demangling in deb- and rpm-driven builds.
+	* debian/control (Build-Depends) [amd64]: Add libiberty-dev.
+	* strace.spec.in (buildrequires_libunwind_devel): Add binutils-devel.
+
+2018-02-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	debian: re-enable -k option on x86_64.
+	This partially reverts commit v4.13~177.
+
+	* debian/control (Build-Depends) [amd64]: Add libunwind-dev.
+
+2018-02-12  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Add "strace -V" output to build log.
+	* strace.spec.in (%check): Print "strace -V" output before
+	running the test suite.
+	* debian/rules (%-stamp): Likewise.
+
+2018-02-12  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: update NT_* constants.
+	* xlat/nt_descriptor_types.in (NT_PPC_PKEY): New constant introduced
+	by linux kernel commit v4.16-rc1~93^2~72.
+
+	Update the list of PKEY_* constants.
+	* xlat/pkey_access.in (PKEY_DISABLE_EXECUTE): New constant introduced
+	by linux kernel commit v4.16-rc1~93^2~85.
+	* tests/pkey_alloc.c: Update expected output.
+	* NEWS: Mention it.
+
+	powerpc, powerpc64: wire up pkey_* syscalls.
+	* linux/powerpc/syscallent.h [384..386]: Add pkey_alloc,
+	pkey_free, and pkey_mprotect syscalls introduced by linux kernel
+	commits v4.16-rc1~93^2~70 and v4.16-rc1~93^2~69, respectively.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* NEWS: Mention it.
+
+	Update NEWS.
+
+2018-02-12  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	linux/ia64: remove IA-32 mode support.
+	There is no compat support in strace and there are no systems
+	within reach that would allow to test it.
+
+	* linux/ia64/arch_regs.c (IA64_PSR_IS, ia64_ia32mode): Remove.
+	* linux/ia64/get_error.c (get_error): Remove ia64_ia32mode branch.
+	* linux/ia64/get_scno.c (arch_get_scno): Likewise.
+	* linux/ia64/get_syscall_args.c (get_syscall_args): Likewise.
+	* linux/ia64/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/ia64/set_scno.c (arch_set_scno): Likewise.
+
+2018-02-12  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: parse return code second time after injecting.
+	In order to have the same view as tracee has, with regards to
+	"never fail" syscalls.
+
+	* syscall.c (tamper_with_syscall_exiting): Call get_error after the
+	return value tampering to re-initialise u_rval and u_error fields
+	of struct tcb.
+
+2018-02-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	sparc: mark as an architecture that has a dedicated error register.
+	* linux/sparc/arch_defs_.h (HAVE_ARCH_DEDICATED_ERR_REG): New macro,
+	define to 1.
+
+	strace.1.in: ffix.
+
+2018-02-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Include <sys/ptrace.h> early.
+	Include "ptrace.h" before any header that can include <signal.h>
+	because on some architectures the latter may include <asm/sigcontext.h>
+	which in turn may include <asm/ptrace.h> with potentially devastating
+	effect on <sys/ptrace.h>.
+
+	* process.c: Include "ptrace.h" before "regs.h".
+	* rt_sigframe.c: Likewise.
+	* sigreturn.c: Include "ptrace.h" before "nsig.h".
+	* syscall.c: Likewise.
+	* wait.c: Include "ptrace.h" before <sys/wait.h>.
+	* strace.c: Include "ptrace.h" before <signal.h>.
+	* tests/ptrace.c: Likewise.
+	* tests/test_ucopy.c: Include <sys/ptrace.h> before <signal.h>.
+
+2018-02-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Include <limits.h> instead of <sys/param.h>
+	Do not include <sys/param.h> unnecessarily as it includes <signal.h>.
+
+	* pathtrace.c: Include <limits.h> instead of <sys/param.h>.
+	* strace.c: Likewise.
+	* syscall.c: Likewise.
+	* util.c: Likewise.
+	* tests/getcwd.c: Likewise.
+	* tests/group_req.c: Likewise.
+	* tests/inode_of_sockfd.c: Likewise.
+	* tests/ip_mreq.c: Likewise.
+	* tests/printpath-umovestr.c: Likewise.
+	* tests/qual_fault.c: Likewise.
+	* tests/test_printpath.c: Likewise.
+	* tests/umovestr3.c: Likewise.
+	* tests/net-y-unix.c: Do not include <sys/param.h>.
+	* tests/net-yy-unix.c: Likewise.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	basic_filters.c: introduce scno_by_name.
+	As it will be used elsewhere.
+
+	* basic_filters.c (scno_by_name): New function.
+	(qualify_syscall_name): Use it.
+	* defs.h (scno_by_name): New declaration.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xstring.h: rephrase xappendstr description a bit.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat.c: return NULL in sprintflags if there are no flags.
+	Otherwise the auxstr is rather ugly at times.
+
+	* xlat.c (sprintflags): Return NULL if no flags were printed.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Change type of injected rval to kernel_long_t.
+	* defs.h (struct inject_data): Change type of rval field to
+	kernel_ulong_t.
+	* filter_qualify.c (parse_inject_token): Use string_to_kulong instead of
+	string_to_uint for rval parsing.  Warn if retval is clipped in compat
+	personality.
+
+	Mark architectures that indicate syscall error in a dedicated register.
+	* linux/alpha/arch_defs_.h (HAVE_ARCH_DEDICATED_ERR_REG): New macro,
+	define to 1.
+	* linux/ia64/arch_defs_.h: Likewise.
+	* linux/mips/arch_defs_.h: Likewise.
+	* linux/powerpc/arch_defs_.h: Likewise.
+	* linux/powerpc64/arch_defs_.h: Likewise.
+	* linux/sparc64/arch_defs_.h: Likewise.
+	* linux/arch_defs_.h [!HAVE_ARCH_DEDICATED_ERR_REG]
+	(HAVE_ARCH_DEDICATED_ERR_REG): New macro, define to 0.
+	* linux/nios2/arch_defs_.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Make string_to_uint_ex more universal.
+	And add support for reading of various types.
+
+	* string_to_uint.c (string_to_uint_ex): Change to work with long long.
+	(string_to_uint): Move it...
+	* string_to_uint.h (string_to_uint): ...here.
+	(string_to_uint_upto): Accept long long as max_val, return long long.
+	(string_to_ulong, string_to_kulong, string_to_ulonglong): New functions,
+	for completeness.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add pure syscall flag.
+	* basic_filters.c (lookup_class) <syscall_class>: Add "%pure" for
+	TRACE_PURE.
+	* sysent.h (TRACE_PURE): New syscall flag.
+	* sysent_shorthand_defs.h (PU): New shorthand macro.
+	* linux/32/syscallent.h ([172], [173], [174], [175], [176], [177],
+	[178]): Add PU flag to getpid, getppid, getuid, geteuid, getgid,
+	getegid, gettid syscalls.
+	* linux/64/syscallent.h ([172], [173], [174], [175], [176], [177],
+	[178]): Add PU flag to getpid, getppid, getuid, geteuid, getgid,
+	getegid, gettid syscalls.
+	* linux/aarch64/syscallent.h ([1060]): Add PU flag to getpgrp syscalls.
+	* linux/alpha/syscallent.h ([20], [24], [47], [63], [64], [89],
+	[378]): Add PU flag to getxpid, getxuid, getxgid, getpgrp, getpagesize,
+	getdtablesize, gettid syscalls.
+	* linux/arc/syscallent.h ([246]): Add PU flag to arc_gettls syscalls.
+	* linux/arm/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[199], [200], [201], [202], [224], [ARM_FIRST_SHUFFLED_SYSCALL+1+6]):
+	Add PU flag to getpid, getuid, getgid, geteuid, getegid, getppid,
+	getpgrp, getuid32, getgid32, geteuid32, getegid32, gettid, get_tls
+	syscalls.
+	* linux/avr32/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[176]): Add PU flag to getpid, getuid, getgid, geteuid, getegid,
+	getppid, getpgrp, gettid syscalls.
+	* linux/bfin/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[199], [200], [201], [202], [224]): Add PU flag to getpid, getuid,
+	getgid, geteuid, getegid, getppid, getpgrp, getuid32, getgid32,
+	geteuid32, getegid32, gettid syscalls.
+	* linux/hppa/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[206]): Add PU flag to getpid, getuid, getgid, geteuid, getegid,
+	getppid, getpgrp, gettid syscalls.
+	* linux/i386/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[199], [200], [201], [202], [224]): Add PU flag to getpid, getuid,
+	getgid, geteuid, getegid, getppid, getpgrp, getuid32, getgid32,
+	geteuid32, getegid32, gettid syscalls.
+	* linux/ia64/syscallent.h ([1041], [1042], [1046], [1047], [1062],
+	[1063], [1105], [1171]): Add PU flag to getpid, getppid, getuid,
+	geteuid, getgid, getegid, gettid, getpagesize syscalls.
+	* linux/m68k/syscallent.h ([20], [24], [47], [49], [50], [64],
+	[65], [166], [199], [200], [201], [202], [221], [333]): Add PU flag
+	to getpid, getuid, getgid, geteuid, getegid, getppid, getpgrp,
+	getpagesize, getuid32, getgid32, geteuid32, getegid32, gettid,
+	get_thread_area syscalls.
+	* linux/metag/syscallent.h ([248]): Add PU flag to metag_get_tls
+	syscalls.
+	* linux/microblaze/syscallent.h ([20], [24], [47], [49], [50], [64],
+	[65], [199], [200], [201], [202], [224]): Add PU flag to getpid,
+	getuid, getgid, geteuid, getegid, getppid, getpgrp, getuid32, getgid32,
+	geteuid32, getegid32, gettid syscalls.
+	* linux/powerpc64/syscallent.h ([20], [24], [47], [49], [50], [64],
+	[65], [207]): Add PU flag to getpid, getuid, getgid, geteuid, getegid,
+	getppid, getpgrp, gettid syscalls.
+	* linux/powerpc/syscallent.h ([20], [24], [47], [49], [50], [64],
+	[65], [207]): Add PU flag to getpid, getuid, getgid, geteuid, getegid,
+	getppid, getpgrp, gettid syscalls.
+	* linux/s390/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[199], [200], [201], [202], [236]): Add PU flag to getpid, getuid,
+	getgid, geteuid, getegid, getppid, getpgrp, getuid32, getgid32,
+	geteuid32, getegid32, gettid syscalls.
+	* linux/s390x/syscallent.h ([20], [64], [65], [199], [200], [201],
+	[202], [236]): Add PU flag to getpid, getppid, getpgrp, getuid,
+	getgid, geteuid, getegid, gettid syscalls.
+	* linux/sh64/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[199], [200], [201], [202], [252]): Add PU flag to getpid, getuid,
+	getgid, geteuid, getegid, getppid, getpgrp, getuid32, getgid32,
+	geteuid32, getegid32, gettid syscalls.
+	* linux/sh/syscallent.h ([20], [24], [47], [49], [50], [64], [65],
+	[199], [200], [201], [202], [224]): Add PU flag to getpid, getuid,
+	getgid, geteuid, getegid, getppid, getpgrp, getuid32, getgid32,
+	geteuid32, getegid32, gettid syscalls.
+	* linux/sparc64/syscallent.h ([20], [24], [47], [49], [50], [64], [81],
+	[143], [197], [340]): Add PU flag to getpid, getuid, getgid, geteuid,
+	getegid, getpagesize, getpgrp, gettid, getppid, kern_features syscalls.
+	* linux/sparc/syscallent.h ([20], [24], [44], [47], [49], [50], [53],
+	[64], [69], [70], [81], [143], [197], [340]): Add PU flag to getpid,
+	getuid, getuid32, getgid, geteuid, getegid, getgid32, getpagesize,
+	geteuid32, getegid32, getpgrp, gettid, getppid, kern_features syscalls.
+	* linux/x32/syscallent.h ([39], [102], [104], [107], [108], [110],
+	[111], [186]): Add PU flag to getpid, getuid, getgid, geteuid, getegid,
+	getppid, getpgrp, gettid syscalls.
+	* linux/x86_64/syscallent.h ([39], [102], [104], [107], [108], [110],
+	[111], [186]): Add PU flag to getpid, getuid, getgid, geteuid, getegid,
+	getppid, getpgrp, gettid syscalls.
+	* linux/xtensa/syscallent.h ([120], [127], [137], [139], [140], [141],
+	[150], [151]): Add PU flag to getpid, gettid, getuid, getgid, geteuid,
+	getegid, getppid, getpgrp syscalls.
+	* strace.1.in (.SS Filtering): Document it.
+	* NEWS: Mention it.
+
+	syscall.c: warn if tampering failed.
+
+	syscall.c: set errno if syscall is tampered.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/nsyscall-d.test: swap exp and log in diff calls.
+	In line with the rest of the tests.
+
+	* tests/nsyscalls-d.test: swap arguments of match_diff calls.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	linux/arm/get_scno.c: use debug_msg.
+	* linux/arm/get_scno.c (arch_get_scno): replace if (debug_flag) {
+	error_msg() } with debug_msg() call.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Do not shuffle scno inside syscall_name.
+	This makes interface a bit irregular otherwise.
+
+	* defs.h (syscall_name): Clarify description.
+	* syscall.c (syscall_name): Do not call shuffle_scno.
+	* printsiginfo.c (print_si_info) <case SIGSYS>: Use shuffle_scno.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Handle very special __ARM_NR_-prefixed syscalls.
+	* linux/aarch64/nr_prefix.c: New file.
+	* linux/arm/nr_prefix.c: Likewise.
+	* linux/nr_prefix.c: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+	* printsiginfo.c: Include nr_prefix.c
+	(print_si_info): Use nr_prefix.
+
+	Make shuffle_scno globally available.
+	* syscall.c (shuffle_scno): Move the declaration...
+	* defs.h (shuffle_scno): ...here. Remove static qualifier.
+	* linux/aarch64/shuffle_scno.c (shuffle_scno): Remove static qualifier.
+	* linux/arm/shuffle_scno.c: Likewise.
+	* linux/shuffle_scno.c: Likewise.
+	* linux/x32/shuffle_scno.c: Likewise.
+	* linux/x86_64/shuffle_scno.c: Likewise.
+
+2018-02-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: use shuffle_scno in syscall_name.
+	syscall_name() is used only in printsiginfo.c:print_si_info currently,
+	and is supplied with raw syscall number (that's why it has this ugly
+	__X32_SYSCALL_BIT hack). But since it handled only __X32_SYSCALL_BIT and
+	not shuffle_scno(), it was broken on ARM.  Let's replace it with shuffle_scno
+	call, as it handles both the case of shuffled ARM syscalls and the
+	__X32_SYSCALL_BIT.
+
+	* syscall.c (syscall_name): Call shuffle_scno instead of custom
+	__X32_SYSCALL_BIT handling.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Use shuffle_scno for x32 syscall numbers.
+	This changes behaviour of printing of unknown syscall.
+
+	* linux/x32/shuffle_scno.c: New file.
+	* linux/x86_64/shuffle_scno.c: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+	* linux/x86_64/get_scno.c (arch_get_scno): Do not clear
+	__X32_SYSCALL_BIT.
+	* tests/nsyscalls.c: Update expected output.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Move shuffle_scno() invocation to get_scno.
+	* linux/aarch64/get_scno.c (arch_get_scno): Remove shuffle_scno call.
+	* linux/arm/get_scno.c (arch_get_scno): Remove shuffle_scno calls.
+	* syscall.c (get_scno): Call shuffle_scno after arch_get_scno.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Move shuffle_scno to arch-specific file.
+	While we are here, let's fix AArch64 by limiting scno shuffling
+	to compat personality only.
+
+	* syscall.c: Include shuffle_scno.c.
+	(shuffle_scno): Move it to a...
+	* linux/arm/shuffle_scno.c: New file.
+	* linux/aarch64/shuffle_scno.c: New file, define arm's shuffle_scno
+	as arm_shuffle_scno and call it only for personality 1.
+	* linux/shuffle_scno.c: New file, fallback trivial shuffle_scno
+	definition.
+	* Makefile.am (EXTRA_DIST): Add them.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Print unknown syscall number in hexadecimal.
+	* syscall.c (struct sysent_buf): Update buf field size.
+	(get_scno): Print unknown syscall number in hexadecimal form.
+	* tests/nsyscalls.c: Update expected output.
+	* strace.1.in: Document it.
+	* NEWS: Mention it.
+
+	tests/accept.c: call accept syscall directly, if available.
+	* tests/accept.c [__NR_accept && !TEST_SYSCALL_NAME]: Define a wrapper that
+	calls accept directly.
+	* tests/sockname.c [TEST_SYSCALL_STR]: Do not define TEST_SYSCALL_STR.
+
+	printsiginfo.c: add a comment about personality detection for SIGSYS.
+	Looks like it is not necessary, after all.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	linux/x86_64/set_error.c: update eax for compat personality.
+	Since this is where get_error gets the return value from in the compat case.
+
+	linux/x86_64/set_error.c (set_error, set_success): Update i386_regs.eax
+	if tracee is in compat personality.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Mark various arch-specific syscalls with SYSCALL_NEVER_FAILS.
+	* linux/alpha/syscallent.h (getpagesize, getdtablesize): Add NF flag.
+	* linux/arc/syscallent.h (arc_gettls): Likewise.
+	* linux/arm/syscallent.h (get_tls): Likewise.
+	* linux/ia64/syscallent.h (getpagesize): Likewise.
+	* linux/m68k/syscallent.h (getpagesize, get_thread_area): Likewise.
+	* linux/sparc/syscallent.h (getpagesize): Likewise.
+	* linux/sparc64/syscallent.h (getpagesize): Likewise.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add SYSCALL_NEVER_FAILS flag to getpgrp.
+	As glibc, at least, treats it this way.
+
+	* linux/aarch64/syscallent.h (getpgrp): Add NF flag.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/arm/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	linux/x86_64/get_error.c: do not sign-extend if no error happened.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/membarrier.c: fix expected output on nohz_full systems.
+	If nohz_full is enabled, MEMBARRIER_CMD_GLOBAL is not available.
+
+	* tests/membarrier.c: check availability of MEMBARRIER_CMD_GLOBAL
+	separately.
+
+2018-02-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update MEMBARRIER_CMD_* constants.
+	* xlat/membarrier_cmds.in: Add new constants, rename
+	MEMBARRIER_CMD_SHARED to MEMBARRIER_CMD_GLOBAL.
+	* NEWS: Mention this.
+	* tests/membarrier.c (main): Update expected output.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-02-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	perf.c: print group_fd argument of perf_event_open syscall as fd.
+	* perf.c (SYS_FUNC(perf_event_open)): Print 4th argument using printfd.
+
+	syscall.c: print higher bits of syscall return value on x32 personality.
+	* syscall.c (syscall_exiting_trace): Check for current_klongsize instead
+	of current_wordsize to determine the size of tcp->u_rval.
+
+	strace.1.in: history update.
+	strace.1.in (.SH HISTORY): Some amendments based on
+	https://github.com/strace/strace-talks/blob/master/2012-ossdevconf-obninsk-strace_from_upstream_PoV/ossdevconf_2012-slides-strace_from_upstream_PoV.tex
+
+	strace.1.in: minor changes.
+	* strace.1.in (.SH DESCRIPTION): s/a passion/passion/,
+	s/Here the/Here, the/, s/Where traditional/Where the traditional/,
+	s/output has proven/output is proven/, s/In all cases/In most cases,/¸
+	embolden st_mode, lstat, SIGCHLD, and SIGTTOU mentions,
+	s/In some cases /In some cases, /
+	(.SS Output format) <-o>: de-italicize dot in "filename.pid", convert
+	the sentence's voice to passive, some other rephrasing.  Mention
+	incompatibility of output piping with -ff mode.
+	(.SS Output options) <-t>: s/time of day/wall clock time/.
+	(.SS Statistics) <-c>: Remove "on Linux" mention, -F option mention.
+
+	README.md: add information about git repository location.
+	* README.md: Mention URLs for SourceForge, GitHub, and GitLab
+	repositories.
+
+2018-02-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: rewrite net-accept-connect.c without strncpy.
+	gcc8 -Wall -Werror rejects our method of struct sockaddr_un.sun_path
+	initialization because the field lacks __nonstring__ attribute.
+
+	As we calculate the length of the string being copied anyway,
+	workaround this gcc+glibc bug by changing the code to use this
+	pre-calculated length and get rid of strncpy completely.
+
+	* tests/net-accept-connect.c (main): Use memcpy to initialize sun_path.
+
+2018-02-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Use kernel's fcntl.h header instead of libc's for open_mode_flags.
+	As definitions of O_* macros provided by various libc implementations
+	are usually less reliable than those provided by kernel headers, switch
+	to use kernel's fcntl.h header.
+
+	* open.c: Include <asm/fcntl.h> instead of <fcntl.h>.  Remove
+	O_LARGEFILE fallback definitions assuming that the kernel headers
+	provide them.
+	* xlat/open_mode_flags.in: Add __O_SYNC after O_SYNC.  Add O_TMPFILE
+	and __O_TMPFILE before O_DIRECTORY.  Remove "O_TMPFILE & ~O_DIRECTORY".
+	* tests/open.c: Include <asm/fcntl.h> instead of <fcntl.h>.  Remove
+	workarounds for libc O_TMPFILE implementations.
+	* tests/openat.c: Include <asm/fcntl.h> instead of <fcntl.h>.
+	(test_mode_flag): New function.
+	(main): Use it to check decoding of all access modes and file flags.
+	* tests/gen_tests.in (openat): Add -a option.
+
+	Co-Authored-by: Eugene Syromyatnikov <evgsyr@gmail.com>
+
+2018-02-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	xlat: update TCP_* constants.
+	* xlat/socktcpoptions.in: Add TCP_FASTOPEN_KEY and
+	TCP_FASTOPEN_NO_COOKIE introduced by linux kernel commits
+	v4.15-rc1~84^2~387 and v4.15-rc1~84^2~339, respectively.
+	* NEWS: Mention this.
+
+	xlat: update IPV6_* constants.
+	* xlat/sockipv6options.in: Add IPV6_FREEBIND introduced by linux kernel
+	commit v4.15-rc1~84^2~601.
+	* NEWS: Mention this.
+
+	xlat: update MAP_* constants.
+	* xlat/mmap_flags.in: Add MAP_SHARED_VALIDATE and MAP_SYNC introduced
+	by linux kernel commits v4.15-rc1~71^2^2~23 and v4.15-rc1~71^2^2~12,
+	respectively.
+	* NEWS: Mention this.
+
+2018-02-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: avoid triggering -Wstringop-truncation in ioctl_dm.c.
+	* tests/ioctl_dm.c: Replace strncpy calls with memcpy as the character
+	arrays being copied are not C strings.
+
+	Makefile.am: minor EXTRA_DIST formatting changes.
+
+	Move large file-related wrappers to a separate header.
+	* strace.c [_LARGEFILE64_SOURCE]: Move the definitions under it to a...
+	* largefile_wrappers.h: ... new file.
+	* Makefile.am (strace_SOURCES): Add it.
+
+2018-01-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.1: fix wording about setuid installation.
+	* strace.1.in (SETUID INSTALLATION): Fix wording.
+
+	Closes: https://github.com/strace/strace/issues/24
+
+2018-01-29  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	Add KVM_PPC_GET_CPU_CHAR ioctl definition from linux v4.15.
+	* linux/powerpc/ioctls_arch0.h: Update from linux v4.15
+	using ioctls_gen.sh.
+
+2018-01-29  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update NEWS.
+
+	tests: check s390_pci_mmio_read and s390_pci_mmio_write decoders.
+	* tests/s390_pci_mmio_read_write.c: New file.
+	* tests/.gitignore: Add s390_pci_mmio_read_write.
+	* tests/pure_executables.list: Likewise.
+	* tests/gen_tests.in (s390_pci_mmio_read_write): New test.
+
+	Introduce s390_pci_mmio_read, s390_pci_mmio_write system call decoders.
+	* linux/s390/syscallent.h ([352]): Change decoder to s390_pci_mmio_write.
+	([353]): Change decoder to s390_pci_mmio_read.
+	* linux/s390x/syscallent.h: Likewise.
+	* s390.c (SYS_FUNC(s390_pci_mmio_write), SYS_FUNC(s390_pci_mmio_read)):
+	New function.
+
+	tests: check s390_runtime_instr system call decoder.
+	* tests/s390_runtime_instr.c: New file.
+	* tests/.gitignore: Add s390_runtime_instr.
+	* tests/pure_executables.list: Likewise.
+	* tests/gen_tests.in (s390_runtime_instr): New test.
+
+	Introduce s390_runtime_instr system call decoder.
+	* linux/s390/syscallent.h ([342]): Change decoder to s390_runtime_instr.
+	* linux/s390x/syscallent.h: Likewise.
+	* s390.c (SYS_FUNC(s390_runtime_instr)): New function.
+	* xlat/s390_runtime_instr_commands.in: New file.
+
+	tests: check s390_guarded_storage system call decoder.
+	* configure.ac (AC_CHECK_HEADERS): Add asm/guarded_storage.h.
+	* tests/s390_guarded_storage-v.c: New file.
+	* tests/s390_guarded_storage.c: Likewise.
+	* tests/.gitignore: Add s390_guarded_storage, s390_guarded_storage-v.
+	* tests/pure_executables.list: Likewise.
+	* tests/gen_tests.in (s390_guarded_storage, s390_guarded_storage-v):
+	New tests.
+
+	Introduce s390_guarded_storage system call decoder.
+	* linux/s390/syscallent.h ([378]): Change decoder to s390_guarded_storage.
+	* linux/s390x/syscallent.h: Likewise.
+	* s390.c (struct guard_storage_control_block,
+	struct guard_storage_event_parameter_list): New structure type
+	definition.
+	(guard_storage_print_gsepl, guard_storage_print_gscb,
+	SYS_FUNC(s390_guarded_storage)): New function.
+	(DIV_ROUND_UP): New macro.
+	* xlat/s390_guarded_storage_commands.in: New file.
+
+	tests: check s390_sthyi system call decoder.
+	* configure.ac (AC_CHECK_FUNCS): Add iconv_open.
+	(AC_CHECK_HEADERS): Add iconv.h.
+	* tests/s390_sthyi-v.c: New file.
+	* tests/s390_sthyi.c: Likewise.
+	* tests/.gitignore: Add s390_sthyi, s390_sthyi-v.
+	* tests/pure_executables.list: Likewise.
+	* tests/gen_tests.in (s390_sthyi, s390_sthyi): New tests.
+
+	Introduce s390_sthyi system call decoder.
+	* s390.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* linux/s390/syscallent.h ([380]): Change decoder to s390_sthyi.
+	* linux/s390x/syscallent.h: Likewise.
+	* xlat/s390_sthyi_function_codes.in: New file.
+
+	print_fields.h: add macro to print hexadecimal array field.
+	* print_fields.h (PRINT_FIELD_HEX_ARRAY): New macro, prints target
+	array with QUOTE_FORCE_HEX.
+
+2018-01-29  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add print_quoted_string flag to generate comment.
+	Because there are never enough print_quoted_string flags.
+
+	* defs.h (QUOTE_EMIT_COMMENT): New quoting flag macro constant.
+	* util.c (string_quote): Emit " /* " in the beginning and " */" in the
+	end if QUOTE_EMIT_COMMENT is passed.
+	(print_quoted_string): Increase alloc_size by 7 if QUOTE_EMIT_COMMENT is
+	passed.
+
+2018-01-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: make ioctl.test more flexible, use it for the rest of ioctl tests
+	As the remaining non-generated ioctl tests differ from ioctl.test only
+	in strace options, and since gen_tests.sh can pass arguments to sourced
+	tests, replace the remaining non-generated ioctl tests with invocations
+	of ioctl.test with appropriate parameters.
+
+	* tests/ioctl.test: Pass script arguments to the strace invocation.
+	* tests/gen_tests.in (ioctl_dm): New entry, invoke ioctl.test with -s9.
+	(ioctl_dm-v): New entry, invoke ioctl.test with -v -s9.
+	(ioctl_kvm_run): New entry, invoke ioctl.test with -a36 -y.
+	(ioctl_loop-nv): New entry, invoke ioctl.test with -a22 -e verbose=none.
+	(ioctl_nsfs): New entry, invoke ioctl.test with -esignal=none.
+	(ioctl_sock_gifconf): New entry, invoke ioctl.test with -a28 -s1.
+	(ioctl_evdev-v, ioctl_loop-v, ioctl_rtc-v): Invoke ioctl.test
+	with -v option instead of ioctl-v.sh.
+	* tests/ioctl_dm-v.test: Remove.
+	* tests/ioctl_dm.test: Likewise.
+	* tests/ioctl_kvm_run.test: Likewise.
+	* tests/ioctl_loop-nv.test: Likewise.
+	* tests/ioctl_nsfs.test: Likewise.
+	* tests/ioctl_sock_gifconf.test: Likewise.
+	* tests/ioctl-v.sh: Likewise.
+	* tests/Makefile.am (DECODER_TESTS, EXTRA_DIST): Remove them.
+
+2018-01-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/gen_tests.sh: enable passing arguments to sourced tests.
+	* tests/gen_tests.sh: Read first argument separately, put it in $arg0,
+	and the rest of the arguments in $args.
+	(case "$arg0" in) <+*)>: Set command line to $args and source $arg0.
+
+	xlat/gen.sh: add some rudimentary support for comments.
+	* xlat/gen.sh: Trim parts of the string abbreviated in "/*" and "*/"
+
+	configure.ac: sort architectures in lexicographical order.
+	* configure.ac (case "$host_cpu"): sort architectures in alphabetical
+	order.
+
+2018-01-25  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Drop non-functional CRIS architecture support.
+	From the very first commit when CRIS architecture support was introduced
+	and up to this comment that ends the agony of this non-functional code,
+	this support was incomplete and could never be compiled.
+
+	* Makefile.am (EXTRA_DIST): Remove linux/crisv*.
+	* clone.c: Remove CRISV* checks.
+	* configure.ac ($host_cpu == cris*): Remove.
+	* linux/crisv10: Remove.
+	* linux/crisv32: Likewise.
+
+	Fixes: v4.5.18-77-gea0e6e8 ("CRIS support by Hinko Kocevar ...")
+
+2018-01-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update futex test in accordance with kernel's v4.15-rc7-202-gfbe0e83.
+	* futex.c (VALP, VALP_PR, VAL2P, VAL2P_PR): New macro definitions.
+	(main): Allow EINVAL on *REQUEUE* checks with VAL/VAL2 with higher bit
+	being set, check that the existing behaviour preserved with VALP/VAL2P
+	where higher bit is unset.
+
+	tests/futex.c: improve error diagnostics.
+	* tests/futex.c (futex_error): Add func and line arguments, print them.
+	(CHECK_FUTEX_GENERIC): Pass __func__ and __LINE__ to futex_error.
+
+	Add syscall entry for ARM-specific get_tls syscall.
+	* linux/arm/syscallent.h ([ARM_FIRST_SHUFFLED_SYSCALL+1+6]): New entry.
+	(ARM_LAST_SPECIAL_SYSCALL): Update to 6.
+	* NEWS: Mention it.
+
+2018-01-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Fix syscall descriptions for ARM-specific system calls.
+	Based on an analysis of arm_syscall in arch/arm/kernel/traps.c.
+
+	* linux/arm/syscallent.h ([ARM_FIRST_SHUFFLED_SYSCALL+1+2]): Update
+	argument number, add TM flag.
+	([ARM_FIRST_SHUFFLED_SYSCALL+1+1], [ARM_FIRST_SHUFFLED_SYSCALL+1+3],
+	[ARM_FIRST_SHUFFLED_SYSCALL+1+4], [ARM_FIRST_SHUFFLED_SYSCALL+1+5]):
+	Update argument number.
+
+2018-01-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check riscv_flush_icache syscall decoder.
+	* tests/riscv_flush_icache.c: New file.
+	* tests/.gitignore: Add riscv_flush_icache.
+	* tests/gen_tests.in: Likewise.
+	* tests/pure_executables.list: Likewise.
+
+	Implement decoding of riscv_flush_icache syscall.
+	* linux/riscv/syscallent.h ([259]): Add riscv_flush_icache entry.
+	* riscv.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* xlat/riscv_flush_icache_flags.in: New file.
+	* NEWS: Mention it.
+
+2018-01-25  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Workaround stray PTRACE_EVENT_EXEC.
+	We (apparently) had a long-standing test failure inside strace-ff.test
+	with the symptom that it misses exit_group call.  As it turned out, it
+	was PTRACE_EVENT_EXEC followed by execve syscall exiting stop.  That
+	behaviour indeed screwed all the syscall state tracking for the tracee.
+	Let's try to patch it up by calling trace_syscall when we receive
+	PTRACE_EVENT_EXEC outside syscall.
+
+	* defs.h (TCB_RECOVERING): New tcb flag.
+	* strace.c (dispatch_event) <case TE_STOP_BEFORE_EXECVE>: Invoke
+	trace_syscall with TCB_RECOVERING flag being set for the current_tcp
+	if the tracee is not on exiting syscall.
+	* syscall.c (get_scno): Set QUAL_RAW if we are recovering.
+	(tamper_with_syscall_entering): Do not perform actual tampering during
+	recovery as it's already too late.
+	* NEWS: Mention it.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-01-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify set_ptracer_any.
+	* tests/set_ptracer_any.c (main) [HAVE_PRCTL]: Provide fallback
+	definitions for PR_SET_PTRACER and PR_SET_PTRACER_ANY constants,
+	set all unused prctl arguments to 0.
+
+2018-01-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ia64: do not bail out in get_syscall_args if umove fails with EPERM.
+	If the kernel contains commit 84d77d3f06e7e8dea057d10e8ec77ad71f721be3,
+	both PTRACE_PEEKDATA and process_vm_readv become unavailable when the
+	process dumpable flag is cleared, on ia64 this results to all syscall
+	arguments being unavailable.
+
+	Recognize this situation and do not treat it as get_syscall_args error
+	because the latter leaves the tracee in a ptrace stop.
+
+	This condition used to be triggered by prctl-dumpable test that caused
+	strace to hang indefinitely.
+
+	* linux/ia64/get_syscall_args.c (get_syscall_args): Do not bail out
+	if umove fails.
+	* tests/prctl-dumpable.c [__ia64__]: Skip the test.
+
+2018-01-24  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.c: reset printing_tcp on print_event_exit.
+	print_event_exit should have printing_tcp setup analogous to printleader and
+	syscall_exit_trace before printing its part, otherwise it spuriously resets
+	curcol in line_ended for the stale printing_tcp if followfork == 2.
+
+	* strace.c (print_event_exit): Set printing_tcp to tcp before printing
+	exiting event line and calling line_ended.
+
+2018-01-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check path tracing of old select syscall.
+	* tests/xselect.c [xselect] (xselect): Turn into prototype.
+	* tests/oldselect-P.c: New file.
+	* tests/oldselect-efault-P.c: Likewise.
+	* tests/oldselect-efault.c: Likewise.
+	* tests/oldselect.c: Use xselect.c
+	* tests/pure_executables.list: Add oldselect-efault.
+	* tests/gen_tests.in (oldselect, oldselect-P, oldselect-efault,
+	oldselect-efault-P): New entries.
+	* tests/oldselect.expected: Remove.
+	* tests/oldselect.test: Remove.
+	* tests/Makefile.am (check_PROGRAMS): Add oldselect-P
+	and oldselect-efault-P.
+	(DECODER_TESTS): Remove oldselect.test.
+	(EXTRA_DIST): Remove oldselect.expected.
+	* tests/.gitignore: Add oldselect-P, oldselect-efault,
+	and oldselect-efault-P.
+
+	tests: check path tracing of select/_newselect syscalls.
+	* tests/xselect.c (main) [PATH_TRACING_FD]: Skip if /proc/self/fd/
+	is not available.  Add test calls that use PATH_TRACING_FD.
+	(main): Conditionalize expected output for those calls
+	that do not use PATH_TRACING_FD with [!PATH_TRACING_FD].
+	* tests/_newselect-P.c: New file.
+	* tests/select-P.c: Likewise.
+	* tests/Makefile.am (check_PROGRAMS): Add _newselect-P and select-P.
+	* tests/.gitignore: Likewise.
+	* tests/gen_tests.in (_newselect-P, select-P): New entries.
+
+	tests: extend the check of select/_newselect syscalls decoding.
+	* tests/xselect.c: Rewrite for better coverage.
+
+2018-01-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: redirect stdin to /dev/null.
+	Ensure that stdin descriptor is not available for output
+	by reopening it to input from /dev/null.
+
+	* tests/run.sh: Redirect test's stdin to /dev/null.
+
+2018-01-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: add file:line to perror_msg_and_fail/error_msg_and_fail output.
+	* tests/tests.h [!perror_msg_and_fail] (perror_msg_and_fail): New macro
+	wrapper around the homonymous function.
+	[!error_msg_and_fail] (error_msg_and_fail): Likewise.
+	* tests/error_msg.c (perror_msg_and_fail, error_msg_and_fail): New
+	macros defined to themselves.
+
+	Rework decoding and pathtrace of old select syscall.
+	* linux/arch_defs_.h [!HAVE_ARCH_OLD_SELECT] (HAVE_ARCH_OLD_SELECT): New
+	macro.
+	* linux/aarch64/arch_defs_.h (HAVE_ARCH_OLD_SELECT): Likewise.
+	* linux/arm/arch_defs_.h: Likewise.
+	* linux/bfin/arch_defs_.h: Likewise.
+	* linux/i386/arch_defs_.h: Likewise.
+	* linux/m68k/arch_defs_.h: Likewise.
+	* linux/microblaze/arch_defs_.h: Likewise.
+	* linux/powerpc64/arch_defs_.h: Likewise.
+	* linux/sh/arch_defs_.h: Likewise.
+	* linux/x32/arch_defs_.h: Likewise.
+	* linux/x86_64/arch_defs_.h: Likewise.
+	* linux/powerpc/arch_defs_.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* desc.c (SYS_FUNC(oldselect)): Rewrite using
+	fetch_indirect_syscall_args, move under [HAVE_ARCH_OLD_SELECT].
+	* pathtrace.c (match_xselect_args): New function.
+	(pathtrace_match_set): Use it.
+
+2018-01-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Transform fetch_old_mmap_args into fetch_indirect_syscall_args.
+	As there are more than one old style syscall that take their arguments
+	via array, generalize fetch_old_mmap_args into a function that could
+	fetch variable number of arguments.
+
+	* mem.c (fetch_old_mmap_args): Transform into ...
+	* fetch_indirect_syscall_args.c: ... fetch_indirect_syscall_args
+	in this new file.
+	* Makefile.am (libstrace_a_SOURCES): Add it.
+	* defs.h [HAVE_ARCH_OLD_MMAP] (fetch_old_mmap_args): Remove.
+	(fetch_indirect_syscall_args): New prototype.
+	* pathtrace.c (pathtrace_match_set) [HAVE_ARCH_OLD_MMAP]: Use
+	fetch_indirect_syscall_args instead of fetch_old_mmap_args.
+
+2018-01-23  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	signal.c: remove excess semicolon after the end of the function.
+	* signal.c (rt_sigtimedwait): Remove semicolon after the function body.
+
+	Use char * for pointer arithmetics.
+	* netlink_inet_diag.c (decode_inet_diag_req_compat,
+	decode_inet_diag_req_v2, decode_inet_diag_msg): Cast to char *
+	instead of void *.
+	* netlink_netlink_diag.c (decode_netlink_diag_req,
+	decode_netlink_diag_msg): Likewise.
+	* netlink_packet_diag.c (decode_packet_diag_req,
+	decode_packet_diag_msg): Likewise.
+	* netlink_unix_diag.c (decode_unix_diag_req, decode_unix_diag_msg):
+	Likewise.
+	* rtnl_addr.c (decode_ifaddrmsg): Likewise.
+	* rtnl_addrlabel.c (decode_ifaddrlblmsg): Likewise.
+	* rtnl_dcb.c (decode_dcbmsg): Likewise.
+	* rtnl_link.c (decode_ifinfomsg): Likewise.
+	* rtnl_mdb.c (decode_br_port_msg): Likewise.
+	* rtnl_neigh.c (decode_ndmsg): Likewise.
+	* rtnl_route.c (decode_rtmsg): Likewise.
+	* rtnl_rule.c (decode_fib_rule_hdr): Likewise.
+	* rtnl_tc.c (decode_tcmsg): Likewise.
+
+2018-01-23  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	netlink_inet_diag.c: remove unnecessary return.
+	decode_inet_diag_req, as well as the functions it calls, returns void.
+
+	* netlink_inet_diag.c (decode_inet_diag_req): Do not return anything.
+
+2018-01-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move decoder of getpagesize syscall to libstrace.
+	As only five architectures have getpagesize syscall, moving the decoder
+	to libstrace allows to get rid of getpagesize related ifdefs and check
+	build of getpagesize decoder on other architectures.
+
+	* mem.c (SYS_FUNC(getpagesize)): Move ...
+	* getpagesize.c: ... to this new file.
+	* Makefile.am (libstrace_a_SOURCES): Add it.
+
+2018-01-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	mpers: implement gawk 3 support.
+	Some old systems that still make some sense to be supported have only
+	gawk 3, so let's support them for now.
+
+	In order to achieve that, multiple changes have been implemented:
+	 - Multidimensional arrays are replaced with single-dimensional ones.
+	   In most places it's a "][" -> ", " replacement, as awk allows some
+	   kind of emulation of multidimensional arrays that way, but in several
+	   occasions (specifically for storing name and special fields) we have
+	   to iterate over them later, so we store that information in
+	   additional arrays in order to get the keys.
+	 - "switch" statements are replaced with sets of "if ... else if ...
+	   else" statements.  This change is trivial, except we've added
+	   a temporary variable in what_is order to store expression value, for
+	   readability purposes.
+	 - No support for array iteration ordering.  This one is most ugly of
+	   them all.  Luckily, not that ugly, we've just had to process index a
+	   bit in order to make it lexicographically sortable and add two
+	   temporary arrays containing sorted indices in order to sort over them
+	   instead of those two arrays that we've added in order to work around
+	   lack of multidimensional array support.
+
+	* mpers.awk (compare_indices): Remove unused function.
+	(array_get, update_upper_bound, /^DW_AT_data_member_location/,
+	/^DW_AT_byte_size/, /^DW_AT_encoding/): Replace multidimensional array
+	access with comma-concatenated index.
+	(norm_idx): New function.
+	(array_seq): Replace multidimensional array access with
+	comma-concatenated index.  Use comma-concatenated pair of (array_idx,
+	"seq") in order to check presence of the item in an array.
+	(what_is): Add enc and i local variables.  Store the value of
+	array[what_idx, "encoding"] in it.  Replace "switch" statements with
+	sets of "if ... else if ... else" statements.  Replace multidimensional
+	array access with comma-concatenated index. Use for (... ; ...; ...)
+	iteration over aparents_keys instead of iteration over array.
+	(/^<[[:xdigit:]]+>/): Store idx as norm_idx(matches[2]).  Replace
+	multidimensional array access with comma-concatenated index.  Store an
+	additional flag in array_names array.
+	(/^DW_AT_name/): Replace multidimensional array access with
+	comma-concatenated index.  Add a flag to array_names for that idx.
+	(/^DW_AT_type/): Do not capture "0x" as a part of a group, normalise
+	the captured group.  Replace multidimensional array access with
+	comma-concatenated index.
+	(/^Abbrev Number:[^(]+\(DW_TAG_/): Replace multidimensional array access
+	with comma-concatenated index.  Store additional flags in
+	array_special and array_parents arrays.
+	(END): Remove PROCINFO["sorted_in"] setup.  Sort array_parents.  Replace
+	multidimensional array access with comma-concatenated index.  Iterate
+	over array_special to go over all the items that have "special" field.
+	Iterate over array_names to go over all items that have "name" field.
+	* NEWS: Mention it.
+
+2018-01-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	dm: add support for event_nr in DM_LIST_DEVICES result.
+	Commit v4.13-rc1~137^2~13 (and a follow-up fix v4.14-rc4~20^2~3
+	that changed alignment) introduced an additional hidden field
+	in the structure returned by DM_LIST_DEVICES ioctl command
+	that contains event_nr information.
+
+	Unfortunately, we can't test it for now, but looks like it kinda works:
+
+	  # ./strace -v -eioctl -y dmsetup ls
+	  ioctl(3</dev/mapper/control>, DM_VERSION, {version=4.0.0,
+	  data_size=16384, flags=DM_EXISTS_FLAG} => {version=4.37.0,
+	  data_size=16384, flags=DM_EXISTS_FLAG}) = 0
+	  ioctl(3</dev/mapper/control>, DM_LIST_DEVICES, {version=4.0.0,
+	  data_size=16384, data_start=312, flags=DM_EXISTS_FLAG} =>
+	  {version=4.37.0, data_size=408, data_start=312, flags=DM_EXISTS_FLAG,
+	  {dev=makedev(253, 1), name="fedoratesting--30-swap", event_nr=0},
+	  {dev=makedev(253, 0), name="fedoratesting--30-root"}}) = 0
+	  fedoratesting--30-swap	(253:1)
+	  fedoratesting--30-root	(253:0)
+
+	* dm.c (dm_decode_dm_name_list): Obtain the amount of bytes copied
+	during printing device name, print event number if there's a suitable
+	gap present and the DM version is high enough.
+	* NEWS: Mention it.
+
+2018-01-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Move definition of personality macros to arch_defs_.h.
+	* supported_personalities.h: Remove.
+	* defs.h: Do not include it.
+	* linux/arch_defs_.h [!DEFAULT_PERSONALITY] (DEFAULT_PERSONALITY): New
+	macro.
+	[!SUPPORTED_PERSONALITIES] (SUPPORTED_PERSONALITIES): Likewise.
+	* linux/aarch64/arch_defs_.h (SUPPORTED_PERSONALITIES): New macro.
+	* linux/riscv/arch_defs_.h: Likewise.
+	* linux/s390x/arch_defs_.h: Likewise.
+	* linux/sparc64/arch_defs_.h: Likewise.
+	* linux/x32/arch_defs_.h: Likewise.
+	* linux/x86_64/arch_defs_.h: Likewise.
+	* linux/powerpc64/arch_defs_.h: New file.
+	* linux/tile/arch_defs_.h: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+	(strace_SOURCES): Remove supported_personalities.h.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-01-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Introduce HAVE_ARCH_SA_RESTORER.
+	In order to simplify HAVE_SA_RESTORER logic a bit.
+
+	* linux/ia64/arch_defs_.h (HAVE_ARCH_SA_RESTORER): New macro.
+	* linux/m68k/arch_defs_.h: Likewise.
+	* linux/sparc/arch_defs_.h: Likewise.
+	* linux/sparc64/arch_defs_.h: Likewise.
+	* linux/hppa/arch_defs_.h: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* signal.c [HAVE_ARCH_SA_RESTORER]: Define HAVE_SA_RESTORER to it.
+	[!HAVE_ARCH_SA_RESTORER && SA_RESTORER]: Define HAVE_SA_RESTORER to 1.
+	[!HAVE_ARCH_SA_RESTORER && !SA_RESTORER]: Define HAVE_SA_RESTORER to 0.
+
+2018-01-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Replace NEED_UID16_PARSERS with HAVE_ARCH_UID16_SYSCALLS.
+	* linux/arch_defs_.h [!HAVE_ARCH_UID16_SYSCALLS]
+	(HAVE_ARCH_UID16_SYSCALLS): New macro.
+	* linux/aarch64/arch_defs_.h (HAVE_ARCH_UID16_SYSCALLS): New macro.
+	* linux/arm/arch_defs_.h: Likewise.
+	* linux/i386/arch_defs_.h: Likewise.
+	* linux/ia64/arch_defs_.h: Likewise.
+	* linux/m68k/arch_defs_.h: Likewise.
+	* linux/s390/arch_defs_.h: Likewise.
+	* linux/s390x/arch_defs_.h: Likewise.
+	* linux/sh/arch_defs_.h: Likewise.
+	* linux/sparc/arch_defs_.h: Likewise.
+	* linux/sparc64/arch_defs_.h: Likewise.
+	* linux/syscall.h: Likewise.
+	* linux/x32/arch_defs_.h: Likewise.
+	* linux/x86_64/arch_defs_.h: Likewise.
+	* linux/bfin/arch_defs_.h: New file.
+	* linux/microblaze/arch_defs_.h: Likewise.
+	* linux/riscv/arch_defs_.h: Likewise.
+	* linux/sh64/arch_defs_.h: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+	* defs.h (NEED_UID16_PARSERS): Remove.
+	* linux/syscall.h: Check for HAVE_ARCH_UID16_SYSCALLS instead of
+	NEED_UID16_PARSERS.
+	* uid.c: Likewise.
+
+	Replace HAVE_GETRVAL2 with HAVE_ARCH_GETRVAL2.
+	* linux/arch_defs_.h [!HAVE_ARCH_GETRVAL2] (HAVE_ARCH_GETRVAL2): New
+	macro.
+	* linux/alpha/arch_defs_.h: New file.
+	* linux/ia64/arch_defs_.h: Likewise.
+	* linux/mips/arch_defs_.h: Likewise.
+	* linux/sh/arch_defs_.h: Likewise.
+	* linux/sparc/arch_defs_.h: Likewise.
+	* linux/sparc64/arch_defs_.h: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+	* defs.h (HAVE_GETRVAL2): Remove.
+	(getrval2): Check for HAVE_ARCH_GETRVAL2 instead of arch checks.
+	* net.c (SYS_FUNC(pipe)): Check for HAVE_ARCH_GETRVAL2 instead of
+	HAVE_GETRVAL2.
+	* syscall.c: Likewise.
+
+	Use #if idiom instead of #ifdef for HAVE_ARCH_* macros.
+	* linux/arch_defs_.h [!HAVE_ARCH_OLD_MMAP] (HAVE_ARCH_OLD_MMAP): New
+	macro.
+	[!HAVE_ARCH_OLD_MMAP_PGOFF] (HAVE_ARCH_OLD_MMAP_PGOFF): Likewise.
+	* defs.h: Use #if instead of #ifdef to check HAVE_ARCH_OLD_MMAP.
+	* mem.c: Use #if instead of #ifdef to check HAVE_ARCH_OLD_MMAP
+	and HAVE_ARCH_OLD_MMAP_PGOFF
+	* pathtrace.c: Likewise.
+
+2018-01-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Rename arch-specific arch_defs.h files to arch_defs_.h.
+	Introduce a new arch_defs.h header that includes the corresponding
+	arch-specific arch_defs_.h file followed by generic arch_defs_.h file.
+
+	* linux/arch_defs.h: Rename to linux/arch_defs_.h.
+	* linux/aarch64/arch_defs.h: Rename to linux/aarch64/arch_defs_.h.
+	* linux/arm/arch_defs.h: Rename to linux/arm/arch_defs_.h.
+	* linux/i386/arch_defs.h: Rename to linux/i386/arch_defs_.h.
+	* linux/m68k/arch_defs.h: Rename to linux/m68k/arch_defs_.h.
+	* linux/s390/arch_defs.h: Rename to linux/s390/arch_defs_.h.
+	* linux/s390x/arch_defs.h: Rename to linux/s390x/arch_defs_.h.
+	* linux/x32/arch_defs.h: Rename to linux/x32/arch_defs_.h.
+	* linux/x86_64/arch_defs.h: Rename to linux/x86_64/arch_defs_.h.
+	* arch_defs.h: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	(EXTRA_DIST): Rename linux/*/arch_defs.h to linux/*/arch_defs_.h.
+
+2018-01-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix ANY_WORDSIZE_LESS_THAN_KERNEL_LONG definition.
+	* defs.h (ANY_WORDSIZE_LESS_THAN_KERNEL_LONG): Rewrite without undefined
+	behaviour.
+
+	Fixes: f916793 ("Introduce ANY_WORDSIZE_LESS_THAN_KERNEL_LONG macro")
+
+2018-01-19  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util: return string size in printstr.
+	As umovestr now returns something useful, let's propagate it further.
+
+	* defs.h (printstr_ex, printpathn, printpath): Change return type from
+	void to int.
+	(printstrn, printstr): Change return type from void to int, return
+	printstr_ex result.
+	* util.c (printpathn): Return -1 on NULL addr, nul_seen (exit code of
+	umovestr) on success.
+	(printpath): Return printpathn result.
+	(printstr_ex): Return -1 on NULL addr, umoven/umovestr result otherwise.
+
+2018-01-19  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	ucopy: return string size in umovestr.
+	We return the size that includes \0 in order to preserve existing
+	behaviour (return 0 when \0 haven't been seen, return positive number
+	when it has been seen).
+
+	* ucopy.c (umovestr_peekdata, umovestr): Return string length
+	including \0 instead of 1 when \0 is found.
+
+2018-01-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mpers.awk: avoid redefinition of mpers_ptr_t.
+	Older versions of gcc like those found in RHEL6 fail with the following
+	diagnostics:
+
+	  In file included from block.c:32:
+	  ./mpers-m32/struct_blk_user_trace_setup.h:2: error: redefinition of typedef ‘mpers_ptr_t’
+	  mpers_type.h:44: note: previous declaration of ‘mpers_ptr_t’ was here
+
+	* mpers.awk (END): Add #ifndef guard to mpers_ptr_t typedef.
+	* mpers_test.sh: Update expected output.
+
+2018-01-19  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add support for --enable-mpers=m32|mx32.
+	* configure.ac (AC_ARG_ENABLE([mpers])): Allow m32 and mx32 values
+	for --enable-mpers option.
+	* m4/mpers.m4 (st_MPERS): Check for personality support if personality
+	name is provided as an option.  Fail if the requested personality
+	support is not available.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-01-19  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: improve setugid error diagnostics a bit.
+	* tests/setugid.c (main): Print unexpected code returned by syscall.
+
+2018-01-19  Dmitry V. Levin  <ldv@altlinux.org>
+
+	v4l2: do not mpersify struct v4l2_create unless it is used by other code
+	This fixes build with mpers support on older systems that lack
+	definition of struct v4l2_create.
+
+	* v4l2.c: Wrap references to struct v4l2_create with
+	[VIDIOC_CREATE_BUFS].
+
+2018-01-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	btrfs: use uint32_t instead of __u32.
+	* btrfs.c (btrfs_ioctl) [!HAVE_STRUCT_BTRFS_IOCTL_FS_INFO_ARGS_NODESIZE]:
+	Replace __u32 with uint32_t.  Remove useless cast.
+
+2018-01-19  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.1.in: clarify mpers flags in strace -V output.
+	The previous description was a bit dated.
+
+	* strace.1.in (.SH "MULTIPLE PERSONALITY SUPPORT"): Remove "no-m32" and
+	"no-mx32", describe the situation when some of mpers flags are not
+	present in strace -V output.
+
+2018-01-19  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add compat support for s390x.
+	By very popular demand.
+
+	While we are here, let's refactor the condition for old_mmap_pgoff into
+	an arch-specific one, as it is used more than in one place.
+
+	* NEWS: Mention this.
+	* strace.1.in (.SH "MULTIPLE PERSONALITY SUPPORT"): Likewise.
+	* configure.ac (case "$host_cpu" in) <s390x>: Set arch_m32 to s390, set
+	cc_flags_m32 to -m31.
+	(st_MPERS([m32])): Add s390x.
+	* defs.h [S390X]: Define NEED_UID16_PARSERS.
+	* linux/s390/arch_sigreturn.c [!S390_FRAME_PTR] (S390_FRAME_PTR): New
+	macro, define to s390_frame_ptr.
+	[!SIGNAL_FRAMESIZE] (SIGNAL_FRAMESIZE): New macro, define to
+	__SIGNAL_FRAMESIZE.
+	[!PTR_TYPE] (PTR_TYPE): New macro, define to unsigned long.
+	(arch_sigreturn): Use S390_FRAME_PTR, SIGNAL_FRAMESIZE, and PTR_TYPE
+	instead of s390_frame_ptr, __SIGNAL_FRAMESIZE, and pointer-sized type,
+	respectively.
+	* linux/s390/get_error.c [!ARCH_REGSET] (ARCH_REGSET): New macro, define
+	* to s390_regset.
+	(get_error): Use it instead of s390_regset.
+	* linux/s390/get_scno.c (arch_get_scno): Likewise.
+	* linux/s390/get_syscall_args.c (get_syscall_args): Likewise.
+	* linux/s390/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/s390/set_scno.c (arch_set_scno): Likewise.
+	* linux/s390x/arch_regs.c (psw_compat_t, s390_compat_regs,
+	s390x_regs_union, s390_frame_ptr, s390x_frame_ptr, s390x_io): New
+	variables.
+	(s390_regset, s390x_regset, ARCH_REGS_FOR_GETREGSET,
+	ARCH_IOVEC_FOR_GETREGSET, ARCH_PC_REG, ARCH_PERSONALITY_0_IOV_SIZE,
+	ARCH_PERSONALITY_1_IOV_SIZE): New macros.
+	* linux/s390x/arch_regs.h (s390_frame_ptr, s390x_frame_ptr): New
+	prototypes.
+	* linux/s390x/arch_rt_sigframe.c: Conditionalize on tcp->currpers.
+	* linux/s390x/arch_sigreturn.c: Likewise.
+	* linux/s390x/get_error.c: Likewise.
+	* linux/s390x/get_scno.c: Likewise.
+	* linux/s390x/get_syscall_args.c: Likewise.
+	* linux/s390x/set_error.c: Likewise.
+	* linux/s390x/set_scno.c: Likewise.
+	* linux/s390x/errnoent1.h: New file.
+	* linux/s390x/ioctls_arch1.h: Likewise.
+	* linux/s390x/ioctls_inc1.h: Likewise.
+	* linux/s390x/signalent1.h: Likewise.
+	* linux/s390x/syscallent1.h: Likewise.
+	* Makefile.am (EXTRA_DIST): Add new files added to linux/s390x.
+	* supported_personalities.h [S390X] (SUPPORTED_PERSONALITIES): Define
+	to 2.
+	* tests/strace-V.test: Add s390 to the list of architectures that have
+	m32 personality.
+	* linux/s390/arch_defs.h (HAVE_ARCH_OLD_MMAP_PGOFF): New macro.
+	* linux/s390x/arch_defs.h: Likewise.
+	* mem.c: Replace #ifdef S390 with #ifdef HAVE_ARCH_OLD_MMAP_PGOFF.
+	* pathtrace.c: Likewise.
+
+2018-01-18  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update NEWS.
+
+2018-01-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check path tracing of ppoll syscall.
+	* tests/ppoll.c (main) [PATH_TRACING_FD]: Skip if /proc/self/fd/
+	is not available.  Add a test call that use PATH_TRACING_FD.
+	(main): Conditionalize expected output for those calls
+	that do not use PATH_TRACING_FD with [!PATH_TRACING_FD].
+	* tests/ppoll-P.c: New file.
+	* tests/pure_executables.list: Add ppoll-P.
+	* tests/.gitignore: Likewise.
+	* tests/gen_tests.in (ppoll-P): New entry.
+
+	tests: check path tracing of poll syscall.
+	* tests/poll.c (main) [PATH_TRACING_FD]: Skip if /proc/self/fd/
+	is not available.  Add tests calls that use PATH_TRACING_FD.
+	(main): Conditionalize expected output for those calls
+	that do not use PATH_TRACING_FD with [!PATH_TRACING_FD].
+	* tests/poll-P.c: New file.
+	* tests/pure_executables.list: Add poll-P.
+	* tests/.gitignore: Likewise.
+	* tests/poll-P.test: New test.
+	* tests/Makefile.am (DECODER_TESTS): Add poll-P.test.
+
+2018-01-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: enable old_mmap-P.test on s390x.
+	As s390x is the only 64-bit architecture that has old_mmap,
+	the test needs some adjustments there.
+
+	* tests/old_mmap.c: Update condition.
+	(main): Change int types to long, extend numerals to 64 bit, change
+	printing format qualifiers to corresponding long types.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-01-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check path tracing of old mmap syscall.
+	* tests/old_mmap.c [!TEST_FD]: Define TEST_FD.
+	(main) <args1_c>: Replace 5th argument with TEST_FD.
+	(main): Wrap the output for the calls that do not use TEST_FD
+	with #ifndef PATH_TRACING.
+	* tests/old_mmap-P.c: New file.
+	* tests/pure_executables.list: Add old_mmap-P.
+	* tests/.gitignore: Likewise.
+	* tests/gen_tests.in: Add old_mmap-P test.
+
+2018-01-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Fix pathtrace for old_mmap/old_mmap_pgoff.
+	As these system calls have only one argument that points to the
+	location in memory containing actual arguments, current path tracing
+	implementation is incorrect.  In order to fix this, let's use recently
+	introduced fetch_old_mmap_args in order to get actual arguments suitable
+	for path matching.
+
+	* pathtrace.c [HAVE_ARCH_OLD_MMAP] <case SEN_old_mmap,
+	case SEN_old_mmap_pgoff>: Retrieve actual old_mmap arguments with
+	fetch_old_mmap_args, pass the value from the retrieved args if it's
+	available.
+
+2018-01-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Test non-verbose old_mmap output.
+	* tests/old_mmap-v-none.c: New file.  Include old_mmap.c.
+	* tests/pure_executables.list: Add old_mmap-v-none.
+	* tests/.gitignore: Likewise.
+	* tests/gen_tests.in (old_mmap-v-none): New entry.
+
+2018-01-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	mem.c: use runtime check in fetch_old_mmap_args.
+	This makes code a bit cleaner and makes it compatible with the upcoming
+	s390x compat support.
+
+	* mem.c [HAVE_ARCH_OLD_MMAP] (fetch_old_mmap_args): Replace
+	ANY_WORDSIZE_LESS_THAN_KERNEL_LONG check with current_wordsize == 4
+	check.
+
+2018-01-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	mem.c: introduce fetch_old_mmap_args.
+	Move common old_mmap/old_mmap_pgoff argument fetching code into a
+	separate function.
+
+	As it is, it also fixes the case of non-verbose printing of old_mmap
+	arguments (see the new test in the next commit).  Also, it is a
+	preparation for the fix of path tracing for these syscalls.
+
+	* defs.h [HAVE_ARCH_OLD_MMAP] (fetch_old_mmap_args): New prototype.
+	* mem.c [HAVE_ARCH_OLD_MMAP] (fetch_old_mmap_args): New function.
+	[HAVE_ARCH_OLD_MMAP] (old_mmap, old_mmap_pgoff): Use it.
+
+	Fixes: 3db07f11 "Fix old_mmap output when mmap arguments are unfetchable"
+	Suggested-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-01-17  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Introduce arch-specific define HAVE_ARCH_OLD_MMAP.
+	* linux/arch_defs.h: New file.
+	* linux/aarch64/arch_defs.h: New file.  Define HAVE_ARCH_OLD_MMAP.
+	* linux/arm/arch_defs.h: Likewise.
+	* linux/i386/arch_defs.h: Likewise.
+	* linux/m68k/arch_defs.h: Likewise.
+	* linux/s390/arch_defs.h: Likewise.
+	* linux/s390x/arch_defs.h: Likewise.
+	* linux/x32/arch_defs.h: Likewise.
+	* linux/x86_64/arch_defs.h: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+	* defs.h: Include "arch_defs.h"
+	* mem.c: Replace condition for SYS_FUNC(old_mmap) with #ifdef
+	HAVE_ARCH_OLD_MMAP.
+
+	Suggested-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-01-17  Dmitry V. Levin  <ldv@altlinux.org>
+	    Nikolay Marchuk  <marchuk.nikolay.a@gmail.com>
+
+	tests: improve descriptor set syntax testing.
+	* tests/filtering_fd-syntax.test: New file.
+	* tests/options-syntax.test: Move descriptor set syntax testing
+	to filtering_fd-syntax.test.
+	* tests/Makefile.am (MISC_TESTS): Add filtering_fd-syntax.test.
+
+2018-01-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.c: print correct out file name in error messages in case of -ff.
+	* strace.c (outf_perror): New function.
+	(tvprintf, tprints, flush_tcp_output): Use it.
+
+	aarch64: use ARCH_SET_PERSONALITY_FROM_IOV_SIZE.
+	* linux/aarch64/arch_regs.c (ARCH_PERSONALITY_0_IOV_SIZE,
+	ARCH_PERSONALITY_1_IOV_SIZE): New macros.
+	* linux/aarch64/get_scno.c (arch_get_scno): Do not call
+	update_personality as it is handled by the generic get_regs code now.
+
+2018-01-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: add ability to set personality based on GETREGSET iov size.
+	Some architectures (aarch64, s390x) use only PTRACE_GETREGSET interface
+	and use its size to detect current personality. Let's generalise this
+	approach and also avoid subtle errors when we get register but forget to
+	update personality, at least for those architectures.
+
+	Note that in order to employ this behaviour, architecture has to use
+	PTRACE_GETREGSET exclusively (no HAVE_GETREGS_OLD) and should declare
+	appropriate ARCH_PERSONALITY_*_IOV_SIZE macros.
+
+	* syscall.c (get_regs) [ptrace_getregset_or_getregs &&
+	!HAVE_GETREGS_OLD]: Call update_personality based on the value returned
+	in the iov_len field by PTRACE_GETREGSET.  Warn once if the returned
+	iov_len is unknown.
+
+2018-01-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: add sanity check for the target personality number.
+	We can never be cautious enough.
+
+	* defs.h (set_personality): Change argument type to unsigned int.
+	* syscall.c (set_personality): Change argument type to unsigned int,
+	check whether requested personality is sane, die otherwise.
+
+2018-01-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: move current_personality check to set_personality.
+	As all the personality-dependent entries are initially in sync, we can
+	move the check whether we are setting the same personality as we
+	currently are inside set_personality out of update_personality.
+
+	* syscall.c (current_wordsize, current_klongsize): Initialise to 0'th
+	personality value in order to make the statement about "all the
+	personality-dependent entries are initially in sync" true.
+	(set_personality): Check whether requested personality differs from
+	current_personality.
+	(update_personality): Call set_personality unconditionally.
+
+2018-01-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: always update tcp->currpers in update_personality.
+	Sometimes (for example, switching from a process with one personality
+	to a process that previously had different personality but returning
+	from execve to that same personality into) it is possible that
+	current_personality is not changed, but tcp->currpers is different.
+	So, let's not return from update_personality and always update
+	tcp->currpers if it differs from the target personality.
+
+	* syscall.c (update_personality): Do not exit early if personality ==
+	current_personality.
+
+2018-01-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update current_personality on tcb switch.
+	* strace.c (set_current_tcp): New function.
+	(printleader, droptcb, print_event_exit, next_event, dispatch_event):
+	Call set_current_tcp instead of setting current_tcp manually.
+
+2018-01-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add support for specifying compiler options for mpers builds.
+	Because some architectures are very, very special.
+
+	* configure.ac (cc_flags_m32, cc_flags_mx32): New variables. AC_SUBST
+	them.
+	* m4/mpers.m4 (MPERS_CFLAGS): Use instead of CFLAG, pushdef as
+	$cc_flags_$1.
+	Use mpers_name instead of CFLAG in AC_CACHE_CHECK messages.
+	Pass MPERS_CFLAGS as the second argument to mpers_test.sh
+	* mpers.sh: Add CC_ARCH_FLAGS as the second argument (PARSER_FILE
+	is moved to the third one). Do not expect leading dash in ARCH_FLAG
+	anymore.
+	* mpers_test.sh (mpers_cc_flags): New variable, initialise to the second
+	command line argument.
+	Pass $mpers_name without leading dash to mpers.sh.
+	Pass $mpers_cc_flags as the second argument to mpers.sh ($sample is
+	the third argument now).
+	* Makefile.am (mpers-m%.stamp:): Pass $(mpers_CC_FLAGS) as the second
+	argument to mpers.sh ($$f is now the third argument).
+	($(mpers_m32_targets)): Define target variable mpers_CC_FLAGS with the
+	value of @cc_flags_m32@
+	($(mpers_mx32_targets)): Define target variable mpers_CC_FLAGS with the
+	value of @cc_flags_mx32@
+	* tests/Makefile.am (MERS_CC_FLAGS): New variable.
+	* bootstrap: Append @cc_flags_$1@ to MPERS_CC_FLAGS. Append
+	$(MPERS_CC_FLAGS) to ARCH_MFLAGS.
+
+2018-01-16  Dmitry V. Levin  <ldv@altlinux.org>
+	    Nikolay Marchuk  <marchuk.nikolay.a@gmail.com>
+
+	tests: improve syscall set syntax testing.
+	* tests/filtering_syscall-syntax.test: New file.
+	* tests/options-syntax.test: Move syscall set syntax testing
+	to filtering_syscall-syntax.test.
+	* tests/qual_fault-syntax.test: Likewise.
+	* tests/qual_inject-syntax.test: Likewise.
+	* tests/Makefile.am (MISC_TESTS): Add filtering_syscall-syntax.test.
+
+2018-01-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Enhance error diagnostics about invalid syscalls in fault injection syntax
+	Validate syscall set before the whole fault injection syntax.
+
+	* filter_qualify.c (parse_inject_expression): Add const qualifier to
+	return type.  Return an empty string when no syscall set is specified.
+	(qualify_inject_common): Add const qualifier to "name".  Move
+	qualify_syscall_tokens invocation right after parse_inject_expression.
+	* tests/qual_fault-syntax.test: Update expected output.
+	* tests/qual_inject-syntax.test: Likewise.
+
+2018-01-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	basic_filters: use loop initial declarations.
+	* basic_filters.c (qualify_syscall_number, qualify_syscall_regex,
+	lookup_class, qualify_syscall_class, qualify_syscall_tokens,
+	qualify_tokens): Use "for" loop initial declarations.
+
+	filter_qualify: use loop initial declarations.
+	* filter_qualify.c (sigstr_to_uint, find_errno_by_name,
+	parse_inject_expression, qualify_inject_common, qualify): Use "for" loop
+	initial declarations.
+
+	configure: try to set the C compiler mode to accept ISO Standard C.
+	* configure.ac: Use AC_PROG_CC_STDC.
+	* NEWS: Mention this.
+
+2018-01-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	pathtrace: update the list of unrelated syscalls.
+	* pathtrace.c (pathtrace_match_set) <SEN_accept4, SEN_accept,
+	SEN_signalfd4, SEN_signalfd>: Skip matching.
+
+	basic_filters: move legacy tracing class names to the end of table.
+	* basic_filters.c (lookup_class) <syscall_class>: Move names that do not
+	start with % to the end of table.
+
+	Enhance decoding of mq_* syscalls.
+	* mq.c (SYS_FUNC(mq_open)): Add RVAL_FD to return value.
+	(SYS_FUNC(mq_timedsend), SYS_FUNC(mq_timedreceive), SYS_FUNC(mq_notify),
+	SYS_FUNC(mq_getsetattr)): Print the first argument using printfd.
+	* NEWS: Mention this change.
+	* pathtrace.c (pathtrace_match_set) <SEN_mq_getsetattr, SEN_mq_notify,
+	SEN_mq_open, SEN_mq_timedreceive, SEN_mq_timedsend>: Skip matching.
+	* linux/32/syscallent.h (mq_getsetattr, mq_notify, mq_open,
+	mq_timedreceive, mq_timedsend): Add TD flag.
+	* linux/64/syscallent.h: Likewise.
+	* linux/alpha/syscallent.h: Likewise.
+	* linux/arm/syscallent.h: Likewise.
+	* linux/avr32/syscallent.h: Likewise.
+	* linux/bfin/syscallent.h: Likewise.
+	* linux/crisv10/syscallent.h: Likewise.
+	* linux/hppa/syscallent.h: Likewise.
+	* linux/i386/syscallent.h: Likewise.
+	* linux/ia64/syscallent.h: Likewise.
+	* linux/m68k/syscallent.h: Likewise.
+	* linux/microblaze/syscallent.h: Likewise.
+	* linux/mips/syscallent-n32.h: Likewise.
+	* linux/mips/syscallent-n64.h: Likewise.
+	* linux/mips/syscallent-o32.h: Likewise.
+	* linux/powerpc/syscallent.h: Likewise.
+	* linux/powerpc64/syscallent.h: Likewise.
+	* linux/s390/syscallent.h: Likewise.
+	* linux/s390x/syscallent.h: Likewise.
+	* linux/sh/syscallent.h: Likewise.
+	* linux/sh64/syscallent.h: Likewise.
+	* linux/sparc/syscallent.h: Likewise.
+	* linux/sparc64/syscallent.h: Likewise.
+	* linux/x32/syscallent.h: Likewise.
+	* linux/x86_64/syscallent.h: Likewise.
+	* linux/xtensa/syscallent.h: Likewise.
+
+	Enhance error diagnostics about invalid syscalls in fault injection syntax
+	* basic_filters.c (qualify_syscall_tokens): Remove "name" argument,
+	assume its value is "system call".
+	* filter.h (qualify_syscall_tokens): Remove "name" argument.
+	All callers updated.
+	* tests/qual_fault-syntax.test: Update expected output.
+
+	basic_filters: handle "all" in a more readable way.
+	* basic_filters.c (qualify_syscall_tokens, qualify_tokens): Remove
+	handle_inversion label, handle "all" by invoking invert_number_set_array
+	directly.
+
+	filter: remove redundant braces around single line expressions.
+	* basic_filters.c (qualify_syscall_class, qualify_syscall_name):
+	Rearrange the inner loop body.
+	(qualify_syscall_number, lookup_class, qualify_syscall_tokens,
+	qualify_tokens): Remove redundant braces around single line expressions.
+	* filter_qualify.c (qualify_inject_common): Likewise.
+
+	filter_qualify: move memory allocation from parse_inject_expression.
+	* filter_qualify.c (parse_inject_expression): Replace "s" and "buf"
+	arguments with "str" argument, use it instead of "s" and "*buf".
+	(qualify_inject_common): Rename "buf" to "copy", initialize it to a copy
+	of "str", pass "copy" to parse_inject_expression instead of "str" and
+	"buf".
+
+2018-01-14  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: update NT_* constants.
+	Update NT_* descriptor types with the values borrowed from
+	kernel's include/uapi/linux/elf.h and glibc's elf.h.
+
+	* xlat/nt_descriptor_types.in (NT_PRSTATUS, NT_FPREGSET, NT_PRPSINFO,
+	NT_PRXREG, NT_TASKSTRUCT, NT_PLATFORM, NT_AUXV, NT_GWINDOWS, NT_ASRS,
+	NT_PSTATUS, NT_PSINFO, NT_PRCRED, NT_UTSNAME, NT_LWPSTATUS,
+	NT_LWPSINFO, NT_PRFPXREG, NT_PRXFPREG, NT_PPC_VMX, NT_PPC_SPE,
+	NT_PPC_VSX, NT_386_TLS, NT_386_IOPERM, NT_X86_XSTATE): Add fallback
+	definitions.
+	(NT_SIGINFO, NT_FILE, NT_PPC_*, NT_S390_*, NT_ARM_*, NT_METAG_*,
+	NT_ARC_V2): New constants.
+	* NEWS: Mention this.
+
+2018-01-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	configure: use AC_MSG_ERROR and AC_MSG_FAILURE consistently.
+	* configure.ac [$arch = mips]: Use AC_MSG_FAILURE instead of
+	AC_MSG_ERROR when _MIPS_SIM cannot be determined.  Use AC_MSG_ERROR
+	instead of AC_MSG_FAILURE when syscallent stubs cannot be generated.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	configure: add --disable-mpers and --enable-mpers=check options.
+	On architectures supporting multiple personalities, multiple
+	personalities support in strace is required for proper decoding of
+	structures used by tracees with personalities that differ from the
+	personality of strace.
+
+	New configure options control whether multiple personalities support
+	in strace is mandatory, optional, or disabled.
+
+	The default is changed from what is now equivalent of
+	--enable-mpers=check (automatically detect whether required mpers
+	support could be enabled) to --enable-mpers (terminate the build
+	if required mpers support could not be enabled).
+
+	* configure.ac (AC_ARG_ENABLE([mpers])): New option.
+	* m4/mpers.m4 (st_MPERS): Use enable_mpers.  Terminate the build
+	if mpers could not be enabled and enable_mpers==yes.
+	* strace.spec.in: Specify --enable-mpers=check to %configure.
+	* debian/rules (build/Makefile, build64/Makefile): Specify
+	--enable-mpers=check to configure.
+
+	Suggested-by: DJ Delorie <dj@redhat.com>
+
+2018-01-11  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	Update ioctl entries from linux v4.15-rc7.
+	* linux/32/ioctls_inc_align16.h: Update from linux v4.15-rc7 using ioctls_gen.sh.
+	* linux/32/ioctls_inc_align32.h: Likewise.
+	* linux/32/ioctls_inc_align64.h: Likewise.
+	* linux/64/ioctls_inc.h: Likewise.
+	* linux/x32/ioctls_inc0.h: Likewise.
+	* NEWS: Mention this.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	Issue a warning when strace lacks tracee personality support.
+	* defs.h (HAVE_PERSONALITY_1_MPERS, HAVE_PERSONALITY_2_MPERS): New
+	macros.
+	* syscall.c (update_personality): Add need_mpers_warning array
+	initialized with mpers support data.  Use it for printing the mpers
+	unavailability warning once per personality.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add more checks of reboot syscall decoding.
+	In particular, check for the recent fixes in reboot syscall decoder.
+
+	* tests/gen_tests.in (reboot): Provide -s 256 option.
+	* tests/reboot.c (STR32, STR128): New macros.
+	(main): Add more checks.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: use sprintrc in reboot.test.
+	* test/reboot.c (main): Use sprintrc instead of old-style manual
+	printing of return code.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	reboot.c: limit printing of the fourth argument to 255 bytes.
+	The size of kernel buffer is 256 bytes and the last byte is always zero.
+
+	* reboot.c (SYS_FUNC(reboot)): Replace printstr call with printstr_ex
+	with size of 255 and style flag QUOTE_0_TERMINATED.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	reboot.c: use printxval instead of printflags.
+	Numeric arguments of reboot syscall are not flags but magic values.
+
+	* reboot.c (SYS_FUNC(reboot)): Replace printflags with printxval.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Search for <libiberty/demangle.h> in addition to <demangle.h>
+	This is the location where this header is installed on Debian-based
+	systems.
+
+	* configure.ac: Check for libiberty/demangle.h in addition to
+	demangle.h.
+	* unwind.c [USE_DEMANGLE]: Include either <demangle.h> or
+	<libiberty_demangle.h> based on the presence of HAVE_DEMANGLE_H and
+	HAVE_LIBIBERTY_DEMANGLE_H macros.
+
+2018-01-11  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.1: fix typo.
+	* strace.1.in (.SH NOTES): Replace prlimit with prlimit64.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Document multiple personalities support.
+	* strace.1.in (.SH "MULTIPLE PERSONALITY SUPPORT"): New section.
+
+	Add indication of mpers support to strace -V output.
+	* strace.c (print_version): Append information about m32 and mx32
+	decoding support.
+	* tests/strace-V.test: Update expected output.
+
+	Provide strace's native arch to the test framework.
+	* configure.ac (arch_native): New variable, set to arch.
+	* tests/Makefile.am (NATIVE_ARCH): New variable, set to @arch_native@.
+	(AM_TEST_LOG_FLAGS): Pass NATIVE_ARCH as STRACE_NATIVE_ARCH environment
+	variable.
+
+	Add indication of optional demangle feature strace -V output.
+	* strace.c (print_version) [USE_DEMANGLE]: Append " stack-demangle"
+	to the features string.
+	* tests/strace-V.test: Update expected output.
+
+	configure.ac: check for mpers support on RISC-V.
+	* confgure.ac (st_MPERS([m32])): Add riscv.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Use xappendstr instead of xsnprintf where suitable.
+	Replace occurrences of
+
+	    outptr += xsnprintf(outptr, sizeof(outstr) - (outptr - outstr), ...)
+
+	with much more sleek
+
+	    outptr = xappendstr(outstr, outptr, ...)
+
+	* desc.c (decode_select): Replace xsnprintf with xappendstr.
+	* open.c (sprint_open_modes): Likewise.
+	* poll.c (decode_poll_exiting): Likewise.
+	* signal.c (sprintsigmask_n): Likewise.
+	* xlat.c (sprintflags): Likewise.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xstring.h: add xappendstr.
+	Introduce a macro for handling common case of partial writes
+	to a character array.
+
+	* xstring.h (get_pos_diff_): New function.
+	(xappendstr): New macro.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update perf-related flags.
+	 - PERF_SAMPLE_BRANCH_TYPE_SAVE, added in v4.14-rc1~173^2~33^2~6
+	 - PERF_SAMPLE_PHYS_ADDR, added in v4.14-rc1~173^2~2
+
+	* xlat/perf_branch_sample_type.in (PERF_SAMPLE_BRANCH_TYPE_SAVE): New
+	flag.
+	* xlat/perf_event_sample_format.in (PERF_SAMPLE_PHYS_ADDR): Likewise.
+	* tests/perf_event_open.c: Update expected output.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	perf.c: add support for struct perf_event_attr.namespaces.
+	This field was introduced by linux kernel commit v4.12-rc1~152^2~42^2~10.
+
+	* configure.ac (AC_CHECK_MEMBERS): Add  perf_event_attr.namespaces.
+	* perf_event_struct.h (struct perf_event_attr): Add namespaces field.
+	* perf.c (print_perf_event_attr): Print namespaces field.
+	Update comment for __reserved_1 field.
+	* tests/perf_event_open.c (struct pea_flags): Add namespaces field.
+	(print_event_attr): Update expected output.
+
+2018-01-11  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check decoding of [gs]et_thread_area syscalls on x86.
+	* tests/xet_thread_area_x86.c: New file.
+	* tests/xet_thread_area_x86.test: New test.
+	* tests/Makefile.am (DECODER_TESTS): Add it.
+	* tests/.gitignore: Add xet_thread_area_x86.
+	* tests/pure_executables.list: Likewise.
+
+2018-01-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check decoding of modify_ldt with for 4-byte-available user_desc.
+	Since there is possibility now that strace read only entry_number field
+	of the user_desc struct, let's check that it doesn't do it with
+	modify_ldt syscall.
+
+	* tests/modify_ldt.c (main): Add 4-byte-sized tail_alloc'ed variable.
+	Try to provide it as an argument to modify_ldt.
+
+2018-01-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Allow separate printing of struct user_desc.entry_number.
+	Kernel reads only entry_number field in the beginning of the
+	get_thread_area syscall handler.  Let's replicate this behaviour.
+
+	* defs.h (enum user_desc_print_filter): New enumeration.
+	(print_user_desc): Add an argument for signalling which part of the
+	structure should be printed.
+	* clone.c (print_tls_arg): Update print_user_desc call.
+	* ldt.c (print_user_desc): Add filter argument.  Print entry_number on
+	entering and the rest on exiting. Store entering value of the
+	entry_number field in order to print the updated value in the impossible
+	case of changed entry_number value.
+	(SYS_FUNC(modify_ldt), SYS_FUNC(set_thread_area)): Update
+	print_user_desc call.
+	(SYS_FUNC(get_thread_area)): Call print_user_desc with
+	USER_DESC_ENTERING format argument on entering and with
+	USER_DESC_EXITING on exiting.
+
+2018-01-10  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: move struct user_desc printing function into a separate file.
+	As part of preparation for the introduction of [gs]et_thread_area test.
+
+	* tests/modify_ldt.c (print_user_desc): Move it ...
+	* tests/print_user_desc.c: ... to new file.
+	* tests/Makefile.am (EXTRA_DIST): Add print_user_desc.c.
+
+2018-01-08  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check decoding of modify_ldt syscall.
+	* tests/modify_ldt.c: New file.
+	* tests/gen_tests.in: Add modify_ldt test.
+	* tests/pure_executables.list: Add modify_ldt.
+	* tests/.gitignore: Likewise.
+
+	ldt.c: manually set modify_ldt's error code.
+	* ldt.c (modify_ldt): Move parsing under entering(tcp). Check whether
+	return code is erroneous and set tcp->u_error appropriately along with
+	RVAL_PRINT_ERR_VAL flag.
+
+2018-01-08  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: add support for printing return value and error code.
+	Some weird syscalls (like modify_ldt) return value that doesn't indicate
+	an error (less than -4096), but it is, in fact, erroneous (because they
+	decide to clip the return value to 32-bit, for example).
+
+	Add a flag to print decoded error code along with syscall return value.
+
+	* defs.h (RVAL_PRINT_ERR_VAL): New rval flag.
+	* syscall.c (syscall_exiting_trace): Handle it.
+
+2018-01-08  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	ldt.c: print the first argument of modify_ldt as int.
+	* ldt.c (SYS_FUNC(modify_ldt)): Print the first argument as %d.
+
+	ldt.c: print lm field for 64-bit tracees.
+	* configure.ac (AC_CHECK_MEMBERS): Add struct user_desc.lm.
+	* ldt.c (print_user_desc) [HAVE_STRUCT_USER_DESC_LM]: Print lm field
+	for non-compat tracees (it is ignored for compat ones).
+
+2018-01-08  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	ldt.c: make struct user_desc output more structured.
+	Also, while we are here, let's fix print qualifiers (which should be %u
+	and not %d).
+
+	* ldt.c (print_user_desc): Use PRINT_FIELD_* macros for printing
+	structure.
+	(SYS_FUNC(set_thread_area)): Change field key-value separator from ":"
+	to "=", change print format qualifier from %d to %u.
+
+2018-01-08  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	print_fields.h: add PRINT_FIELD_U_CAST.
+	Add a macro for printing fields explicitly casted to specific type.
+	This is useful for bit fields, as otherwise the magic of *_extend_to_*
+	macros breaks.
+
+	* print_field.h (PRINT_FIELD_U_CAST): New macro.
+
+2018-01-08  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	print_fields.h: rename PRINT_FIELD_UID to PRINT_FIELD_ID.
+	As uid is not the only thing that has a special treatment of the -1
+	value (and, as a result, needs special care), let's rename
+	PRINT_FIELD_UID to PRINT_FIELD_ID and make PRINT_FIELD_UID its alias.
+
+	* print_fields.h (PRINT_FIELD_ID): Rename from PRINT_FIELD_UID.
+	(PRINT_FIELD_UID): Define to PRINT_FIELD_ID.
+
+2018-01-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix build on systems without linux/genetlink.h.
+	* socketutils.c [!HAVE_LINUX_GENETLINK_H] (genl_families_xlat): Add
+	tcp argument.
+
+	Fixes: v4.20-134-gc46fefc ("Add tcp arguments to netlink calls")
+
+2018-01-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	count.c: whitespace.
+
+	count.c: cleanup types and sizeof usage.
+	* count.c (call_summary_pers): Change the type of sorted_count
+	to "unsigned int *".  Replace sizeof(int) with  sizeof(sorted_count[0]).
+	Change the type of idx to unsigned int.
+
+2018-01-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	count.c: collect definitions of format strings in one place.
+	In an attempt to make it more readable.
+
+	* count.c (call_summary_pers): Put all format strings in static
+	constants. Use them.
+
+2018-01-07  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Add tcp arguments to netlink calls.
+	Since they call tracee-specific socket/sendmsg/recvmsg, we'd like to
+	pass tcp there.
+
+	* defs.h (genl_families_xlat): Add tcp argument.
+	* netlink.c (decode_nlmsg_type_default, decode_nlmsg_type_generic,
+	decode_nlmsg_type_netfilter, typedef nlmsg_types_decoder_t): Likewise.
+	(decode_nlmsg_type): Add tcp argument. Pass tcp to decoder call.
+	(print_nlmsghdr): Pass tcp to the decode_nlmsg_type call.
+	* socketutils.c (send_query, receive_responses): Add tcp argument.
+	(inet_send_query, unix_send_query, netlink_send_query, ): Add tcp argument.
+	Pass tcp to the send_query call.
+	(unix_get): Add tcp argument. Pass tcp to the unix_send_query and
+	receive_responses calls.
+	(inet_get): Add tcp argument. Pass tcp to the inet_send_query and
+	receive_responses calls.
+	(tcp_v4_get, udp_v4_get, tcp_v6_get, udp_v6_get): Add tcp argument. Pass
+	tcp to the inet_get call.
+	(netlink_get): Add tcp argument. Pass tcp to the netlink_send_query and
+	receive_responses calls.
+	(protocols): Add tcp argument to the get field.
+	(get_sockaddr_by_inode_uncached): Add tcp argument. Pass tcp to
+	the protocols[].get calls.
+	(print_sockaddr_by_inode_uncached): Add tcp argument. Pass tcp to
+	the get_sockaddr_by_inode_uncached call.
+	(get_sockaddr_by_inode): Pass tcp to the get_sockaddr_by_inode_uncached
+	call.
+	(print_sockaddr_by_inode): Pass tcp to the
+	print_sockaddr_by_inode_uncached call.
+	(genl_send_dump_families): Add tcp argument. Pass tcp to the send_query
+	call.
+	(genl_families_xlat): Add tcp argument. Pass tcp to the
+	genl_send_dump_families and receive_responses calls.
+
+2018-01-07  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Add tcp argument to clear_regs.
+	* defs.h (clear_regs): Add argument struct tcb *tcp.
+	* syscall.c (clear_regs): Likewise.
+	* strace.c (next_event): Pass tcp to clear_regs() call.
+
+2018-01-07  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Pass tcp argument to get_optmem_max/read_int_from_file.
+	In preparation to passing tcp to all tracee-related syscalls.
+
+	* defs.h (read_int_from_file): Add "struct tcb *" as the first argument.
+	* util.c (read_int_from_file): Likewise.
+	* msghdr.c (get_optmem_max): Add "struct tcb *tcp" as the first
+	argument, pass it to read_int_from_file call.
+	(decode_msg_control): Pass tcp to get_optmem_max.
+
+2018-01-07  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Include paths.h if it is available.
+	Use the OS definition of _PATH_BSHELL macro if it is available.
+
+	* configure.ac (AC_CHECK_HEADERS): Add paths.h.
+	* strace.c [HAVE_PATHS_H]: Include paths.h.
+
+2018-01-07  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	strace.c: avoid duplication of a format string in attach_tcb.
+	* strace.c (attach_tcb): Add task_path variable with the output format.
+	Use it for the procdir declaration and xsprintf format string argument.
+
+2018-01-07  Elvira Khabirova  <lineprinter@altlinux.org>
+
+	Move syscall_tampered to defs.h.
+	* syscall.c (syscall_tampered): Move ...
+	* defs.h: ... here.
+
+2018-01-07  Elvira Khabirova  <lineprinter@altlinux.org>
+
+	strace.c: rename set_sigaction to set_sighandler.
+	Since set_sigaction() actually specifies sa_handler and not sa_sigaction,
+	rename set_sigaction() to set_sighandler() for future definition of
+	set_sigaction() function as specifying sa_sigaction.
+
+	* strace.c (set_sigaction): Rename to set_sighandler.
+	All callers updated.
+
+2018-01-07  Elvira Khabirova  <lineprinter@altlinux.org>
+
+	.gitignore: ignore "gnu" directory created by st_MPERS m4 macro.
+
+	Update .mailmap.
+	* .mailmap (Elvira Khabirova): Add @altlinux.org.
+
+2018-01-07  Chen Jingpiao  <chenjingpiao@gmail.com>
+
+	.mailmap: add canonical name for Chen Jingpiao.
+	* .mailmap: Add canonical name for Chen Jingpiao.
+
+2018-01-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	personality.c: use sprintxval.
+	* personality.c (SYS_FUNC(personality)): Use sprintxval instead of local
+	implementation.
+
+2018-01-07  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	xlat.c: add sprintxval for printing xval to string.
+	* defs.h (sprintxval): New declaration.
+	(sprintxval): New function.
+
+2018-01-07  Dmitry V. Levin  <ldv@altlinux.org>
+
+	desc.c: use xsnprintf instead of sprintf.
+	* desc.c: Include "xstring.h".
+	(decode_select): Replace sprintf with xsnprintf.
+
+	xlat.c: use xsnprintf instead of sprintf.
+	* xlat.c: Include "xstring.h".
+	(sprintflags): Replace sprintf with xsnprintf.
+
+	open.c: use xsnprintf instead of sprintf.
+	* open.c: Include "xstring.h".
+	(sprint_open_modes): Replace sprintf with xsnprintf.
+
+	poll.c: use xs*printf instead of sprintf.
+	* poll.c: Include "xstring.h".
+	(decode_poll_exiting): Replace sprintf with xsnprintf and xsprintf.
+
+	signal.c: use xs*printf instead of sprintf.
+	* signal.c: Include "xstring.h".
+	(signame): Replace sprintf with xsprintf.
+	(sprintsigmask_n): Replace sprintf with xsnprintf.
+
+	print_timeval.c: use xsprintf instead of snprintf.
+	* print_timeval.c: Include "xstring.h".
+	(sprint_timeval, sprint_timeval32): Replace snprintf with xsprintf.
+
+	print_timespec.c: use xsprintf instead of snprintf.
+	* print_timespec.c: Include "xstring.h".
+	(sprint_timespec): Replace snprintf with xsprintf.
+
+	mmsghdr.c: use xsprintf instead of snprintf.
+	* mmsghdr.c: Include "xstring.h".
+	(SYS_FUNC(recvmmsg)): Replace snprintf with xsprintf.
+
+	socketutils.c: use xsprintf instead of snprintf.
+	* socketutils.c: Include "xstring.h".
+	(unix_parse_response): Replace snprintf with xsprintf.
+
+	alpha.c: use xsprintf instead of snprintf.
+	* alpha.c: Include "xstring.h".
+	(decode_getxxid): Replace snprintf with xsprintf.
+
+	v4l2.c: use xsprintf instead of sprintf.
+	* v4l2.c: Include "xstring.h".
+	(print_v4l2_create_buffers): Replace sprintf with xsprintf.
+
+	util.c: use x*sprintf instead of s*printf.
+	* util.c: Include "xstring.h".
+	(sprinttime_ex): Replace snprintf with xsnprintf.
+	(getfdproto): Replace sprintf with xsprintf.
+
+	unwind.c: use xsprintf instead of sprintf.
+	* unwind.c: Include "xstring.h".
+	(build_mmap_cache): Replace sprintf with xsprintf.
+
+	syscall.c: use xsprintf instead of sprintf.
+	* syscall.c: Include "xstring.h".
+	(get_scno): Replace sprintf with xsprintf.
+
+	resource.c: use xsprintf instead of sprintf.
+	* resource.c: Include "xstring.h".
+	(sprint_rlim64, sprint_rlim32): Replace sprintf with xsprintf.
+
+	pathtrace.c: use xsprintf instead of sprintf.
+	* pathtrace.c: Include "xstring.h".
+	(getfdpath): Replace sprintf with xsprintf.
+
+2018-01-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	ldt.c: replace sprintf with xsprintf.
+	* ldt.c: Include "xstring.h".
+	(SYS_FUNC(set_thread_area)): Replace sprintf with xsprintf.
+
+2018-01-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.c: use xsprintf instead of sprintf.
+	* strace.c: Include "xstring.h".
+	(strerror, newoutf, attach_tcb, print_debug_info): Replace sprintf
+	with xsprintf.
+
+2018-01-05  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	ioprio.c: use xsprintf instead of sprintf.
+	* ioprio.c: Include "xstring.h".
+	(sprint_ioprio): Replace sprintf with xsprintf.
+
+2018-01-05  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Introduce hardened xsprintf/xsnprintf macros.
+	Let's try to future/fool-proof code a bit by introducing variants
+	of sprintf/snprintf that die if an overflow (or an error) occurs.
+	They are deemed to be the default choice for printing to some local
+	string buffer where no sensible error handling is implemented.
+
+	* xstring.h: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+
+2018-01-05  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	count.c: use %9.u conversion specification.
+	Instead of printing to a temporary string.  This also fixes a subtle bug
+	when the output for a billion errors and more is cut and shown
+	incorrectly.
+
+	* count.c (struct call_counts): Change type of calls and errors fields
+	to unsigned int since they are used and printed as unsigned anyway.
+	(call_summary_pers): Remove error_str.  Print cc->errors
+	and error_cum using %9.u conversion specification.
+
+2018-01-05  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	count.c: use personality_names in call_summary report caption.
+	Otherwise the title is quite misleading for x32 personality.
+
+	* count.c (call_summary): Use personality_names.
+
+2018-01-05  Victor Krapivensky  <krapivenskiy.va@phystech.edu>
+
+	Move personality names to a global variable.
+	This is a part of "Prepare for adding support for Lua scripting"
+	commit.
+
+	* defs.h (personality_names): New external constant declaration.
+	* syscall.c: (personality_names): New global variable.
+	(update_personality): Use personality_names for reporting personality
+	name.
+
+	Co-Authored-by: Eugene Syromyatnikov <evgsyr@gmail.com>
+
+2018-01-04  Lubomir Rintel  <lkundrak@v3.sk>
+
+	strace.spec.in: include Bluetooth headers for AF_BLUETOOTH sockets decoding
+	* strace.spec.in (BuildRequires): Add pkgconfig(bluez).
+
+2018-01-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Lift artificial limit on output file names in -ff mode.
+	Starting with commit v4.5.19~88 strace imposed an artificial limit
+	on output file names in -ff mode, leading to the following absurd
+	behaviour:
+
+	$ strace -ff -o"$(perl -e 'print "/" x 510')/$PWD/log" /bin/true
+	strace: Can't fopen '////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////.12345': Permission denied
+
+	* strace.c (newoutf): Raise buffer size to PATH_MAX.
+	(init) <followfork >= 2>: Check output file name prefix length.
+	* tests/options-syntax.test: Check it.
+
+2018-01-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	configure.ac: fix typo.
+	* configure.ac: Replace CPPFALGS with CPPFLAGS.
+
+	Fixes: v4.20-85-gf9c8e8a ("unwind: demangle symbol names")
+
+2018-01-03  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Change the first argument of upeek from pid to tcp.
+	All users were changed automatically by:
+
+		for i in `git grep -l 'upeek(tcp->pid'`; do \
+			sed -i 's/upeek(tcp->pid/upeek(tcp/g' "$i"; \
+		done
+
+	* upeek.c (upeek): Change the first argument from pid_t pid to struct
+	tcb *tcp. Use tcp->pid instead of pid in the function's body.
+	* defs.h (upeek): Update declaration.
+	* linux/alpha/arch_getrval2.c: Pass tcp instead of tcp->pid to the
+	upeek calls.
+	* linux/alpha/arch_rt_sigframe.c: Likewise.
+	* linux/alpha/arch_sigreturn.c: Likewise.
+	* linux/alpha/get_scno.c: Likewise.
+	* linux/alpha/get_syscall_args.c: Likewise.
+	* linux/alpha/get_syscall_result.c: Likewise.
+	* linux/bfin/arch_rt_sigframe.c: Likewise.
+	* linux/bfin/get_scno.c: Likewise.
+	* linux/bfin/get_syscall_args.c: Likewise.
+	* linux/bfin/get_syscall_result.c: Likewise.
+	* linux/crisv10/arch_rt_sigframe.c: Likewise.
+	* linux/crisv10/get_scno.c: Likewise.
+	* linux/crisv10/get_syscall_args.c: Likewise.
+	* linux/crisv10/get_syscall_result.c: Likewise.
+	* linux/hppa/arch_rt_sigframe.c: Likewise.
+	* linux/hppa/get_scno.c: Likewise.
+	* linux/hppa/get_syscall_args.c: Likewise.
+	* linux/hppa/get_syscall_result.c: Likewise.
+	* linux/microblaze/arch_rt_sigframe.c: Likewise.
+	* linux/microblaze/arch_sigreturn.c: Likewise.
+	* linux/microblaze/get_scno.c: Likewise.
+	* linux/microblaze/get_syscall_args.c: Likewise.
+	* linux/microblaze/get_syscall_result.c: Likewise.
+	* linux/powerpc/getregs_old.c: Likewise.
+	* linux/sh/arch_getrval2.c: Likewise.
+	* linux/sh/arch_rt_sigframe.c: Likewise.
+	* linux/sh/get_scno.c: Likewise.
+	* linux/sh/get_syscall_args.c: Likewise.
+	* linux/sh/get_syscall_result.c: Likewise.
+	* linux/sh64/get_scno.c: Likewise.
+	* linux/sh64/get_syscall_args.c: Likewise.
+	* linux/sh64/get_syscall_result.c: Likewise.
+	* linux/xtensa/arch_rt_sigframe.c: Likewise.
+	* linux/xtensa/get_scno.c: Likewise.
+	* linux/xtensa/get_syscall_args.c: Likewise.
+	* linux/xtensa/get_syscall_result.c: Likewise.
+	* syscall.c: Likewise.
+
+2018-01-03  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Change argument of getregs_old from pid to tcp.
+	* linux/powerpc/getregs_old.c (getregs_old): Change the first argument
+	from pid_t pid to struct tcb *tcp. Replace all instances of pid with
+	tcp->pid.
+	* linux/x86_64/getregs_old.c (getregs_old): Likewise.
+	* linux/x86_64/getregs_old.h (getregs_old): Update declaration.
+	* syscall.c (get_regs) [HAVE_GETREGS_OLD]: Pass tcp to the getregs_old
+	call instead of tcp->pid.
+
+2018-01-03  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Change the first argument of upoke from pid to tcp.
+	Users were updated automatically by:
+
+		for i in `git grep -l 'upoke(tcp->pid'`; do \
+			sed -i 's/upoke(tcp->pid/upoke(tcp/g' "$i"; \
+		done
+
+	* upoke.c (upoke): Change the first argument from pid_t pid to struct
+	tcb *tcp. Use tcp->pid instead of pid in the function's body.
+	* defs.h (upoke): Update declaration.
+	* linux/alpha/set_error.c (arch_set_error, arch_set_success): Provide
+	tcp in the first argument of the upoke call instead of tcp->pid.
+	* linux/alpha/set_scno.c (arch_set_scno): Likewise.
+	* linux/bfin/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/bfin/set_scno.c (arch_set_scno): Likewise.
+	* linux/crisv10/set_error.c (arch_set_error, arch_set_success):
+	Likewise.
+	* linux/crisv10/set_scno.c (arch_set_scno): Likewise.
+	* linux/hppa/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/hppa/set_scno.c (arch_set_scno): Likewise.
+	* linux/i386/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/i386/set_scno.c (arch_set_scno): Likewise.
+	* linux/microblaze/set_error.c (arch_set_error, arch_set_success):
+	Likewise.
+	* linux/microblaze/set_scno.c (arch_set_scno): Likewise.
+	* linux/powerpc/set_error.c (arch_set_error, arch_set_success):
+	Likewise.
+	* linux/powerpc/set_scno.c (arch_set_scno): Likewise.
+	* linux/sh/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/sh/set_scno.c (arch_set_scno): Likewise.
+	* linux/sh64/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/sh64/set_scno.c (arch_set_scno): Likewise.
+	* linux/x86_64/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/x86_64/set_scno.c (arch_set_scno): Likewise.
+	* linux/xtensa/set_error.c (arch_set_error, arch_set_success): Likewise.
+	* linux/xtensa/set_scno.c (arch_set_scno): Likewise.
+
+2018-01-03  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	Move enum trace_event into a separate header.
+	As it will have users outside strace.c in the future.
+
+	* trace_event.h (enum trace_event): Move it from...
+	* strace.c (enum trace_event): ...here.
+	(#include "trace_event.h"): New header, for enum trace_event.
+	* Makefile.am (strace_SOURCES): Add trace_event.h.
+
+2018-01-03  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Call get_scno during startup_tcb only for forcibly attached processes.
+	Otherwise it makes little sense on most arches to try to get syscall
+	number.
+
+	* defs.h (TCB_GRABBED): New tcb flag.
+	* strace.c (attach_tcb): Set TCB_GRABBED for the tcb.
+	(startup_tcb): Call get_scno() only if process is grabbed and its
+	registers may contain syscall number information.
+
+	Reported-by: Dmitry V. Levin <ldv@altlinux.org>
+	Closes: https://github.com/strace/strace/issues/22
+
+2018-01-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.c: sort getopt switch branches alphabetically.
+	There's no reason to have them out of order. This also (almost) matches
+	their order in the getopt call argument, introduced in
+	v4.20-64-g61c03be.
+
+	* strace.c (init): Sort branches in the getopt switch routine.
+
+2018-01-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.c: check for (non)zero argc instead of argv[0]
+	Since we can never be sure that we have NULL behind the last entry of
+	the argv array.
+
+	* strace.c (init): Check for non-zero argc before/instead of argv[0].
+
+2018-01-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.1: advertise strace-log-merge.
+	In order to raise awareness about strace-log-merge, mention it in
+	SEE ALSO section and -ff option description.
+
+	* strace.1.in (.SS Filtering) <.TP .B \-ff>: Mention strace-log-merge.
+	(.SH "SEE ALSO"): Likewise.
+
+2017-12-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	unwind: demangle function arguments.
+	* unwind.c (print_stack_frame): Specify demangling style.
+	* tests/strace-k.test (result): Update regexp.
+	* tests/strace-k-demangle.test (expected): Update expected output.
+
+	tests: check strace -k symbol names demangling.
+	* tests/strace-k-demangle.test: New test.
+	* tests/stack-fcall-mangled.c: New file.
+	* tests/stack-fcall-mangled-0.c: Likewise.
+	* tests/stack-fcall-mangled-1.c: Likewise.
+	* tests/stack-fcall-mangled-2.c: Likewise.
+	* tests/stack-fcall-mangled-3.c: Likewise.
+	* tests/stack-fcall.h [MANGLE] (f0, f1, f2, f3): New macros.
+	* tests/.gitignore: Add stack-fcall-mangled.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(stack_fcall_mangled_SOURCES): New variable.
+	(EXTRA_DIST): Add strace-k-demangle.test.
+	[USE_LIBUNWIND && USE_DEMANGLE] (LIBUNWIND_TESTS): Likewise.
+
+2017-12-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: parametrize strace-k.test.
+	Prepare for the check of strace -k symbol names demangling.
+
+	* tests/strace-k.test: Parametrize $test_prog and $expected.
+	* tests/stack-fcall.h: New file.
+	* tests/stack-fcall.c: Include "stack-fcall.h"
+	* tests/stack-fcall-0.c: Likewise.
+	* tests/stack-fcall-1.c: Likewise.
+	* tests/stack-fcall-2.c: Likewise.
+	* tests/stack-fcall-3.c: Likewise.
+	* tests/Makefile.am (EXTRA_DIST): Add stack-fcall.h.
+
+2017-12-26  Masatake YAMATO  <yamato@redhat.com>
+
+	unwind: demangle symbol names.
+	Implement demangling of C++ symbol names in stack trace
+	using cplus_demangle function from GNU libiberty library.
+
+	This is an example demangled stack trace output:
+
+	fstat(5, {st_mode=S_IFREG|0664, st_size=0, ...}) = 0
+	 > /usr/lib64/libc-2.25.so(__fxstat64+0x12) [0xffd62]
+	 > /usr/lib64/libc-2.25.so(_IO_file_doallocate+0x5f) [0x717ff]
+	 > /usr/lib64/libc-2.25.so(_IO_doallocbuf+0x79) [0x81699]
+	 > /usr/lib64/libc-2.25.so(_IO_file_overflow+0x198) [0x807b8]
+	 > /usr/lib64/libc-2.25.so(_IO_file_xsputn+0xbd) [0x7ed5d]
+	 > /usr/lib64/libc-2.25.so(fwrite_unlocked+0x60) [0x7d800]
+	 > /usr/lib64/libleveldb.so.1.18(leveldb::EnvWrapper::StartThread+0x3b6) [0x48656]
+	 > /usr/lib64/libleveldb.so.1.18(leveldb::log::Writer::EmitPhysicalRecord+0x89) [0x28bc9]
+	 > /usr/lib64/libleveldb.so.1.18(leveldb::log::Writer::AddRecord+0x9e) [0x28d9e]
+	 > /usr/lib64/libleveldb.so.1.18(leveldb::DBImpl::Write+0x208) [0x1ce18]
+	 > /usr/lib64/libleveldb.so.1.18(leveldb::DB::Put+0x59) [0x192b9]
+	 > /usr/lib64/libleveldb.so.1.18(leveldb::DBImpl::Put+0x1d) [0x1931d]
+	 > /home/yamato/var/leveldb/doc/a.out(main+0x120) [0x1107]
+	 > /usr/lib64/libc-2.25.so(__libc_start_main+0xea) [0x2088a]
+	 > /home/yamato/var/leveldb/doc/a.out(_start+0x2a) [0xf3a]
+
+	* Makefile.am [USE_DEMANGLE] (strace_CPPFLAGS, strace_LDFLAGS,
+	libiberty_LDADD): Append libiberty_CPPFLAGS, strace_LDFLAGS, and
+	libiberty_LIBS, respectively.
+	* configure.ac: Add --with-libiberty option.  Check cplus_demangle
+	support in libiberty.
+	* unwind.c [USE_DEMANGLE]: Include <demangle.h>.
+	(print_stack_frame) [USE_DEMANGLE]: Use cplus_demangle.
+
+2017-12-26  Masatake YAMATO  <yamato@redhat.com>
+
+	Define macros for renaming xmalloc and xcalloc.
+	I'm planning to link strace with libiberty for mangling C++
+	symbol names in stack trace enabled with -k option.
+
+	Both names, xmalloc and xcalloc, are already defined and used
+	in libiberty, and they conflict with functions in strace.
+	Rename xmalloc and xcalloc functions defined in strace
+	to strace_xmalloc and strace_xcalloc, respectively,
+	to avoid this conflict.
+
+	* xmalloc.h (xcalloc, xmalloc): New macros.
+
+2017-12-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	syscall: move a sparc specific include to an arch specific file.
+	* syscall.c [SPARC64]: Do not include <asm/psrcompat.h>.
+	[SPARC]: Do not include <asm/psr.h>.
+	* linux/sparc/get_error.c: Include <asm/psr.h>.
+
+	syscall: move all ia64 specific includes to an arch specific file.
+	* syscall.c [IA64]: Remove.
+	* linux/ia64/get_syscall_args.c: Include <asm/rse.h>.
+
+	syscall: simplify get_syscall_result.
+	* syscall.c [ptrace_getregset_or_getregs] (get_syscall_result_regs):
+	Define to get_regs.
+	(get_syscall_result): Use get_syscall_result_regs unconditionally.
+
+2017-12-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	syscall: change get_regs argument type.
+	This opens the way for future changes related to get_regs.
+
+	* syscall.c (get_regs): Change argument type from "pid_t"
+	to "struct tcb *", all callers changed.
+
+2017-12-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	syscall: move get_regs call from syscall_exiting_decode to get_syscall_result
+	This make the code less confusing and opens the way for future changes
+	related to get_regs.
+
+	* syscall.c (syscall_exiting_decode): Move get_regs invocation ...
+	(get_syscall_result) [ptrace_getregset_or_getregs]: ... here.
+
+2017-12-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	syscall: rework subcall decoding on mips o32.
+	Move syscall subcall handling to the same switch statement that
+	handles ipc and socket subcalls.
+
+	* linux/mips/syscallent-o32.h [LINUX_MIPSO32] (SYS_syscall_subcall):
+	Define.
+	* syscall.c (decode_mips_subcall): Rename to decode_syscall_subcall,
+	conditionalize on SYS_syscall_subcall instead of LINUX_MIPSO32.
+	(syscall_entering_decode) [LINUX_MIPSO32]: Remove.
+	(syscall_entering_decode) [SYS_syscall_subcall]: Handle SEN_syscall
+	using decode_syscall_subcall.
+
+2017-12-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	syscall: tweak shuffle_scno ifdefery.
+	* syscall.c (shuffle_scno): Check for ARM_FIRST_SHUFFLED_SYSCALL
+	instead of ARM || AARCH64.  This does not result to any code change
+	but looks more comprehensible.
+
+	syscall: change get_regs to return an error code.
+	* syscall.c (get_regs_error) [!ptrace_getregset_or_getregs]: Do not
+	define.
+	(clear_regs) [!ptrace_getregset_or_getregs]: Do not set get_regs_error.
+	(get_regs) [ptrace_getregset_or_getregs]: Return get_regs_error, all
+	callers changed to test get_regs return code instead of get_regs_error
+	static variable, which is now internally used by get_regs() and
+	clear_regs() only.
+	(USE_GET_SYSCALL_RESULT_REGS): Do not define.
+	Use "#ifndef ptrace_getregset_or_getregs"
+	instead of "#ifdef USE_GET_SYSCALL_RESULT_REGS".
+
+2017-12-24  Harsha Sharma  <harshasharmaiitr@gmail.com>
+
+	tests: enhance run.sh usage error diagnostics.
+	* tests/run.sh: Execute timeout command only when invoked with
+	an argument, otherwise print an error message.
+
+2017-12-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: skip nsyscalls-d.test on mips o32.
+	On mips o32, nsyscalls test is implemented using syscall #4000,
+	so nsyscalls-d cannot work there.
+
+	* tests/nsyscalls-d.test: Skip on mips o32.
+
+2017-12-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove linux/ptp_clock.h.
+	As linux kernel provides a compatible linux/ptp_clock.h header since
+	commit v3.8-rc1~139^2~514, there is no need for a local copy.
+
+	* linux/ptp_clock.h: Remove.
+	* Makefile.am (EXTRA_DIST): Remove it.
+	* configure.ac (AC_CHECK_TYPES): Check for struct ptp_sys_offset
+	in <linux/ptp_clock.h>.
+	* ioctl.c (ioctl_decode) <case '='>: Conditionalize
+	on [HAVE_STRUCT_PTP_SYS_OFFSET].
+	* ptp.c: Likewise.
+
+2017-12-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove linux/ubi-user.h.
+	As linux kernel provides a compatible mtd/ubi-user.h header since
+	commit v3.7-rc1~85^2~17, there is no need for a local copy.
+
+	* linux/ubi-user.h: Remove.
+	* Makefile.am (EXTRA_DIST): Remove it.
+	* configure.ac (AC_CHECK_MEMBERS): Check
+	for struct ubi_attach_req.max_beb_per1024 in <mtd/ubi-user.h>.
+	* ioctl.c (ioctl_decode) <case 'o', case 'O'>: Conditionalize
+	on HAVE_STRUCT_UBI_ATTACH_REQ_MAX_BEB_PER1024.
+	* ubi.c: Likewise.
+
+2017-12-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove linux/mtd-abi.h.
+	As linux kernel provides a compatible mtd/mtd-abi.h header since
+	commit v3.2-rc1~14^2~33, there is no need for a local copy.
+
+	* linux/mtd-abi.h: Remove.
+	* Makefile.am (EXTRA_DIST): Remove it.
+	* configure.ac (AC_CHECK_TYPES): Check for struct mtd_write_req
+	in <mtd/mtd-abi.h>.
+	* ioctl.c (ioctl_decode) <case 'M'>: Conditionalize
+	on [HAVE_STRUCT_MTD_WRITE_REQ].
+	* mtd.c: Likewise.
+	* tests/ioctl_mtd.c: Likewise.
+	* tests/ioctl.c (main): Likewise.
+
+2017-12-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove linux/personality.h.
+	* linux/personality.h: Remove.
+	* Makefile.am (EXTRA_DIST): Remove it.
+	* personality.c: Do not include <linux/personality.h>, include
+	"xlat/personality_flags.h" before "xlat/personality_types.h".
+	* xlat/personality_flags.in: Provide fallback definitions.
+	* xlat/personality_types.in: Likewise.
+
+2017-12-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	travis: switch from clang-3.8 to clang.
+	As travis provides a relatively fresh clang by default nowadays,
+	it makes sense to use default clang in clang-based test builds.
+
+	* .travis.yml (matrix): Change clang-3.8 to clang.
+
+2017-12-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.1.in: mention perf and ftrace in SEE ALSO.
+	* strace.1.in (.SH SEE ALSO): Add references to perf-trace(1) and
+	trace-cmd(1).
+
+	strace.1.in: clarify -F option behaviour.
+	* strace.1.in <.TP \-F>: Extend deprecation warning.  Describe behaviour
+	of multiple instances of -F and interoperability of -F and -f.
+
+2017-12-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: consistently use $STRACE_EXE instead of local alternatives.
+	* tests/get_regs.test: Replace "${STRACE##* }" with "$STRACE_EXE".
+	* tests/options-syntax.test: Replace "$strace_exp" with "$STRACE_EXE".
+	* tests/syntax.sh: Likewise.
+
+2017-12-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.c: inform the user about -F option obsolescence.
+	* strace.c (init): Print an error message if the option is used.
+
+2017-12-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.c: sort option arguments alphabetically.
+	Except for the ones that enabled by configure options.
+
+	While we are here, let's also change the indentation of while expression
+	continuation in order to separate it from the following switch clause.
+
+	* strace.c (init): Reorder options in getopt() call.
+
+2017-12-20  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	strace.c: use _exit() instead of exit() in child's die()
+	Let's keep child's death routine as minimalistic as possible for the
+	cases when vfork() is used instead of fork() on systems that lack MMU.
+
+	* strace.c (die) <!(strace_tracer_pid == getpid())>: Call _exit().
+
+2017-12-20  Harsha Sharma  <harshasharmaiitr@gmail.com>
+
+	syscall: replace if (debug_flag) ... with debug_msg macro.
+	* syscall.c (get_scno): Use debug_msg instead of
+	"if (debug_flag) error_msg".
+
+2017-12-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check (some) debugging output generated during nsyscalls test.
+	* tests/nsyscalls-d.c: New file.
+	* tests/.gitignore: Add it.
+	* tests/nsyscalls-d.test: New test, variant of nsyscalls.test with debug
+	output check.
+	* tests/nsyscalls-nd.test: Likewise.
+	* tests/nsyscalls.c: Add expected debug output.
+	* tests/Makefile.am (check_PROGRAMS): Add nsyscalls-d.
+	(DECODER_TESTS): Add nsyscalls-d.test and nsyscalls-nd.test.
+
+2017-12-20  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	pathtrace.c: use xgrowarray.
+	* defs.h <struct path_set>: Change type of num_selected field to size_t.
+	Add size field.
+	* pathtrace.c (storepath): Rewrite to utilise xgrowarray.
+
+2017-12-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	dyxlat: use xgrowarray.
+	* dyxlat.c (dyxlat_alloc): Use xgrowarray instead of xcalloc.
+	(dyxlat_add_pair): Use xgrowarray instead of xreallocarray.
+
+	unwind: use xgrowarray.
+	* unwind.c (get_symbol_name): Use xgrowarray instead of manual
+	dynamic array management using xreallocarray.
+
+2017-12-14  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	strace.c: use xgrowarray.
+	* strace.c (tcbtabsize): Change type to size_t.
+	(expand_tcbtab): Rewrite in order to utilise xgrowarray
+	instead of manual dynamic array management.
+
+	unwind: use xgrowarray.
+	* unwind.c (build_mmap_cache): Use xgrowarray instead of manual dynamic
+	array management.
+
+2017-12-14  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	xmalloc.c: introduce xgrowarray helper function.
+	In order to simplify dynamic array management code.
+
+	* xmalloc.h (xgrowarray): New declaration.
+	* xmalloc.c (xgrowarray): New function.
+
+2017-12-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check error diagnostics when exec file name is too long.
+	* tests/options-syntax.test: Check error diagnostics when
+	exec file name length equals to PATH_MAX.
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	strace.c: minor style fixes.
+	* strace.c (test_ptrace_seize): Remove excess braces.
+	(init): Wrap overly long string literal.  Add braces
+	to the else if branch.
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	strace.c: use *_func_* message printing macros where appropriate.
+	In order to provide some additional bits of information in weird error
+	cases or just replace existing usages of __func__/literal function name.
+
+	* strace.c (detach): Use perror_func_msg() instead of perror_msg().
+	(startup_attach, open_dummy_desc, startup_child, test_ptrace_seize): Use
+	perror_func_msg_and_die() instead of perror_msg_and_die().
+	(test_ptrace_seize): Use error_func_msg_and_die() instead of
+	error_msg_and_die().
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	unwind.c: more verbose mapping overlapping diagnostic message.
+	* unwind.c (build_mmap_cache): Change error_msg() to debug_msg(), add
+	information about region names and the respective start and end
+	addresses.
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	unwind.c: non-fatal handling of asprintf error.
+	An error returned by asprintf is a poor excuse for dying.
+
+	* unwind.c (asprintf_error_str): New string constant.
+	(sprint_call_or_error): Replace error_msg_and_die() with
+	perror_func_msg() and usage of asprintf_error_str for a return value.
+	(queue_print): Free tmp->output line only if it is not
+	asprintf_error_str.
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	unwind.c: eliminate DPRINTF.
+	Since DPRINTF is simply a macro that provides debugging information
+	along with some information about printing routine call site, now standard
+	debug_func_* macros are deemed to be a suitable replacement.
+
+	* unwind.c (DPRINTF): Remove.
+	(build_mmap_cache, delete_mmap_cache, unwind_cache_invalidate,
+	unwind_print_stacktrace, unwind_captiure_stacktrace): Replace
+	DPRINTF(fmt, str, ...) with debug_func_msg(fmt, ...)/
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	strace.c: replace if (debug_flag) ... with suitable debug printing macros
+	* strace.c (alloc_tcb, droptcb, detach, attach_tcb, test_ptrace_seize,
+	init, startup_tcb): Replace if (debug_flag) error_msg(...) occurrences
+	with debug_error_msg(...).
+	(attach_tcb): Replace if (debug_flag) perror_msg(...) with
+	debug_perror_msg(...).
+	(cleanup, startup_tcb): Replace if (debug_flag) error_msg(...)
+	occurrences with debug_func_msg() in attempt to provide additional
+	information.
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	error_prints.h: add *_func_* printing macros.
+	In order to reduce boilerplate for the cases when __func__ is desired
+	to be printed.
+
+	* error_prints.h (error_func_msg, perror_func_msg, debug_func_msg,
+	debug_func_perror_msg, error_func_msg_and_die, perror_func_msg_and_die):
+	New macro definitions.
+
+2017-12-13  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	error_prints.h: add debug print macros.
+	* defs.h (debug_flag): Move the declaration...
+	* error_prints.h (debug_flag): ... here.
+	(debug_msg, debug_perror_msg): New macro definitions.
+	Include <stdbool.h> for the debug_flag declaration.
+
+2017-12-04  Masatake YAMATO  <yamato@redhat.com>
+	    Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of KVM ioctl commands.
+	* tests/ioctl_kvm_run.c: New file.
+	* tests/ioctl_kvm_run.test: New test.
+	* tests/Makefile.am (DECODER_TESTS): Add ioctl_kvm_run.test.
+	* tests/pure_executables.list: Add ioctl_kvm_run.
+	* tests/.gitignore: Likewise.
+
+2017-12-04  Masatake YAMATO  <yamato@redhat.com>
+
+	kvm: decode the argument of KVM_{SET, GET}_SREGS ioctl command.
+	* configure.ac (AC_CHECK_TYPES): Add struct kvm_sregs.
+	* kvm.c [HAVE_STRUCT_KVM_SREGS] (kvm_ioctl_decode_sregs): New function.
+	(kvm_ioctl) [HAVE_STRUCT_KVM_SREGS] <KVM_SET_SREGS, KVM_GET_SREGS>:
+	Use it.
+	* linux/arch_kvm.c (arch_print_kvm_sregs): New function.
+	* linux/x86_64/arch_kvm.c (PRINT_FIELD_KVM_SREGS_STRUCT): New macro.
+	(kvm_ioctl_decode_regs_dtable, kvm_ioctl_decode_regs_segment,
+	arch_print_kvm_sregs): New functions.
+
+	kvm: decode the argument of KVM_{SET, GET}_REGS ioctl command.
+	* configure.ac (AC_CHECK_TYPES): Add struct kvm_regs.
+	* linux/arck_kvm.c: New file.
+	* linux/x86_64/arch_kvm.c: Likewise.
+	* linux/i386/arch_kvm.c: Likewise.
+	* linux/x32/arch_kvm.c: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+	* kvm.c: Include "arch_kvm.c".
+	[HAVE_STRUCT_KVM_REGS] (kvm_ioctl_decode_regs): New function.
+	(kvm_ioctl) [HAVE_STRUCT_KVM_REGS] <KVM_SET_REGS, KVM_GET_REGS>: Use it.
+
+	kvm: decode the argument of KVM_SET_USER_MEMORY_REGION ioctl command.
+	* configure.ac (AC_CHECK_TYPES): Add struct kvm_userspace_memory_region.
+	* xlat/kvm_mem_flags.in: New file.
+	* kvm.c: Include print_fields.h.
+	[HAVE_STRUCT_KVM_USERSPACE_MEMORY_REGION]: Include xlat/kvm_mem_flags.h,
+	(kvm_ioctl_set_user_memory_region): New function.
+	(kvm_ioctl) [HAVE_STRUCT_KVM_USERSPACE_MEMORY_REGION]
+	<KVM_SET_USER_MEMORY_REGION>: Use it.
+
+2017-12-03  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Add strace mascot.
+	* strace.svg: New file.
+
+	Co-Authored-by: Vitaly Chaykovsky <mgspeker@gmail.com>
+
+2017-12-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify attach-p-cmd.test against buggy kernels.
+	From time to time various kernels, old and new, just go nuts
+	and fail attach-p-cmd.test with the following diagnostics:
+
+	 12345 --- SIGALRM {si_signo=SIGALRM, si_code=SI_KERNEL} ---
+	-12345 chdir("attach-p-cmd.test -p") = -1 ENOENT (No such file or directory)
+	+12345 syscall_4294967295(0xffe60934, 0x1c0, 0xffe60934, 0x1, 0xffe609b4, 0xffe60a58) = -1 (errno 38)
+	+12345 chdir("attach-p-cmd.test -p") = -1 ENOSYS (Function not implemented)
+
+	Let's workaround this kernel madness by rewriting the test
+	without use of SIGALRM.
+
+	* tests/attach-p-cmd.h: New file.
+	* tests/Makefile.am (EXTRA_DIST): Add attach-p-cmd.h.
+	* tests/attach-p-cmd-cmd.c: Include "attach-p-cmd.h".
+	(write_pidfile, wait_for_peer_invocation): New functions.
+	(main): Use them.
+	* tests/attach-p-cmd-p.c: Include <time.h> and "attach-p-cmd.h".
+	(wait_for_peer_invocation, wait_for_peer_termination): New functions.
+	(main): Use them.  Do not raise SIGALRM, use nanosleep after peer
+	termination.
+
+2017-12-03  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify ipc_msgbuf.test against broken libc.
+	glibc between commits glibc-2.25~130 and glibc-2.26~740 had broken
+	msgctl(IPC_RMID) on hppa: this operation always failed with EINVAL
+	because of inappropriate use of IPC_64 flag.  Similar issues were
+	fixed on other niche architectures.  Let's workaround these issues
+	by skipping the test in case of msgctl(IPC_RMID) failure.
+
+	* tests/ipc_msgbuf.c (cleanup): Change return type to int,
+	return 77 in case of msgctl(IPC_RMID) failure.
+	(main): Explicitly invoke cleanup() at the end.
+
+2017-12-01  Masatake YAMATO  <yamato@redhat.com>
+
+	kvm: decode the argument of KVM_CREATE_VCPU ioctl command.
+	* kvm.c (kvm_ioctl_create_vcpu): New function.
+	(kvm_ioctl) <KVM_CREATE_VCPU>: Use it.
+
+	kvm: handle KVM_CREATE_VM ioctl command.
+	* kvm.c (kvm_ioctl): Handle KVM_CREATE_VM command.
+
+	kvm: handle KVM_RUN, KVM_GET_VCPU_MMAP_SIZE, and KVM_GET_API_VERSION ioctl commands
+	* kvm.c (kvm_ioctl): Handle KVM_RUN, KVM_GET_VCPU_MMAP_SIZE,
+	and KVM_GET_API_VERSION commands.
+
+	ioctl: add a stub for decoding kvm related ioctls.
+	* kvm.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* configure.ac (AC_CHECK_HEADERS): Add linux/kvm.h.
+	* defs.h (kvm_ioctl): New prototype.
+	* ioctl.c (ioctl_decode) HAVE_LINUX_KVM_H]: Use kvm_ioctl.
+
+2017-11-30  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace-log-merge: work around corner cases of strace -ttt parsing.
+	Employing strace -ttt for the logs destined to be fed to
+	strace-log-merge is ultimately the best solution except for the logs
+	that pass the following dates:
+
+	Thu Jan  1 00:00:09 UTC 1970
+	Thu Jan  1 00:01:39 UTC 1970
+	Thu Jan  1 00:16:39 UTC 1970
+	Thu Jan  1 02:46:39 UTC 1970
+	Fri Jan  2 03:46:39 UTC 1970
+	Mon Jan 12 13:46:39 UTC 1970
+	Sun Apr 26 17:46:39 UTC 1970
+	Sat Mar  3 09:46:39 UTC 1973
+	Sun Sep  9 01:46:39 UTC 2001
+	Sat Nov 20 17:46:39 UTC 2286
+	Wed Nov 16 09:46:39 UTC 5138
+	Fri Sep 27 01:46:39 UTC 33658
+	Sun May 20 17:46:39 UTC 318857
+	Sat Nov  7 09:46:39 UTC 3170843
+	Sun Jul  5 01:46:39 UTC 31690708
+	Sat Jan 25 17:46:39 UTC 316889355
+
+	Let's lift this limitation.
+
+	* strace-log-merge: Generate numeric-only key for sorting, use sort -n
+	option.
+
+2017-11-30  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	debian: add strace-log-merge to the list of installed files.
+	* debian/strace.install: Add strace-log-merge.
+
+	Add strace-log-merge man page.
+	* strace-log-merge.1.in: New file.
+	* NEWS: Mention this.
+	* .gitignore: Add strace-log-merge.1.
+	* Makefile.am (man_MANS): Likewise.
+	* configure.ac (AC_CONFIG_FILES): Likewise.
+	* debian/strace.manpages: Likewise.
+
+	strace-log-merge: add copyright header.
+
+2017-11-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Add initial GitLab CI support.
+	* .gitlab-ci.yml: New file.
+	* travis-build.sh: Print $CC -print-multi-lib.  Print config.log
+	in case of configure failure.
+	* travis-install.sh: Check sudo availability.  Install autoconf,
+	automake, file, gawk, gcc-multilib, git, gzip, make, and xz-utils
+	for all targets.
+	(musl-gcc): Install ca-certificates.
+
+2017-11-25  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mpers: fix cross-compiling.
+	In cross builds, a target version of readelf has to be used
+	instead of a native one.
+
+	* configure.ac (AC_CHECK_TOOL): Add readelf.
+	* Makefile.am (READELF): New variable.
+	(mpers-m%.stamp): Pass it to $(srcdir)/mpers.sh.
+	* m4/mpers.m4 (st_MPERS): Pass READELF environment variable
+	to $srcdir/mpers_test.sh.
+	* mpers.sh (READELF): New variable.
+	Use it instead of readelf.
+	* maint/ioctls_sym.sh: Likewise.
+	* NEWS: Mention this fix.
+
+	Reported-by: Rolf Eike Beer <eb@emlix.com>
+
+2017-11-22  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix llseek test.
+	* tests/llseek.test: Fix typo.
+
+	INSTALL-git.md: fix typo.
+
+	tests: simplify bpf test a bit.
+	* tests/bpf.c (DEF_BPF_INIT_FIRST): New macro.
+	(init_BPF_MAP_CREATE_first, init_BPF_MAP_LOOKUP_ELEM_first,
+	init_BPF_PROG_LOAD_first, init_BPF_OBJ_PIN_first,
+	init_BPF_PROG_ATTACH_first, init_BPF_PROG_TEST_RUN_first,
+	init_BPF_PROG_GET_NEXT_ID_first, init_BPF_OBJ_GET_INFO_BY_FD_first):
+	Use it.
+
+2017-11-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Implement decoding of BPF_OBJ_GET_INFO_BY_FD command of bpf syscall.
+	* configure.ac (AC_CHECK_MEMBERS): Add union bpf_attr.info.info.
+	* bpf.c (decode_BPF_OBJ_GET_INFO_BY_FD): New function.
+	(SYS_FUNC(bpf)) <bpf_cmd_decoders>: Use it.
+	* NEWS: Mention this.
+	* tests/bpf.c: Add macro guard for BPF_OBJ_GET_INFO_BY_FD decoder test.
+	[HAVE_UNION_BPF_ATTR_INFO_INFO] (sample_BPF_OBJ_GET_INFO_BY_FD_attr):
+	New variable.
+	[HAVE_UNION_BPF_ATTR_INFO_INFO] (init_BPF_OBJ_GET_INFO_BY_FD_first,
+	print_BPF_OBJ_GET_INFO_BY_FD_first, init_BPF_OBJ_GET_INFO_BY_FD_attr,
+	print_BPF_OBJ_GET_INFO_BY_FD_attr): New functions.
+	(main) [HAVE_UNION_BPF_ATTR_INFO_INFO]: Use them.
+
+	Simplify union bpf_attr field checks.
+	* configure.ac: Use AC_CHECK_MEMBERS instead of st_CHECK_UNION_BPF_ATTR
+	for union bpf_attr field checks as the former seems to be enough
+	for the case.
+	* m4/st_bpf.m4: Remove.
+
+	Implement decoding of BPF_*_GET_*_ID commands of bpf syscall.
+	* configure.ac: Check for union bpf_attr.next_id.
+	* bpf.c (decode_BPF_PROG_GET_NEXT_ID, decode_BPF_PROG_GET_FD_BY_ID,
+	* decode_BPF_MAP_GET_FD_BY_ID): New functions.
+	(decode_BPF_MAP_GET_NEXT_ID): New macro.
+	(SYS_FUNC(bpf)) <bpf_cmd_decoders>: Use them.
+	* NEWS: Mention this.
+	* tests/bpf.c: Add macro guard for BPF_*_GET_*_ID decoder tests.
+	[HAVE_UNION_BPF_ATTR_NEXT_ID] (init_BPF_PROG_GET_NEXT_ID_first,
+	print_BPF_PROG_GET_NEXT_ID_first, init_BPF_PROG_GET_NEXT_ID_attr,
+	print_BPF_PROG_GET_NEXT_ID_attr, print_BPF_PROG_GET_FD_BY_ID_first,
+	print_BPF_PROG_GET_FD_BY_ID_attr, print_BPF_MAP_GET_NEXT_ID_first,
+	print_BPF_MAP_GET_NEXT_ID_attr): New functions.
+	(init_BPF_MAP_GET_NEXT_ID_first, print_BPF_MAP_GET_NEXT_ID_first,
+	init_BPF_MAP_GET_NEXT_ID_attr, print_BPF_MAP_GET_NEXT_ID_attr,
+	init_BPF_PROG_GET_FD_BY_ID_first, init_BPF_PROG_GET_FD_BY_ID_attr,
+	init_BPF_MAP_GET_FD_BY_ID_first, init_BPF_MAP_GET_FD_BY_ID_attr):
+	New macros.
+	(main) [HAVE_UNION_BPF_ATTR_NEXT_ID]: Use them.
+
+2017-11-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Implement decoding of BPF_PROG_TEST_RUN command of bpf syscall.
+	* configure.ac: Check for union bpf_attr.test.duration.
+	* bpf.c (decode_BPF_PROG_TEST_RUN): New function.
+	(SYS_FUNC(bpf)) <bpf_cmd_decoders>: Use it.
+	* NEWS: Mention this.
+	* tests/bpf.c: Include "print_fields.h".
+	Add macro guard for BPF_PROG_TEST_RUN decoder test.
+	[HAVE_UNION_BPF_ATTR_TEST_DURATION] (sample_BPF_PROG_TEST_RUN_attr):
+	New variable.
+	[HAVE_UNION_BPF_ATTR_TEST_DURATION] (init_BPF_PROG_TEST_RUN_first,
+	print_BPF_PROG_TEST_RUN_first, init_BPF_PROG_TEST_RUN_attr,
+	print_BPF_PROG_TEST_RUN_attr): New functions.
+	(main) [HAVE_UNION_BPF_ATTR_TEST_DURATION]: Use them.
+
+2017-11-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	bpf: update BPF_MAP_CREATE decoding.
+	Implement decoding of union bpf_attr.numa_node field for BPF_MAP_CREATE
+	command introduced by linux kernel commit v4.14-rc1~130^2~196^2~1.
+
+	* configure.ac: Check for numa_node member of union bpf_attr
+	instead of inner_map_fd.
+	(decode_BPF_MAP_CREATE): Add numa_node field to the structure, print it.
+	* NEWS: Mention this.
+	* tests/bpf.c: Update macro guards of BPF_MAP_CREATE decoder test.
+	(init_BPF_MAP_CREATE_first, print_BPF_MAP_CREATE_attr): Update expected
+	output.
+	(init_BPF_MAP_CREATE_attr): Initialize numa_node field, update offset.
+
+2017-11-20  Eugene Syromiatnikov  <esyr@redhat.com>
+
+	unwind.c: cleanup.
+	* unwind.c (rebuild_cache_if_invalid): Simplify return statement.
+
+	unwind.c: fix typo in comment.
+	* unwind.c (unwind_cache_invalidate, unwind_print_stacktrace,
+	unwind_capture_stacktrace): Replace strack with stack.
+
+2017-11-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ipc_shm: decode hugetlb page size in shmget flags.
+	Decode alternative hugetlb page sizes introduced by kernel commit
+	v3.8-rc1~175^2~36.
+
+	* ipc_shm.c [!SHM_HUGE_SHIFT] (SHM_HUGE_SHIFT): New macro.
+	[!SHM_HUGE_MASK] (SHM_HUGE_MASK): Likewise.
+	(SYS_FUNC(shmget)): Print hugetlb page size.
+	* tests/ipc_shm.c: Check it.
+
+2017-11-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	memfd_create: decode hugetlb page size.
+	Decode alternative hugetlb page sizes introduced by kernel commit
+	v4.14-rc1~126^2~17.
+
+	* configure.ac (AC_CHECK_HEADERS): Add linux/memfd.h.
+	* memfd_create.c [HAVE_LINUX_MEMFD_H]: Include it.
+	[!MFD_HUGE_SHIFT] (MFD_HUGE_SHIFT): New macro.
+	[!MFD_HUGE_MASK] (MFD_HUGE_MASK): Likewise.
+	(SYS_FUNC(memfd_create)): Print hugetlb page size.
+	* tests/memfd_create.c: Check it.
+
+2017-11-18  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Print the first argument of memfd_create syscall as a path.
+	The limit imposed by the kernel on the length of memfd_create first
+	argument is NAME_MAX - strlen("memfd:").
+
+	* memfd_create.c (SYS_FUNC(memfd_create)): Print the first argument
+	using printpathn.
+	* tests/memfd_create.c: Check it.
+
+2017-11-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mem: decode hugetlb page size in mmap flags.
+	Decode alternative hugetlb page sizes introduced by kernel commit
+	v3.8-rc1~175^2~36.
+
+	* mem.c [!MAP_HUGE_SHIFT] (MAP_HUGE_SHIFT): New macro.
+	[!MAP_HUGE_MASK] (MAP_HUGE_MASK): Likewise.
+	(print_mmap_flags): Print hugetlb page size.
+	* NEWS: Mention it.
+	* tests/remap_file_pages.c: Check it.
+
+2017-11-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mem: assume that MAP_TYPE is defined.
+	Since linux kernel provided a definition of MAP_TYPE in <asm/mman.h>
+	as long ago as in v2.4.0, it's safe to assume that MAP_TYPE is defined.
+
+	* mem.c (print_mmap_flags) [!MAP_TYPE]: Remove.
+
+2017-11-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mem: move printing of mmap_flags to a separate function.
+	* mem.c (print_mmap_flags): New function.
+	(print_mmap, SYS_FUNC(remap_file_pages)): Use it.
+
+2017-11-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Provide fallback definitions for SHM_EXEC constant.
+	Although SHM_EXEC is available in <linux/shm.h> since kernel commit
+	v2.6.9-rc2~23^2~93^2~78, the glibc version of <sys/shm.h> did not
+	provide SHM_EXEC until commit glibc-2.10~238.
+
+	* xlat/shm_flags.in (SHM_EXEC): Add fallback definition.
+	* tests/shmxt.c (SHM_EXEC): Likewise.
+
+2017-11-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update SHM_* constants.
+	* xlat/shm_flags.in: Add SHM_EXEC introduced by kernel commit
+	v2.6.9-rc2~23^2~93^2~78.
+	* xlat/shm_resource_flags.in: Add SHM_NORESERVE introduced by kernel
+	commit v2.6.15-rc1~622.
+	* NEWS: Mention this.
+	* tests/ipc_shm.c (main): Update expected output.
+	* tests/shmxt.c (main): Update expected output, check SHM_EXEC decoding.
+
+2017-11-17  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove fallback definitions for SHM_STAT and SHM_INFO constants.
+	These constants are universally available for quite a long time
+	and are used unconditionally in tests without any complaints.
+
+	* xlat/shmctl_flags.in: Remove fallback definitions.
+
+2017-11-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	net: fix SOL_NETLINK NETLINK_LIST_MEMBERSHIPS decoding.
+	NETLINK_LIST_MEMBERSHIPS, unlike all other SOL_NETLINK options, requests
+	not just a single integer but an array of integers.  The kernel also
+	supports a zero optlen NETLINK_LIST_MEMBERSHIPS request.
+
+	* net.c (print_uint32): New function.
+	(print_getsockopt): Add ulen argument, rename len argument to rlen,
+	<SOL_NETLINK> Handle NETLINK_LIST_MEMBERSHIPS using print_array
+	and print_uint32.
+	(SYS_FUNC(getsockopt)): Pass ulen to print_getsockopt.
+	* tests/sockopt-sol_netlink.c (main): Check NETLINK_LIST_MEMBERSHIPS
+	decoding.
+
+2017-11-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check [gs]etsockopt SOL_NETLINK decoding.
+	* tests/sockopt-sol_netlink.c: New file.
+	* tests/gen_tests.in (sockopt-sol_netlink): New entry.
+	* tests/pure_executables.list: Add sockopt-sol_netlink.
+	* tests/.gitignore: Likewise.
+
+2017-11-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	net: fix decoding of optval argument of [gs]etsockopt SOL_NETLINK.
+	Tweak the parser to follow the kernel behaviour.
+
+	* net.c (print_getsockopt, print_setsockopt) <SOL_NETLINK>: Fetch and
+	print returned value as integer iff the length is >= sizeof(int),
+	otherwise print the address.
+	* NEWS: Mention this.
+
+2017-11-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	net: decode optname argument of [gs]etsockopt for SOL_NETLINK level.
+	* xlat/socknetlinkoptions.in: New file.
+	* net.c: Include "xlat/socknetlinkoptions.h".
+	(print_sockopt_fd_level_name) <SOL_NETLINK>: Print name using
+	socknetlinkoptions.
+	* NEWS: Metnion this.
+
+	Update MSG_* constants.
+	* xlat/msg_flags.in: Add MSG_ZEROCOPY introduced by kernel commit
+	v4.14-rc1~130^2~376^2~6.
+	* NEWS: Mention this.
+
+	netlink: print descriptor attributes using printfd.
+	* nlattr.h (DECL_NLA(fd)): New prototype.
+	* nlattr.c (decode_nla_fd): New function.
+	* rtnl_link.c (ifla_xdp_nla_decoders) <IFLA_XDP_FD>: Use it.
+	(ifinfomsg_nla_decoders) <IFLA_NET_NS_FD>: Likewise.
+	* rtnl_nsid.c (rtgenmsg_nla_decoders) <NETNSA_FD>: Likewise.
+	* NEWS: Mention this.
+
+2017-11-14  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	maint/update_copyright_years.sh: implement concurrent execution.
+	Analogous to the way it is done in xlat/gen.sh.
+
+	* maint/update_copyright_years.sh (MAX_JOBS): New variable, initialize
+	it to double the CPU count.
+	<while [ -n "${1:-}" ]; do case "$1" in>: Add -j option parsing.
+	(jobs, pids): New variables.
+	<git ls-files -- "$@" | grep -vFx "$IGNORED_FILES" | while read f; do>:
+	Execute process_file in background, count background jobs and wait
+	if there are too many.
+
+2017-11-14  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	maint/update_copyright_years.sh: use -efu shell mode.
+	* maint/update_copyright_years.sh: Add -efu to shebang.  Adjust
+	the script for -efu shell mode.
+
+2017-11-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Post-release administrivia.
+	* NEWS: Add a header line for the next release.
+	* debian/changelog.in: Add a changelog entry for 4.20-1.
+	* strace.spec.in: Likewise.
+
 2017-11-13  Dmitry V. Levin  <ldv@altlinux.org>
 
 	Prepare for 4.20 release.

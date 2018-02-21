@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -356,7 +356,7 @@ decode_ifla_xdp_flags(struct tcb *const tcp,
 }
 
 static const nla_decoder_t ifla_xdp_nla_decoders[] = {
-	[IFLA_XDP_FD]		= decode_nla_s32,
+	[IFLA_XDP_FD]		= decode_nla_fd,
 	[IFLA_XDP_ATTACHED]	= decode_nla_u8,
 	[IFLA_XDP_FLAGS]	= decode_ifla_xdp_flags,
 	[IFLA_XDP_PROG_ID]	= decode_nla_u32
@@ -403,7 +403,7 @@ static const nla_decoder_t ifinfomsg_nla_decoders[] = {
 	[IFLA_PORT_SELF]	= decode_ifla_port,
 	[IFLA_AF_SPEC]		= NULL, /* unimplemented */
 	[IFLA_GROUP]		= decode_nla_u32,
-	[IFLA_NET_NS_FD]	= decode_nla_u32,
+	[IFLA_NET_NS_FD]	= decode_nla_fd,
 	[IFLA_EXT_MASK]		= decode_nla_u32,
 	[IFLA_PROMISCUITY]	= decode_nla_u32,
 	[IFLA_NUM_TX_QUEUES]	= decode_nla_u32,
@@ -434,7 +434,7 @@ DECL_NETLINK_ROUTE_DECODER(decode_ifinfomsg)
 	if (len >= sizeof(ifinfo)) {
 		if (!umoven_or_printaddr(tcp, addr + offset,
 					 sizeof(ifinfo) - offset,
-					 (void *) &ifinfo + offset)) {
+					 (char *) &ifinfo + offset)) {
 			PRINT_FIELD_XVAL("", ifinfo, ifi_type,
 					 arp_hardware_types, "ARPHRD_???");
 			PRINT_FIELD_IFINDEX(", ", ifinfo, ifi_index);

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@ DECL_NETLINK_ROUTE_DECODER(decode_ifaddrlblmsg)
 	if (len >= sizeof(ifal)) {
 		if (!umoven_or_printaddr(tcp, addr + offset,
 					 sizeof(ifal) - offset,
-					 (void *) &ifal + offset)) {
+					 (char *) &ifal + offset)) {
 			PRINT_FIELD_U("", ifal, ifal_prefixlen);
 			PRINT_FIELD_U(", ", ifal, ifal_flags);
 			PRINT_FIELD_IFINDEX(", ", ifal, ifal_index);

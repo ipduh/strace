@@ -2,7 +2,7 @@
  * Copyright (c) 2013 Ben Noordhuis <info@bnoordhuis.nl>
  * Copyright (c) 2013-2015 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -304,7 +304,8 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 		", comm_exec=%u"
 		", use_clockid=%u"
 		", context_switch=%u"
-		", write_backward=%u",
+		", write_backward=%u"
+		", namespaces=%u",
 		attr->mmap_data,
 		attr->sample_id_all,
 		attr->exclude_host,
@@ -315,7 +316,8 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 		attr->comm_exec,
 		attr->use_clockid,
 		attr->context_switch,
-		attr->write_backward);
+		attr->write_backward,
+		attr->namespaces);
 
 	/*
 	 * Print it only in case it is non-zero, since it may contain flags we
@@ -324,7 +326,7 @@ print_perf_event_attr(struct tcb *const tcp, const kernel_ulong_t addr)
 	if (attr->__reserved_1) {
 		tprintf(", __reserved_1=%#" PRIx64,
 			(uint64_t) attr->__reserved_1);
-		tprints_comment("Bits 63..28");
+		tprints_comment("Bits 63..29");
 	}
 
 	if (attr->watermark)
@@ -422,10 +424,11 @@ SYS_FUNC(perf_event_open)
 		print_perf_event_attr(tcp, tcp->u_arg[0]);
 	}
 
-	tprintf(", %d, %d, %d, ",
+	tprintf(", %d, %d, ",
 		(int) tcp->u_arg[1],
-		(int) tcp->u_arg[2],
-		(int) tcp->u_arg[3]);
+		(int) tcp->u_arg[2]);
+	printfd(tcp, tcp->u_arg[3]);
+	tprints(", ");
 	printflags64(perf_event_open_flags, tcp->u_arg[4], "PERF_FLAG_???");
 
 	return RVAL_DECODED | RVAL_FD;

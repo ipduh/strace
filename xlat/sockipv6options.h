@@ -191,6 +191,9 @@ const struct xlat sockipv6options[] = {
 #if defined(IPV6_RECVFRAGSIZE) || (defined(HAVE_DECL_IPV6_RECVFRAGSIZE) && HAVE_DECL_IPV6_RECVFRAGSIZE)
   XLAT(IPV6_RECVFRAGSIZE),
 #endif
+#if defined(IPV6_FREEBIND) || (defined(HAVE_DECL_IPV6_FREEBIND) && HAVE_DECL_IPV6_FREEBIND)
+  XLAT(IPV6_FREEBIND),
+#endif
  XLAT_END
 };
 

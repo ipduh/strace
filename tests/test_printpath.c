@@ -2,6 +2,7 @@
  * Test printpath/umovestr.
  *
  * Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,10 +30,10 @@
 
 #include "tests.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/param.h>
 
 #include "test_ucopy.h"
 
