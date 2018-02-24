@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995 Rick Sladkey <jrs@world.std.com>
- * Copyright (c) 1995-2017 The strace developers.
+ * Copyright (c) 1995-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 #include "sys_func.h"
 #include "sen.h"
 
-#if NEED_UID16_PARSERS
+#if HAVE_ARCH_UID16_SYSCALLS
 extern SYS_FUNC(chown16);
 extern SYS_FUNC(fchown16);
 extern SYS_FUNC(getgroups16);
@@ -45,6 +45,6 @@ extern SYS_FUNC(setgroups16);
 extern SYS_FUNC(setresuid16);
 extern SYS_FUNC(setreuid16);
 extern SYS_FUNC(setuid16);
-#endif
+#endif /* HAVE_ARCH_UID16_SYSCALLS */
 
 #endif /* !STRACE_LINUX_SYSCALL_H */

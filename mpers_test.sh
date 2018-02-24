@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2015 Elvira Khabirova <lineprinter0@gmail.com>
 # Copyright (c) 2015 Dmitry V. Levin <ldv@altlinux.org>
-# Copyright (c) 2015-2017 The strace developers.
+# Copyright (c) 2015-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 mpers_name="$1"; shift
+mpers_cc_flags="$1"; shift
 size="$(printf %s "$mpers_name" |tr -cd '[0-9]')"
 [ "$size" -gt 0 ]
 
@@ -80,9 +81,13 @@ typedef struct {
 EOF
 
 expected="$mpers_dir/sample.expected"
+mpers_ptr_t="uint${size}_t"
 cat > "$expected" <<EOF
 #include <inttypes.h>
-typedef uint${size}_t mpers_ptr_t;
+#ifndef mpers_ptr_t_is_${mpers_ptr_t}
+typedef ${mpers_ptr_t} mpers_ptr_t;
+#define mpers_ptr_t_is_${mpers_ptr_t}
+#endif
 typedef
 struct {
 struct {
@@ -124,5 +129,5 @@ EOF
 
 CFLAGS="$CPPFLAGS -I${srcdir} -DMPERS_IS_${mpers_name}" \
 CPPFLAGS="$CPPFLAGS -I${srcdir} -DIN_MPERS -DMPERS_IS_${mpers_name}" \
-"$mpers_sh" "-$mpers_name" "$sample"
+"$mpers_sh" "$mpers_name" "$mpers_cc_flags" "$sample"
 cmp "$expected" "$mpers_dir"/sample_struct.h > /dev/null

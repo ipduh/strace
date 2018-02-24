@@ -3,7 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
  */
 
 #include "defs.h"
+#include "xstring.h"
 
 SYS_FUNC(close)
 {
@@ -157,7 +158,9 @@ decode_select(struct tcb *const tcp, const kernel_ulong_t *const args,
 				/* +2 chars needed at the end: ']',NUL */
 				if (outptr < end_outstr - (sizeof(", except [") + sizeof(int)*3 + 2)) {
 					if (first) {
-						outptr += sprintf(outptr, "%s%s [%u",
+						outptr = xappendstr(outstr,
+							outptr,
+							"%s%s [%u",
 							sep,
 							i == 0 ? "in" : i == 1 ? "out" : "except",
 							j
@@ -165,7 +168,9 @@ decode_select(struct tcb *const tcp, const kernel_ulong_t *const args,
 						first = 0;
 						sep = ", ";
 					} else {
-						outptr += sprintf(outptr, " %u", j);
+						outptr = xappendstr(outstr,
+							outptr,
+							" %u", j);
 					}
 				}
 				if (--ready_fds == 0)
@@ -179,7 +184,8 @@ decode_select(struct tcb *const tcp, const kernel_ulong_t *const args,
 		if (args[4]) {
 			const char *str = sprint_tv_ts(tcp, args[4]);
 			if (outptr + sizeof("left ") + strlen(sep) + strlen(str) < end_outstr) {
-				outptr += sprintf(outptr, "%sleft %s", sep, str);
+				outptr = xappendstr(outstr, outptr,
+						    "%sleft %s", sep, str);
 			}
 		}
 		*outptr = '\0';
@@ -190,29 +196,21 @@ decode_select(struct tcb *const tcp, const kernel_ulong_t *const args,
 	return 0;
 }
 
+#if HAVE_ARCH_OLD_SELECT
 SYS_FUNC(oldselect)
 {
-	kernel_ulong_t select_args[5];
-	unsigned int oldselect_args[5];
+	kernel_ulong_t *args =
+		fetch_indirect_syscall_args(tcp, tcp->u_arg[0], 5);
 
-	if (sizeof(*select_args) == sizeof(*oldselect_args)) {
-		if (umove_or_printaddr(tcp, tcp->u_arg[0], &select_args)) {
-			return 0;
-		}
+	if (args) {
+		return decode_select(tcp, args, print_timeval, sprint_timeval);
 	} else {
-		unsigned int i;
-
-		if (umove_or_printaddr(tcp, tcp->u_arg[0], &oldselect_args)) {
-			return 0;
-		}
-
-		for (i = 0; i < 5; ++i) {
-			select_args[i] = oldselect_args[i];
-		}
+		if (entering(tcp))
+			printaddr(tcp->u_arg[0]);
+		return RVAL_DECODED;
 	}
-
-	return decode_select(tcp, select_args, print_timeval, sprint_timeval);
 }
+#endif /* HAVE_ARCH_OLD_SELECT */
 
 #ifdef ALPHA
 SYS_FUNC(osf_select)

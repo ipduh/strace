@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2013-2017 The strace developers.
+ * Copyright (c) 2013-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,15 +49,16 @@ main(int ac, const char **av)
 	struct sockaddr_un addr = {
 		.sun_family = AF_UNIX,
 	};
-	socklen_t len;
 
 	assert(ac == 2);
-	assert(strlen(av[1]) > 0);
+	socklen_t len = strlen(av[1]);
+	assert(len > 0 && len <= sizeof(addr.sun_path));
 
-	strncpy(addr.sun_path, av[1], sizeof(addr.sun_path));
-	len = offsetof(struct sockaddr_un, sun_path) + strlen(av[1]) + 1;
-	if (len > sizeof(addr))
-		len = sizeof(addr);
+	if (++len > sizeof(addr.sun_path))
+		len = sizeof(addr.sun_path);
+
+	memcpy(addr.sun_path, av[1], len);
+	len += offsetof(struct sockaddr_un, sun_path);
 
 	unlink(av[1]);
 	close(0);

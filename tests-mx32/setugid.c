@@ -2,6 +2,7 @@
  * Check decoding of setuid/setgid/setuid32/setgid32 syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +62,8 @@ main(void)
 		const unsigned int num = (unsigned UGID_TYPE) tests[i];
 		long expected;
 
+		errno = 0;
+
 		if (num == ugid)
 			expected = 0;
 		else if ((UGID_TYPE) num == (UGID_TYPE) -1U)
@@ -77,8 +80,9 @@ main(void)
 				       SYSCALL_NAME, ugid, errstr);
 				break;
 			}
-			perror_msg_and_fail("%s(%#lx) != %ld",
-					    SYSCALL_NAME, tests[i], expected);
+			perror_msg_and_fail("%s(%#lx) = %ld != %ld",
+					    SYSCALL_NAME, tests[i],
+					    rc, expected);
 		}
 
 		printf("%s(", SYSCALL_NAME);

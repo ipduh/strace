@@ -1,3 +1,76 @@
+Noteworthy changes in release 4.21 (2018-02-13)
+===============================================
+
+* Changes in behaviour
+  * Warning is now issued when -F option is used.
+  * Warning is now issued when a tracee with unsupported personality
+    is attached.
+  * Unknown syscall numbers are now printed in hexadecimal form.
+
+* Improvements
+  * Implemented decoding of netlink descriptor attributes as file descriptors.
+  * Implemented decoding of hugetlb page size selection flags.
+  * Implemented decoding of BPF_PROG_TEST_RUN, BPF_PROG_GET_NEXT_ID,
+    BPF_MAP_GET_NEXT_ID, BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID,
+    and BPF_OBJ_GET_INFO_BY_FD commands of bpf syscall.
+  * Enhanced decoding of get_thread_area, memfd_create, modify_ldt,
+    perf_event_open, reboot, s390_guarded_storage, s390_pcio_mmio_read,
+    s390_pci_mmio_write, s390_runtime_instr, s390_sthyi, set_thread_area,
+    and shmget syscalls.
+  * Implemented decoding of KVM_* and DM_LIST_DEVICES ioctl commands.
+  * Implemented decoding of riscv_flush_icache syscall.
+  * Enhanced decoding of getsockopt and setsockopt syscalls for SOL_NETLINK
+    level.
+  * Enhanced decoding of BPF_MAP_CREATE command of bpf syscall.
+  * Print values returned by mq_open syscall and first arguments
+    of mq_getsetattr, mq_notify, mq_timedreceive, and mq_timedsend syscalls
+    as file descriptors.
+  * Added decoding of get_tls syscall on arm.
+  * Added -e trace=%pure option for tracing system calls with no arguments that
+    never fail.
+  * Updated lists of IPV6_*, MAP_*, MEMBARRIER_CMD_*, MSG_*, NT_*, PKEY_*,
+    SHM_*, and TCP_* constants.
+  * Added manual page for the strace-log-merge command.
+  * Updated lists of ioctl commands from Linux 4.15.
+  * Implemented biarch support for s390x.
+  * Implemented an optional support for symbol demangling in strace -k output
+    (activated by --with-libiberty configure option).
+  * Information about availability of demangling and reliable personality
+    decoding (on architectures with multiple personalities) is now available
+    in strace -V output.
+  * Added decoding of pkey_alloc, pkey_free, and pkey_mprotect syscalls on
+    powerpc and powerpc64.
+  * Enhanced manual page.
+
+* Bug fixes
+  * Fixed multi-personality support in cross builds.
+  * Added mq_getsetattr, mq_notify, mq_open, mq_timedreceive, and mq_timedsend
+    syscalls to %desc tracing set.
+  * Fixed path tracing support for mmap syscalls with indirect arguments and
+    for old select syscall.
+  * Fixed decoding of arm-specific (__ARM_NR_*) syscalls.
+  * Fixed open mode flags decoding.
+  * Fixed corner cases in handling of strace -ff -ttt logs by strace-log-merge.
+  * Error counts that exceed one billion are now printed correctly in call
+    summary output.
+  * Fixed call summary header for x32 personality.
+  * Changes of tracee personalities are reported more reliably.
+  * Fixed the case when strace attaches to a tracee being inside exec and its
+    first syscall stop is syscall-exit-stop instead of syscall-enter-stop,
+    which messed up all the syscall state tracking.
+  * Fixed printing of higher 32 bits of the return value for x32 personality.
+
+* Portability
+  * A C compiler that supports "for" loop initial declarations is now required.
+  * Inability to configure multiple personality support on architectures where
+    multiple personalities are supported leads to configuration failure during
+    build now.  Use --enable-mpers=check to revert to the old behaviour.
+  * Build-time requirement for the mpers support has been lowered from gawk 4
+    to gawk 3.
+  * Removed incomplete and non-functional support for the CRIS architecture.
+  * Removed incomplete and unused support for IA-32 mode on the IA-64
+    architecture.
+
 Noteworthy changes in release 4.20 (2017-11-13)
 ===============================================
 

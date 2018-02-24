@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +33,8 @@
 #include <asm/unistd.h>
 #include <linux/prctl.h>
 
-#if defined __NR_prctl && defined PR_GET_DUMPABLE && defined PR_SET_DUMPABLE
+#if defined __NR_prctl && defined PR_GET_DUMPABLE && defined PR_SET_DUMPABLE \
+ && !defined __ia64__
 
 # include <stdio.h>
 # include <unistd.h>
@@ -101,6 +103,7 @@ main(void)
 
 #else
 
-SKIP_MAIN_UNDEFINED("__NR_prctl && PR_GET_DUMPABLE && PR_SET_DUMPABLE")
+SKIP_MAIN_UNDEFINED("__NR_prctl && PR_GET_DUMPABLE && PR_SET_DUMPABLE"
+		    " && !__ia64__")
 
 #endif

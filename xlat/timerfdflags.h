@@ -22,7 +22,7 @@
 
 static
 const struct xlat timerfdflags[] = {
-/* The Linux userspace headers didn't export these for a long time. */
+
 
  XLAT(TFD_TIMER_ABSTIME),
  XLAT(TFD_TIMER_CANCEL_ON_SET),

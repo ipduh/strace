@@ -26,13 +26,7 @@
 /* #undef BFIN */
 
 /* Current copyright year. */
-#define COPYRIGHT_YEAR "2017"
-
-/* Define for the CRISv10 architecture. */
-/* #undef CRISV10 */
-
-/* Define for the CRISv32 architecture. */
-/* #undef CRISV32 */
+#define COPYRIGHT_YEAR "2018"
 
 /* Define to 1 if you want OABI support on ARM EABI. */
 #define ENABLE_ARM_OABI 0
@@ -42,6 +36,9 @@
 
 /* Define to 1 if you have the <asm/cachectl.h> header file. */
 /* #undef HAVE_ASM_CACHECTL_H */
+
+/* Define to 1 if you have the <asm/guarded_storage.h> header file. */
+/* #undef HAVE_ASM_GUARDED_STORAGE_H */
 
 /* Define to 1 if you have the <asm/sigcontext.h> header file. */
 #define HAVE_ASM_SIGCONTEXT_H 1
@@ -646,6 +643,9 @@
    0 if you don't. */
 #define HAVE_DECL_VM_VFS_CACHE_PRESSURE 1
 
+/* Define to 1 if you have the <demangle.h> header file. */
+/* #undef HAVE_DEMANGLE_H */
+
 /* Define to 1 if the system provides dladdr */
 #define HAVE_DLADDR 1
 
@@ -685,11 +685,20 @@
 /* Define to 1 if you have the <gnu/stubs-x32.h> header file. */
 /* #undef HAVE_GNU_STUBS_X32_H */
 
+/* Define to 1 if you have the <iconv.h> header file. */
+/* #undef HAVE_ICONV_H */
+
+/* Define to 1 if you have the `iconv_open' function. */
+/* #undef HAVE_ICONV_OPEN */
+
 /* Define to 1 if you have the `if_indextoname' function. */
 #define HAVE_IF_INDEXTONAME 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
+
+/* Define to 1 if you have the <libiberty/demangle.h> header file. */
+/* #undef HAVE_LIBIBERTY_DEMANGLE_H */
 
 /* Define to 1 if you have the <libunwind-ptrace.h> header file. */
 /* #undef HAVE_LIBUNWIND_PTRACE_H */
@@ -744,6 +753,12 @@
 
 /* Define to 1 if you have the <linux/kcmp.h> header file. */
 #define HAVE_LINUX_KCMP_H 1
+
+/* Define to 1 if you have the <linux/kvm.h> header file. */
+#define HAVE_LINUX_KVM_H 1
+
+/* Define to 1 if you have the <linux/memfd.h> header file. */
+#define HAVE_LINUX_MEMFD_H 1
 
 /* Define to 1 if you have the <linux/mmtimer.h> header file. */
 #define HAVE_LINUX_MMTIMER_H 1
@@ -841,7 +856,7 @@
 /* Define to 1 if you have the <linux/utsname.h> header file. */
 #define HAVE_LINUX_UTSNAME_H 1
 
-/* Define to 1 if you have CFLAG mpers support */
+/* Define to 1 if you have mpers_name mpers support */
 /* #undef HAVE_M32_MPERS */
 
 /* Define to 1 if MPERS_NAME has the type 'struct stat'. */
@@ -863,7 +878,7 @@
 /* Define to 1 if you have the <mqueue.h> header file. */
 /* #undef HAVE_MQUEUE_H */
 
-/* Define to 1 if you have CFLAG mpers support */
+/* Define to 1 if you have mpers_name mpers support */
 /* #undef HAVE_MX32_MPERS */
 
 /* Define to 1 if MPERS_NAME has the type 'struct stat'. */
@@ -893,6 +908,9 @@
 
 /* Define to 1 if you have the `open64' function. */
 #define HAVE_OPEN64 1
+
+/* Define to 1 if you have the <paths.h> header file. */
+#define HAVE_PATHS_H 1
 
 /* Define to 1 if you have the `prctl' function. */
 #define HAVE_PRCTL 1
@@ -1048,8 +1066,21 @@
 /* Define to 1 if the system has the type `struct keyctl_kdf_params'. */
 #define HAVE_STRUCT_KEYCTL_KDF_PARAMS 1
 
+/* Define to 1 if the system has the type `struct kvm_regs'. */
+#define HAVE_STRUCT_KVM_REGS 1
+
+/* Define to 1 if the system has the type `struct kvm_sregs'. */
+#define HAVE_STRUCT_KVM_SREGS 1
+
+/* Define to 1 if the system has the type `struct
+   kvm_userspace_memory_region'. */
+#define HAVE_STRUCT_KVM_USERSPACE_MEMORY_REGION 1
+
 /* Define to 1 if the system has the type `struct mmsghdr'. */
 #define HAVE_STRUCT_MMSGHDR 1
+
+/* Define to 1 if the system has the type `struct mtd_write_req'. */
+#define HAVE_STRUCT_MTD_WRITE_REQ 1
 
 /* Define to 1 if the system has the type `struct ndt_config'. */
 #define HAVE_STRUCT_NDT_CONFIG 1
@@ -1105,6 +1136,9 @@
 /* Define to 1 if `mmap_data' is a member of `struct perf_event_attr'. */
 #define HAVE_STRUCT_PERF_EVENT_ATTR_MMAP_DATA 1
 
+/* Define to 1 if `namespaces' is a member of `struct perf_event_attr'. */
+#define HAVE_STRUCT_PERF_EVENT_ATTR_NAMESPACES 1
+
 /* Define to 1 if `precise_ip' is a member of `struct perf_event_attr'. */
 #define HAVE_STRUCT_PERF_EVENT_ATTR_PRECISE_IP 1
 
@@ -1132,6 +1166,9 @@
 
 /* Define to 1 if `write_backward' is a member of `struct perf_event_attr'. */
 #define HAVE_STRUCT_PERF_EVENT_ATTR_WRITE_BACKWARD 1
+
+/* Define to 1 if the system has the type `struct ptp_sys_offset'. */
+#define HAVE_STRUCT_PTP_SYS_OFFSET 1
 
 /* Define to 1 if the system has the type `struct ptrace_peeksiginfo_args'. */
 #define HAVE_STRUCT_PTRACE_PEEKSIGINFO_ARGS 1
@@ -1202,8 +1239,14 @@
 /* Define to 1 if `tai' is a member of `struct timex'. */
 #define HAVE_STRUCT_TIMEX_TAI 1
 
+/* Define to 1 if `max_beb_per1024' is a member of `struct ubi_attach_req'. */
+/* #undef HAVE_STRUCT_UBI_ATTACH_REQ_MAX_BEB_PER1024 */
+
 /* Define to 1 if the system has the type `struct user_desc'. */
 /* #undef HAVE_STRUCT_USER_DESC */
+
+/* Define to 1 if `lm' is a member of `struct user_desc'. */
+/* #undef HAVE_STRUCT_USER_DESC_LM */
 
 /* Define to 1 if `domainname' is a member of `struct utsname'. */
 #define HAVE_STRUCT_UTSNAME_DOMAINNAME 1
@@ -1268,20 +1311,29 @@
 /* Define to 1 if typeof works with your compiler. */
 #define HAVE_TYPEOF 1
 
-/* Define to 1 if attr_text initialization works */
+/* Define to 1 if `attach_flags' is a member of `union bpf_attr'. */
 #define HAVE_UNION_BPF_ATTR_ATTACH_FLAGS 1
 
-/* Define to 1 if attr_text initialization works */
+/* Define to 1 if `bpf_fd' is a member of `union bpf_attr'. */
 #define HAVE_UNION_BPF_ATTR_BPF_FD 1
 
-/* Define to 1 if attr_text initialization works */
+/* Define to 1 if `flags' is a member of `union bpf_attr'. */
 #define HAVE_UNION_BPF_ATTR_FLAGS 1
 
-/* Define to 1 if attr_text initialization works */
-#define HAVE_UNION_BPF_ATTR_INNER_MAP_FD 1
+/* Define to 1 if `info.info' is a member of `union bpf_attr'. */
+/* #undef HAVE_UNION_BPF_ATTR_INFO_INFO */
 
-/* Define to 1 if attr_text initialization works */
+/* Define to 1 if `next_id' is a member of `union bpf_attr'. */
+/* #undef HAVE_UNION_BPF_ATTR_NEXT_ID */
+
+/* Define to 1 if `numa_node' is a member of `union bpf_attr'. */
+/* #undef HAVE_UNION_BPF_ATTR_NUMA_NODE */
+
+/* Define to 1 if `prog_flags' is a member of `union bpf_attr'. */
 #define HAVE_UNION_BPF_ATTR_PROG_FLAGS 1
+
+/* Define to 1 if `test.duration' is a member of `union bpf_attr'. */
+#define HAVE_UNION_BPF_ATTR_TEST_DURATION 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
@@ -1329,7 +1381,7 @@
 /* #undef M68K */
 
 /* Date */
-#define MANPAGE_DATE "2017-08-28"
+#define MANPAGE_DATE "2018-02-11"
 
 /* Define for the Meta architecture. */
 /* #undef METAG */
@@ -1362,7 +1414,7 @@
 #define PACKAGE_NAME "strace"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "strace 4.20"
+#define PACKAGE_STRING "strace 4.21"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "strace"
@@ -1371,7 +1423,7 @@
 #define PACKAGE_URL "https://strace.io"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "4.20"
+#define PACKAGE_VERSION "4.21"
 
 /* Define for the PowerPC architecture. */
 /* #undef POWERPC */
@@ -1417,6 +1469,9 @@
 /* Define for the Tile architecture */
 /* #undef TILE */
 
+/* Do demangling symbols in stack trace */
+/* #undef USE_DEMANGLE */
+
 /* Compile stack tracing functionality */
 /* #undef USE_LIBUNWIND */
 
@@ -1443,7 +1498,7 @@
 
 
 /* Version number of package */
-#define VERSION "4.20"
+#define VERSION "4.21"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

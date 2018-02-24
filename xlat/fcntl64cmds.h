@@ -17,7 +17,7 @@
 
 static
 const struct xlat fcntl64cmds[] = {
-/* asm-generic/fcntl.h */
+
  XLAT(F_GETLK64),
  XLAT(F_SETLK64),
  XLAT(F_SETLKW64),

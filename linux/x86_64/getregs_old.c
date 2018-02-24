@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2013 Denys Vlasenko <vda.linux@googlemail.com>
  * Copyright (c) 2013-2015 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2015-2017 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,10 +32,10 @@
  * a PTRACE_GETREGS based fallback is provided for old kernels.
  */
 static int
-getregs_old(pid_t pid)
+getregs_old(struct tcb *tcp)
 {
 	/* Use old method, with unreliable heuristical detection of 32-bitness. */
-	long r = ptrace(PTRACE_GETREGS, pid, NULL, &x86_64_regs);
+	long r = ptrace(PTRACE_GETREGS, tcp->pid, NULL, &x86_64_regs);
 	if (r)
 		return r;
 

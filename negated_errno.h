@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,8 +36,7 @@
 static inline bool
 is_negated_errno(kernel_ulong_t val)
 {
-	/* Linux kernel defines MAX_ERRNO to 4095. */
-	kernel_ulong_t max = -(kernel_long_t) 4095;
+	kernel_ulong_t max = -(kernel_long_t) MAX_ERRNO_VALUE;
 
 #ifndef current_klongsize
 	if (current_klongsize < sizeof(val)) {

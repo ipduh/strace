@@ -7,7 +7,7 @@
  * Copyright (c) 2013 Denys Vlasenko <vda.linux@googlemail.com>
  * Copyright (c) 2011-2015 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2015 Elvira Khabirova <lineprinter0@gmail.com>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,8 @@
 #include <linux/audit.h>
 
 #include MPERS_DEFS
+
+#include "nr_prefix.c"
 
 #ifndef IN_MPERS
 #include "printsiginfo.h"
@@ -191,14 +193,31 @@ print_si_info(const siginfo_t *sip)
 			break;
 #ifdef HAVE_SIGINFO_T_SI_SYSCALL
 		case SIGSYS: {
-			const char *scname =
-				syscall_name((unsigned) sip->si_syscall);
+			/*
+			 * Note that we can safely use the personlity set in
+			 * current_personality  here (and don't have to guess it
+			 * based on X32_SYSCALL_BIT and si_arch, for example):
+			 *  - The signal is delivered as a result of seccomp
+			 *    filtering to the process executing forbidden
+			 *    syscall.
+			 *  - We have set the personality for the tracee during
+			 *    the syscall entering.
+			 *  - The current_personality is reliably switched in
+			 *    the next_event routine, it is set to the
+			 *    personality of the last call made (the one that
+			 *    triggered the signal delivery).
+			 *  - Looks like there are no other cases where SIGSYS
+			 *    is delivered from the kernel so far.
+			 */
+			const char *scname = syscall_name(shuffle_scno(
+				(unsigned) sip->si_syscall));
 
 			tprints(", si_call_addr=");
 			printaddr(ptr_to_kulong(sip->si_call_addr));
 			tprints(", si_syscall=");
 			if (scname)
-				tprintf("__NR_%s", scname);
+				tprintf("%s%s",
+					nr_prefix(sip->si_syscall), scname);
 			else
 				tprintf("%u", (unsigned) sip->si_syscall);
 			tprints(", si_arch=");

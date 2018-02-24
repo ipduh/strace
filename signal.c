@@ -6,7 +6,7 @@
  * Copyright (c) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *                     Linux for s390 port by D.J. Barrow
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
- * Copyright (c) 2001-2017 The strace developers.
+ * Copyright (c) 2001-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@
 
 #include "defs.h"
 #include "nsig.h"
+#include "xstring.h"
 
 /* The libc headers do not define this constant since it should only be
    used by the implementation.  So we define it here.  */
@@ -50,19 +51,15 @@
  * Some architectures, otherwise, do not define SA_RESTORER in their headers,
  * but actually have sa_restorer.
  */
-#ifdef SA_RESTORER
-# if defined HPPA || defined IA64
-#  define HAVE_SA_RESTORER 0
-# else
-#  define HAVE_SA_RESTORER 1
-# endif
-#else /* !SA_RESTORER */
-# if defined SPARC || defined SPARC64 || defined M68K
+#ifdef HAVE_ARCH_SA_RESTORER
+# define HAVE_SA_RESTORER HAVE_ARCH_SA_RESTORER
+#else /* !HAVE_ARCH_SA_RESTORER */
+# ifdef SA_RESTORER
 #  define HAVE_SA_RESTORER 1
 # else
 #  define HAVE_SA_RESTORER 0
 # endif
-#endif
+#endif /* HAVE_ARCH_SA_RESTORER */
 
 #include "xlat/sa_handler_values.h"
 #include "xlat/sigact_flags.h"
@@ -137,12 +134,12 @@ signame(const int sig)
 			return signalent[s];
 #ifdef ASM_SIGRTMAX
 		if (s >= ASM_SIGRTMIN && s <= (unsigned int) ASM_SIGRTMAX) {
-			sprintf(buf, "SIGRT_%u", s - ASM_SIGRTMIN);
+			xsprintf(buf, "SIGRT_%u", s - ASM_SIGRTMIN);
 			return buf;
 		}
 #endif
 	}
-	sprintf(buf, "%d", sig);
+	xsprintf(buf, "%d", sig);
 	return buf;
 }
 
@@ -209,11 +206,11 @@ sprintsigmask_n(const char *prefix, const void *sig_mask, unsigned int bytes)
 		}
 #ifdef ASM_SIGRTMAX
 		else if (i >= ASM_SIGRTMIN && i <= ASM_SIGRTMAX) {
-			s += sprintf(s, "RT_%u", i - ASM_SIGRTMIN);
+			s = xappendstr(outstr, s, "RT_%u", i - ASM_SIGRTMIN);
 		}
 #endif
 		else {
-			s += sprintf(s, "%u", i);
+			s = xappendstr(outstr, s, "%u", i);
 		}
 		sep = ' ';
 	}
@@ -682,7 +679,7 @@ SYS_FUNC(rt_sigtimedwait)
 		}
 	}
 	return 0;
-};
+}
 
 SYS_FUNC(restart_syscall)
 {

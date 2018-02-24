@@ -8,7 +8,7 @@
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
  * Copyright (c) 2004 Roland McGrath <roland@redhat.com>
  * Copyright (c) 2006 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2006-2017 The strace developers.
+ * Copyright (c) 2006-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@
 struct call_counts {
 	/* time may be total latency or system time */
 	struct timeval time;
-	int calls, errors;
+	unsigned int calls, errors;
 };
 
 static struct call_counts *countv[SUPPORTED_PERSONALITIES];
@@ -154,22 +154,24 @@ void set_overhead(int n)
 static void
 call_summary_pers(FILE *outf)
 {
+	static const char dashes[]  = "----------------";
+	static const char header[]  = "%6.6s %11.11s %11.11s %9.9s %9.9s %s\n";
+	static const char data[]    = "%6.2f %11.6f %11lu %9u %9.u %s\n";
+	static const char summary[] = "%6.6s %11.6f %11.11s %9u %9.u %s\n";
+
 	unsigned int i;
-	int     call_cum, error_cum;
+	unsigned int call_cum, error_cum;
 	struct timeval tv_cum, dtv;
 	double  float_tv_cum;
 	double  percent;
-	const char *dashes = "----------------";
-	char    error_str[sizeof(int)*3];
-	int    *sorted_count;
+	unsigned int *sorted_count;
 
-	fprintf(outf, "%6.6s %11.11s %11.11s %9.9s %9.9s %s\n",
+	fprintf(outf, header,
 		"% time", "seconds", "usecs/call",
 		"calls", "errors", "syscall");
-	fprintf(outf, "%6.6s %11.11s %11.11s %9.9s %9.9s %s\n",
-		dashes, dashes, dashes, dashes, dashes, dashes);
+	fprintf(outf, header, dashes, dashes, dashes, dashes, dashes, dashes);
 
-	sorted_count = xcalloc(sizeof(int), nsyscalls);
+	sorted_count = xcalloc(sizeof(sorted_count[0]), nsyscalls);
 	call_cum = error_cum = tv_cum.tv_sec = tv_cum.tv_usec = 0;
 	if (overhead.tv_sec == -1) {
 		tv_mul(&overhead, &shortest, 8);
@@ -188,39 +190,32 @@ call_summary_pers(FILE *outf)
 	float_tv_cum = tv_float(&tv_cum);
 	if (counts) {
 		if (sortfun)
-			qsort((void *) sorted_count, nsyscalls, sizeof(int), sortfun);
+			qsort((void *) sorted_count, nsyscalls,
+			      sizeof(sorted_count[0]), sortfun);
 		for (i = 0; i < nsyscalls; i++) {
 			double float_syscall_time;
-			int idx = sorted_count[i];
+			unsigned int idx = sorted_count[i];
 			struct call_counts *cc = &counts[idx];
 			if (cc->calls == 0)
 				continue;
 			tv_div(&dtv, &cc->time, cc->calls);
-			error_str[0] = '\0';
-			if (cc->errors)
-				sprintf(error_str, "%u", cc->errors);
 			float_syscall_time = tv_float(&cc->time);
 			percent = (100.0 * float_syscall_time);
 			if (percent != 0.0)
 				   percent /= float_tv_cum;
 			/* else: float_tv_cum can be 0.0 too and we get 0/0 = NAN */
-			fprintf(outf, "%6.2f %11.6f %11lu %9u %9.9s %s\n",
+			fprintf(outf, data,
 				percent, float_syscall_time,
 				(long) (1000000 * dtv.tv_sec + dtv.tv_usec),
-				cc->calls,
-				error_str, sysent[idx].sys_name);
+				cc->calls, cc->errors, sysent[idx].sys_name);
 		}
 	}
 	free(sorted_count);
 
-	fprintf(outf, "%6.6s %11.11s %11.11s %9.9s %9.9s %s\n",
-		dashes, dashes, dashes, dashes, dashes, dashes);
-	error_str[0] = '\0';
-	if (error_cum)
-		sprintf(error_str, "%u", error_cum);
-	fprintf(outf, "%6.6s %11.6f %11.11s %9u %9.9s %s\n",
+	fprintf(outf, header, dashes, dashes, dashes, dashes, dashes, dashes);
+	fprintf(outf, summary,
 		"100.00", float_tv_cum, "",
-		call_cum, error_str, "total");
+		call_cum, error_cum, "total");
 }
 
 void
@@ -236,8 +231,8 @@ call_summary(FILE *outf)
 			set_personality(i);
 		if (i)
 			fprintf(outf,
-				"System call usage summary for %d bit mode:\n",
-				current_wordsize * 8);
+				"System call usage summary for %s mode:\n",
+				personality_names[i]);
 		call_summary_pers(outf);
 	}
 

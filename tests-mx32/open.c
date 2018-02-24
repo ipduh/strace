@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +31,7 @@
 
 #ifdef __NR_open
 
-# include <fcntl.h>
+# include <asm/fcntl.h>
 # include <stdio.h>
 # include <unistd.h>
 
@@ -56,16 +57,11 @@ main(void)
 		       sample, sprintrc(fd));
 	}
 
-#ifdef O_TMPFILE
-# if O_TMPFILE == (O_TMPFILE & ~O_DIRECTORY)
-#  define STR_O_TMPFILE "O_TMPFILE"
-# else
-#  define STR_O_TMPFILE "O_DIRECTORY|O_TMPFILE"
-# endif
+# ifdef O_TMPFILE
 	fd = syscall(__NR_open, sample, O_WRONLY|O_TMPFILE, 0600);
-	printf("open(\"%s\", O_WRONLY|%s, 0600) = %s\n",
-	       sample, STR_O_TMPFILE, sprintrc(fd));
-#endif /* O_TMPFILE */
+	printf("open(\"%s\", O_WRONLY|O_TMPFILE, 0600) = %s\n",
+	       sample, sprintrc(fd));
+# endif /* O_TMPFILE */
 
 	puts("+++ exited with 0 +++");
 	return 0;

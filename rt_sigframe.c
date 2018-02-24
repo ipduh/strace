@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,8 +27,8 @@
  */
 
 #include "defs.h"
-#include "regs.h"
 #include "ptrace.h"
+#include "regs.h"
 
 #define	DEF_FUNC_GET_RT_SIGFRAME_ADDR	\
 		kernel_ulong_t get_rt_sigframe_addr(struct tcb *tcp)

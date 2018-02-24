@@ -32,7 +32,7 @@ const struct xlat ptrace_events[] = {
 #if defined(PTRACE_EVENT_STOP) || (defined(HAVE_DECL_PTRACE_EVENT_STOP) && HAVE_DECL_PTRACE_EVENT_STOP)
   XLAT(PTRACE_EVENT_STOP),
 #endif
-/* tile */
+
 #if defined(PTRACE_EVENT_MIGRATE) || (defined(HAVE_DECL_PTRACE_EVENT_MIGRATE) && HAVE_DECL_PTRACE_EVENT_MIGRATE)
   XLAT(PTRACE_EVENT_MIGRATE),
 #endif

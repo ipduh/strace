@@ -40,6 +40,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Cai Fei <caifei@cn.fujitsu.com>
 	Carlos O'Donell <carlos@systemhalted.org>
 	Carmelo Amoroso <carmelo.amoroso@st.com>
+	Chen Jingpiao <chenjingpiao@gmail.com>
 	Cheolung Lee <chpie@grayhash.com>
 	Chris Dearman <chris.dearman@imgtec.com>
 	Chris Metcalf <cmetcalf@tilera.com>
@@ -48,6 +49,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Christian Svensson <blue@cmd.nu>
 	Christopher Covington <cov@codeaurora.org>
 	D.J. Barrow <djbarrow@de.ibm.com>
+	DJ Delorie <dj@redhat.com>
 	Damien Profeta <damien.profeta@amadeus.com>
 	Damir Shayhutdinov <damir@altlinux.org>
 	Daniel P. Berrange <berrange@redhat.com>
@@ -66,7 +68,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Edgar E. Iglesias <edgar.iglesias@gmail.com>
 	Edgar Kaziakhmedov <edgar.kaziakhmedov@virtuozzo.com>
 	Elliott Hughes <enh@google.com>
-	Elvira Khabirova <lineprinter0@gmail.com>
+	Elvira Khabirova <lineprinter@altlinux.org>
 	Erik Johansson <erik@ejohansson.se>
 	Etienne Gemsa <etienne.gemsa@lse.epita.fr>
 	Eugene Syromyatnikov <evgsyr@gmail.com>
@@ -89,6 +91,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Greg Banks <gbanks@pocketpenguins.com>
 	H.J. Lu <hongjiu.lu@intel.com>
 	Harald van Dijk <truedfx@gentoo.org>
+	Harsha Sharma <harshasharmaiitr@gmail.com>
 	Heiko Carstens <heiko.carstens@de.ibm.com>
 	Helge Deller <deller@gmx.de>
 	Henrik Storner <storner@osiris.ping.dk>
@@ -104,7 +107,6 @@ strace-devel@lists.sourceforge.net mailing list.
 	JayRJoshi <jay.r.joshi100@gmail.com>
 	Jeff Mahoney <jeffm@suse.com>
 	Jian Zhen <zhenjl@gmail.com>
-	JingPiao Chen <chenjingpiao@gmail.com>
 	Jiri Slaby <jirislaby@gmail.com>
 	Joakim Bech <joakim.bech@linaro.org>
 	Joe Ilacqua <spike@world.std.com>
@@ -184,6 +186,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Robin Hack <hack.robin@gmail.com>
 	Roland Borde <bo@uebemc.siemens.de>
 	Roland McGrath <roland@redhat.com>
+	Rolf Eike Beer <eb@emlix.com>
 	Romain Naour <romain.naour@smile.fr>
 	Sami Farin <safari@u.safari.iki.fi>
 	Sandhya Bankar <bankarsandhya512@gmail.com>
@@ -215,6 +218,7 @@ strace-devel@lists.sourceforge.net mailing list.
 	Vicente Olivert Riera <vincent@gentoo.org>
 	Victor Krapivensky <krapivenskiy.va@phystech.edu>
 	Vineet Gupta <Vineet.Gupta1@synopsys.com>
+	Vitaly Chaykovsky <mgspeker@gmail.com>
 	Wang Chao <wang.chao@cn.fujitsu.com>
 	Weichuan Yan <wchyan@marvell.com>
 	Wichert Akkerman <wichert@deephackmode.org>

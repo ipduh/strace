@@ -2,7 +2,7 @@
  * Copyright (c) 1991, 1992 Paul Kranenburg <pk@cs.few.eur.nl>
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
- * Copyright (c) 2001-2017 The strace developers.
+ * Copyright (c) 2001-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,13 +53,13 @@
 #include <time.h>
 #include <sys/time.h>
 
+#include "arch_defs.h"
 #include "error_prints.h"
 #include "gcc_compat.h"
 #include "kernel_types.h"
 #include "macros.h"
 #include "mpers_type.h"
 #include "string_to_uint.h"
-#include "supported_personalities.h"
 #include "sysent.h"
 #include "xmalloc.h"
 
@@ -149,10 +149,12 @@ extern char *stpcpy(char *dst, const char *src);
 # define PERSONALITY1_INCLUDE_PRINTERS_DEFS "m32_printer_defs.h"
 # define PERSONALITY1_INCLUDE_FUNCS "m32_funcs.h"
 # define MPERS_m32_IOCTL_MACROS "ioctl_redefs1.h"
+# define HAVE_PERSONALITY_1_MPERS 1
 #else
 # define PERSONALITY1_INCLUDE_PRINTERS_DECLS "native_printer_decls.h"
 # define PERSONALITY1_INCLUDE_PRINTERS_DEFS "native_printer_defs.h"
 # define PERSONALITY1_INCLUDE_FUNCS "empty.h"
+# define HAVE_PERSONALITY_1_MPERS 0
 #endif
 
 #if SUPPORTED_PERSONALITIES > 2 && defined HAVE_MX32_MPERS
@@ -160,10 +162,12 @@ extern char *stpcpy(char *dst, const char *src);
 # define PERSONALITY2_INCLUDE_PRINTERS_DECLS "mx32_printer_decls.h"
 # define PERSONALITY2_INCLUDE_PRINTERS_DEFS "mx32_printer_defs.h"
 # define MPERS_mx32_IOCTL_MACROS "ioctl_redefs2.h"
+# define HAVE_PERSONALITY_2_MPERS 1
 #else
 # define PERSONALITY2_INCLUDE_PRINTERS_DECLS "native_printer_decls.h"
 # define PERSONALITY2_INCLUDE_PRINTERS_DEFS "native_printer_defs.h"
 # define PERSONALITY2_INCLUDE_FUNCS "empty.h"
+# define HAVE_PERSONALITY_2_MPERS 0
 #endif
 
 typedef struct ioctlent {
@@ -177,7 +181,7 @@ typedef struct ioctlent {
 struct inject_data {
 	uint16_t flags;
 	uint16_t signo;
-	int rval;
+	kernel_long_t rval;
 };
 
 struct inject_opts {
@@ -244,6 +248,10 @@ struct tcb {
 #define TCB_TAMPERED	0x40	/* A syscall has been tampered with */
 #define TCB_HIDE_LOG	0x80	/* We should hide everything (until execve) */
 #define TCB_SKIP_DETACH_ON_FIRST_EXEC	0x100	/* -b execve should skip detach on first execve */
+#define TCB_GRABBED	0x200	/* We grab the process and can catch it
+				 * in the middle of a syscall */
+#define TCB_RECOVERING	0x400	/* We try to recover after detecting incorrect
+				 * syscall entering/exiting state */
 
 /* qualifier flags */
 #define QUAL_TRACE	0x001	/* this system call should be traced */
@@ -264,6 +272,8 @@ struct tcb {
 #define inject(tcp)	((tcp)->qual_flg & QUAL_INJECT)
 #define filtered(tcp)	((tcp)->flags & TCB_FILTERED)
 #define hide_log(tcp)	((tcp)->flags & TCB_HIDE_LOG)
+#define syscall_tampered(tcp)	((tcp)->flags & TCB_TAMPERED)
+#define recovering(tcp)	((tcp)->flags & TCB_RECOVERING)
 
 #include "xlat.h"
 
@@ -309,28 +319,16 @@ extern const struct xlat whence_codes[];
 #define RVAL_DECODED	0100	/* syscall decoding finished */
 #define RVAL_IOCTL_DECODED 0200	/* ioctl sub-parser successfully decoded
 				   the argument */
+#define RVAL_PRINT_ERR_VAL 0400 /* Print decoded error code along with
+				   syscall return value.  Needed for modify_ldt
+				   that for some reason decides to return
+				   an error with higher bits set to 0.  */
 
 #define IOCTL_NUMBER_UNKNOWN 0
 #define IOCTL_NUMBER_HANDLED 1
 #define IOCTL_NUMBER_STOP_LOOKUP 010
 
 #define indirect_ipccall(tcp) (tcp->s_ent->sys_flags & TRACE_INDIRECT_SUBCALL)
-
-#if defined(ARM) || defined(AARCH64) \
- || defined(I386) || defined(X32) || defined(X86_64) \
- || defined(IA64) \
- || defined(BFIN) \
- || defined(M68K) \
- || defined(MICROBLAZE) \
- || defined(RISCV) \
- || defined(S390) \
- || defined(SH) || defined(SH64) \
- || defined(SPARC) || defined(SPARC64) \
- /**/
-# define NEED_UID16_PARSERS 1
-#else
-# define NEED_UID16_PARSERS 0
-#endif
 
 enum sock_proto {
 	SOCK_PROTO_UNKNOWN,
@@ -355,7 +353,6 @@ typedef enum {
 	CFLAG_BOTH
 } cflag_t;
 extern cflag_t cflag;
-extern bool debug_flag;
 extern bool Tflag;
 extern bool iflag;
 extern bool count_wallclock;
@@ -365,7 +362,8 @@ extern unsigned int show_fd_path;
 /* are we filtering traces based on paths? */
 extern struct path_set {
 	const char **paths_selected;
-	unsigned int num_selected;
+	size_t num_selected;
+	size_t size;
 } global_path_set;
 #define tracing_paths (global_path_set.num_selected != 0)
 extern unsigned xflag;
@@ -380,7 +378,7 @@ extern unsigned os_release;
 #undef KERNEL_VERSION
 #define KERNEL_VERSION(a, b, c) (((a) << 16) + ((b) << 8) + (c))
 
-extern int read_int_from_file(const char *, int *);
+extern int read_int_from_file(struct tcb *, const char *, int *);
 
 extern void set_sortby(const char *);
 extern void set_overhead(int);
@@ -397,18 +395,37 @@ extern void syscall_exiting_finish(struct tcb *);
 extern void count_syscall(struct tcb *, const struct timeval *);
 extern void call_summary(FILE *);
 
-extern void clear_regs(void);
+extern void clear_regs(struct tcb *tcp);
 extern int get_scno(struct tcb *);
 extern kernel_ulong_t get_rt_sigframe_addr(struct tcb *);
 
 /**
- * Convert syscall number to syscall name.
+ * Convert a (shuffled) syscall number to the corresponding syscall name.
  *
  * @param scno Syscall number.
  * @return     String literal corresponding to the syscall number in case latter
  *             is valid; NULL otherwise.
  */
 extern const char *syscall_name(kernel_ulong_t scno);
+/**
+ * Convert a syscall name to the corresponding (shuffled) syscall number.
+ *
+ * @param s     Syscall name.
+ * @param p     Personality.
+ * @param start From which position in syscall entry table resume the search.
+ * @return      Shuffled syscall number (ready to use against sysent_vec)
+ *              if syscall name is found; -1 otherwise.
+ */
+extern kernel_long_t scno_by_name(const char *s, unsigned p,
+				  kernel_long_t start);
+/**
+ * Shuffle syscall numbers so that we don't have huge gaps in syscall table.
+ * The shuffling should be an involution: shuffle_scno(shuffle_scno(n)) == n.
+ *
+ * @param scno Raw or shuffled syscall number.
+ * @return     Shuffled or raw syscall number, respectively.
+ */
+extern kernel_ulong_t shuffle_scno(kernel_ulong_t scno);
 extern const char *err_name(unsigned long err);
 
 extern bool is_erestart(struct tcb *);
@@ -448,8 +465,8 @@ umoven_or_printaddr_ignore_syserror(struct tcb *, kernel_ulong_t addr,
 extern int
 umovestr(struct tcb *, kernel_ulong_t addr, unsigned int len, char *laddr);
 
-extern int upeek(int pid, unsigned long, kernel_ulong_t *);
-extern int upoke(int pid, unsigned long, kernel_ulong_t);
+extern int upeek(struct tcb *tcp, unsigned long, kernel_ulong_t *);
+extern int upoke(struct tcb *tcp, unsigned long, kernel_ulong_t);
 
 extern bool
 print_array(struct tcb *,
@@ -467,12 +484,8 @@ print_array(struct tcb *,
 				     void *opaque_data),
 	    void *opaque_data);
 
-#if defined ALPHA || defined IA64 || defined MIPS \
- || defined SH || defined SPARC || defined SPARC64
-# define HAVE_GETRVAL2
+#if HAVE_ARCH_GETRVAL2
 extern long getrval2(struct tcb *);
-#else
-# undef HAVE_GETRVAL2
 #endif
 
 extern const char *signame(const int);
@@ -495,7 +508,7 @@ void dyxlat_free(struct dyxlat *);
 const struct xlat *dyxlat_get(const struct dyxlat *);
 void dyxlat_add_pair(struct dyxlat *, uint64_t val, const char *str, size_t len);
 
-const struct xlat *genl_families_xlat(void);
+const struct xlat *genl_families_xlat(struct tcb *tcp);
 
 extern unsigned long get_pagesize(void);
 extern int next_set_bit(const void *bit_array, unsigned cur_bit, unsigned size_bits);
@@ -518,6 +531,7 @@ str_strip_prefix_len(const char *str, const char *prefix, size_t prefix_len)
 #define QUOTE_OMIT_LEADING_TRAILING_QUOTES	0x02
 #define QUOTE_OMIT_TRAILING_0			0x08
 #define QUOTE_FORCE_HEX				0x10
+#define QUOTE_EMIT_COMMENT			0x20
 
 extern int string_quote(const char *, char *, unsigned int, unsigned int);
 extern int print_quoted_string(const char *, unsigned int, unsigned int);
@@ -544,6 +558,8 @@ extern int printxval_searchn(const struct xlat *xlat, size_t xlat_size,
 	uint64_t val, const char *dflt);
 #define printxval_search(xlat__, val__, dflt__) \
 	printxval_searchn(xlat__, ARRAY_SIZE(xlat__), val__, dflt__)
+extern int sprintxval(char *buf, size_t size, const struct xlat *,
+	unsigned int val, const char *dflt);
 extern int printargs(struct tcb *);
 extern int printargs_u(struct tcb *);
 extern int printargs_d(struct tcb *);
@@ -561,6 +577,9 @@ extern void print_numeric_long_umask(unsigned long);
 extern void print_dev_t(unsigned long long dev);
 extern void print_abnormal_hi(kernel_ulong_t);
 
+extern kernel_ulong_t *
+fetch_indirect_syscall_args(struct tcb *, kernel_ulong_t addr, unsigned int n_args);
+
 extern void
 dumpiov_in_msghdr(struct tcb *, kernel_ulong_t addr, kernel_ulong_t data_size);
 
@@ -573,14 +592,14 @@ dumpiov_upto(struct tcb *, int len, kernel_ulong_t addr, kernel_ulong_t data_siz
 extern void
 dumpstr(struct tcb *, kernel_ulong_t addr, int len);
 
-extern void
+extern int
 printstr_ex(struct tcb *, kernel_ulong_t addr, kernel_ulong_t len,
 	    unsigned int user_style);
 
-extern void
+extern int
 printpathn(struct tcb *, kernel_ulong_t addr, unsigned int n);
 
-extern void
+extern int
 printpath(struct tcb *, kernel_ulong_t addr);
 
 #define TIMESPEC_TEXT_BUFSIZE \
@@ -658,6 +677,7 @@ name ## _ioctl(struct tcb *, unsigned int request, kernel_ulong_t arg)	\
 DECL_IOCTL(dm);
 DECL_IOCTL(file);
 DECL_IOCTL(fs_x);
+DECL_IOCTL(kvm);
 DECL_IOCTL(nsfs);
 DECL_IOCTL(ptp);
 DECL_IOCTL(scsi);
@@ -701,16 +721,16 @@ extern void unwind_print_stacktrace(struct tcb *);
 extern void unwind_capture_stacktrace(struct tcb *);
 #endif
 
-static inline void
+static inline int
 printstrn(struct tcb *tcp, kernel_ulong_t addr, kernel_ulong_t len)
 {
-	printstr_ex(tcp, addr, len, 0);
+	return printstr_ex(tcp, addr, len, 0);
 }
 
-static inline void
+static inline int
 printstr(struct tcb *tcp, kernel_ulong_t addr)
 {
-	printstr_ex(tcp, addr, -1, QUOTE_0_TERMINATED);
+	return printstr_ex(tcp, addr, -1, QUOTE_0_TERMINATED);
 }
 
 static inline int
@@ -758,7 +778,21 @@ extern void print_itimerval32(struct tcb *, kernel_ulong_t addr);
 #endif
 
 #ifdef HAVE_STRUCT_USER_DESC
-extern void print_user_desc(struct tcb *, kernel_ulong_t addr);
+/**
+ * Filter what to print from the point of view of the get_thread_area syscall.
+ * Kernel copies only entry_number field at first and then tries to write the
+ * whole structure.
+ */
+enum user_desc_print_filter {
+	/* Print the "entering" part of struct user_desc - entry_number.  */
+	USER_DESC_ENTERING = 1,
+	/* Print the "exiting" part of the structure.  */
+	USER_DESC_EXITING  = 2,
+	USER_DESC_BOTH     = USER_DESC_ENTERING | USER_DESC_EXITING,
+};
+
+extern void print_user_desc(struct tcb *, kernel_ulong_t addr,
+			    enum user_desc_print_filter filter);
 #endif
 
 /* Strace log generation machinery.
@@ -788,7 +822,7 @@ extern void tprintf_comment(const char *fmt, ...) ATTRIBUTE_FORMAT((printf, 1, 2
 extern void tprints_comment(const char *str);
 
 #if SUPPORTED_PERSONALITIES > 1
-extern void set_personality(int personality);
+extern void set_personality(unsigned int personality);
 extern unsigned current_personality;
 #else
 # define set_personality(personality) ((void)0)
@@ -811,9 +845,12 @@ extern unsigned current_klongsize;
 # endif
 #endif
 
-#define ANY_WORDSIZE_LESS_THAN_KERNEL_LONG	\
-	(SIZEOF_KERNEL_LONG_T > 4		\
-	 && (SIZEOF_LONG < SIZEOF_KERNEL_LONG_T || !defined(current_wordsize)))
+#if SIZEOF_KERNEL_LONG_T > 4		\
+ && (SIZEOF_LONG < SIZEOF_KERNEL_LONG_T || !defined(current_wordsize))
+# define ANY_WORDSIZE_LESS_THAN_KERNEL_LONG	1
+#else
+# define ANY_WORDSIZE_LESS_THAN_KERNEL_LONG	0
+#endif
 
 #define DECL_PRINTNUM(name)						\
 extern bool								\
@@ -941,6 +978,8 @@ extern const struct_sysent sysent0[];
 extern const char *const errnoent0[];
 extern const char *const signalent0[];
 extern const struct_ioctlent ioctlent0[];
+
+extern const char *const personality_names[];
 
 #if SUPPORTED_PERSONALITIES > 1
 extern const struct_sysent *sysent;

@@ -64,7 +64,7 @@ static
 const struct xlat dm_flags[] = {
  XLAT(DM_READONLY_FLAG),
  XLAT(DM_SUSPEND_FLAG),
-/* Defined in lvm2/libdm/ioctl/libdm-iface.c */
+
  XLAT(DM_EXISTS_FLAG),
  XLAT(DM_PERSISTENT_DEV_FLAG),
  XLAT(DM_STATUS_TABLE_FLAG),

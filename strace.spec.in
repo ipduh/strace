@@ -6,8 +6,11 @@ License: BSD
 Group: Development/Debuggers
 URL: https://strace.io
 Source: https://downloads.sourceforge.net/strace/%{name}-%{version}.tar.xz
+%if 0%{?fedora} >= 18 || 0%{?centos} >= 8 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1200
+BuildRequires: pkgconfig(bluez)
+%endif
 %if 0%{?fedora} >= 20 || 0%{?centos} >= 8 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1300
-%define buildrequires_libunwind_devel BuildRequires: libunwind-devel
+%define buildrequires_libunwind_devel BuildRequires: libunwind-devel binutils-devel
 %endif
 %ifarch x86_64
 # for experimental -k option
@@ -62,7 +65,7 @@ kver="$(echo -e '#include <linux/version.h>\nLINUX_VERSION_CODE' | gcc -E -P -)"
 printf 'kernel-headers %%s.%%s.%%s\n' $(($kver/65536)) $(($kver/256%%256)) $(($kver%%256))
 echo 'END OF BUILD ENVIRONMENT INFORMATION'
 
-%configure
+%configure --enable-mpers=check
 make %{?_smp_mflags}
 
 %install
@@ -83,6 +86,7 @@ rm -f %{buildroot}%{_bindir}/strace-graph
 %endif
 
 %check
+%{buildroot}%{_bindir}/strace -V
 make %{?_smp_mflags} -k check VERBOSE=1
 echo 'BEGIN OF TEST SUITE INFORMATION'
 tail -n 99999 -- tests*/test-suite.log tests*/ksysent.log
@@ -104,6 +108,9 @@ echo 'END OF TEST SUITE INFORMATION'
 %changelog
 * @RPM_CHANGELOGTIME@ @PACKAGE_BUGREPORT@ - @PACKAGE_VERSION@-1
 - @PACKAGE_STRING@ snapshot.
+
+* Mon Nov 13 2017 Dmitry V. Levin <ldv@altlinux.org> - 4.20-1
+- v4.19 -> v4.20.
 
 * Tue Sep 05 2017 Dmitry V. Levin <ldv@altlinux.org> - 4.19-1
 - v4.18 -> v4.19.

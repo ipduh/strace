@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,7 +116,7 @@ DECL_NETLINK_ROUTE_DECODER(decode_fib_rule_hdr)
 	if (len >= sizeof(msg)) {
 		if (!umoven_or_printaddr(tcp, addr + offset,
 					 sizeof(msg) - offset,
-					 (void *) &msg + offset)) {
+					 (char *) &msg + offset)) {
 			tprintf("dst_len=%u, src_len=%u",
 				msg.rtm_dst_len, msg.rtm_src_len);
 			tprints(", tos=");

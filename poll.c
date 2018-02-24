@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@
 
 #include "defs.h"
 #include <poll.h>
+#include "xstring.h"
 
 #include "xlat/pollflags.h"
 
@@ -96,7 +97,7 @@ decode_poll_exiting(struct tcb *const tcp, const kernel_ulong_t pts)
 				*outptr++ = '[';
 			else
 				outptr = stpcpy(outptr, ", ");
-			outptr += sprintf(outptr, "%#" PRI_klx, cur);
+			outptr = xappendstr(outstr, outptr, "%#" PRI_klx, cur);
 			break;
 		}
 		if (!fds.revents)
@@ -112,7 +113,7 @@ decode_poll_exiting(struct tcb *const tcp, const kernel_ulong_t pts)
 
 		static const char fmt[] = "{fd=%d, revents=";
 		char fdstr[sizeof(fmt) + sizeof(int) * 3];
-		sprintf(fdstr, fmt, fds.fd);
+		xsprintf(fdstr, fmt, fds.fd);
 
 		const char *flagstr = sprintflags("", pollflags,
 						  (unsigned short) fds.revents);

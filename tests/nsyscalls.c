@@ -2,7 +2,7 @@
  * Check decoding of out-of-range syscalls.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
 #include "sysent.h"
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <asm/unistd.h>
 
@@ -43,11 +44,20 @@ static const struct_sysent syscallent[] = {
 
 #include "sysent_shorthand_undefs.h"
 
+#ifndef DEBUG_PRINT
+# define DEBUG_PRINT 0
+#endif
+
 #if defined __X32_SYSCALL_BIT && defined __NR_read \
  && (__X32_SYSCALL_BIT & __NR_read) != 0
 # define SYSCALL_BIT __X32_SYSCALL_BIT
 #else
 # define SYSCALL_BIT 0
+#endif
+
+#if DEBUG_PRINT
+static const char *strace_name;
+static FILE *debug_out;
 #endif
 
 static void
@@ -64,13 +74,19 @@ test_syscall(const unsigned long nr)
 
 	long rc = syscall(nr | SYSCALL_BIT,
 			  a[0], a[1], a[2], a[3], a[4], a[5]);
+
+#if DEBUG_PRINT
+	fprintf(debug_out, "%s: pid %d invalid syscall %#lx\n",
+		strace_name, getpid(), nr | SYSCALL_BIT);
+#endif
+
 #ifdef LINUX_MIPSO32
 	printf("syscall(%#lx, %#lx, %#lx, %#lx, %#lx, %#lx, %#lx)"
 	       " = %ld ENOSYS (%m)\n", nr | SYSCALL_BIT,
 	       a[0], a[1], a[2], a[3], a[4], a[5], rc);
 #else
-	printf("syscall_%lu(%#llx, %#llx, %#llx, %#llx, %#llx, %#llx)"
-	       " = %ld (errno %d)\n", nr,
+	printf("syscall_%#lx(%#llx, %#llx, %#llx, %#llx, %#llx, %#llx)"
+	       " = %ld (errno %d)\n", nr | SYSCALL_BIT,
 	       (unsigned long long) a[0],
 	       (unsigned long long) a[1],
 	       (unsigned long long) a[2],
@@ -82,8 +98,26 @@ test_syscall(const unsigned long nr)
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
+#if DEBUG_PRINT
+	if (argc < 3)
+		error_msg_and_fail("Not enough arguments. "
+				   "Usage: %s STRACE_NAME DEBUG_OUT_FD",
+				   argv[0]);
+
+	strace_name = argv[1];
+
+	errno = 0;
+	int debug_out_fd = strtol(argv[2], NULL, 0);
+	if (errno)
+		error_msg_and_fail("Not a number: %s", argv[2]);
+
+	debug_out = fdopen(debug_out_fd, "a");
+	if (!debug_out)
+		perror_msg_and_fail("fdopen: %d", debug_out_fd);
+#endif
+
 	test_syscall(ARRAY_SIZE(syscallent));
 
 #ifdef SYS_socket_subcall

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,9 @@
 #if defined IP_ADD_MEMBERSHIP && defined IPV6_ADD_MEMBERSHIP \
  && defined IPV6_JOIN_ANYCAST
 
+# include <limits.h>
 # include <stdio.h>
 # include <unistd.h>
-# include <sys/param.h>
 # include <sys/socket.h>
 # include <arpa/inet.h>
 # include <net/if.h>

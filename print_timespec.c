@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,8 @@
 typedef struct timespec timespec_t;
 
 #include MPERS_DEFS
+
+#include "xstring.h"
 
 #ifndef UTIME_NOW
 # define UTIME_NOW ((1l << 30) - 1l)
@@ -125,9 +127,9 @@ MPERS_PRINTER_DECL(const char *, sprint_timespec,
 		strcpy(buf, "NULL");
 	} else if (!verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
 		   umove(tcp, addr, &t)) {
-		snprintf(buf, sizeof(buf), "%#" PRI_klx, addr);
+		xsprintf(buf, "%#" PRI_klx, addr);
 	} else {
-		snprintf(buf, sizeof(buf), timespec_fmt,
+		xsprintf(buf, timespec_fmt,
 			 (long long) t.tv_sec,
 			 zero_extend_signed_to_ull(t.tv_nsec));
 	}

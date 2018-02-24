@@ -3,7 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-2000 Wichert Akkerman <wichert@cistron.nl>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -354,7 +354,7 @@ do_pipe(struct tcb *tcp, int flags_arg)
 
 SYS_FUNC(pipe)
 {
-#ifdef HAVE_GETRVAL2
+#if HAVE_ARCH_GETRVAL2
 	if (exiting(tcp) && !syserror(tcp))
 		printpair_fd(tcp, tcp->u_rval, getrval2(tcp));
 	return 0;
@@ -390,8 +390,9 @@ SYS_FUNC(socketpair)
 #include "xlat/getsockipv6options.h"
 #include "xlat/setsockipv6options.h"
 #include "xlat/sockipxoptions.h"
-#include "xlat/sockrawoptions.h"
+#include "xlat/socknetlinkoptions.h"
 #include "xlat/sockpacketoptions.h"
+#include "xlat/sockrawoptions.h"
 #include "xlat/socksctpoptions.h"
 #include "xlat/socktcpoptions.h"
 
@@ -430,6 +431,9 @@ print_sockopt_fd_level_name(struct tcb *tcp, int fd, unsigned int level,
 		break;
 	case SOL_RAW:
 		printxval(sockrawoptions, name, "RAW_???");
+		break;
+	case SOL_NETLINK:
+		printxval(socknetlinkoptions, name, "NETLINK_???");
 		break;
 
 		/* Other SOL_* protocol levels still need work. */
@@ -552,27 +556,35 @@ print_icmp_filter(struct tcb *const tcp, const kernel_ulong_t addr, int len)
 	tprints(")");
 }
 
+static bool
+print_uint32(struct tcb *tcp, void *elem_buf, size_t elem_size, void *data)
+{
+	tprintf("%u", *(uint32_t *) elem_buf);
+
+	return true;
+}
+
 static void
 print_getsockopt(struct tcb *const tcp, const unsigned int level,
 		 const unsigned int name, const kernel_ulong_t addr,
-		 const int len)
+		 const int ulen, const int rlen)
 {
 	if (addr && verbose(tcp))
 	switch (level) {
 	case SOL_SOCKET:
 		switch (name) {
 		case SO_LINGER:
-			print_get_linger(tcp, addr, len);
+			print_get_linger(tcp, addr, rlen);
 			return;
 #ifdef SO_PEERCRED
 		case SO_PEERCRED:
-			print_ucred(tcp, addr, len);
+			print_ucred(tcp, addr, rlen);
 			return;
 #endif
 #ifdef SO_ATTACH_FILTER
 		case SO_ATTACH_FILTER:
-			if (len && (unsigned short) len == (unsigned int) len)
-				print_sock_fprog(tcp, addr, len);
+			if (rlen && (unsigned short) rlen == (unsigned int) rlen)
+				print_sock_fprog(tcp, addr, rlen);
 			else
 				printaddr(addr);
 			return;
@@ -584,7 +596,7 @@ print_getsockopt(struct tcb *const tcp, const unsigned int level,
 		switch (name) {
 #ifdef PACKET_STATISTICS
 		case PACKET_STATISTICS:
-			print_tpacket_stats(tcp, addr, len);
+			print_tpacket_stats(tcp, addr, rlen);
 			return;
 #endif
 		}
@@ -593,19 +605,44 @@ print_getsockopt(struct tcb *const tcp, const unsigned int level,
 	case SOL_RAW:
 		switch (name) {
 		case ICMP_FILTER:
-			print_icmp_filter(tcp, addr, len);
+			print_icmp_filter(tcp, addr, rlen);
 			return;
 		}
 		break;
+
+	case SOL_NETLINK:
+		if (ulen < 0 || rlen < 0) {
+			/*
+			 * As the kernel neither accepts nor returns a negative
+			 * length, in case of successful getsockopt syscall
+			 * invocation these negative values must have come
+			 * from userspace.
+			 */
+			printaddr(addr);
+			return;
+		}
+		switch (name) {
+		case NETLINK_LIST_MEMBERSHIPS: {
+			uint32_t buf;
+			print_array(tcp, addr, MIN(ulen, rlen) / sizeof(buf),
+				    &buf, sizeof(buf),
+				    umoven_or_printaddr, print_uint32, 0);
+			break;
+			}
+		default:
+			printnum_int(tcp, addr, "%d");
+			break;
+		}
+		return;
 	}
 
 	/* default arg printing */
 
 	if (verbose(tcp)) {
-		if (len == sizeof(int)) {
+		if (rlen == sizeof(int)) {
 			printnum_int(tcp, addr, "%d");
 		} else {
-			printstrn(tcp, addr, len);
+			printstrn(tcp, addr, rlen);
 		}
 	} else {
 		printaddr(addr);
@@ -638,7 +675,7 @@ SYS_FUNC(getsockopt)
 			tprintf(", [%d]", ulen);
 		} else {
 			print_getsockopt(tcp, tcp->u_arg[1], tcp->u_arg[2],
-					 tcp->u_arg[3], rlen);
+					 tcp->u_arg[3], ulen, rlen);
 			if (ulen != rlen)
 				tprintf(", [%d->%d]", ulen, rlen);
 			else
@@ -821,6 +858,13 @@ print_setsockopt(struct tcb *const tcp, const unsigned int level,
 			return;
 		}
 		break;
+
+	case SOL_NETLINK:
+		if (len < (int) sizeof(int))
+			printaddr(addr);
+		else
+			printnum_int(tcp, addr, "%d");
+		return;
 	}
 
 	/* default arg printing */

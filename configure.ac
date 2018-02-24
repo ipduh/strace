@@ -5,7 +5,7 @@
 # Copyright (c) 2006-2016 Dmitry V. Levin <ldv@altlinux.org>
 # Copyright (c) 2008-2015 Mike Frysinger <vapier@gentoo.org>
 # Copyright (c) 2015 Elvira Khabirova <lineprinter0@gmail.com>
-# Copyright (c) 2002-2017 The strace developers.
+# Copyright (c) 2002-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,7 @@ DEB_CHANGELOGTIME="$(LC_TIME=C date -R)"
 AC_SUBST(DEB_CHANGELOGTIME)
 
 AC_PROG_CC
+AC_PROG_CC_STDC
 AC_PROG_CPP
 st_WARN_CFLAGS
 AX_PROG_CC_FOR_BUILD
@@ -70,10 +71,37 @@ AC_SUBST([MANPAGE_DATE], [manpage_date])
 AC_MSG_CHECKING([for supported architecture])
 arch_m32=
 arch_mx32=
+cc_flags_m32=-m32
+cc_flags_mx32=-mx32
 case "$host_cpu" in
+aarch64*)
+	arch=aarch64
+	arch_m32=arm
+	AC_DEFINE([AARCH64], 1, [Define for the AArch64 architecture.])
+	;;
+alpha*)
+	arch=alpha
+	AC_DEFINE([ALPHA], 1, [Define for the Alpha architecture.])
+	;;
+arc*)
+	arch=arc
+	AC_DEFINE([ARC], 1, [Define for the ARC architecture.])
+	;;
+arm*)
+	arch=arm
+	AC_DEFINE([ARM], 1, [Define for the ARM architecture.])
+	;;
+avr32*)
+	arch=avr32
+	AC_DEFINE([AVR32], 1, [Define for the AVR32 architecture.])
+	;;
 bfin)
 	arch=bfin
 	AC_DEFINE([BFIN], 1, [Define for the Blackfin architecture.])
+	;;
+hppa*|parisc*)
+	arch=hppa
+	AC_DEFINE([HPPA], 1, [Define for the HPPA architecture.])
 	;;
 i[[3456]]86|pentium)
 	arch=i386
@@ -87,26 +115,25 @@ m68k)
 	arch=m68k
 	AC_DEFINE([M68K], 1, [Define for the m68k architecture.])
 	;;
-sparc64*)
-	arch=sparc64
-	arch_m32=sparc
-	AC_DEFINE([SPARC64], 1, [Define for the SPARC64 architecture.])
-	;;
-sparc*)
-	arch=sparc
-	AC_DEFINE([SPARC], 1, [Define for the SPARC architecture.])
-	;;
 metag*)
 	arch=metag
 	AC_DEFINE([METAG], 1, [Define for the Meta architecture.])
+	;;
+microblaze*)
+	arch=microblaze
+	AC_DEFINE([MICROBLAZE], 1, [Define for the MicroBlaze architecture.])
 	;;
 mips*)
 	arch=mips
 	AC_DEFINE([MIPS], 1, [Define for the MIPS architecture.])
 	;;
-alpha*)
-	arch=alpha
-	AC_DEFINE([ALPHA], 1, [Define for the Alpha architecture.])
+nios2*)
+	arch=nios2
+	AC_DEFINE([NIOS2], 1, [Define for the Nios-II architecture.])
+	;;
+or1k*)
+	arch=or1k
+	AC_DEFINE([OR1K], 1, [Define for the OpenRISC 1000 architecture.])
 	;;
 powerpc*)
 	AC_DEFINE([POWERPC], 1, [Define for the PowerPC architecture.])
@@ -119,22 +146,9 @@ powerpc*)
 		AC_DEFINE([POWERPC64], 1, [Define for the PowerPC64 architecture.])
 	fi
 	;;
-arm*)
-	arch=arm
-	AC_DEFINE([ARM], 1, [Define for the ARM architecture.])
-	;;
-aarch64*)
-	arch=aarch64
-	arch_m32=arm
-	AC_DEFINE([AARCH64], 1, [Define for the AArch64 architecture.])
-	;;
-avr32*)
-	arch=avr32
-	AC_DEFINE([AVR32], 1, [Define for the AVR32 architecture.])
-	;;
-arc*)
-	arch=arc
-	AC_DEFINE([ARC], 1, [Define for the ARC architecture.])
+riscv*)
+	arch=riscv
+	AC_DEFINE([RISCV], 1, [Define for the RISC-V architecture])
 	;;
 s390)
 	arch=s390
@@ -142,11 +156,9 @@ s390)
 	;;
 s390x)
 	arch=s390x
+	arch_m32=s390
+	cc_flags_m32=-m31
 	AC_DEFINE([S390X], 1, [Define for the S390x architecture.])
-	;;
-hppa*|parisc*)
-	arch=hppa
-	AC_DEFINE([HPPA], 1, [Define for the HPPA architecture.])
 	;;
 sh64*)
 	arch=sh64
@@ -155,6 +167,19 @@ sh64*)
 sh*)
 	arch=sh
 	AC_DEFINE([SH], 1, [Define for the SH architecture.])
+	;;
+sparc64*)
+	arch=sparc64
+	arch_m32=sparc
+	AC_DEFINE([SPARC64], 1, [Define for the SPARC64 architecture.])
+	;;
+sparc*)
+	arch=sparc
+	AC_DEFINE([SPARC], 1, [Define for the SPARC architecture.])
+	;;
+tile*)
+	arch=tile
+	AC_DEFINE([TILE], 1, [Define for the Tile architecture])
 	;;
 x86?64*)
 	arch_m32=i386
@@ -169,48 +194,18 @@ x86?64*)
 		AC_DEFINE([X32], 1, [Define for the 32bit AMD x86-64 architecture.])
 	fi
 	;;
-cris|crisv10)
-	arch=crisv10
-	AC_DEFINE([CRISV10], 1, [Define for the CRISv10 architecture.])
-	;;
-crisv32)
-	arch=crisv32
-	AC_DEFINE([CRISV32], 1, [Define for the CRISv32 architecture.])
-	;;
-tile*)
-	arch=tile
-	AC_DEFINE([TILE], 1, [Define for the Tile architecture])
-	;;
-microblaze*)
-	arch=microblaze
-	AC_DEFINE([MICROBLAZE], 1, [Define for the MicroBlaze architecture.])
-	;;
-nios2*)
-	arch=nios2
-	AC_DEFINE([NIOS2], 1, [Define for the Nios-II architecture.])
-	;;
-
-or1k*)
-	arch=or1k
-	AC_DEFINE([OR1K], 1, [Define for the OpenRISC 1000 architecture.])
-	;;
-
 xtensa*)
 	arch=xtensa
 	AC_DEFINE([XTENSA], 1, [Define for the Xtensa architecture])
 	;;
-
-riscv*)
-	arch=riscv
-	AC_DEFINE([RISCV], 1, [Define for the RISC-V architecture])
-	;;
-
 *)
 	AC_MSG_RESULT([NO!])
 	AC_MSG_ERROR([architecture $host_cpu is not supported by strace])
 	;;
 esac
 AC_MSG_RESULT($arch)
+
+arch_native=$arch
 
 test -n "$arch_m32" ||
 	arch_m32=$arch
@@ -219,12 +214,15 @@ test -n "$arch_mx32" ||
 AC_SUBST(arch)
 AC_SUBST(arch_m32)
 AC_SUBST(arch_mx32)
+AC_SUBST(cc_flags_m32)
+AC_SUBST(cc_flags_mx32)
+AC_SUBST(arch_native)
 
 MIPS_ABI=
 if test "$arch" = mips; then
 	AC_CACHE_CHECK([for _MIPS_SIM], [st_cv__MIPS_SIM],
 		       [AC_COMPUTE_INT([st_cv__MIPS_SIM], [_MIPS_SIM], ,
-				       [AC_MSG_ERROR([_MIPS_SIM cannot be determined])])])
+				       [AC_MSG_FAILURE([_MIPS_SIM cannot be determined])])])
 
 	# requires GCC >= 3.4
 	AC_CACHE_CHECK([for MIPS ABI], [st_cv_mips_abi],
@@ -277,6 +275,7 @@ AC_CHECK_FUNCS(m4_normalize([
 	fstatat
 	ftruncate
 	futimens
+	iconv_open
 	if_indextoname
 	open64
 	prctl
@@ -304,7 +303,10 @@ AC_CHECK_TYPES([struct stat64, struct __old_kernel_stat],,,
 [#include <sys/types.h>
 #include <asm/stat.h>])
 
-AC_CHECK_TYPES([struct user_desc],,, [#include <asm/ldt.h>])
+AC_CHECK_TYPES([struct user_desc],
+	       [AC_CHECK_MEMBERS([struct user_desc.lm],,,
+				 [#include <asm/ldt.h>])],,
+	       [#include <asm/ldt.h>])
 
 AC_CHECK_MEMBERS([struct stat.st_mtime_nsec, struct stat64.st_mtime_nsec],,,
 [#include <sys/types.h>
@@ -364,6 +366,7 @@ AC_CHECK_MEMBERS(m4_normalize([
 	struct perf_event_attr.use_clockid,
 	struct perf_event_attr.context_switch,
 	struct perf_event_attr.write_backward,
+	struct perf_event_attr.namespaces,
 	struct perf_event_attr.bp_type,
 	struct perf_event_attr.config1,
 	struct perf_event_attr.config2,
@@ -377,9 +380,11 @@ AC_CHECK_MEMBERS(m4_normalize([
 
 AC_CHECK_HEADERS(m4_normalize([
 	asm/cachectl.h
+	asm/guarded_storage.h
 	asm/sysmips.h
 	bluetooth/bluetooth.h
 	elf.h
+	iconv.h
 	inttypes.h
 	linux/bsg.h
 	linux/cryptouser.h
@@ -395,6 +400,8 @@ AC_CHECK_HEADERS(m4_normalize([
 	linux/ip_vs.h
 	linux/ipc.h
 	linux/kcmp.h
+	linux/kvm.h
+	linux/memfd.h
 	linux/mmtimer.h
 	linux/msg.h
 	linux/neighbour.h
@@ -420,6 +427,7 @@ AC_CHECK_HEADERS(m4_normalize([
 	mqueue.h
 	netinet/sctp.h
 	netipx/ipx.h
+	paths.h
 	scsi/sg.h
 	stropts.h
 	sys/conf.h
@@ -458,11 +466,16 @@ AC_CHECK_HEADERS([linux/input.h], [
 ])
 
 AC_CHECK_HEADERS([linux/bpf.h], [
-	st_CHECK_UNION_BPF_ATTR([attach_flags])
-	st_CHECK_UNION_BPF_ATTR([bpf_fd])
-	st_CHECK_UNION_BPF_ATTR([flags])
-	st_CHECK_UNION_BPF_ATTR([inner_map_fd])
-	st_CHECK_UNION_BPF_ATTR([prog_flags])
+	AC_CHECK_MEMBERS(m4_normalize([
+		union bpf_attr.attach_flags,
+		union bpf_attr.bpf_fd,
+		union bpf_attr.flags,
+		union bpf_attr.info.info,
+		union bpf_attr.next_id,
+		union bpf_attr.numa_node,
+		union bpf_attr.prog_flags,
+		union bpf_attr.test.duration
+	]),,, [#include <linux/bpf.h>])
 ])
 
 AC_CHECK_TYPES(m4_normalize([
@@ -533,6 +546,20 @@ AC_CHECK_TYPES([struct statfs64], [
 #include <asm/statfs.h>])
 
 AC_CHECK_TYPES([struct blk_user_trace_setup],,, [#include <linux/blktrace_api.h>])
+
+AC_CHECK_TYPES([struct mtd_write_req],,, [#include <mtd/mtd-abi.h>])
+
+AC_CHECK_MEMBERS([struct ubi_attach_req.max_beb_per1024],,, [#include <mtd/ubi-user.h>])
+
+AC_CHECK_TYPES(m4_normalize([
+	struct ptp_sys_offset
+]),,, [#include <linux/ptp_clock.h>])
+
+AC_CHECK_TYPES(m4_normalize([
+	struct kvm_regs,
+	struct kvm_sregs,
+	struct kvm_userspace_memory_region
+]),,, [#include <linux/kvm.h>])
 
 AC_CHECK_HEADERS([linux/btrfs.h], [
 	AC_CHECK_MEMBERS(m4_normalize([
@@ -728,10 +755,15 @@ AC_CACHE_CHECK([for BLKGETSIZE64], [ac_cv_have_blkgetsize64],
 	fi)
 
 AC_CHECK_SIZEOF([long])
+SIZEOF_LONG="$ac_cv_sizeof_long"
+AC_SUBST(SIZEOF_LONG)
 AC_CHECK_SIZEOF([long long])
 AC_CHECK_SIZEOF([off_t],,[#include <sys/types.h>])
 AC_CHECK_SIZEOF([kernel_long_t],,[#include "$srcdir/kernel_types.h"])
+SIZEOF_KERNEL_LONG_T="$ac_cv_sizeof_kernel_long_t"
+AC_SUBST(SIZEOF_KERNEL_LONG_T)
 AC_CHECK_SIZEOF([struct i64_i32],,[struct i64_i32 {long long i64; int i32;};])
+
 
 AC_CACHE_CHECK([for SIGRTMIN], [st_cv_SIGRTMIN],
 	       [[st_cv_SIGRTMIN="$(echo SIGRTMIN |
@@ -778,6 +810,8 @@ fi
 AC_SUBST(dl_LIBS)
 
 AC_PATH_PROG([PERL], [perl])
+
+AC_CHECK_TOOL([READELF], [readelf])
 
 dnl stack trace with libunwind
 libunwind_CPPFLAGS=
@@ -868,16 +902,84 @@ fi
 AM_CONDITIONAL([USE_LIBUNWIND], [test "x$use_libunwind" = xyes])
 AC_MSG_RESULT([$use_libunwind])
 
+dnl demangling symbols in the stack trace
+libiberty_CPPFLAGS=
+libiberty_LDFLAGS=
+libiberty_LIBS=
+AC_ARG_WITH([libiberty],
+	    [AS_HELP_STRING([--with-libiberty],
+			    [use libiberty to demangle symbols in stack trace])],
+	    [case "${withval}" in
+	     yes|no|check) ;;
+	     *) with_libiberty=yes
+		libiberty_CPPFLAGS="-I${withval}/include"
+		libiberty_LDFLAGS="-L${withval}/lib" ;;
+	     esac],
+	    [with_libiberty=check]
+)
+
+use_libiberty=no
+AS_IF([test "x$use_libunwind" = xyes && test "x$with_libiberty" != xno],
+      [saved_CPPFLAGS="$CPPFLAGS"
+       CPPFLAGS="$CPPFLAGS $libiberty_CPPFLAGS"
+       AC_CHECK_HEADERS([demangle.h libiberty/demangle.h],
+	 [saved_LDFLAGS="$LDFLAGS"
+	  LDFLAGS="$LDFLAGS $libiberty_LDFLAGS"
+	  AC_CHECK_LIB([iberty],[cplus_demangle],
+	    [libiberty_LIBS="-liberty"
+	     use_libiberty=yes
+	    ],
+	    [if test "x$with_libiberty" != xcheck; then
+	       AC_MSG_FAILURE([failed to find cplus_demangle in libiberty])
+	     fi
+	    ]
+	  )
+	  LDFLAGS="$saved_LDFLAGS"
+	 ],
+	 [if test "x$with_libiberty" != xcheck; then
+	      AC_MSG_FAILURE([failed to find demangle.h])
+	  fi
+	 ]
+       )
+       CPPFLAGS="$saved_CPPFLAGS"
+      ]
+)
+
+dnl enable libiberty
+AC_MSG_CHECKING([whether to enable demangling symbols in stack trace])
+if test "x$use_libiberty" = xyes; then
+	AC_DEFINE([USE_DEMANGLE], 1, [Do demangling symbols in stack trace])
+	AC_SUBST(libiberty_LIBS)
+	AC_SUBST(libiberty_LDFLAGS)
+	AC_SUBST(libiberty_CPPFLAGS)
+fi
+AM_CONDITIONAL([USE_DEMANGLE], [test "x$use_libiberty" = xyes])
+AC_MSG_RESULT([$use_libiberty])
+
 if test "$arch" = mips && test "$no_create" != yes; then
 	mkdir -p linux/mips
 	if $srcdir/linux/mips/genstub.sh linux/mips; then
 		AC_MSG_RESULT([Generated MIPS syscallent stubs])
 	else
-		AC_MSG_FAILURE([Failed to generate syscallent stubs])
+		AC_MSG_ERROR([Failed to generate syscallent stubs])
 	fi
 fi
 
-st_MPERS([m32], [aarch64|powerpc64|sparc64|tile|x32|x86_64])
+AC_ARG_ENABLE([mpers],
+	[AS_HELP_STRING([--enable-mpers=yes|no|check|m32|mx32],
+		[whether to enable multiple personalities support required
+		 for proper decoding of structures used by tracees with
+		 personalities that differ from the personality of strace,
+		 default is yes.])],
+	[case "$enableval" in
+		yes|no|check|m32|mx32) enable_mpers="$enableval" ;;
+		*) AC_MSG_ERROR([bad value $enableval for enable-mpers option.
+				 Valid options are: yes, no, check, m32, mx32.])
+		;;
+	 esac],
+	[enable_mpers=yes])
+
+st_MPERS([m32], [aarch64|powerpc64|riscv|s390x|sparc64|tile|x32|x86_64])
 st_MPERS([mx32], [x86_64])
 
 AX_VALGRIND_DFLT([sgcheck], [off])
@@ -888,6 +990,7 @@ AC_CONFIG_FILES([Makefile
 		 tests-m32/Makefile
 		 tests-mx32/Makefile
 		 strace.1
+		 strace-log-merge.1
 		 strace.spec
 		 debian/changelog])
 AC_OUTPUT

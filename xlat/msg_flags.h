@@ -2,6 +2,9 @@
 #if !(defined(MSG_BATCH) || (defined(HAVE_DECL_MSG_BATCH) && HAVE_DECL_MSG_BATCH))
 # define MSG_BATCH 0x40000
 #endif
+#if !(defined(MSG_ZEROCOPY) || (defined(HAVE_DECL_MSG_ZEROCOPY) && HAVE_DECL_MSG_ZEROCOPY))
+# define MSG_ZEROCOPY 0x20000000
+#endif
 
 #ifndef IN_MPERS
 
@@ -58,6 +61,7 @@ const struct xlat msg_flags[] = {
   XLAT(MSG_WAITFORONE),
 #endif
  XLAT(MSG_BATCH),
+ XLAT(MSG_ZEROCOPY),
 #if defined(MSG_EOF) || (defined(HAVE_DECL_MSG_EOF) && HAVE_DECL_MSG_EOF)
   XLAT(MSG_EOF),
 #endif

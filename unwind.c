@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2013 Luca Clementi <luca.clementi@gmail.com>
- * Copyright (c) 2013-2017 The strace developers.
+ * Copyright (c) 2013-2018 The strace developers.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +29,16 @@
 #include <limits.h>
 #include <libunwind-ptrace.h>
 
+#ifdef USE_DEMANGLE
+# if defined HAVE_DEMANGLE_H
+#  include <demangle.h>
+# elif defined HAVE_LIBIBERTY_DEMANGLE_H
+#  include <libiberty/demangle.h>
+# endif
+#endif
+
+#include "xstring.h"
+
 #ifdef _LARGEFILE64_SOURCE
 # ifdef HAVE_FOPEN64
 #  define fopen_for_input fopen64
@@ -38,12 +48,6 @@
 #else
 # define fopen_for_input fopen
 #endif
-
-#define DPRINTF(F, A, ...)						\
-	do {								\
-		if (debug_flag)						\
-			error_msg("[unwind(" A ")] " F, __VA_ARGS__);	\
-	} while (0)
 
 /*
  * Keep a sorted array of cache entries,
@@ -96,6 +100,8 @@ static void delete_mmap_cache(struct tcb *tcp, const char *caller);
 static unw_addr_space_t libunwind_as;
 static unsigned int mmap_cache_generation;
 
+static const char asprintf_error_str[] = "???";
+
 void
 unwind_init(void)
 {
@@ -143,22 +149,19 @@ static void
 build_mmap_cache(struct tcb *tcp)
 {
 	FILE *fp;
-	struct mmap_cache_t *cache_head;
-	/* start with a small dynamically-allocated array and then expand it */
-	size_t cur_array_size = 10;
+	struct mmap_cache_t *cache_head = NULL;
+	size_t cur_array_size = 0;
 	char filename[sizeof("/proc/4294967296/maps")];
 	char buffer[PATH_MAX + 80];
 
 	unw_flush_cache(libunwind_as, 0, 0);
 
-	sprintf(filename, "/proc/%u/maps", tcp->pid);
+	xsprintf(filename, "/proc/%u/maps", tcp->pid);
 	fp = fopen_for_input(filename, "r");
 	if (!fp) {
 		perror_msg("fopen: %s", filename);
 		return;
 	}
-
-	cache_head = xcalloc(cur_array_size, sizeof(*cache_head));
 
 	while (fgets(buffer, sizeof(buffer), fp) != NULL) {
 		struct mmap_cache_t *entry;
@@ -193,17 +196,19 @@ build_mmap_cache(struct tcb *tcp)
 			}
 			if (start_addr <= entry->start_addr ||
 			    start_addr < entry->end_addr) {
-				error_msg("%s: overlapping memory region",
-					  filename);
+				debug_msg("%s: overlapping memory region: "
+					  "\"%s\" [%08lx-%08lx] overlaps with "
+					  "\"%s\" [%08lx-%08lx]",
+					  filename, binary_path, start_addr,
+					  end_addr, entry->binary_filename,
+					  entry->start_addr, entry->end_addr);
 				continue;
 			}
 		}
 
-		if (tcp->mmap_cache_size >= cur_array_size) {
-			cur_array_size *= 2;
-			cache_head = xreallocarray(cache_head, cur_array_size,
-						   sizeof(*cache_head));
-		}
+		if (tcp->mmap_cache_size >= cur_array_size)
+			cache_head = xgrowarray(cache_head, &cur_array_size,
+						sizeof(*cache_head));
 
 		entry = &cache_head[tcp->mmap_cache_size];
 		entry->start_addr = start_addr;
@@ -216,11 +221,10 @@ build_mmap_cache(struct tcb *tcp)
 	tcp->mmap_cache = cache_head;
 	tcp->mmap_cache_generation = mmap_cache_generation;
 
-	DPRINTF("tgen=%u, ggen=%u, tcp=%p, cache=%p",
-		"cache-build",
-		tcp->mmap_cache_generation,
-		mmap_cache_generation,
-		tcp, tcp->mmap_cache);
+	debug_func_msg("tgen=%u, ggen=%u, tcp=%p, cache=%p",
+		       tcp->mmap_cache_generation,
+		       mmap_cache_generation,
+		       tcp, tcp->mmap_cache);
 }
 
 /* deleting the cache */
@@ -229,11 +233,10 @@ delete_mmap_cache(struct tcb *tcp, const char *caller)
 {
 	unsigned int i;
 
-	DPRINTF("tgen=%u, ggen=%u, tcp=%p, cache=%p, caller=%s",
-		"cache-delete",
-		tcp->mmap_cache_generation,
-		mmap_cache_generation,
-		tcp, tcp->mmap_cache, caller);
+	debug_func_msg("tgen=%u, ggen=%u, tcp=%p, cache=%p, caller=%s",
+		       tcp->mmap_cache_generation,
+		       mmap_cache_generation,
+		       tcp, tcp->mmap_cache, caller);
 
 	for (i = 0; i < tcp->mmap_cache_size; i++) {
 		free(tcp->mmap_cache[i].binary_filename);
@@ -254,10 +257,7 @@ rebuild_cache_if_invalid(struct tcb *tcp, const char *caller)
 	if (!tcp->mmap_cache)
 		build_mmap_cache(tcp);
 
-	if (!tcp->mmap_cache || !tcp->mmap_cache_size)
-		return false;
-	else
-		return true;
+	return tcp->mmap_cache && tcp->mmap_cache_size;
 }
 
 void
@@ -265,16 +265,15 @@ unwind_cache_invalidate(struct tcb *tcp)
 {
 #if SUPPORTED_PERSONALITIES > 1
 	if (tcp->currpers != DEFAULT_PERSONALITY) {
-		/* disable strack trace */
+		/* disable stack trace */
 		return;
 	}
 #endif
 	mmap_cache_generation++;
-	DPRINTF("tgen=%u, ggen=%u, tcp=%p, cache=%p", "increment",
-		tcp->mmap_cache_generation,
-		mmap_cache_generation,
-		tcp,
-		tcp->mmap_cache);
+	debug_func_msg("tgen=%u, ggen=%u, tcp=%p, cache=%p",
+		       tcp->mmap_cache_generation,
+		       mmap_cache_generation,
+		       tcp, tcp->mmap_cache);
 }
 
 static void
@@ -290,8 +289,7 @@ get_symbol_name(unw_cursor_t *cursor, char **name,
 			*offset = 0;
 			break;
 		}
-		*name = xreallocarray(*name, 2, *size);
-		*size *= 2;
+		*name = xgrowarray(*name, size, 1);
 	}
 }
 
@@ -328,11 +326,25 @@ print_stack_frame(struct tcb *tcp,
 					&function_offset);
 			true_offset = ip - cur_mmap_cache->start_addr +
 				cur_mmap_cache->mmap_offset;
+
+#ifdef USE_DEMANGLE
+			char *demangled_name =
+				cplus_demangle(*symbol_name,
+					       DMGL_AUTO | DMGL_PARAMS);
+#endif
+
 			call_action(data,
 				    cur_mmap_cache->binary_filename,
+#ifdef USE_DEMANGLE
+				    demangled_name ? demangled_name :
+#endif
 				    *symbol_name,
 				    function_offset,
 				    true_offset);
+#ifdef USE_DEMANGLE
+			free(demangled_name);
+#endif
+
 			return 0;
 		} else if (ip < cur_mmap_cache->start_addr)
 			upper = mid - 1;
@@ -466,8 +478,10 @@ sprint_call_or_error(const char *binary_filename,
 	else
 		n = asprintf(&output_line, STACK_ENTRY_BUG_FMT, __func__);
 
-	if (n < 0)
-		error_msg_and_die("error in asprintf");
+	if (n < 0) {
+		perror_func_msg("asprintf");
+		output_line = (char *) asprintf_error_str;
+	}
 
 	return output_line;
 }
@@ -540,7 +554,9 @@ queue_print(struct queue_t *queue)
 		tprints(tmp->output_line);
 		line_ended();
 
-		free(tmp->output_line);
+		if (tmp->output_line != asprintf_error_str)
+			free(tmp->output_line);
+
 		tmp->output_line = NULL;
 		tmp->next = NULL;
 		free(tmp);
@@ -555,15 +571,15 @@ unwind_print_stacktrace(struct tcb *tcp)
 {
 #if SUPPORTED_PERSONALITIES > 1
 	if (tcp->currpers != DEFAULT_PERSONALITY) {
-		/* disable strack trace */
+		/* disable stack trace */
 		return;
 	}
 #endif
 	if (tcp->queue->head) {
-		DPRINTF("tcp=%p, queue=%p", "queueprint", tcp, tcp->queue->head);
+		debug_func_msg("head: tcp=%p, queue=%p", tcp, tcp->queue->head);
 		queue_print(tcp->queue);
 	} else if (rebuild_cache_if_invalid(tcp, __func__)) {
-		DPRINTF("tcp=%p, queue=%p", "stackprint", tcp, tcp->queue->head);
+		debug_func_msg("walk: tcp=%p, queue=%p", tcp, tcp->queue->head);
 		stacktrace_walk(tcp, print_call_cb, print_error_cb, NULL);
 	}
 }
@@ -576,7 +592,7 @@ unwind_capture_stacktrace(struct tcb *tcp)
 {
 #if SUPPORTED_PERSONALITIES > 1
 	if (tcp->currpers != DEFAULT_PERSONALITY) {
-		/* disable strack trace */
+		/* disable stack trace */
 		return;
 	}
 #endif
@@ -586,6 +602,6 @@ unwind_capture_stacktrace(struct tcb *tcp)
 	if (rebuild_cache_if_invalid(tcp, __func__)) {
 		stacktrace_walk(tcp, queue_put_call, queue_put_error,
 				tcp->queue);
-		DPRINTF("tcp=%p, queue=%p", "captured", tcp, tcp->queue->head);
+		debug_func_msg("tcp=%p, queue=%p", tcp, tcp->queue->head);
 	}
 }

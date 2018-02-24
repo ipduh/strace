@@ -2,7 +2,7 @@
  * Check decoding of sockname family syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,9 @@
 # error TEST_SYSCALL_NAME must be defined
 #endif
 
-#define TEST_SYSCALL_STR STRINGIFY_VAL(TEST_SYSCALL_NAME)
+#ifndef TEST_SYSCALL_STR
+# define TEST_SYSCALL_STR STRINGIFY_VAL(TEST_SYSCALL_NAME)
+#endif
 #define TEST_SOCKET TEST_SYSCALL_STR ".socket"
 
 #ifdef TEST_SYSCALL_PREPARE

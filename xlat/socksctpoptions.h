@@ -113,7 +113,7 @@ const struct xlat socksctpoptions[] = {
 #if defined(SCTP_DEFAULT_SNDINFO) || (defined(HAVE_DECL_SCTP_DEFAULT_SNDINFO) && HAVE_DECL_SCTP_DEFAULT_SNDINFO)
   XLAT(SCTP_DEFAULT_SNDINFO),
 #endif
-/* linux specific things */
+
 #if defined(SCTP_SOCKOPT_BINDX_ADD) || (defined(HAVE_DECL_SCTP_SOCKOPT_BINDX_ADD) && HAVE_DECL_SCTP_SOCKOPT_BINDX_ADD)
   XLAT(SCTP_SOCKOPT_BINDX_ADD),
 #endif

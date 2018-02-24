@@ -2,7 +2,7 @@
 #
 # Check -e inject= syntax.
 #
-# Copyright (c) 2016-2017 Dmitry V. Levin <ldv@altlinux.org>
+# Copyright (c) 2016-2018 Dmitry V. Levin <ldv@altlinux.org>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,17 +40,7 @@ fail_with()
 		"strace -e inject=$* failed to handle an argument error properly"
 }
 
-for arg in '' , ,, ,,, : :: ::: \! \!, \!: \
-	   invalid_syscall_name \
-	   invalid_syscall_name:when=3 \
-	   -1 \!-1 \
-	   -1:when=4 \
-	   -2 \
-	   -2:when=5 \
-	   32767 \!32767 \
-	   32767:when=6 \
-	   42 \
-	   chdir \
+for arg in 42 chdir \
 	   chdir:42 \!chdir:42 \
 	   chdir:42:when=7 \
 	   chdir:invalid \
@@ -94,12 +84,6 @@ for arg in '' , ,, ,,, : :: ::: \! \!, \!: \
 	   chdir:when=65536:error=30 \
 	   chdir:when=1+65536 \
 	   chdir:when=1+65536:error=31 \
-	   file,nonsense \
-	   \!desc,nonsense \
-	   chdir,nonsense \
-	   \!chdir,nonsense \
-	   1,nonsense \
-	   \!1,nonsense \
 	   chdir:retval=-1 \
 	   chdir:signal=0 \
 	   chdir:signal=129 \

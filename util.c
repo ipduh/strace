@@ -6,7 +6,7 @@
  * Copyright (c) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *                     Linux for s390 port by D.J. Barrow
  *                    <barrow_dj@mail.yahoo.com,djbarrow@de.ibm.com>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,13 +33,14 @@
  */
 
 #include "defs.h"
-#include <sys/param.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #ifdef HAVE_SYS_XATTR_H
 # include <sys/xattr.h>
 #endif
 #include <sys/uio.h>
+#include "xstring.h"
 
 int
 tv_nz(const struct timeval *a)
@@ -344,15 +345,9 @@ sprinttime_ex(const long long sec, const unsigned long long part_sec,
 	if (!pos)
 		return NULL;
 
-	if (part_sec > 0) {
-		int ret = snprintf(buf + pos, sizeof(buf) - pos, ".%0*llu",
-				   width, part_sec);
-
-		if (ret < 0 || (size_t) ret >= sizeof(buf) - pos)
-			return NULL;
-
-		pos += ret;
-	}
+	if (part_sec > 0)
+		pos += xsnprintf(buf + pos, sizeof(buf) - pos, ".%0*llu",
+				 width, part_sec);
 
 	return strftime(buf + pos, sizeof(buf) - pos, "%z", tmp) ? buf : NULL;
 }
@@ -387,7 +382,7 @@ getfdproto(struct tcb *tcp, int fd)
 	if (fd < 0)
 		return SOCK_PROTO_UNKNOWN;
 
-	sprintf(path, "/proc/%u/fd/%u", tcp->pid, fd);
+	xsprintf(path, "/proc/%u/fd/%u", tcp->pid, fd);
 	r = getxattr(path, "system.sockprotoname", buf, bufsize - 1);
 	if (r <= 0)
 		return SOCK_PROTO_UNKNOWN;
@@ -502,6 +497,8 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
 		}
 	}
 
+	if (style & QUOTE_EMIT_COMMENT)
+		s = stpcpy(s, " /* ");
 	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
 		*s++ = '\"';
 
@@ -581,6 +578,8 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
 
 	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
 		*s++ = '\"';
+	if (style & QUOTE_EMIT_COMMENT)
+		s = stpcpy(s, " */");
 	*s = '\0';
 
 	/* Return zero if we printed entire ASCIZ string (didn't truncate it) */
@@ -596,6 +595,8 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
  asciz_ended:
 	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
 		*s++ = '\"';
+	if (style & QUOTE_EMIT_COMMENT)
+		s = stpcpy(s, " */");
 	*s = '\0';
 	/* Return zero: we printed entire ASCIZ string (didn't truncate it) */
 	return 0;
@@ -637,7 +638,8 @@ print_quoted_string(const char *str, unsigned int size,
 		tprints("???");
 		return -1;
 	}
-	alloc_size += 1 + (style & QUOTE_OMIT_LEADING_TRAILING_QUOTES ? 0 : 2);
+	alloc_size += 1 + (style & QUOTE_OMIT_LEADING_TRAILING_QUOTES ? 0 : 2) +
+		(style & QUOTE_EMIT_COMMENT ? 7 : 0);
 
 	if (use_alloca(alloc_size)) {
 		outstr = alloca(alloc_size);
@@ -679,8 +681,10 @@ print_quoted_cstring(const char *str, unsigned int size)
 /*
  * Print path string specified by address `addr' and length `n'.
  * If path length exceeds `n', append `...' to the output.
+ *
+ * Returns the result of umovenstr.
  */
-void
+int
 printpathn(struct tcb *const tcp, const kernel_ulong_t addr, unsigned int n)
 {
 	char path[PATH_MAX];
@@ -688,7 +692,7 @@ printpathn(struct tcb *const tcp, const kernel_ulong_t addr, unsigned int n)
 
 	if (!addr) {
 		tprints("NULL");
-		return;
+		return -1;
 	}
 
 	/* Cap path length to the path buffer size */
@@ -703,13 +707,15 @@ printpathn(struct tcb *const tcp, const kernel_ulong_t addr, unsigned int n)
 		path[n++] = !nul_seen;
 		print_quoted_cstring(path, n);
 	}
+
+	return nul_seen;
 }
 
-void
+int
 printpath(struct tcb *const tcp, const kernel_ulong_t addr)
 {
 	/* Size must correspond to char path[] size in printpathn */
-	printpathn(tcp, addr, PATH_MAX - 1);
+	return printpathn(tcp, addr, PATH_MAX - 1);
 }
 
 /*
@@ -719,8 +725,11 @@ printpath(struct tcb *const tcp, const kernel_ulong_t addr)
  * Pass `user_style' on to `string_quote'.
  * Append `...' to the output if either the string length exceeds `max_strlen',
  * or QUOTE_0_TERMINATED bit is set and the string length exceeds `len'.
+ *
+ * Returns the result of umovenstr if style has QUOTE_0_TERMINATED,
+ * or the result of umoven otherwise.
  */
-void
+int
 printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
 	    const kernel_ulong_t len, const unsigned int user_style)
 {
@@ -734,7 +743,7 @@ printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
 
 	if (!addr) {
 		tprints("NULL");
-		return;
+		return -1;
 	}
 	/* Allocate static buffers if they are not allocated yet. */
 	if (!str) {
@@ -761,7 +770,7 @@ printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
 
 	if (rc < 0) {
 		printaddr(addr);
-		return;
+		return rc;
 	}
 
 	if (size > max_strlen)
@@ -780,6 +789,8 @@ printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
 	tprints(outstr);
 	if (ellipsis)
 		tprints("...");
+
+	return rc;
 }
 
 void
@@ -1081,7 +1092,7 @@ print_abnormal_hi(const kernel_ulong_t val)
 #endif
 
 int
-read_int_from_file(const char *const fname, int *const pvalue)
+read_int_from_file(struct tcb *tcp, const char *const fname, int *const pvalue)
 {
 	const int fd = open_file(fname, O_RDONLY);
 	if (fd < 0)

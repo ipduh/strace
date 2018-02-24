@@ -2,7 +2,7 @@
  * Check verbose decoding of perf_event_open syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,7 +102,8 @@ struct pea_flags {
 		 use_clockid			:1,
 		 context_switch			:1,
 		 write_backward			:1,
-		 __reserved_1			:36;
+		 namespaces			:1,
+		 __reserved_1			:35;
 };
 
 static const char *
@@ -351,9 +352,17 @@ print_event_attr(struct perf_event_attr *attr_ptr, size_t size,
 # endif
 	printf(", write_backward=%" PRIu64, val);
 
+	val =
+# ifdef HAVE_STRUCT_PERF_EVENT_ATTR_NAMESPACES
+		attr->namespaces;
+# else
+		flags_data.flags.namespaces;
+# endif
+	printf(", namespaces=%" PRIu64, val);
+
 	val = flags_data.flags.__reserved_1;
 	if (val)
-		printf(", __reserved_1=%#" PRIx64 " /* Bits 63..28 */", val);
+		printf(", __reserved_1=%#" PRIx64 " /* Bits 63..29 */", val);
 
 	printf(", %s=%u",
 		attr->watermark ? "wakeup_watermark" : "wakeup_events",
@@ -523,7 +532,8 @@ end:
 	"PERF_SAMPLE_BRANCH_IND_JUMP|" \
 	"PERF_SAMPLE_BRANCH_CALL|" \
 	"PERF_SAMPLE_BRANCH_NO_FLAGS|" \
-	"PERF_SAMPLE_BRANCH_NO_CYCLES"
+	"PERF_SAMPLE_BRANCH_NO_CYCLES|" \
+	"PERF_SAMPLE_BRANCH_TYPE_SAVE"
 
 int
 main(void)
@@ -608,7 +618,7 @@ main(void)
 	static const struct u64_val_str sample_types[] = {
 		{ ARG_STR(0) },
 		{ 0x800, "PERF_SAMPLE_BRANCH_STACK" },
-		{ ARG_ULL_STR(0xdeadc0deda780000) " /* PERF_SAMPLE_??? */" },
+		{ ARG_ULL_STR(0xdeadc0deda700000) " /* PERF_SAMPLE_??? */" },
 		{ 0xffffffffffffffffULL,
 			"PERF_SAMPLE_IP|PERF_SAMPLE_TID|PERF_SAMPLE_TIME|"
 			"PERF_SAMPLE_ADDR|PERF_SAMPLE_READ|"
@@ -618,7 +628,8 @@ main(void)
 			"PERF_SAMPLE_REGS_USER|PERF_SAMPLE_STACK_USER|"
 			"PERF_SAMPLE_WEIGHT|PERF_SAMPLE_DATA_SRC|"
 			"PERF_SAMPLE_IDENTIFIER|PERF_SAMPLE_TRANSACTION|"
-			"PERF_SAMPLE_REGS_INTR|0xfffffffffff80000" },
+			"PERF_SAMPLE_REGS_INTR|PERF_SAMPLE_PHYS_ADDR|"
+			"0xfffffffffff00000" },
 	};
 	static const struct u64_val_str read_formats[] = {
 		{ ARG_STR(0) },
@@ -650,11 +661,11 @@ main(void)
 	static const struct u64_val_str branch_sample_types[] = {
 		{ ARG_STR(0) },
 		{ 0x80, "PERF_SAMPLE_BRANCH_ABORT_TX" },
-		{ 0xffff, BRANCH_TYPE_ALL },
-		{ ARG_ULL_STR(0xdeadcaffeeed0000)
+		{ 0x1ffff, BRANCH_TYPE_ALL },
+		{ ARG_ULL_STR(0xdeadcaffeeec0000)
 			" /* PERF_SAMPLE_BRANCH_??? */" },
 		{ 0xffffffffffffffffULL,
-			BRANCH_TYPE_ALL "|0xffffffffffff0000" }
+			BRANCH_TYPE_ALL "|0xfffffffffffe0000" }
 	};
 	static const struct s32_val_str clockids[] = {
 		{ 11, "CLOCK_TAI" },

@@ -18,6 +18,9 @@ const struct xlat mmap_flags[] = {
 #if defined(MAP_PRIVATE) || (defined(HAVE_DECL_MAP_PRIVATE) && HAVE_DECL_MAP_PRIVATE)
   XLAT(MAP_PRIVATE),
 #endif
+#if defined(MAP_SHARED_VALIDATE) || (defined(HAVE_DECL_MAP_SHARED_VALIDATE) && HAVE_DECL_MAP_SHARED_VALIDATE)
+  XLAT(MAP_SHARED_VALIDATE),
+#endif
 #if defined(MAP_FIXED) || (defined(HAVE_DECL_MAP_FIXED) && HAVE_DECL_MAP_FIXED)
   XLAT(MAP_FIXED),
 #endif
@@ -87,7 +90,7 @@ const struct xlat mmap_flags[] = {
 #if defined(MAP_LOCKED) || (defined(HAVE_DECL_MAP_LOCKED) && HAVE_DECL_MAP_LOCKED)
   XLAT(MAP_LOCKED),
 #endif
-/* FreeBSD ones */
+
 #if defined(MAP_ANON) && (!defined(MAP_ANONYMOUS) || MAP_ANON != MAP_ANONYMOUS)
 #if defined(MAP_ANON) || (defined(HAVE_DECL_MAP_ANON) && HAVE_DECL_MAP_ANON)
   XLAT(MAP_ANON),
@@ -101,6 +104,9 @@ const struct xlat mmap_flags[] = {
 #endif
 #if defined(MAP_HUGETLB) || (defined(HAVE_DECL_MAP_HUGETLB) && HAVE_DECL_MAP_HUGETLB)
   XLAT(MAP_HUGETLB),
+#endif
+#if defined(MAP_SYNC) || (defined(HAVE_DECL_MAP_SYNC) && HAVE_DECL_MAP_SYNC)
+  XLAT(MAP_SYNC),
 #endif
 #if defined MAP_UNINITIALIZED && MAP_UNINITIALIZED > 0
 #if defined(MAP_UNINITIALIZED) || (defined(HAVE_DECL_MAP_UNINITIALIZED) && HAVE_DECL_MAP_UNINITIALIZED)

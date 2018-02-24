@@ -2,6 +2,7 @@
  * Check decoding of pkey_alloc syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,10 +54,12 @@ main(void)
 			sizeof(kernel_ulong_t) > sizeof(int) ?
 			"PKEY_DISABLE_WRITE|0xbadc0ded00000000" :
 			"PKEY_DISABLE_WRITE" },
-		{ 0xdec0ded, "PKEY_DISABLE_ACCESS|0xdec0dec" },
-		{ 0x3, "PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE" },
+		{ 0xdec0ded, "PKEY_DISABLE_ACCESS|PKEY_DISABLE_EXECUTE|"
+				"0xdec0de8" },
+		{ 0x7, "PKEY_DISABLE_ACCESS|PKEY_DISABLE_WRITE|"
+				"PKEY_DISABLE_EXECUTE" },
 		{ ARG_STR(0) },
-		{ 0xbadc0dec, "0xbadc0dec /* PKEY_??? */" },
+		{ 0xbadc0de8, "0xbadc0de8 /* PKEY_??? */" },
 	};
 
 	long rc;

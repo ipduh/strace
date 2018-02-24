@@ -18,7 +18,7 @@ extern const struct xlat audit_arch[];
 static
 # endif
 const struct xlat audit_arch[] = {
-/* linux used to have linux/elf-em.h out of sync with linux/audit.h */
+
 #if defined(AUDIT_ARCH_AARCH64) || (defined(HAVE_DECL_AUDIT_ARCH_AARCH64) && HAVE_DECL_AUDIT_ARCH_AARCH64)
   XLAT(AUDIT_ARCH_AARCH64),
 #endif

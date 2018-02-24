@@ -4,7 +4,7 @@
 # Copyright (c) 2006-2016 Dmitry V. Levin <ldv@altlinux.org>
 # Copyright (c) 2008-2015 Mike Frysinger <vapier@gentoo.org>
 # Copyright (c) 2015 Elvira Khabirova <lineprinter0@gmail.com>
-# Copyright (c) 2002-2017 The strace developers.
+# Copyright (c) 2002-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,12 +38,14 @@ endif
 SUBDIRS = . tests $(TESTS_M32) $(TESTS_MX32)
 
 bin_PROGRAMS = strace
-man_MANS = strace.1
+man_MANS = strace.1 strace-log-merge.1
 bin_SCRIPTS = strace-graph strace-log-merge
 
 OS		= linux
 # ARCH is `i386', `m68k', `sparc', etc.
 ARCH		= @arch@
+
+READELF		= @READELF@
 
 ACLOCAL_AMFLAGS = -I m4
 AM_CFLAGS = $(WARN_CFLAGS)
@@ -68,8 +70,10 @@ noinst_LIBRARIES = libstrace.a
 libstrace_a_CPPFLAGS = $(strace_CPPFLAGS)
 libstrace_a_CFLAGS = $(strace_CFLAGS)
 libstrace_a_SOURCES =	\
+	fetch_indirect_syscall_args.c \
 	fstatfs.c \
 	fstatfs64.c \
+	getpagesize.c \
 	ipc.c \
 	sigreturn.c	\
 	socketcall.c \
@@ -86,6 +90,7 @@ strace_SOURCES =	\
 	affinity.c	\
 	aio.c		\
 	alpha.c		\
+	arch_defs.h	\
 	basic_filters.c	\
 	bind.c		\
 	bjm.c		\
@@ -164,6 +169,8 @@ strace_SOURCES =	\
 	kexec.c		\
 	keyctl.c	\
 	keyctl_kdf_params.h \
+	kvm.c		\
+	largefile_wrappers.h \
 	ldt.c		\
 	link.c		\
 	linux/asm_stat.h \
@@ -248,6 +255,7 @@ strace_SOURCES =	\
 	regs.h		\
 	renameat.c	\
 	resource.c	\
+	riscv.c		\
 	rt_sigframe.c	\
 	rt_sigreturn.c	\
 	rtc.c		\
@@ -264,6 +272,7 @@ strace_SOURCES =	\
 	rtnl_rule.c	\
 	rtnl_tc.c	\
 	rtnl_tc_action.c \
+	s390.c		\
 	sched.c		\
 	sched_attr.h	\
 	scsi.c		\
@@ -290,7 +299,6 @@ strace_SOURCES =	\
 	strace.c	\
 	string_to_uint.h \
 	string_to_uint.c \
-	supported_personalities.h \
 	swapon.c	\
 	syscall.c	\
 	sysctl.c	\
@@ -303,6 +311,7 @@ strace_SOURCES =	\
 	term.c		\
 	time.c		\
 	times.c		\
+	trace_event.h	\
 	truncate.c	\
 	ubi.c		\
 	ucopy.c		\
@@ -323,6 +332,7 @@ strace_SOURCES =	\
 	xlat.h		\
 	xmalloc.c	\
 	xmalloc.h	\
+	xstring.h	\
 	# end of strace_SOURCES
 
 if USE_LIBUNWIND
@@ -330,6 +340,11 @@ strace_SOURCES += unwind.c
 strace_CPPFLAGS += $(libunwind_CPPFLAGS)
 strace_LDFLAGS += $(libunwind_LDFLAGS)
 strace_LDADD += $(libunwind_LIBS)
+if USE_DEMANGLE
+strace_CPPFLAGS += $(libiberty_CPPFLAGS)
+strace_LDFLAGS += $(libiberty_LDFLAGS)
+strace_LDADD += $(libiberty_LIBS)
+endif
 endif
 
 @CODE_COVERAGE_RULES@
@@ -376,23 +391,27 @@ EXTRA_DIST =				\
 	linux/32/syscallent.h		\
 	linux/64/ioctls_inc.h		\
 	linux/64/syscallent.h		\
+	linux/aarch64/arch_defs_.h	\
 	linux/aarch64/arch_regs.c	\
 	linux/aarch64/arch_regs.h	\
-	linux/aarch64/arch_rt_sigframe.c\
+	linux/aarch64/arch_rt_sigframe.c	\
 	linux/aarch64/arch_sigreturn.c	\
 	linux/aarch64/errnoent1.h	\
 	linux/aarch64/get_error.c	\
 	linux/aarch64/get_scno.c	\
-	linux/aarch64/get_syscall_args.c\
+	linux/aarch64/get_syscall_args.c	\
 	linux/aarch64/ioctls_arch0.h	\
 	linux/aarch64/ioctls_arch1.h	\
 	linux/aarch64/ioctls_inc0.h	\
 	linux/aarch64/ioctls_inc1.h	\
+	linux/aarch64/nr_prefix.c	\
 	linux/aarch64/set_error.c	\
 	linux/aarch64/set_scno.c	\
+	linux/aarch64/shuffle_scno.c	\
 	linux/aarch64/signalent1.h	\
 	linux/aarch64/syscallent.h	\
 	linux/aarch64/syscallent1.h	\
+	linux/alpha/arch_defs_.h	\
 	linux/alpha/arch_getrval2.c	\
 	linux/alpha/arch_regs.c		\
 	linux/alpha/arch_regs.h		\
@@ -402,7 +421,7 @@ EXTRA_DIST =				\
 	linux/alpha/get_error.c		\
 	linux/alpha/get_scno.c		\
 	linux/alpha/get_syscall_args.c	\
-	linux/alpha/get_syscall_result.c\
+	linux/alpha/get_syscall_result.c	\
 	linux/alpha/ioctls_arch0.h	\
 	linux/alpha/ioctls_inc0.h	\
 	linux/alpha/set_error.c		\
@@ -421,8 +440,11 @@ EXTRA_DIST =				\
 	linux/arc/set_error.c		\
 	linux/arc/set_scno.c		\
 	linux/arc/syscallent.h		\
+	linux/arch_defs_.h		\
+	linux/arch_kvm.c		\
 	linux/arch_regs.h		\
 	linux/arch_sigreturn.c		\
+	linux/arm/arch_defs_.h		\
 	linux/arm/arch_regs.c		\
 	linux/arm/arch_regs.h		\
 	linux/arm/arch_rt_sigframe.c	\
@@ -432,8 +454,10 @@ EXTRA_DIST =				\
 	linux/arm/get_syscall_args.c	\
 	linux/arm/ioctls_arch0.h	\
 	linux/arm/ioctls_inc0.h		\
+	linux/arm/nr_prefix.c		\
 	linux/arm/set_error.c		\
 	linux/arm/set_scno.c		\
+	linux/arm/shuffle_scno.c	\
 	linux/arm/syscallent.h		\
 	linux/arm/userent.h		\
 	linux/avr32/arch_regs.c		\
@@ -448,6 +472,7 @@ EXTRA_DIST =				\
 	linux/avr32/set_scno.c		\
 	linux/avr32/syscallent.h	\
 	linux/avr32/userent.h		\
+	linux/bfin/arch_defs_.h		\
 	linux/bfin/arch_regs.c		\
 	linux/bfin/arch_rt_sigframe.c	\
 	linux/bfin/get_error.c		\
@@ -461,33 +486,10 @@ EXTRA_DIST =				\
 	linux/bfin/set_scno.c		\
 	linux/bfin/syscallent.h		\
 	linux/bfin/userent.h		\
-	linux/crisv10/arch_regs.c	\
-	linux/crisv10/arch_rt_sigframe.c\
-	linux/crisv10/arch_sigreturn.c	\
-	linux/crisv10/get_error.c	\
-	linux/crisv10/get_scno.c	\
-	linux/crisv10/get_syscall_args.c	\
-	linux/crisv10/get_syscall_result.c	\
-	linux/crisv10/rt_sigframe.h	\
-	linux/crisv10/set_error.c	\
-	linux/crisv10/set_scno.c	\
-	linux/crisv10/syscallent.h	\
-	linux/crisv10/userent.h		\
-	linux/crisv32/arch_regs.c	\
-	linux/crisv32/arch_rt_sigframe.c\
-	linux/crisv32/arch_sigreturn.c	\
-	linux/crisv32/get_error.c	\
-	linux/crisv32/get_scno.c	\
-	linux/crisv32/get_syscall_args.c	\
-	linux/crisv32/get_syscall_result.c	\
-	linux/crisv32/rt_sigframe.h	\
-	linux/crisv32/set_error.c	\
-	linux/crisv32/set_scno.c	\
-	linux/crisv32/syscallent.h	\
-	linux/crisv32/userent.h		\
 	linux/dummy.h			\
 	linux/errnoent.h		\
 	linux/getregs_old.h		\
+	linux/hppa/arch_defs_.h		\
 	linux/hppa/arch_regs.c		\
 	linux/hppa/arch_regs.h		\
 	linux/hppa/arch_rt_sigframe.c	\
@@ -503,6 +505,8 @@ EXTRA_DIST =				\
 	linux/hppa/set_scno.c		\
 	linux/hppa/signalent.h		\
 	linux/hppa/syscallent.h		\
+	linux/i386/arch_kvm.c		\
+	linux/i386/arch_defs_.h		\
 	linux/i386/arch_regs.c		\
 	linux/i386/arch_regs.h		\
 	linux/i386/arch_rt_sigframe.c	\
@@ -518,6 +522,7 @@ EXTRA_DIST =				\
 	linux/i386/syscallent.h		\
 	linux/i386/userent.h		\
 	linux/i386/userent0.h		\
+	linux/ia64/arch_defs_.h		\
 	linux/ia64/arch_getrval2.c	\
 	linux/ia64/arch_regs.c		\
 	linux/ia64/arch_regs.h		\
@@ -533,6 +538,7 @@ EXTRA_DIST =				\
 	linux/ia64/syscallent.h		\
 	linux/ia64/userent.h		\
 	linux/inet_diag.h		\
+	linux/m68k/arch_defs_.h		\
 	linux/m68k/arch_regs.c		\
 	linux/m68k/arch_regs.h		\
 	linux/m68k/arch_rt_sigframe.c	\
@@ -558,8 +564,9 @@ EXTRA_DIST =				\
 	linux/metag/set_error.c		\
 	linux/metag/set_scno.c		\
 	linux/metag/syscallent.h	\
+	linux/microblaze/arch_defs_.h	\
 	linux/microblaze/arch_regs.c	\
-	linux/microblaze/arch_rt_sigframe.c\
+	linux/microblaze/arch_rt_sigframe.c	\
 	linux/microblaze/arch_sigreturn.c	\
 	linux/microblaze/get_error.c	\
 	linux/microblaze/get_scno.c	\
@@ -571,6 +578,7 @@ EXTRA_DIST =				\
 	linux/microblaze/set_scno.c	\
 	linux/microblaze/syscallent.h	\
 	linux/microblaze/userent.h	\
+	linux/mips/arch_defs_.h		\
 	linux/mips/arch_getrval2.c	\
 	linux/mips/arch_regs.c		\
 	linux/mips/arch_regs.h		\
@@ -593,8 +601,8 @@ EXTRA_DIST =				\
 	linux/mips/syscallent-o32.h	\
 	linux/mips/syscallent.h		\
 	linux/mips/userent.h		\
-	linux/mtd-abi.h			\
 	linux/netlink_diag.h		\
+	linux/nios2/arch_defs_.h	\
 	linux/nios2/arch_regs.c		\
 	linux/nios2/arch_regs.h		\
 	linux/nios2/arch_rt_sigframe.c	\
@@ -606,6 +614,7 @@ EXTRA_DIST =				\
 	linux/nios2/set_error.c		\
 	linux/nios2/set_scno.c		\
 	linux/nios2/syscallent.h	\
+	linux/nr_prefix.c		\
 	linux/or1k/arch_regs.c		\
 	linux/or1k/arch_regs.h		\
 	linux/or1k/arch_rt_sigframe.c	\
@@ -619,10 +628,10 @@ EXTRA_DIST =				\
 	linux/or1k/syscallent.h		\
 	linux/or1k/userent.h		\
 	linux/packet_diag.h		\
-	linux/personality.h		\
+	linux/powerpc/arch_defs_.h	\
 	linux/powerpc/arch_regs.c	\
 	linux/powerpc/arch_regs.h	\
-	linux/powerpc/arch_rt_sigframe.c\
+	linux/powerpc/arch_rt_sigframe.c	\
 	linux/powerpc/arch_sigreturn.c	\
 	linux/powerpc/errnoent.h	\
 	linux/powerpc/get_error.c	\
@@ -636,9 +645,10 @@ EXTRA_DIST =				\
 	linux/powerpc/set_scno.c	\
 	linux/powerpc/syscallent.h	\
 	linux/powerpc/userent.h		\
+	linux/powerpc64/arch_defs_.h	\
 	linux/powerpc64/arch_regs.c	\
 	linux/powerpc64/arch_regs.h	\
-	linux/powerpc64/arch_rt_sigframe.c\
+	linux/powerpc64/arch_rt_sigframe.c	\
 	linux/powerpc64/arch_sigreturn.c	\
 	linux/powerpc64/errnoent.h	\
 	linux/powerpc64/errnoent1.h	\
@@ -658,7 +668,7 @@ EXTRA_DIST =				\
 	linux/powerpc64/syscallent.h	\
 	linux/powerpc64/syscallent1.h	\
 	linux/powerpc64/userent.h	\
-	linux/ptp_clock.h		\
+	linux/riscv/arch_defs_.h	\
 	linux/riscv/arch_regs.c		\
 	linux/riscv/arch_regs.h		\
 	linux/riscv/arch_rt_sigframe.c	\
@@ -676,6 +686,7 @@ EXTRA_DIST =				\
 	linux/riscv/syscallent.h	\
 	linux/riscv/syscallent1.h	\
 	linux/rt_sigframe.h		\
+	linux/s390/arch_defs_.h		\
 	linux/s390/arch_regs.c		\
 	linux/s390/arch_regs.h		\
 	linux/s390/arch_rt_sigframe.c	\
@@ -692,20 +703,27 @@ EXTRA_DIST =				\
 	linux/s390/userent.h		\
 	linux/s390/userent0.h		\
 	linux/s390/userent1.h		\
+	linux/s390x/arch_defs_.h	\
 	linux/s390x/arch_regs.c		\
 	linux/s390x/arch_regs.h		\
 	linux/s390x/arch_rt_sigframe.c	\
 	linux/s390x/arch_sigreturn.c	\
+	linux/s390x/errnoent1.h		\
 	linux/s390x/get_error.c		\
 	linux/s390x/get_scno.c		\
 	linux/s390x/get_syscall_args.c	\
 	linux/s390x/ioctls_arch0.h	\
+	linux/s390x/ioctls_arch1.h	\
 	linux/s390x/ioctls_inc0.h	\
+	linux/s390x/ioctls_inc1.h	\
 	linux/s390x/rt_sigframe.h	\
 	linux/s390x/set_error.c		\
 	linux/s390x/set_scno.c		\
+	linux/s390x/signalent1.h	\
 	linux/s390x/syscallent.h	\
+	linux/s390x/syscallent1.h	\
 	linux/s390x/userent.h		\
+	linux/sh/arch_defs_.h		\
 	linux/sh/arch_getrval2.c	\
 	linux/sh/arch_regs.c		\
 	linux/sh/arch_rt_sigframe.c	\
@@ -720,6 +738,7 @@ EXTRA_DIST =				\
 	linux/sh/syscallent.h		\
 	linux/sh/userent.h		\
 	linux/sh/userent0.h		\
+	linux/sh64/arch_defs_.h		\
 	linux/sh64/arch_regs.c		\
 	linux/sh64/arch_regs.h		\
 	linux/sh64/arch_rt_sigframe.c	\
@@ -734,16 +753,17 @@ EXTRA_DIST =				\
 	linux/sh64/set_scno.c		\
 	linux/sh64/syscallent.h		\
 	linux/sh64/userent.h		\
+	linux/shuffle_scno.c		\
 	linux/signalent.h		\
 	linux/smc_diag.h		\
 	linux/sock_diag.h		\
+	linux/sparc/arch_defs_.h	\
 	linux/sparc/arch_getrval2.c	\
 	linux/sparc/arch_regs.c		\
 	linux/sparc/arch_regs.h		\
 	linux/sparc/arch_rt_sigframe.c	\
 	linux/sparc/arch_sigreturn.c	\
 	linux/sparc/errnoent.h		\
-	linux/sparc/gen.pl		\
 	linux/sparc/get_error.c		\
 	linux/sparc/get_scno.c		\
 	linux/sparc/get_syscall_args.c	\
@@ -755,16 +775,17 @@ EXTRA_DIST =				\
 	linux/sparc/signalent.h		\
 	linux/sparc/syscallent.h	\
 	linux/sparc/userent.h		\
+	linux/sparc64/arch_defs_.h	\
 	linux/sparc64/arch_getrval2.c	\
 	linux/sparc64/arch_regs.c	\
 	linux/sparc64/arch_regs.h	\
-	linux/sparc64/arch_rt_sigframe.c\
+	linux/sparc64/arch_rt_sigframe.c	\
 	linux/sparc64/arch_sigreturn.c	\
 	linux/sparc64/errnoent.h	\
 	linux/sparc64/errnoent1.h	\
 	linux/sparc64/get_error.c	\
 	linux/sparc64/get_scno.c	\
-	linux/sparc64/get_syscall_args.c\
+	linux/sparc64/get_syscall_args.c	\
 	linux/sparc64/ioctls_arch0.h	\
 	linux/sparc64/ioctls_arch1.h	\
 	linux/sparc64/ioctls_inc0.h	\
@@ -779,6 +800,7 @@ EXTRA_DIST =				\
 	linux/sparc64/userent.h		\
 	linux/subcall.h			\
 	linux/syscall.h			\
+	linux/tile/arch_defs_.h		\
 	linux/tile/arch_regs.c		\
 	linux/tile/arch_regs.h		\
 	linux/tile/arch_rt_sigframe.c	\
@@ -798,10 +820,11 @@ EXTRA_DIST =				\
 	linux/tile/syscallent.h		\
 	linux/tile/syscallent1.h	\
 	linux/tile/userent.h		\
-	linux/ubi-user.h		\
 	linux/unix_diag.h		\
 	linux/userent.h			\
 	linux/userent0.h		\
+	linux/x32/arch_defs_.h		\
+	linux/x32/arch_kvm.c		\
 	linux/x32/arch_regs.c		\
 	linux/x32/arch_regs.h		\
 	linux/x32/arch_rt_sigframe.c	\
@@ -817,17 +840,19 @@ EXTRA_DIST =				\
 	linux/x32/rt_sigframe.h		\
 	linux/x32/set_error.c		\
 	linux/x32/set_scno.c		\
+	linux/x32/shuffle_scno.c	\
 	linux/x32/signalent1.h		\
 	linux/x32/syscallent.h		\
 	linux/x32/syscallent1.h		\
 	linux/x32/userent.h		\
+	linux/x86_64/arch_defs_.h	\
+	linux/x86_64/arch_kvm.c		\
 	linux/x86_64/arch_regs.c	\
 	linux/x86_64/arch_regs.h	\
 	linux/x86_64/arch_rt_sigframe.c	\
 	linux/x86_64/arch_sigreturn.c	\
 	linux/x86_64/errnoent1.h	\
 	linux/x86_64/errnoent2.h	\
-	linux/x86_64/gentab.pl		\
 	linux/x86_64/get_error.c	\
 	linux/x86_64/get_scno.c		\
 	linux/x86_64/get_syscall_args.c	\
@@ -842,6 +867,7 @@ EXTRA_DIST =				\
 	linux/x86_64/rt_sigframe.h	\
 	linux/x86_64/set_error.c	\
 	linux/x86_64/set_scno.c		\
+	linux/x86_64/shuffle_scno.c	\
 	linux/x86_64/signalent1.h	\
 	linux/x86_64/signalent2.h	\
 	linux/x86_64/syscallent.h	\
@@ -871,7 +897,7 @@ EXTRA_DIST =				\
 	$(XLAT_INPUT_FILES)		\
 	$(XLAT_HEADER_FILES)		\
 	xlat/gen.sh			\
-	xlate.el
+	# end of EXTRA_DIST
 
 .PHONY: check-valgrind-local
 check-valgrind-local:
@@ -987,9 +1013,12 @@ libmpers_CFLAGS = $(strace_CFLAGS)
 
 mpers-m%.stamp: $(srcdir_mpers_source_files) | printers.h
 	for f in $^; do \
-		CC="$(CC)" CFLAGS="$(mpers_sh_opts) -DMPERS_IS_$(mpers_NAME)" \
-		CPP="$(CPP)" CPPFLAGS="$(mpers_sh_opts) -DIN_MPERS -DMPERS_IS_$(mpers_NAME)" \
-		$(srcdir)/mpers.sh -$(mpers_NAME) $$f || exit; \
+		READELF="$(READELF)" \
+		CC="$(CC)" \
+		CFLAGS="$(mpers_sh_opts) -DMPERS_IS_$(mpers_NAME)" \
+		CPP="$(CPP)" \
+		CPPFLAGS="$(mpers_sh_opts) -DIN_MPERS -DMPERS_IS_$(mpers_NAME)" \
+		$(srcdir)/mpers.sh $(mpers_NAME) $(mpers_CC_FLAGS) $$f || exit; \
 	done
 	> $@
 
@@ -1060,6 +1089,7 @@ BUILT_SOURCES += $(mpers_m32_targets)
 CLEANFILES    += $(mpers_m32_targets)
 
 $(mpers_m32_targets): mpers_NAME = m32
+$(mpers_m32_targets): mpers_CC_FLAGS = @cc_flags_m32@
 
 endif # HAVE_M32_MPERS
 
@@ -1076,6 +1106,7 @@ BUILT_SOURCES += $(mpers_mx32_targets)
 CLEANFILES    += $(mpers_mx32_targets)
 
 $(mpers_mx32_targets): mpers_NAME = mx32
+$(mpers_mx32_targets): mpers_CC_FLAGS = @cc_flags_mx32@
 
 endif # HAVE_MX32_MPERS
 

@@ -2,6 +2,7 @@
  * Check decoding of MCAST_JOIN_GROUP/MCAST_LEAVE_GROUP.
  *
  * Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,9 +34,9 @@
 
 #if defined MCAST_JOIN_GROUP && defined MCAST_LEAVE_GROUP
 
+# include <limits.h>
 # include <stdio.h>
 # include <unistd.h>
-# include <sys/param.h>
 # include <sys/socket.h>
 # include <arpa/inet.h>
 

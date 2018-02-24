@@ -287,15 +287,21 @@ ioctl_decode(struct tcb *tcp)
 		return scsi_ioctl(tcp, code, arg);
 	case 'L':
 		return loop_ioctl(tcp, code, arg);
+#ifdef HAVE_STRUCT_MTD_WRITE_REQ
 	case 'M':
 		return mtd_ioctl(tcp, code, arg);
+#endif
+#ifdef HAVE_STRUCT_UBI_ATTACH_REQ_MAX_BEB_PER1024
 	case 'o':
 	case 'O':
 		return ubi_ioctl(tcp, code, arg);
+#endif
 	case 'V':
 		return v4l2_ioctl(tcp, code, arg);
+#ifdef HAVE_STRUCT_PTP_SYS_OFFSET
 	case '=':
 		return ptp_ioctl(tcp, code, arg);
+#endif
 #ifdef HAVE_LINUX_INPUT_H
 	case 'E':
 		return evdev_ioctl(tcp, code, arg);
@@ -313,6 +319,10 @@ ioctl_decode(struct tcb *tcp)
 #ifdef HAVE_LINUX_DM_IOCTL_H
 	case 0xfd:
 		return dm_ioctl(tcp, code, arg);
+#endif
+#ifdef HAVE_LINUX_KVM_H
+	case 0xae:
+		return kvm_ioctl(tcp, code, arg);
 #endif
 	default:
 		break;

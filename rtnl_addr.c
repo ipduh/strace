@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -115,7 +115,7 @@ DECL_NETLINK_ROUTE_DECODER(decode_ifaddrmsg)
 	if (len >= sizeof(ifaddr)) {
 		if (!umoven_or_printaddr(tcp, addr + offset,
 					 sizeof(ifaddr) - offset,
-					 (void *) &ifaddr + offset)) {
+					 (char *) &ifaddr + offset)) {
 			PRINT_FIELD_U("", ifaddr, ifa_prefixlen);
 			PRINT_FIELD_FLAGS(", ", ifaddr, ifa_flags,
 					  ifaddrflags, "IFA_F_???");
