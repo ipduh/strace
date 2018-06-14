@@ -36,72 +36,76 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <stdarg.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
 #ifdef HAVE_SYS_XATTR_H
 # include <sys/xattr.h>
 #endif
 #include <sys/uio.h>
+
+#include "largefile_wrappers.h"
 #include "xstring.h"
 
 int
-tv_nz(const struct timeval *a)
+ts_nz(const struct timespec *a)
 {
-	return a->tv_sec || a->tv_usec;
+	return a->tv_sec || a->tv_nsec;
 }
 
 int
-tv_cmp(const struct timeval *a, const struct timeval *b)
+ts_cmp(const struct timespec *a, const struct timespec *b)
 {
 	if (a->tv_sec < b->tv_sec
-	    || (a->tv_sec == b->tv_sec && a->tv_usec < b->tv_usec))
+	    || (a->tv_sec == b->tv_sec && a->tv_nsec < b->tv_nsec))
 		return -1;
 	if (a->tv_sec > b->tv_sec
-	    || (a->tv_sec == b->tv_sec && a->tv_usec > b->tv_usec))
+	    || (a->tv_sec == b->tv_sec && a->tv_nsec > b->tv_nsec))
 		return 1;
 	return 0;
 }
 
 double
-tv_float(const struct timeval *tv)
+ts_float(const struct timespec *tv)
 {
-	return tv->tv_sec + tv->tv_usec/1000000.0;
+	return tv->tv_sec + tv->tv_nsec/1000000000.0;
 }
 
 void
-tv_add(struct timeval *tv, const struct timeval *a, const struct timeval *b)
+ts_add(struct timespec *tv, const struct timespec *a, const struct timespec *b)
 {
 	tv->tv_sec = a->tv_sec + b->tv_sec;
-	tv->tv_usec = a->tv_usec + b->tv_usec;
-	if (tv->tv_usec >= 1000000) {
+	tv->tv_nsec = a->tv_nsec + b->tv_nsec;
+	if (tv->tv_nsec >= 1000000000) {
 		tv->tv_sec++;
-		tv->tv_usec -= 1000000;
+		tv->tv_nsec -= 1000000000;
 	}
 }
 
 void
-tv_sub(struct timeval *tv, const struct timeval *a, const struct timeval *b)
+ts_sub(struct timespec *tv, const struct timespec *a, const struct timespec *b)
 {
 	tv->tv_sec = a->tv_sec - b->tv_sec;
-	tv->tv_usec = a->tv_usec - b->tv_usec;
-	if (((long) tv->tv_usec) < 0) {
+	tv->tv_nsec = a->tv_nsec - b->tv_nsec;
+	if (tv->tv_nsec < 0) {
 		tv->tv_sec--;
-		tv->tv_usec += 1000000;
+		tv->tv_nsec += 1000000000;
 	}
 }
 
 void
-tv_div(struct timeval *tv, const struct timeval *a, int n)
+ts_div(struct timespec *tv, const struct timespec *a, int n)
 {
-	tv->tv_usec = (a->tv_sec % n * 1000000 + a->tv_usec + n / 2) / n;
-	tv->tv_sec = a->tv_sec / n + tv->tv_usec / 1000000;
-	tv->tv_usec %= 1000000;
+	long long nsec = (a->tv_sec % n * 1000000000LL + a->tv_nsec + n / 2) / n;
+	tv->tv_sec = a->tv_sec / n + nsec / 1000000000;
+	tv->tv_nsec = nsec % 1000000000;
 }
 
 void
-tv_mul(struct timeval *tv, const struct timeval *a, int n)
+ts_mul(struct timespec *tv, const struct timespec *a, int n)
 {
-	tv->tv_usec = a->tv_usec * n;
-	tv->tv_sec = a->tv_sec * n + tv->tv_usec / 1000000;
-	tv->tv_usec %= 1000000;
+	long long nsec = a->tv_nsec * n;
+	tv->tv_sec = a->tv_sec * n + nsec / 1000000000;
+	tv->tv_nsec = nsec % 1000000000;
 }
 
 #if !defined HAVE_STPCPY
@@ -224,12 +228,18 @@ printllval(struct tcb *tcp, const char *format, int arg_no)
 }
 
 void
-printaddr(const kernel_ulong_t addr)
+printaddr64(const uint64_t addr)
 {
 	if (!addr)
 		tprints("NULL");
 	else
-		tprintf("%#" PRI_klx, addr);
+		tprintf("%#" PRIx64, addr);
+}
+
+void
+printaddr(const kernel_ulong_t addr)
+{
+	printaddr64(addr);
 }
 
 #define DEF_PRINTNUM(name, type) \
@@ -254,7 +264,7 @@ printnum_addr_ ## name(struct tcb *tcp, const kernel_ulong_t addr)	\
 	if (umove_or_printaddr(tcp, addr, &num))			\
 		return false;						\
 	tprints("[");							\
-	printaddr(num);							\
+	printaddr64(num);						\
 	tprints("]");							\
 	return true;							\
 }
@@ -320,11 +330,14 @@ printnum_addr_klong_int(struct tcb *tcp, const kernel_ulong_t addr)
 
 /**
  * Prints time to a (static internal) buffer and returns pointer to it.
+ * Returns NULL if the provided time specification is not correct.
  *
  * @param sec		Seconds since epoch.
  * @param part_sec	Amount of second parts since the start of a second.
  * @param max_part_sec	Maximum value of a valid part_sec.
  * @param width		1 + floor(log10(max_part_sec)).
+ * @return		Pointer to a statically allocated string on success,
+ *			NULL on error.
  */
 static const char *
 sprinttime_ex(const long long sec, const unsigned long long part_sec,
@@ -418,24 +431,59 @@ getfdinode(struct tcb *tcp, int fd)
 	return 0;
 }
 
+static bool
+printsocket(struct tcb *tcp, int fd, const char *path)
+{
+	const char *str = STR_STRIP_PREFIX(path, "socket:[");
+	size_t len;
+	unsigned long inode;
+
+	return (str != path)
+		&& (len = strlen(str))
+		&& (str[len - 1] == ']')
+		&& (inode = strtoul(str, NULL, 10))
+		&& print_sockaddr_by_inode(tcp, fd, inode);
+}
+
+static bool
+printdev(struct tcb *tcp, int fd, const char *path)
+{
+	struct_stat st;
+
+	if (path[0] != '/')
+		return false;
+
+	if (stat_file(path, &st)) {
+		debug_func_perror_msg("stat(\"%s\")", path);
+		return false;
+	}
+
+	switch (st.st_mode & S_IFMT) {
+	case S_IFBLK:
+	case S_IFCHR:
+		print_quoted_string_ex(path, strlen(path),
+				       QUOTE_OMIT_LEADING_TRAILING_QUOTES,
+				       "<>");
+		tprintf("<%s %u:%u>",
+			S_ISBLK(st.st_mode)? "block" : "char",
+			major(st.st_rdev), minor(st.st_rdev));
+		return true;
+	}
+
+	return false;
+}
+
 void
 printfd(struct tcb *tcp, int fd)
 {
 	char path[PATH_MAX + 1];
 	if (show_fd_path && getfdpath(tcp, fd, path, sizeof(path)) >= 0) {
-		const char *str;
-		size_t len;
-		unsigned long inode;
-
 		tprintf("%d<", fd);
 		if (show_fd_path <= 1
-		    || (str = STR_STRIP_PREFIX(path, "socket:[")) == path
-		    || !(len = strlen(str))
-		    || str[len - 1] != ']'
-		    || !(inode = strtoul(str, NULL, 10))
-		    || !print_sockaddr_by_inode(tcp, fd, inode)) {
-			print_quoted_string(path, strlen(path),
-					    QUOTE_OMIT_LEADING_TRAILING_QUOTES);
+		    || (!printsocket(tcp, fd, path)
+		         && !printdev(tcp, fd, path))) {
+			print_quoted_string_ex(path, strlen(path),
+				QUOTE_OMIT_LEADING_TRAILING_QUOTES, "<>");
 		}
 		tprints(">");
 	} else
@@ -445,6 +493,9 @@ printfd(struct tcb *tcp, int fd)
 /*
  * Quote string `instr' of length `size'
  * Write up to (3 + `size' * 4) bytes to `outstr' buffer.
+ *
+ * `escape_chars' specifies characters (in addition to characters with
+ * codes 0..31, 127..255, single and double quotes) that should be escaped.
  *
  * If QUOTE_0_TERMINATED `style' flag is set,
  * treat `instr' as a NUL-terminated string,
@@ -458,12 +509,13 @@ printfd(struct tcb *tcp, int fd)
  */
 int
 string_quote(const char *instr, char *outstr, const unsigned int size,
-	     const unsigned int style)
+	     const unsigned int style, const char *escape_chars)
 {
 	const unsigned char *ustr = (const unsigned char *) instr;
 	char *s = outstr;
 	unsigned int i;
 	int usehex, c, eol;
+	bool escape;
 
 	if (style & QUOTE_0_TERMINATED)
 		eol = '\0';
@@ -514,68 +566,75 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
 			*s++ = "0123456789abcdef"[c >> 4];
 			*s++ = "0123456789abcdef"[c & 0xf];
 		}
-	} else {
-		for (i = 0; i < size; ++i) {
-			c = ustr[i];
-			/* Check for NUL-terminated string. */
-			if (c == eol)
-				goto asciz_ended;
-			if ((i == (size - 1)) &&
-			    (style & QUOTE_OMIT_TRAILING_0) && (c == '\0'))
-				goto asciz_ended;
-			switch (c) {
-				case '\"': case '\\':
-					*s++ = '\\';
-					*s++ = c;
-					break;
-				case '\f':
-					*s++ = '\\';
-					*s++ = 'f';
-					break;
-				case '\n':
-					*s++ = '\\';
-					*s++ = 'n';
-					break;
-				case '\r':
-					*s++ = '\\';
-					*s++ = 'r';
-					break;
-				case '\t':
-					*s++ = '\\';
-					*s++ = 't';
-					break;
-				case '\v':
-					*s++ = '\\';
-					*s++ = 'v';
-					break;
-				default:
-					if (c >= ' ' && c <= 0x7e)
-						*s++ = c;
-					else {
-						/* Print \octal */
-						*s++ = '\\';
-						if (i + 1 < size
-						    && ustr[i + 1] >= '0'
-						    && ustr[i + 1] <= '9'
-						) {
-							/* Print \ooo */
+
+		goto string_ended;
+	}
+
+	for (i = 0; i < size; ++i) {
+		c = ustr[i];
+		/* Check for NUL-terminated string. */
+		if (c == eol)
+			goto asciz_ended;
+		if ((i == (size - 1)) &&
+		    (style & QUOTE_OMIT_TRAILING_0) && (c == '\0'))
+			goto asciz_ended;
+		switch (c) {
+		case '\"': case '\\':
+			*s++ = '\\';
+			*s++ = c;
+			break;
+		case '\f':
+			*s++ = '\\';
+			*s++ = 'f';
+			break;
+		case '\n':
+			*s++ = '\\';
+			*s++ = 'n';
+			break;
+		case '\r':
+			*s++ = '\\';
+			*s++ = 'r';
+			break;
+		case '\t':
+			*s++ = '\\';
+			*s++ = 't';
+			break;
+		case '\v':
+			*s++ = '\\';
+			*s++ = 'v';
+			break;
+		default:
+			escape = (c < ' ') || (c > 0x7e);
+
+			if (!escape && escape_chars)
+				escape = !!strchr(escape_chars, c);
+
+			if (!escape) {
+				*s++ = c;
+			} else {
+				/* Print \octal */
+				*s++ = '\\';
+				if (i + 1 < size
+				    && ustr[i + 1] >= '0'
+				    && ustr[i + 1] <= '7'
+				) {
+					/* Print \ooo */
+					*s++ = '0' + (c >> 6);
+					*s++ = '0' + ((c >> 3) & 0x7);
+				} else {
+					/* Print \[[o]o]o */
+					if ((c >> 3) != 0) {
+						if ((c >> 6) != 0)
 							*s++ = '0' + (c >> 6);
-							*s++ = '0' + ((c >> 3) & 0x7);
-						} else {
-							/* Print \[[o]o]o */
-							if ((c >> 3) != 0) {
-								if ((c >> 6) != 0)
-									*s++ = '0' + (c >> 6);
-								*s++ = '0' + ((c >> 3) & 0x7);
-							}
-						}
-						*s++ = '0' + (c & 0x7);
+						*s++ = '0' + ((c >> 3) & 0x7);
 					}
-					break;
+				}
+				*s++ = '0' + (c & 0x7);
 			}
 		}
 	}
 
+ string_ended:
 	if (!(style & QUOTE_OMIT_LEADING_TRAILING_QUOTES))
 		*s++ = '\"';
 	if (style & QUOTE_EMIT_COMMENT)
@@ -621,8 +680,8 @@ string_quote(const char *instr, char *outstr, const unsigned int size,
  * Note that if QUOTE_0_TERMINATED is not set, always returns 1.
  */
 int
-print_quoted_string(const char *str, unsigned int size,
-		    const unsigned int style)
+print_quoted_string_ex(const char *str, unsigned int size,
+		       const unsigned int style, const char *escape_chars)
 {
 	char *buf;
 	char *outstr;
@@ -653,11 +712,18 @@ print_quoted_string(const char *str, unsigned int size,
 		}
 	}
 
-	rc = string_quote(str, outstr, size, style);
+	rc = string_quote(str, outstr, size, style, escape_chars);
 	tprints(outstr);
 
 	free(buf);
 	return rc;
+}
+
+inline int
+print_quoted_string(const char *str, unsigned int size,
+		    const unsigned int style)
+{
+	return print_quoted_string_ex(str, size, style, NULL);
 }
 
 /*
@@ -781,7 +847,7 @@ printstr_ex(struct tcb *const tcp, const kernel_ulong_t addr,
 	/* If string_quote didn't see NUL and (it was supposed to be ASCIZ str
 	 * or we were requested to print more than -s NUM chars)...
 	 */
-	ellipsis = string_quote(str, outstr, size, style)
+	ellipsis = string_quote(str, outstr, size, style, NULL)
 		   && len
 		   && ((style & QUOTE_0_TERMINATED)
 		       || len > max_strlen);

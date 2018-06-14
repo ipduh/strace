@@ -8,6 +8,7 @@
  * Copyright (c) 2011-2016 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2013 Ali Polatel <alip@exherbo.org>
  * Copyright (c) 2015 Mike Frysinger <vapier@gentoo.org>
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -170,6 +171,9 @@
 #endif
 #ifndef PTRACE_SECCOMP_GET_FILTER
 # define PTRACE_SECCOMP_GET_FILTER	0x420c
+#endif
+#ifndef PTRACE_SECCOMP_GET_METADATA
+# define PTRACE_SECCOMP_GET_METADATA	0x420d
 #endif
 
 #if !HAVE_DECL_PTRACE_PEEKUSER

@@ -22,9 +22,21 @@ extern const struct xlat sigtrap_codes[];
 static
 # endif
 const struct xlat sigtrap_codes[] = {
+#if defined(TRAP_STEP) || (defined(HAVE_DECL_TRAP_STEP) && HAVE_DECL_TRAP_STEP)
+  XLAT(TRAP_STEP),
+#endif
  XLAT(TRAP_BRKPT),
+#if defined(TRAP_TRACEFLOW) || (defined(HAVE_DECL_TRAP_TRACEFLOW) && HAVE_DECL_TRAP_TRACEFLOW)
+  XLAT(TRAP_TRACEFLOW),
+#endif
  XLAT(TRAP_TRACE),
+#if defined(TRAP_WATCHPT) || (defined(HAVE_DECL_TRAP_WATCHPT) && HAVE_DECL_TRAP_WATCHPT)
+  XLAT(TRAP_WATCHPT),
+#endif
  XLAT(TRAP_BRANCH),
+#if defined(TRAP_ILLTRAP) || (defined(HAVE_DECL_TRAP_ILLTRAP) && HAVE_DECL_TRAP_ILLTRAP)
+  XLAT(TRAP_ILLTRAP),
+#endif
  XLAT(TRAP_HWBKPT),
  XLAT_END
 };

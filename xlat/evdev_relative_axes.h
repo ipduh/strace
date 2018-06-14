@@ -2,13 +2,11 @@
 
 #ifdef IN_MPERS
 
-extern const struct xlat evdev_relative_axes[];
+# error static const struct xlat evdev_relative_axes in mpers mode
 
 #else
 
-# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
-# endif
 const struct xlat evdev_relative_axes[] = {
 #if defined(REL_X) || (defined(HAVE_DECL_REL_X) && HAVE_DECL_REL_X)
   XLAT(REL_X),

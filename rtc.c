@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2004 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2004-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -93,7 +93,7 @@ MPERS_PRINTER_DECL(int, rtc_ioctl, struct tcb *const tcp,
 	case RTC_RD_TIME:
 		if (entering(tcp))
 			return 0;
-		/* fall through */
+		ATTRIBUTE_FALLTHROUGH;
 	case RTC_ALM_SET:
 	case RTC_SET_TIME:
 		tprints(", ");
@@ -113,7 +113,7 @@ MPERS_PRINTER_DECL(int, rtc_ioctl, struct tcb *const tcp,
 	case RTC_WKALM_RD:
 		if (entering(tcp))
 			return 0;
-		/* fall through */
+		ATTRIBUTE_FALLTHROUGH;
 	case RTC_WKALM_SET:
 		tprints(", ");
 		decode_rtc_wkalrm(tcp, arg);
@@ -121,7 +121,7 @@ MPERS_PRINTER_DECL(int, rtc_ioctl, struct tcb *const tcp,
 	case RTC_PLL_GET:
 		if (entering(tcp))
 			return 0;
-		/* fall through */
+		ATTRIBUTE_FALLTHROUGH;
 	case RTC_PLL_SET:
 		tprints(", ");
 		decode_rtc_pll_info(tcp, arg);

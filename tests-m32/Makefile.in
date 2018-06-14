@@ -142,18 +142,19 @@ check_PROGRAMS = $(am__EXEEXT_1) _newselect-P$(EXEEXT) answer$(EXEEXT) \
 	block_reset_raise_run$(EXEEXT) caps-abbrev$(EXEEXT) \
 	check_sigblock$(EXEEXT) check_sigign$(EXEEXT) \
 	clone_parent$(EXEEXT) clone_ptrace$(EXEEXT) count-f$(EXEEXT) \
-	execve-v$(EXEEXT) execveat-v$(EXEEXT) \
-	filter-unavailable$(EXEEXT) fork-f$(EXEEXT) getpid$(EXEEXT) \
-	getppid$(EXEEXT) gettid$(EXEEXT) int_0x80$(EXEEXT) \
-	ioctl_dm-v$(EXEEXT) ioctl_evdev-v$(EXEEXT) \
-	ioctl_loop-nv$(EXEEXT) ioctl_loop-v$(EXEEXT) \
-	ioctl_nsfs$(EXEEXT) ioctl_rtc-v$(EXEEXT) \
+	delay$(EXEEXT) execve-v$(EXEEXT) execveat-v$(EXEEXT) \
+	filter-unavailable$(EXEEXT) fork-f$(EXEEXT) fsync-y$(EXEEXT) \
+	getpid$(EXEEXT) getppid$(EXEEXT) gettid$(EXEEXT) \
+	inject-nf$(EXEEXT) int_0x80$(EXEEXT) ioctl_dm-v$(EXEEXT) \
+	ioctl_evdev-v$(EXEEXT) ioctl_loop-nv$(EXEEXT) \
+	ioctl_loop-v$(EXEEXT) ioctl_nsfs$(EXEEXT) ioctl_rtc-v$(EXEEXT) \
 	is_linux_mips_n64$(EXEEXT) ksysent$(EXEEXT) \
-	list_sigaction_signum$(EXEEXT) mmsg-silent$(EXEEXT) \
-	mmsg_name-v$(EXEEXT) msg_control-v$(EXEEXT) \
-	net-accept-connect$(EXEEXT) netlink_inet_diag$(EXEEXT) \
-	netlink_netlink_diag$(EXEEXT) netlink_unix_diag$(EXEEXT) \
-	nsyscalls$(EXEEXT) nsyscalls-d$(EXEEXT) oldselect-P$(EXEEXT) \
+	list_sigaction_signum$(EXEEXT) localtime$(EXEEXT) \
+	mmsg-silent$(EXEEXT) mmsg_name-v$(EXEEXT) \
+	msg_control-v$(EXEEXT) net-accept-connect$(EXEEXT) \
+	netlink_inet_diag$(EXEEXT) netlink_netlink_diag$(EXEEXT) \
+	netlink_unix_diag$(EXEEXT) nsyscalls$(EXEEXT) \
+	nsyscalls-d$(EXEEXT) oldselect-P$(EXEEXT) \
 	oldselect-efault-P$(EXEEXT) pc$(EXEEXT) \
 	perf_event_open_nonverbose$(EXEEXT) \
 	perf_event_open_unabbrev$(EXEEXT) ppoll-v$(EXEEXT) \
@@ -179,7 +180,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_code_coverage.m4 \
 	$(top_srcdir)/m4/ax_prog_cc_for_build.m4 \
 	$(top_srcdir)/m4/ax_valgrind_check.m4 \
-	$(top_srcdir)/m4/mpers.m4 \
+	$(top_srcdir)/m4/bpf_attr.m4 $(top_srcdir)/m4/mpers.m4 \
 	$(top_srcdir)/m4/st_save_restore_var.m4 \
 	$(top_srcdir)/m4/st_warn_cflags.m4 \
 	$(top_srcdir)/m4/warnings.m4 $(top_srcdir)/configure.ac
@@ -227,12 +228,12 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	chmod$(EXEEXT) chown$(EXEEXT) chown32$(EXEEXT) chroot$(EXEEXT) \
 	clock_adjtime$(EXEEXT) clock_nanosleep$(EXEEXT) \
 	clock_xettime$(EXEEXT) copy_file_range$(EXEEXT) creat$(EXEEXT) \
-	delete_module$(EXEEXT) dup$(EXEEXT) dup2$(EXEEXT) \
-	dup3$(EXEEXT) epoll_create$(EXEEXT) epoll_create1$(EXEEXT) \
-	epoll_ctl$(EXEEXT) epoll_pwait$(EXEEXT) epoll_wait$(EXEEXT) \
-	erestartsys$(EXEEXT) eventfd$(EXEEXT) execve$(EXEEXT) \
-	execveat$(EXEEXT) faccessat$(EXEEXT) fadvise64$(EXEEXT) \
-	fadvise64_64$(EXEEXT) fallocate$(EXEEXT) \
+	delete_module$(EXEEXT) dev-yy$(EXEEXT) dup$(EXEEXT) \
+	dup2$(EXEEXT) dup3$(EXEEXT) epoll_create$(EXEEXT) \
+	epoll_create1$(EXEEXT) epoll_ctl$(EXEEXT) epoll_pwait$(EXEEXT) \
+	epoll_wait$(EXEEXT) erestartsys$(EXEEXT) eventfd$(EXEEXT) \
+	execve$(EXEEXT) execveat$(EXEEXT) faccessat$(EXEEXT) \
+	fadvise64$(EXEEXT) fadvise64_64$(EXEEXT) fallocate$(EXEEXT) \
 	fanotify_init$(EXEEXT) fanotify_mark$(EXEEXT) fchdir$(EXEEXT) \
 	fchmod$(EXEEXT) fchmodat$(EXEEXT) fchown$(EXEEXT) \
 	fchown32$(EXEEXT) fchownat$(EXEEXT) fcntl$(EXEEXT) \
@@ -262,8 +263,9 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	iopl$(EXEEXT) ioprio$(EXEEXT) ip_mreq$(EXEEXT) ipc$(EXEEXT) \
 	ipc_msg$(EXEEXT) ipc_msgbuf$(EXEEXT) ipc_sem$(EXEEXT) \
 	ipc_shm$(EXEEXT) kcmp$(EXEEXT) kcmp-y$(EXEEXT) \
-	kexec_file_load$(EXEEXT) kexec_load$(EXEEXT) keyctl$(EXEEXT) \
-	kill$(EXEEXT) lchown$(EXEEXT) lchown32$(EXEEXT) link$(EXEEXT) \
+	kern_features$(EXEEXT) kexec_file_load$(EXEEXT) \
+	kexec_load$(EXEEXT) keyctl$(EXEEXT) kill$(EXEEXT) \
+	lchown$(EXEEXT) lchown32$(EXEEXT) link$(EXEEXT) \
 	linkat$(EXEEXT) llseek$(EXEEXT) lookup_dcookie$(EXEEXT) \
 	lseek$(EXEEXT) lstat$(EXEEXT) lstat64$(EXEEXT) \
 	madvise$(EXEEXT) mbind$(EXEEXT) membarrier$(EXEEXT) \
@@ -277,24 +279,25 @@ am__EXEEXT_1 = _newselect$(EXEEXT) accept$(EXEEXT) accept4$(EXEEXT) \
 	msg_control$(EXEEXT) msg_name$(EXEEXT) munlockall$(EXEEXT) \
 	nanosleep$(EXEEXT) net-icmp_filter$(EXEEXT) \
 	net-sockaddr$(EXEEXT) net-y-unix$(EXEEXT) net-yy-inet$(EXEEXT) \
-	net-yy-netlink$(EXEEXT) net-yy-unix$(EXEEXT) \
-	netlink_audit$(EXEEXT) netlink_crypto$(EXEEXT) \
-	netlink_generic$(EXEEXT) netlink_kobject_uevent$(EXEEXT) \
-	netlink_netfilter$(EXEEXT) netlink_protocol$(EXEEXT) \
-	netlink_route$(EXEEXT) netlink_selinux$(EXEEXT) \
-	netlink_sock_diag$(EXEEXT) netlink_xfrm$(EXEEXT) \
-	newfstatat$(EXEEXT) nfnetlink_acct$(EXEEXT) \
-	nfnetlink_cthelper$(EXEEXT) nfnetlink_ctnetlink$(EXEEXT) \
-	nfnetlink_ctnetlink_exp$(EXEEXT) nfnetlink_cttimeout$(EXEEXT) \
-	nfnetlink_nft_compat$(EXEEXT) nfnetlink_nftables$(EXEEXT) \
-	nfnetlink_ipset$(EXEEXT) nfnetlink_osf$(EXEEXT) \
-	nfnetlink_queue$(EXEEXT) nfnetlink_ulog$(EXEEXT) \
-	nlattr$(EXEEXT) nlattr_crypto_user_alg$(EXEEXT) \
-	nlattr_br_port_msg$(EXEEXT) nlattr_dcbmsg$(EXEEXT) \
-	nlattr_fib_rule_hdr$(EXEEXT) nlattr_ifaddrlblmsg$(EXEEXT) \
-	nlattr_ifaddrmsg$(EXEEXT) nlattr_ifinfomsg$(EXEEXT) \
-	nlattr_ifla_brport$(EXEEXT) nlattr_ifla_port$(EXEEXT) \
-	nlattr_ifla_xdp$(EXEEXT) nlattr_inet_diag_msg$(EXEEXT) \
+	net-yy-inet6$(EXEEXT) net-yy-netlink$(EXEEXT) \
+	net-yy-unix$(EXEEXT) netlink_audit$(EXEEXT) \
+	netlink_crypto$(EXEEXT) netlink_generic$(EXEEXT) \
+	netlink_kobject_uevent$(EXEEXT) netlink_netfilter$(EXEEXT) \
+	netlink_protocol$(EXEEXT) netlink_route$(EXEEXT) \
+	netlink_selinux$(EXEEXT) netlink_sock_diag$(EXEEXT) \
+	netlink_xfrm$(EXEEXT) newfstatat$(EXEEXT) \
+	nfnetlink_acct$(EXEEXT) nfnetlink_cthelper$(EXEEXT) \
+	nfnetlink_ctnetlink$(EXEEXT) nfnetlink_ctnetlink_exp$(EXEEXT) \
+	nfnetlink_cttimeout$(EXEEXT) nfnetlink_nft_compat$(EXEEXT) \
+	nfnetlink_nftables$(EXEEXT) nfnetlink_ipset$(EXEEXT) \
+	nfnetlink_osf$(EXEEXT) nfnetlink_queue$(EXEEXT) \
+	nfnetlink_ulog$(EXEEXT) nlattr$(EXEEXT) \
+	nlattr_crypto_user_alg$(EXEEXT) nlattr_br_port_msg$(EXEEXT) \
+	nlattr_dcbmsg$(EXEEXT) nlattr_fib_rule_hdr$(EXEEXT) \
+	nlattr_ifaddrlblmsg$(EXEEXT) nlattr_ifaddrmsg$(EXEEXT) \
+	nlattr_ifinfomsg$(EXEEXT) nlattr_ifla_brport$(EXEEXT) \
+	nlattr_ifla_port$(EXEEXT) nlattr_ifla_xdp$(EXEEXT) \
+	nlattr_inet_diag_msg$(EXEEXT) \
 	nlattr_inet_diag_req_compat$(EXEEXT) \
 	nlattr_inet_diag_req_v2$(EXEEXT) \
 	nlattr_mdba_mdb_entry$(EXEEXT) \
@@ -500,7 +503,8 @@ clock_nanosleep_LDADD = $(LDADD)
 clock_nanosleep_DEPENDENCIES = libtests.a
 clock_xettime_SOURCES = clock_xettime.c
 clock_xettime_OBJECTS = clock_xettime.$(OBJEXT)
-clock_xettime_DEPENDENCIES = $(LDADD)
+clock_xettime_LDADD = $(LDADD)
+clock_xettime_DEPENDENCIES = libtests.a
 clone_parent_SOURCES = clone_parent.c
 clone_parent_OBJECTS = clone_parent.$(OBJEXT)
 clone_parent_LDADD = $(LDADD)
@@ -520,10 +524,18 @@ creat_SOURCES = creat.c
 creat_OBJECTS = creat.$(OBJEXT)
 creat_LDADD = $(LDADD)
 creat_DEPENDENCIES = libtests.a
+delay_SOURCES = delay.c
+delay_OBJECTS = delay.$(OBJEXT)
+am__DEPENDENCIES_1 =
+delay_DEPENDENCIES = $(am__DEPENDENCIES_1) $(LDADD)
 delete_module_SOURCES = delete_module.c
 delete_module_OBJECTS = delete_module.$(OBJEXT)
 delete_module_LDADD = $(LDADD)
 delete_module_DEPENDENCIES = libtests.a
+dev_yy_SOURCES = dev-yy.c
+dev_yy_OBJECTS = dev-yy.$(OBJEXT)
+dev_yy_LDADD = $(LDADD)
+dev_yy_DEPENDENCIES = libtests.a
 dup_SOURCES = dup.c
 dup_OBJECTS = dup.$(OBJEXT)
 dup_LDADD = $(LDADD)
@@ -691,6 +703,10 @@ fsync_SOURCES = fsync.c
 fsync_OBJECTS = fsync.$(OBJEXT)
 fsync_LDADD = $(LDADD)
 fsync_DEPENDENCIES = libtests.a
+fsync_y_SOURCES = fsync-y.c
+fsync_y_OBJECTS = fsync-y.$(OBJEXT)
+fsync_y_LDADD = $(LDADD)
+fsync_y_DEPENDENCIES = libtests.a
 ftruncate_SOURCES = ftruncate.c
 ftruncate_OBJECTS = ftruncate.$(OBJEXT)
 ftruncate_LDADD = $(LDADD)
@@ -839,6 +855,10 @@ init_module_SOURCES = init_module.c
 init_module_OBJECTS = init_module.$(OBJEXT)
 init_module_LDADD = $(LDADD)
 init_module_DEPENDENCIES = libtests.a
+inject_nf_SOURCES = inject-nf.c
+inject_nf_OBJECTS = inject-nf.$(OBJEXT)
+inject_nf_LDADD = $(LDADD)
+inject_nf_DEPENDENCIES = libtests.a
 inotify_SOURCES = inotify.c
 inotify_OBJECTS = inotify.$(OBJEXT)
 inotify_LDADD = $(LDADD)
@@ -979,6 +999,10 @@ kcmp_y_SOURCES = kcmp-y.c
 kcmp_y_OBJECTS = kcmp-y.$(OBJEXT)
 kcmp_y_LDADD = $(LDADD)
 kcmp_y_DEPENDENCIES = libtests.a
+kern_features_SOURCES = kern_features.c
+kern_features_OBJECTS = kern_features.$(OBJEXT)
+kern_features_LDADD = $(LDADD)
+kern_features_DEPENDENCIES = libtests.a
 kexec_file_load_SOURCES = kexec_file_load.c
 kexec_file_load_OBJECTS = kexec_file_load.$(OBJEXT)
 kexec_file_load_LDADD = $(LDADD)
@@ -1023,6 +1047,9 @@ llseek_SOURCES = llseek.c
 llseek_OBJECTS = llseek.$(OBJEXT)
 llseek_LDADD = $(LDADD)
 llseek_DEPENDENCIES = libtests.a
+localtime_SOURCES = localtime.c
+localtime_OBJECTS = localtime.$(OBJEXT)
+localtime_DEPENDENCIES = $(am__DEPENDENCIES_1) $(LDADD)
 lookup_dcookie_SOURCES = lookup_dcookie.c
 lookup_dcookie_OBJECTS = lookup_dcookie.$(OBJEXT)
 lookup_dcookie_LDADD = $(LDADD)
@@ -1129,16 +1156,19 @@ move_pages_LDADD = $(LDADD)
 move_pages_DEPENDENCIES = libtests.a
 mq_SOURCES = mq.c
 mq_OBJECTS = mq.$(OBJEXT)
-mq_DEPENDENCIES = $(LDADD)
+mq_DEPENDENCIES = $(am__DEPENDENCIES_1) $(LDADD)
 mq_sendrecv_SOURCES = mq_sendrecv.c
 mq_sendrecv_OBJECTS = mq_sendrecv.$(OBJEXT)
-mq_sendrecv_DEPENDENCIES = $(LDADD)
+mq_sendrecv_LDADD = $(LDADD)
+mq_sendrecv_DEPENDENCIES = libtests.a
 mq_sendrecv_read_SOURCES = mq_sendrecv-read.c
 mq_sendrecv_read_OBJECTS = mq_sendrecv-read.$(OBJEXT)
-mq_sendrecv_read_DEPENDENCIES = $(LDADD)
+mq_sendrecv_read_LDADD = $(LDADD)
+mq_sendrecv_read_DEPENDENCIES = libtests.a
 mq_sendrecv_write_SOURCES = mq_sendrecv-write.c
 mq_sendrecv_write_OBJECTS = mq_sendrecv-write.$(OBJEXT)
-mq_sendrecv_write_DEPENDENCIES = $(LDADD)
+mq_sendrecv_write_LDADD = $(LDADD)
+mq_sendrecv_write_DEPENDENCIES = libtests.a
 msg_control_SOURCES = msg_control.c
 msg_control_OBJECTS = msg_control.$(OBJEXT)
 msg_control_LDADD = $(LDADD)
@@ -1179,6 +1209,10 @@ net_yy_inet_SOURCES = net-yy-inet.c
 net_yy_inet_OBJECTS = net-yy-inet.$(OBJEXT)
 net_yy_inet_LDADD = $(LDADD)
 net_yy_inet_DEPENDENCIES = libtests.a
+net_yy_inet6_SOURCES = net-yy-inet6.c
+net_yy_inet6_OBJECTS = net-yy-inet6.$(OBJEXT)
+net_yy_inet6_LDADD = $(LDADD)
+net_yy_inet6_DEPENDENCIES = libtests.a
 net_yy_netlink_SOURCES = net-yy-netlink.c
 net_yy_netlink_OBJECTS = net-yy-netlink.$(OBJEXT)
 net_yy_netlink_LDADD = $(LDADD)
@@ -1474,7 +1508,6 @@ pause_LDADD = $(LDADD)
 pause_DEPENDENCIES = libtests.a
 pc_SOURCES = pc.c
 pc_OBJECTS = pc.$(OBJEXT)
-am__DEPENDENCIES_1 =
 pc_DEPENDENCIES = $(am__DEPENDENCIES_1) $(LDADD)
 perf_event_open_SOURCES = perf_event_open.c
 perf_event_open_OBJECTS = perf_event_open.$(OBJEXT)
@@ -2147,7 +2180,7 @@ tee_LDADD = $(LDADD)
 tee_DEPENDENCIES = libtests.a
 threads_execve_SOURCES = threads-execve.c
 threads_execve_OBJECTS = threads-execve.$(OBJEXT)
-threads_execve_DEPENDENCIES = $(LDADD)
+threads_execve_DEPENDENCIES = $(am__DEPENDENCIES_1) $(LDADD)
 time_SOURCES = time.c
 time_OBJECTS = time.$(OBJEXT)
 time_LDADD = $(LDADD)
@@ -2166,7 +2199,7 @@ timerfd_xettime_LDADD = $(LDADD)
 timerfd_xettime_DEPENDENCIES = libtests.a
 times_SOURCES = times.c
 times_OBJECTS = times.$(OBJEXT)
-times_DEPENDENCIES = $(LDADD)
+times_DEPENDENCIES = $(am__DEPENDENCIES_1) $(LDADD)
 times_fail_SOURCES = times-fail.c
 times_fail_OBJECTS = times-fail.$(OBJEXT)
 times_fail_LDADD = $(LDADD)
@@ -2375,8 +2408,8 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c _newselect-P.c accept.c \
 	btrfs.c caps.c caps-abbrev.c check_sigblock.c check_sigign.c \
 	chmod.c chown.c chown32.c chroot.c clock_adjtime.c \
 	clock_nanosleep.c clock_xettime.c clone_parent.c \
-	clone_ptrace.c copy_file_range.c count-f.c creat.c \
-	delete_module.c dup.c dup2.c dup3.c epoll_create.c \
+	clone_ptrace.c copy_file_range.c count-f.c creat.c delay.c \
+	delete_module.c dev-yy.c dup.c dup2.c dup3.c epoll_create.c \
 	epoll_create1.c epoll_ctl.c epoll_pwait.c epoll_wait.c \
 	erestartsys.c eventfd.c execve.c execve-v.c execveat.c \
 	execveat-v.c faccessat.c fadvise64.c fadvise64_64.c \
@@ -2384,7 +2417,7 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c _newselect-P.c accept.c \
 	fchmodat.c fchown.c fchown32.c fchownat.c fcntl.c fcntl64.c \
 	fdatasync.c fflush.c file_handle.c file_ioctl.c \
 	filter-unavailable.c finit_module.c flock.c fork-f.c fstat.c \
-	fstat64.c fstatat64.c fstatfs.c fstatfs64.c fsync.c \
+	fstat64.c fstatat64.c fstatfs.c fstatfs64.c fsync.c fsync-y.c \
 	ftruncate.c ftruncate64.c futex.c futimesat.c get_mempolicy.c \
 	getcpu.c getcwd.c getdents.c getdents64.c getegid.c \
 	getegid32.c geteuid.c geteuid32.c getgid.c getgid32.c \
@@ -2392,31 +2425,32 @@ SOURCES = $(libtests_a_SOURCES) _newselect.c _newselect-P.c accept.c \
 	getppid.c getrandom.c getresgid.c getresgid32.c getresuid.c \
 	getresuid32.c getrlimit.c getrusage.c getsid.c getsockname.c \
 	gettid.c getuid.c getuid32.c getxxid.c group_req.c inet-cmsg.c \
-	init_module.c inotify.c inotify_init1.c int_0x80.c ioctl.c \
-	ioctl_block.c ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c \
+	init_module.c inject-nf.c inotify.c inotify_init1.c int_0x80.c \
+	ioctl.c ioctl_block.c ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c \
 	ioctl_evdev-v.c ioctl_kvm_run.c ioctl_loop.c ioctl_loop-nv.c \
 	ioctl_loop-v.c ioctl_mtd.c ioctl_nsfs.c ioctl_rtc.c \
 	ioctl_rtc-v.c ioctl_scsi.c ioctl_sg_io_v3.c ioctl_sg_io_v4.c \
 	ioctl_sock_gifconf.c ioctl_uffdio.c ioctl_v4l2.c ioperm.c \
 	iopl.c ioprio.c ip_mreq.c ipc.c ipc_msg.c ipc_msgbuf.c \
 	ipc_sem.c ipc_shm.c is_linux_mips_n64.c kcmp.c kcmp-y.c \
-	kexec_file_load.c kexec_load.c keyctl.c kill.c ksysent.c \
-	lchown.c lchown32.c link.c linkat.c list_sigaction_signum.c \
-	llseek.c lookup_dcookie.c lseek.c lstat.c lstat64.c madvise.c \
-	mbind.c membarrier.c memfd_create.c migrate_pages.c mincore.c \
-	mkdir.c mkdirat.c mknod.c mknodat.c mlock.c mlock2.c \
-	mlockall.c mmap.c mmap64.c mmsg.c mmsg-silent.c mmsg_name.c \
-	mmsg_name-v.c modify_ldt.c mount.c move_pages.c mq.c \
-	mq_sendrecv.c mq_sendrecv-read.c mq_sendrecv-write.c \
-	msg_control.c msg_control-v.c msg_name.c munlockall.c \
-	nanosleep.c net-accept-connect.c net-icmp_filter.c \
-	net-sockaddr.c net-y-unix.c net-yy-inet.c net-yy-netlink.c \
-	net-yy-unix.c netlink_audit.c netlink_crypto.c \
-	netlink_generic.c netlink_inet_diag.c netlink_kobject_uevent.c \
-	netlink_netfilter.c netlink_netlink_diag.c netlink_protocol.c \
-	netlink_route.c netlink_selinux.c netlink_sock_diag.c \
-	netlink_unix_diag.c netlink_xfrm.c newfstatat.c \
-	nfnetlink_acct.c nfnetlink_cthelper.c nfnetlink_ctnetlink.c \
+	kern_features.c kexec_file_load.c kexec_load.c keyctl.c kill.c \
+	ksysent.c lchown.c lchown32.c link.c linkat.c \
+	list_sigaction_signum.c llseek.c localtime.c lookup_dcookie.c \
+	lseek.c lstat.c lstat64.c madvise.c mbind.c membarrier.c \
+	memfd_create.c migrate_pages.c mincore.c mkdir.c mkdirat.c \
+	mknod.c mknodat.c mlock.c mlock2.c mlockall.c mmap.c mmap64.c \
+	mmsg.c mmsg-silent.c mmsg_name.c mmsg_name-v.c modify_ldt.c \
+	mount.c move_pages.c mq.c mq_sendrecv.c mq_sendrecv-read.c \
+	mq_sendrecv-write.c msg_control.c msg_control-v.c msg_name.c \
+	munlockall.c nanosleep.c net-accept-connect.c \
+	net-icmp_filter.c net-sockaddr.c net-y-unix.c net-yy-inet.c \
+	net-yy-inet6.c net-yy-netlink.c net-yy-unix.c netlink_audit.c \
+	netlink_crypto.c netlink_generic.c netlink_inet_diag.c \
+	netlink_kobject_uevent.c netlink_netfilter.c \
+	netlink_netlink_diag.c netlink_protocol.c netlink_route.c \
+	netlink_selinux.c netlink_sock_diag.c netlink_unix_diag.c \
+	netlink_xfrm.c newfstatat.c nfnetlink_acct.c \
+	nfnetlink_cthelper.c nfnetlink_ctnetlink.c \
 	nfnetlink_ctnetlink_exp.c nfnetlink_cttimeout.c \
 	nfnetlink_ipset.c nfnetlink_nft_compat.c nfnetlink_nftables.c \
 	nfnetlink_osf.c nfnetlink_queue.c nfnetlink_ulog.c nlattr.c \
@@ -2498,15 +2532,15 @@ DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c _newselect-P.c \
 	check_sigblock.c check_sigign.c chmod.c chown.c chown32.c \
 	chroot.c clock_adjtime.c clock_nanosleep.c clock_xettime.c \
 	clone_parent.c clone_ptrace.c copy_file_range.c count-f.c \
-	creat.c delete_module.c dup.c dup2.c dup3.c epoll_create.c \
-	epoll_create1.c epoll_ctl.c epoll_pwait.c epoll_wait.c \
-	erestartsys.c eventfd.c execve.c execve-v.c execveat.c \
-	execveat-v.c faccessat.c fadvise64.c fadvise64_64.c \
+	creat.c delay.c delete_module.c dev-yy.c dup.c dup2.c dup3.c \
+	epoll_create.c epoll_create1.c epoll_ctl.c epoll_pwait.c \
+	epoll_wait.c erestartsys.c eventfd.c execve.c execve-v.c \
+	execveat.c execveat-v.c faccessat.c fadvise64.c fadvise64_64.c \
 	fallocate.c fanotify_init.c fanotify_mark.c fchdir.c fchmod.c \
 	fchmodat.c fchown.c fchown32.c fchownat.c fcntl.c fcntl64.c \
 	fdatasync.c fflush.c file_handle.c file_ioctl.c \
 	filter-unavailable.c finit_module.c flock.c fork-f.c fstat.c \
-	fstat64.c fstatat64.c fstatfs.c fstatfs64.c fsync.c \
+	fstat64.c fstatat64.c fstatfs.c fstatfs64.c fsync.c fsync-y.c \
 	ftruncate.c ftruncate64.c futex.c futimesat.c get_mempolicy.c \
 	getcpu.c getcwd.c getdents.c getdents64.c getegid.c \
 	getegid32.c geteuid.c geteuid32.c getgid.c getgid32.c \
@@ -2514,31 +2548,32 @@ DIST_SOURCES = $(libtests_a_SOURCES) _newselect.c _newselect-P.c \
 	getppid.c getrandom.c getresgid.c getresgid32.c getresuid.c \
 	getresuid32.c getrlimit.c getrusage.c getsid.c getsockname.c \
 	gettid.c getuid.c getuid32.c getxxid.c group_req.c inet-cmsg.c \
-	init_module.c inotify.c inotify_init1.c int_0x80.c ioctl.c \
-	ioctl_block.c ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c \
+	init_module.c inject-nf.c inotify.c inotify_init1.c int_0x80.c \
+	ioctl.c ioctl_block.c ioctl_dm.c ioctl_dm-v.c ioctl_evdev.c \
 	ioctl_evdev-v.c ioctl_kvm_run.c ioctl_loop.c ioctl_loop-nv.c \
 	ioctl_loop-v.c ioctl_mtd.c ioctl_nsfs.c ioctl_rtc.c \
 	ioctl_rtc-v.c ioctl_scsi.c ioctl_sg_io_v3.c ioctl_sg_io_v4.c \
 	ioctl_sock_gifconf.c ioctl_uffdio.c ioctl_v4l2.c ioperm.c \
 	iopl.c ioprio.c ip_mreq.c ipc.c ipc_msg.c ipc_msgbuf.c \
 	ipc_sem.c ipc_shm.c is_linux_mips_n64.c kcmp.c kcmp-y.c \
-	kexec_file_load.c kexec_load.c keyctl.c kill.c ksysent.c \
-	lchown.c lchown32.c link.c linkat.c list_sigaction_signum.c \
-	llseek.c lookup_dcookie.c lseek.c lstat.c lstat64.c madvise.c \
-	mbind.c membarrier.c memfd_create.c migrate_pages.c mincore.c \
-	mkdir.c mkdirat.c mknod.c mknodat.c mlock.c mlock2.c \
-	mlockall.c mmap.c mmap64.c mmsg.c mmsg-silent.c mmsg_name.c \
-	mmsg_name-v.c modify_ldt.c mount.c move_pages.c mq.c \
-	mq_sendrecv.c mq_sendrecv-read.c mq_sendrecv-write.c \
-	msg_control.c msg_control-v.c msg_name.c munlockall.c \
-	nanosleep.c net-accept-connect.c net-icmp_filter.c \
-	net-sockaddr.c net-y-unix.c net-yy-inet.c net-yy-netlink.c \
-	net-yy-unix.c netlink_audit.c netlink_crypto.c \
-	netlink_generic.c netlink_inet_diag.c netlink_kobject_uevent.c \
-	netlink_netfilter.c netlink_netlink_diag.c netlink_protocol.c \
-	netlink_route.c netlink_selinux.c netlink_sock_diag.c \
-	netlink_unix_diag.c netlink_xfrm.c newfstatat.c \
-	nfnetlink_acct.c nfnetlink_cthelper.c nfnetlink_ctnetlink.c \
+	kern_features.c kexec_file_load.c kexec_load.c keyctl.c kill.c \
+	ksysent.c lchown.c lchown32.c link.c linkat.c \
+	list_sigaction_signum.c llseek.c localtime.c lookup_dcookie.c \
+	lseek.c lstat.c lstat64.c madvise.c mbind.c membarrier.c \
+	memfd_create.c migrate_pages.c mincore.c mkdir.c mkdirat.c \
+	mknod.c mknodat.c mlock.c mlock2.c mlockall.c mmap.c mmap64.c \
+	mmsg.c mmsg-silent.c mmsg_name.c mmsg_name-v.c modify_ldt.c \
+	mount.c move_pages.c mq.c mq_sendrecv.c mq_sendrecv-read.c \
+	mq_sendrecv-write.c msg_control.c msg_control-v.c msg_name.c \
+	munlockall.c nanosleep.c net-accept-connect.c \
+	net-icmp_filter.c net-sockaddr.c net-y-unix.c net-yy-inet.c \
+	net-yy-inet6.c net-yy-netlink.c net-yy-unix.c netlink_audit.c \
+	netlink_crypto.c netlink_generic.c netlink_inet_diag.c \
+	netlink_kobject_uevent.c netlink_netfilter.c \
+	netlink_netlink_diag.c netlink_protocol.c netlink_route.c \
+	netlink_selinux.c netlink_sock_diag.c netlink_unix_diag.c \
+	netlink_xfrm.c newfstatat.c nfnetlink_acct.c \
+	nfnetlink_cthelper.c nfnetlink_ctnetlink.c \
 	nfnetlink_ctnetlink_exp.c nfnetlink_cttimeout.c \
 	nfnetlink_ipset.c nfnetlink_nft_compat.c nfnetlink_nftables.c \
 	nfnetlink_osf.c nfnetlink_queue.c nfnetlink_ulog.c nlattr.c \
@@ -2949,6 +2984,7 @@ build_vendor = @build_vendor@
 builddir = @builddir@
 cc_flags_m32 = @cc_flags_m32@
 cc_flags_mx32 = @cc_flags_mx32@
+clock_LIBS = @clock_LIBS@
 datadir = @datadir@
 datarootdir = @datarootdir@
 dl_LIBS = @dl_LIBS@
@@ -2976,6 +3012,7 @@ localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
+mq_LIBS = @mq_LIBS@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
 prefix = @prefix@
@@ -2986,6 +3023,7 @@ sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+timer_LIBS = @timer_LIBS@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
@@ -3005,7 +3043,9 @@ AM_CPPFLAGS = $(ARCH_MFLAGS) \
 	      -I$(top_builddir)/$(OS) \
 	      -I$(top_srcdir)/$(OS) \
 	      -I$(top_builddir) \
-	      -I$(top_srcdir)
+	      -I$(top_srcdir) \
+	      -DTESTS_SIZEOF_KERNEL_LONG_T=$(SIZEOF_KERNEL_LONG_T) \
+	      -DTESTS_SIZEOF_LONG=$(SIZEOF_LONG)
 
 AM_LDFLAGS = $(ARCH_MFLAGS)
 libtests_a_SOURCES = \
@@ -3071,6 +3111,7 @@ PURE_EXECUTABLES = \
   copy_file_range \
   creat \
   delete_module \
+  dev-yy \
   dup \
   dup2 \
   dup3 \
@@ -3172,6 +3213,7 @@ PURE_EXECUTABLES = \
   ipc_shm \
   kcmp \
   kcmp-y \
+  kern_features \
   kexec_file_load \
   kexec_load \
   keyctl \
@@ -3217,6 +3259,7 @@ PURE_EXECUTABLES = \
   net-sockaddr \
   net-y-unix \
   net-yy-inet \
+  net-yy-inet6 \
   net-yy-netlink \
   net-yy-unix \
   netlink_audit \
@@ -3462,19 +3505,17 @@ PURE_EXECUTABLES = \
   xettimeofday \
   #
 
-attach_f_p_LDADD = -lrt -lpthread $(LDADD)
-clock_xettime_LDADD = -lrt $(LDADD)
+attach_f_p_LDADD = -lpthread $(LDADD)
 count_f_LDADD = -lpthread $(LDADD)
+delay_LDADD = $(clock_LIBS) $(LDADD)
 filter_unavailable_LDADD = -lpthread $(LDADD)
 fstat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 fstatat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 ftruncate64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
+localtime_LDADD = $(clock_LIBS) $(LDADD)
 lstat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 mmap64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
-mq_LDADD = -lrt $(LDADD)
-mq_sendrecv_LDADD = -lrt $(LDADD)
-mq_sendrecv_read_LDADD = -lrt $(LDADD)
-mq_sendrecv_write_LDADD = -lrt $(LDADD)
+mq_LDADD = $(mq_LIBS) $(LDADD)
 newfstatat_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 pc_LDADD = $(dl_LIBS) $(LDADD)
 pread64_pwrite64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
@@ -3483,8 +3524,8 @@ preadv_pwritev_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 pwritev_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 stat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 statfs_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
-threads_execve_LDADD = -lrt -lpthread $(LDADD)
-times_LDADD = -lrt $(LDADD)
+threads_execve_LDADD = -lpthread $(clock_LIBS) $(LDADD)
+times_LDADD = $(clock_LIBS) $(LDADD)
 truncate64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 uio_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 stack_fcall_SOURCES = stack-fcall.c \
@@ -3503,19 +3544,20 @@ GEN_TESTS = _newselect.gen.test _newselect-P.gen.test accept.gen.test \
 	chown.gen.test chown32.gen.test chroot.gen.test clock.gen.test \
 	clock_adjtime.gen.test clock_nanosleep.gen.test \
 	clock_xettime.gen.test copy_file_range.gen.test creat.gen.test \
-	delete_module.gen.test dup.gen.test dup2.gen.test \
-	dup3.gen.test epoll_create.gen.test epoll_create1.gen.test \
-	epoll_ctl.gen.test epoll_pwait.gen.test epoll_wait.gen.test \
-	erestartsys.gen.test execveat.gen.test execveat-v.gen.test \
-	faccessat.gen.test fadvise64_64.gen.test fallocate.gen.test \
-	fanotify_init.gen.test fanotify_mark.gen.test fchdir.gen.test \
-	fchmod.gen.test fchmodat.gen.test fchown.gen.test \
-	fchown32.gen.test fchownat.gen.test fcntl.gen.test \
-	fcntl64.gen.test fdatasync.gen.test file_handle.gen.test \
-	file_ioctl.gen.test finit_module.gen.test flock.gen.test \
-	fork-f.gen.test fstat.gen.test fstat64.gen.test \
-	fstatat64.gen.test fstatfs.gen.test fstatfs64.gen.test \
-	fsync.gen.test ftruncate.gen.test ftruncate64.gen.test \
+	delete_module.gen.test dev-yy.gen.test dup.gen.test \
+	dup2.gen.test dup3.gen.test epoll_create.gen.test \
+	epoll_create1.gen.test epoll_ctl.gen.test epoll_pwait.gen.test \
+	epoll_wait.gen.test erestartsys.gen.test execveat.gen.test \
+	execveat-v.gen.test faccessat.gen.test fadvise64_64.gen.test \
+	fallocate.gen.test fanotify_init.gen.test \
+	fanotify_mark.gen.test fchdir.gen.test fchmod.gen.test \
+	fchmodat.gen.test fchown.gen.test fchown32.gen.test \
+	fchownat.gen.test fcntl.gen.test fcntl64.gen.test \
+	fdatasync.gen.test file_handle.gen.test file_ioctl.gen.test \
+	finit_module.gen.test flock.gen.test fork-f.gen.test \
+	fstat.gen.test fstat64.gen.test fstatat64.gen.test \
+	fstatfs.gen.test fstatfs64.gen.test fsync.gen.test \
+	fsync-y.gen.test ftruncate.gen.test ftruncate64.gen.test \
 	futimesat.gen.test get_mempolicy.gen.test getcpu.gen.test \
 	getcwd.gen.test getdents.gen.test getdents64.gen.test \
 	getegid.gen.test getegid32.gen.test geteuid.gen.test \
@@ -3539,38 +3581,39 @@ GEN_TESTS = _newselect.gen.test _newselect-P.gen.test accept.gen.test \
 	ioctl_v4l2.gen.test ioperm.gen.test iopl.gen.test \
 	ioprio.gen.test ip_mreq.gen.test ipc.gen.test ipc_msg.gen.test \
 	ipc_sem.gen.test ipc_shm.gen.test kcmp.gen.test \
-	kcmp-y.gen.test kexec_file_load.gen.test kexec_load.gen.test \
-	keyctl.gen.test kill.gen.test lchown.gen.test \
-	lchown32.gen.test link.gen.test linkat.gen.test \
-	lookup_dcookie.gen.test lstat.gen.test lstat64.gen.test \
-	madvise.gen.test mbind.gen.test membarrier.gen.test \
-	memfd_create.gen.test migrate_pages.gen.test mincore.gen.test \
-	mkdir.gen.test mkdirat.gen.test mknod.gen.test \
-	mknodat.gen.test mlock.gen.test mlock2.gen.test \
-	mlockall.gen.test mmap64.gen.test mmsg.gen.test \
-	mmsg-silent.gen.test mmsg_name.gen.test mmsg_name-v.gen.test \
-	modify_ldt.gen.test mount.gen.test move_pages.gen.test \
-	mq.gen.test mq_sendrecv.gen.test mq_sendrecv-read.gen.test \
+	kcmp-y.gen.test kern_features.gen.test \
+	kexec_file_load.gen.test kexec_load.gen.test keyctl.gen.test \
+	kill.gen.test lchown.gen.test lchown32.gen.test link.gen.test \
+	linkat.gen.test lookup_dcookie.gen.test lstat.gen.test \
+	lstat64.gen.test madvise.gen.test mbind.gen.test \
+	membarrier.gen.test memfd_create.gen.test \
+	migrate_pages.gen.test mincore.gen.test mkdir.gen.test \
+	mkdirat.gen.test mknod.gen.test mknodat.gen.test \
+	mlock.gen.test mlock2.gen.test mlockall.gen.test \
+	mmap64.gen.test mmsg.gen.test mmsg-silent.gen.test \
+	mmsg_name.gen.test mmsg_name-v.gen.test modify_ldt.gen.test \
+	mount.gen.test move_pages.gen.test mq.gen.test \
+	mq_sendrecv.gen.test mq_sendrecv-read.gen.test \
 	mq_sendrecv-write.gen.test msg_control.gen.test \
 	msg_control-v.gen.test msg_name.gen.test munlockall.gen.test \
 	nanosleep.gen.test net-icmp_filter.gen.test \
-	net-sockaddr.gen.test netlink_audit.gen.test \
-	netlink_crypto.gen.test netlink_generic.gen.test \
-	netlink_kobject_uevent.gen.test netlink_netfilter.gen.test \
-	netlink_protocol.gen.test netlink_route.gen.test \
-	netlink_selinux.gen.test netlink_xfrm.gen.test \
-	newfstatat.gen.test nlattr.gen.test nfnetlink_acct.gen.test \
-	nfnetlink_cthelper.gen.test nfnetlink_ctnetlink.gen.test \
-	nfnetlink_ctnetlink_exp.gen.test nfnetlink_cttimeout.gen.test \
-	nfnetlink_ipset.gen.test nfnetlink_nft_compat.gen.test \
-	nfnetlink_nftables.gen.test nfnetlink_osf.gen.test \
-	nfnetlink_queue.gen.test nfnetlink_ulog.gen.test \
-	nlattr_crypto_user_alg.gen.test nlattr_br_port_msg.gen.test \
-	nlattr_dcbmsg.gen.test nlattr_fib_rule_hdr.gen.test \
-	nlattr_ifaddrlblmsg.gen.test nlattr_ifaddrmsg.gen.test \
-	nlattr_ifinfomsg.gen.test nlattr_ifla_brport.gen.test \
-	nlattr_ifla_port.gen.test nlattr_ifla_xdp.gen.test \
-	nlattr_inet_diag_msg.gen.test \
+	net-sockaddr.gen.test net-yy-inet6.gen.test \
+	netlink_audit.gen.test netlink_crypto.gen.test \
+	netlink_generic.gen.test netlink_kobject_uevent.gen.test \
+	netlink_netfilter.gen.test netlink_protocol.gen.test \
+	netlink_route.gen.test netlink_selinux.gen.test \
+	netlink_xfrm.gen.test newfstatat.gen.test nlattr.gen.test \
+	nfnetlink_acct.gen.test nfnetlink_cthelper.gen.test \
+	nfnetlink_ctnetlink.gen.test nfnetlink_ctnetlink_exp.gen.test \
+	nfnetlink_cttimeout.gen.test nfnetlink_ipset.gen.test \
+	nfnetlink_nft_compat.gen.test nfnetlink_nftables.gen.test \
+	nfnetlink_osf.gen.test nfnetlink_queue.gen.test \
+	nfnetlink_ulog.gen.test nlattr_crypto_user_alg.gen.test \
+	nlattr_br_port_msg.gen.test nlattr_dcbmsg.gen.test \
+	nlattr_fib_rule_hdr.gen.test nlattr_ifaddrlblmsg.gen.test \
+	nlattr_ifaddrmsg.gen.test nlattr_ifinfomsg.gen.test \
+	nlattr_ifla_brport.gen.test nlattr_ifla_port.gen.test \
+	nlattr_ifla_xdp.gen.test nlattr_inet_diag_msg.gen.test \
 	nlattr_inet_diag_req_compat.gen.test \
 	nlattr_inet_diag_req_v2.gen.test \
 	nlattr_mdba_mdb_entry.gen.test \
@@ -3674,6 +3717,7 @@ DECODER_TESTS = \
 	getuid.test \
 	ioctl.test \
 	ipc_msgbuf.test \
+	kern_features-fault.test \
 	llseek.test \
 	lseek.test \
 	mmap.test \
@@ -3726,6 +3770,7 @@ MISC_TESTS = \
 	clone_ptrace.test \
 	count-f.test \
 	count.test \
+	delay.test \
 	detach-running.test \
 	detach-sleeping.test \
 	detach-stopped.test \
@@ -3734,8 +3779,10 @@ MISC_TESTS = \
 	filtering_syscall-syntax.test \
 	fflush.test \
 	get_regs.test \
+	inject-nf.test \
 	interactive_block.test \
 	ksysent.test \
+	localtime.test \
 	opipe.test \
 	options-syntax.test \
 	pc.test \
@@ -4062,9 +4109,17 @@ creat$(EXEEXT): $(creat_OBJECTS) $(creat_DEPENDENCIES) $(EXTRA_creat_DEPENDENCIE
 	@rm -f creat$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(creat_OBJECTS) $(creat_LDADD) $(LIBS)
 
+delay$(EXEEXT): $(delay_OBJECTS) $(delay_DEPENDENCIES) $(EXTRA_delay_DEPENDENCIES) 
+	@rm -f delay$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(delay_OBJECTS) $(delay_LDADD) $(LIBS)
+
 delete_module$(EXEEXT): $(delete_module_OBJECTS) $(delete_module_DEPENDENCIES) $(EXTRA_delete_module_DEPENDENCIES) 
 	@rm -f delete_module$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(delete_module_OBJECTS) $(delete_module_LDADD) $(LIBS)
+
+dev-yy$(EXEEXT): $(dev_yy_OBJECTS) $(dev_yy_DEPENDENCIES) $(EXTRA_dev_yy_DEPENDENCIES) 
+	@rm -f dev-yy$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(dev_yy_OBJECTS) $(dev_yy_LDADD) $(LIBS)
 
 dup$(EXEEXT): $(dup_OBJECTS) $(dup_DEPENDENCIES) $(EXTRA_dup_DEPENDENCIES) 
 	@rm -f dup$(EXEEXT)
@@ -4234,6 +4289,10 @@ fsync$(EXEEXT): $(fsync_OBJECTS) $(fsync_DEPENDENCIES) $(EXTRA_fsync_DEPENDENCIE
 	@rm -f fsync$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(fsync_OBJECTS) $(fsync_LDADD) $(LIBS)
 
+fsync-y$(EXEEXT): $(fsync_y_OBJECTS) $(fsync_y_DEPENDENCIES) $(EXTRA_fsync_y_DEPENDENCIES) 
+	@rm -f fsync-y$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(fsync_y_OBJECTS) $(fsync_y_LDADD) $(LIBS)
+
 ftruncate$(EXEEXT): $(ftruncate_OBJECTS) $(ftruncate_DEPENDENCIES) $(EXTRA_ftruncate_DEPENDENCIES) 
 	@rm -f ftruncate$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(ftruncate_OBJECTS) $(ftruncate_LDADD) $(LIBS)
@@ -4382,6 +4441,10 @@ init_module$(EXEEXT): $(init_module_OBJECTS) $(init_module_DEPENDENCIES) $(EXTRA
 	@rm -f init_module$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(init_module_OBJECTS) $(init_module_LDADD) $(LIBS)
 
+inject-nf$(EXEEXT): $(inject_nf_OBJECTS) $(inject_nf_DEPENDENCIES) $(EXTRA_inject_nf_DEPENDENCIES) 
+	@rm -f inject-nf$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(inject_nf_OBJECTS) $(inject_nf_LDADD) $(LIBS)
+
 inotify$(EXEEXT): $(inotify_OBJECTS) $(inotify_DEPENDENCIES) $(EXTRA_inotify_DEPENDENCIES) 
 	@rm -f inotify$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(inotify_OBJECTS) $(inotify_LDADD) $(LIBS)
@@ -4522,6 +4585,10 @@ kcmp-y$(EXEEXT): $(kcmp_y_OBJECTS) $(kcmp_y_DEPENDENCIES) $(EXTRA_kcmp_y_DEPENDE
 	@rm -f kcmp-y$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(kcmp_y_OBJECTS) $(kcmp_y_LDADD) $(LIBS)
 
+kern_features$(EXEEXT): $(kern_features_OBJECTS) $(kern_features_DEPENDENCIES) $(EXTRA_kern_features_DEPENDENCIES) 
+	@rm -f kern_features$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(kern_features_OBJECTS) $(kern_features_LDADD) $(LIBS)
+
 kexec_file_load$(EXEEXT): $(kexec_file_load_OBJECTS) $(kexec_file_load_DEPENDENCIES) $(EXTRA_kexec_file_load_DEPENDENCIES) 
 	@rm -f kexec_file_load$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(kexec_file_load_OBJECTS) $(kexec_file_load_LDADD) $(LIBS)
@@ -4565,6 +4632,10 @@ list_sigaction_signum$(EXEEXT): $(list_sigaction_signum_OBJECTS) $(list_sigactio
 llseek$(EXEEXT): $(llseek_OBJECTS) $(llseek_DEPENDENCIES) $(EXTRA_llseek_DEPENDENCIES) 
 	@rm -f llseek$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(llseek_OBJECTS) $(llseek_LDADD) $(LIBS)
+
+localtime$(EXEEXT): $(localtime_OBJECTS) $(localtime_DEPENDENCIES) $(EXTRA_localtime_DEPENDENCIES) 
+	@rm -f localtime$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(localtime_OBJECTS) $(localtime_LDADD) $(LIBS)
 
 lookup_dcookie$(EXEEXT): $(lookup_dcookie_OBJECTS) $(lookup_dcookie_DEPENDENCIES) $(EXTRA_lookup_dcookie_DEPENDENCIES) 
 	@rm -f lookup_dcookie$(EXEEXT)
@@ -4725,6 +4796,10 @@ net-y-unix$(EXEEXT): $(net_y_unix_OBJECTS) $(net_y_unix_DEPENDENCIES) $(EXTRA_ne
 net-yy-inet$(EXEEXT): $(net_yy_inet_OBJECTS) $(net_yy_inet_DEPENDENCIES) $(EXTRA_net_yy_inet_DEPENDENCIES) 
 	@rm -f net-yy-inet$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(net_yy_inet_OBJECTS) $(net_yy_inet_LDADD) $(LIBS)
+
+net-yy-inet6$(EXEEXT): $(net_yy_inet6_OBJECTS) $(net_yy_inet6_DEPENDENCIES) $(EXTRA_net_yy_inet6_DEPENDENCIES) 
+	@rm -f net-yy-inet6$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(net_yy_inet6_OBJECTS) $(net_yy_inet6_LDADD) $(LIBS)
 
 net-yy-netlink$(EXEEXT): $(net_yy_netlink_OBJECTS) $(net_yy_netlink_DEPENDENCIES) $(EXTRA_net_yy_netlink_DEPENDENCIES) 
 	@rm -f net-yy-netlink$(EXEEXT)
@@ -5912,7 +5987,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/copy_file_range.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/count-f.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/creat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delete_module.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dev-yy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dup2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dup3.Po@am__quote@
@@ -5954,6 +6031,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fstatat64-fstatat64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fstatfs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fstatfs64.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsync-y.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fsync.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ftruncate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ftruncate64-ftruncate64.Po@am__quote@
@@ -5992,6 +6070,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/group_req.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inet-cmsg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/init_module.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inject-nf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inotify.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inotify_init1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/int_0x80.Po@am__quote@
@@ -6027,6 +6106,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/is_linux_mips_n64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kcmp-y.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kcmp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kern_features.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kexec_file_load.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kexec_load.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/keyctl.Po@am__quote@
@@ -6064,6 +6144,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/linkat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/list_sigaction_signum.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/llseek.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/localtime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lookup_dcookie.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lseek.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lstat.Po@am__quote@
@@ -6104,6 +6185,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-sockaddr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-y-unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-yy-inet.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-yy-inet6.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-yy-netlink.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net-yy-unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netlink_audit.Po@am__quote@
@@ -7443,6 +7525,9 @@ $(srcdir)/creat.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 $(srcdir)/delete_module.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/dev-yy.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/dup.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
@@ -7549,6 +7634,9 @@ $(srcdir)/fstatfs64.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/fsync.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/fsync-y.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/ftruncate.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
@@ -7752,6 +7840,9 @@ $(srcdir)/kcmp.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 $(srcdir)/kcmp-y.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
+$(srcdir)/kern_features.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
 $(srcdir)/kexec_file_load.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
@@ -7879,6 +7970,9 @@ $(srcdir)/net-icmp_filter.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tes
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/net-sockaddr.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
+	$(AM_V_GEN) $^ $@
+
+$(srcdir)/net-yy-inet6.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in
 	$(AM_V_GEN) $^ $@
 
 $(srcdir)/netlink_audit.gen.test: $(abs_srcdir)/gen_tests.sh $(srcdir)/gen_tests.in

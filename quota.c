@@ -4,7 +4,7 @@
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2006-2017 The strace developers.
+ * Copyright (c) 2006-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -177,7 +177,7 @@ decode_cmd_data(struct tcb *tcp, uint32_t id, uint32_t cmd, kernel_ulong_t data)
 			return 0;
 		}
 
-		/* Fall-through */
+		ATTRIBUTE_FALLTHROUGH;
 	case Q_SETQUOTA:
 	{
 		struct if_dqblk dq;
@@ -247,7 +247,7 @@ decode_cmd_data(struct tcb *tcp, uint32_t id, uint32_t cmd, kernel_ulong_t data)
 			return 0;
 		}
 
-		/* Fall-through */
+		ATTRIBUTE_FALLTHROUGH;
 	case Q_XSETQLIM:
 	{
 		struct xfs_dqblk dq;
@@ -310,7 +310,7 @@ decode_cmd_data(struct tcb *tcp, uint32_t id, uint32_t cmd, kernel_ulong_t data)
 			return 0;
 		}
 
-		/* Fall-through */
+		ATTRIBUTE_FALLTHROUGH;
 	case Q_SETINFO:
 	{
 		struct if_dqinfo dq;

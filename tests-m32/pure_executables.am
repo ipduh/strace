@@ -24,6 +24,7 @@ PURE_EXECUTABLES = \
   copy_file_range \
   creat \
   delete_module \
+  dev-yy \
   dup \
   dup2 \
   dup3 \
@@ -125,6 +126,7 @@ PURE_EXECUTABLES = \
   ipc_shm \
   kcmp \
   kcmp-y \
+  kern_features \
   kexec_file_load \
   kexec_load \
   keyctl \
@@ -170,6 +172,7 @@ PURE_EXECUTABLES = \
   net-sockaddr \
   net-y-unix \
   net-yy-inet \
+  net-yy-inet6 \
   net-yy-netlink \
   net-yy-unix \
   netlink_audit \

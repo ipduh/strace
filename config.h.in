@@ -861,17 +861,16 @@
 /* Define to 1 if you have mpers_name mpers support */
 #undef HAVE_M32_MPERS
 
-/* Define to 1 if MPERS_NAME has the type 'struct stat'. */
+/* Define to 1 if m32 has the type 'struct stat'. */
 #undef HAVE_M32_STRUCT_STAT
 
-/* Define to 1 if MPERS_NAME has the type 'struct stat64'. */
+/* Define to 1 if m32 has the type 'struct stat64'. */
 #undef HAVE_M32_STRUCT_STAT64
 
-/* Define to 1 if 'st_mtime_nsec' is a member of MPERS_NAME 'struct stat64'.
-   */
+/* Define to 1 if 'st_mtime_nsec' is a member of m32 'struct stat64'. */
 #undef HAVE_M32_STRUCT_STAT64_ST_MTIME_NSEC
 
-/* Define to 1 if 'st_mtime_nsec' is a member of MPERS_NAME 'struct stat'. */
+/* Define to 1 if 'st_mtime_nsec' is a member of m32 'struct stat'. */
 #undef HAVE_M32_STRUCT_STAT_ST_MTIME_NSEC
 
 /* Define to 1 if you have the <memory.h> header file. */
@@ -883,17 +882,16 @@
 /* Define to 1 if you have mpers_name mpers support */
 #undef HAVE_MX32_MPERS
 
-/* Define to 1 if MPERS_NAME has the type 'struct stat'. */
+/* Define to 1 if mx32 has the type 'struct stat'. */
 #undef HAVE_MX32_STRUCT_STAT
 
-/* Define to 1 if MPERS_NAME has the type 'struct stat64'. */
+/* Define to 1 if mx32 has the type 'struct stat64'. */
 #undef HAVE_MX32_STRUCT_STAT64
 
-/* Define to 1 if 'st_mtime_nsec' is a member of MPERS_NAME 'struct stat64'.
-   */
+/* Define to 1 if 'st_mtime_nsec' is a member of mx32 'struct stat64'. */
 #undef HAVE_MX32_STRUCT_STAT64_ST_MTIME_NSEC
 
-/* Define to 1 if 'st_mtime_nsec' is a member of MPERS_NAME 'struct stat'. */
+/* Define to 1 if 'st_mtime_nsec' is a member of mx32 'struct stat'. */
 #undef HAVE_MX32_STRUCT_STAT_ST_MTIME_NSEC
 
 /* Define to 1 if you have the <netinet/sctp.h> header file. */
@@ -950,6 +948,9 @@
 /* Define to 1 if the system has the type `sig_atomic_t'. */
 #undef HAVE_SIG_ATOMIC_T
 
+/* Define to 1 if the system provides static_assert */
+#undef HAVE_STATIC_ASSERT
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -980,6 +981,9 @@
 /* Define to 1 if the system has the type `struct blk_user_trace_setup'. */
 #undef HAVE_STRUCT_BLK_USER_TRACE_SETUP
 
+/* Define to 1 if the system has the type `struct bpf_insn'. */
+#undef HAVE_STRUCT_BPF_INSN
+
 /* Define to 1 if the system has the type `struct br_mdb_entry'. */
 #undef HAVE_STRUCT_BR_MDB_ENTRY
 
@@ -1003,6 +1007,10 @@
 /* Define to 1 if `nodesize' is a member of `struct btrfs_ioctl_fs_info_args'.
    */
 #undef HAVE_STRUCT_BTRFS_IOCTL_FS_INFO_ARGS_NODESIZE
+
+/* Define to 1 if `flags' is a member of `struct
+   btrfs_ioctl_logical_ino_args'. */
+#undef HAVE_STRUCT_BTRFS_IOCTL_LOGICAL_INO_ARGS_FLAGS
 
 /* Define to 1 if `buf_size' is a member of `struct
    btrfs_ioctl_search_args_v2'. */
@@ -1289,9 +1297,6 @@
 /* Define to 1 if you have the <sys/quota.h> header file. */
 #undef HAVE_SYS_QUOTA_H
 
-/* Define to 1 if you have the <sys/reg.h> header file. */
-#undef HAVE_SYS_REG_H
-
 /* Define to 1 if you have the <sys/sem.h> header file. */
 #undef HAVE_SYS_SEM_H
 
@@ -1313,29 +1318,140 @@
 /* Define to 1 if typeof works with your compiler. */
 #undef HAVE_TYPEOF
 
+/* Define to 1 if `attach_bpf_fd' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_ATTACH_BPF_FD
+
 /* Define to 1 if `attach_flags' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_ATTACH_FLAGS
+
+/* Define to 1 if `attach_type' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_ATTACH_TYPE
 
 /* Define to 1 if `bpf_fd' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_BPF_FD
 
+/* Define to 1 if `dummy' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_DUMMY
+
+/* Define to 1 if `file_flags' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_FILE_FLAGS
+
 /* Define to 1 if `flags' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_FLAGS
+
+/* Define to 1 if `info.bpf_fd' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_INFO_BPF_FD
 
 /* Define to 1 if `info.info' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_INFO_INFO
 
+/* Define to 1 if `info.info_len' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_INFO_INFO_LEN
+
+/* Define to 1 if `inner_map_fd' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_INNER_MAP_FD
+
+/* Define to 1 if `insns' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_INSNS
+
+/* Define to 1 if `insn_cnt' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_INSN_CNT
+
+/* Define to 1 if `kern_version' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_KERN_VERSION
+
+/* Define to 1 if `key' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_KEY
+
+/* Define to 1 if `key_size' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_KEY_SIZE
+
+/* Define to 1 if `license' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_LICENSE
+
+/* Define to 1 if `log_buf' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_LOG_BUF
+
+/* Define to 1 if `log_level' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_LOG_LEVEL
+
+/* Define to 1 if `log_size' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_LOG_SIZE
+
+/* Define to 1 if `map_fd' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_MAP_FD
+
+/* Define to 1 if `map_flags' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_MAP_FLAGS
+
+/* Define to 1 if `map_id' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_MAP_ID
+
+/* Define to 1 if `map_type' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_MAP_TYPE
+
+/* Define to 1 if `max_entries' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_MAX_ENTRIES
+
 /* Define to 1 if `next_id' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_NEXT_ID
+
+/* Define to 1 if `next_key' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_NEXT_KEY
 
 /* Define to 1 if `numa_node' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_NUMA_NODE
 
+/* Define to 1 if `open_flags' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_OPEN_FLAGS
+
+/* Define to 1 if `pathname' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_PATHNAME
+
 /* Define to 1 if `prog_flags' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_PROG_FLAGS
 
+/* Define to 1 if `prog_id' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_PROG_ID
+
+/* Define to 1 if `prog_type' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_PROG_TYPE
+
+/* Define to 1 if `start_id' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_START_ID
+
+/* Define to 1 if `target_fd' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TARGET_FD
+
+/* Define to 1 if `test.data_in' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TEST_DATA_IN
+
+/* Define to 1 if `test.data_out' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TEST_DATA_OUT
+
+/* Define to 1 if `test.data_size_in' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TEST_DATA_SIZE_IN
+
+/* Define to 1 if `test.data_size_out' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TEST_DATA_SIZE_OUT
+
 /* Define to 1 if `test.duration' is a member of `union bpf_attr'. */
 #undef HAVE_UNION_BPF_ATTR_TEST_DURATION
+
+/* Define to 1 if `test.prog_fd' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TEST_PROG_FD
+
+/* Define to 1 if `test.repeat' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TEST_REPEAT
+
+/* Define to 1 if `test.retval' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_TEST_RETVAL
+
+/* Define to 1 if `value' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_VALUE
+
+/* Define to 1 if `value_size' is a member of `union bpf_attr'. */
+#undef HAVE_UNION_BPF_ATTR_VALUE_SIZE
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H

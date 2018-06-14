@@ -24,7 +24,13 @@ static
 const struct xlat sigsegv_codes[] = {
  XLAT(SEGV_MAPERR),
  XLAT(SEGV_ACCERR),
+#if defined(SEGV_STACKFLOW) || (defined(HAVE_DECL_SEGV_STACKFLOW) && HAVE_DECL_SEGV_STACKFLOW)
+  XLAT(SEGV_STACKFLOW),
+#endif
  XLAT(SEGV_BNDERR),
+#if defined(__SEGV_PSTKOVF) || (defined(HAVE_DECL___SEGV_PSTKOVF) && HAVE_DECL___SEGV_PSTKOVF)
+  XLAT(__SEGV_PSTKOVF),
+#endif
  XLAT(SEGV_PKUERR),
  XLAT_END
 };

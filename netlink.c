@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,6 @@
 #include "xlat/nf_ulog_msg_types.h"
 #include "xlat/nl_audit_types.h"
 #include "xlat/nl_crypto_types.h"
-#include "xlat/nl_netfilter_msg_types.h"
 #include "xlat/nl_netfilter_subsys_ids.h"
 #include "xlat/nl_selinux_types.h"
 #include "xlat/nl_sock_diag_types.h"
@@ -548,6 +547,9 @@ decode_nlmsgerr(struct tcb *const tcp,
 static const netlink_decoder_t netlink_decoders[] = {
 #ifdef HAVE_LINUX_CRYPTOUSER_H
 	[NETLINK_CRYPTO] = decode_netlink_crypto,
+#endif
+#ifdef HAVE_LINUX_NETFILTER_NFNETLINK_H
+	[NETLINK_NETFILTER] = decode_netlink_netfilter,
 #endif
 	[NETLINK_ROUTE] = decode_netlink_route,
 	[NETLINK_SELINUX] = decode_netlink_selinux,

@@ -2,13 +2,11 @@
 
 #ifdef IN_MPERS
 
-extern const struct xlat evdev_misc[];
+# error static const struct xlat evdev_misc in mpers mode
 
 #else
 
-# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
-# endif
 const struct xlat evdev_misc[] = {
 #if defined(MSC_SERIAL) || (defined(HAVE_DECL_MSC_SERIAL) && HAVE_DECL_MSC_SERIAL)
   XLAT(MSC_SERIAL),

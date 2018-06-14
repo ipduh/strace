@@ -2,7 +2,7 @@
  * Copyright (c) 1991, 1992 Paul Kranenburg <pk@cs.few.eur.nl>
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
- * Copyright (c) 1996-2017 The strace developers.
+ * Copyright (c) 1996-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -173,9 +173,7 @@ do_adjtimex(struct tcb *const tcp, const kernel_ulong_t addr)
 	if (print_timex(tcp, addr))
 		return 0;
 	tcp->auxstr = xlookup(adjtimex_state, (kernel_ulong_t) tcp->u_rval);
-	if (tcp->auxstr)
-		return RVAL_STR;
-	return 0;
+	return RVAL_STR;
 }
 
 SYS_FUNC(adjtimex)

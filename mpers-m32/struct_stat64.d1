@@ -1,0 +1,32 @@
+Contents of the .debug_info section:
+
+  Compilation Unit @ offset 0x0:
+   Length:        0x40 (32-bit)
+   Version:       2
+   Abbrev Offset: 0x0
+   Pointer Size:  4
+ <0><b>: Abbrev Number: 1 (DW_TAG_compile_unit)
+    <c>   DW_AT_producer    : (indirect string, offset: 0x0): Android clang version 5.0.300080  (based on LLVM 5.0.300080)
+    <10>   DW_AT_language    : 12	(ANSI C99)
+    <12>   DW_AT_name        : (indirect string, offset: 0x3d): mpers-m32/struct_stat64.c
+    <16>   DW_AT_stmt_list   : 0x0
+    <1a>   DW_AT_comp_dir    : (indirect string, offset: 0x57): /usr/local/google/ndkports/.out/strace/package/strace-4.22
+ <1><1e>: Abbrev Number: 2 (DW_TAG_variable)
+    <1f>   DW_AT_name        : (indirect string, offset: 0x92): mpers_target_var
+    <23>   DW_AT_type        : <0x30>
+    <27>   DW_AT_external    : 1
+    <28>   DW_AT_decl_file   : 1
+    <29>   DW_AT_decl_line   : 60
+    <2a>   DW_AT_location    : 5 byte block: 3 1 0 0 0 	(DW_OP_addr: 1)
+ <1><30>: Abbrev Number: 3 (DW_TAG_typedef)
+    <31>   DW_AT_type        : <0x3b>
+    <35>   DW_AT_name        : (indirect string, offset: 0xaa): struct_stat64
+    <39>   DW_AT_decl_file   : 1
+    <3a>   DW_AT_decl_line   : 58
+ <1><3b>: Abbrev Number: 4 (DW_TAG_structure_type)
+    <3c>   DW_AT_name        : (indirect string, offset: 0xa3): stat64
+    <40>   DW_AT_byte_size   : 0
+    <41>   DW_AT_decl_file   : 1
+    <42>   DW_AT_decl_line   : 55
+ <1><43>: Abbrev Number: 0
+

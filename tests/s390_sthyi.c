@@ -35,7 +35,6 @@
 # include <errno.h>
 # include <iconv.h>
 # include <inttypes.h>
-# include <stdbool.h>
 # include <stdint.h>
 # include <stdio.h>
 # include <unistd.h>
@@ -48,7 +47,7 @@
 #  define VERBOSE 0
 # endif
 
-static bool
+static inline bool
 print_0x8(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 {
 	if (!zero && !buf[offs])
@@ -59,7 +58,7 @@ print_0x8(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 	return true;
 }
 
-static bool
+static inline bool
 print_u8(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 {
 	if (!zero && !buf[offs])
@@ -70,7 +69,7 @@ print_u8(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 	return true;
 }
 
-static bool
+static inline bool
 print_u16(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 {
 	uint16_t val = *(uint16_t *) (buf + offs);
@@ -83,7 +82,7 @@ print_u16(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 	return true;
 }
 
-static bool
+static inline bool
 print_x32(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 {
 	uint32_t val = *(uint32_t *) (buf + offs);
@@ -96,7 +95,7 @@ print_x32(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
 	return true;
 }
 
-static bool
+static inline bool
 print_weight(const char *prefix, unsigned char *buf, unsigned int offs,
 	     bool zero)
 {
@@ -115,7 +114,7 @@ print_weight(const char *prefix, unsigned char *buf, unsigned int offs,
 	return false;
 }
 
-static char *
+static inline char *
 ebcdic2ascii(unsigned char *ebcdic, size_t size)
 {
 	static char ascii_buf[EBCDIC_MAX_LEN];
@@ -169,8 +168,7 @@ ebcdic2ascii_end:
 	return ascii_buf;
 }
 
-# if VERBOSE
-static bool
+static inline bool
 is_empty(unsigned char *ptr, size_t size)
 {
 	size_t i;
@@ -180,9 +178,8 @@ is_empty(unsigned char *ptr, size_t size)
 
 	return i == size;
 }
-# endif /* !VERBOSE */
 
-static bool
+static inline bool
 print_ebcdic(const char *prefix, unsigned char *addr, unsigned int offs,
 	     size_t size, bool zero, bool blank)
 {
@@ -768,7 +765,7 @@ main(void)
 
 	rc = syscall(__NR_s390_sthyi, 0, buf, ret, 0);
 	if (rc)
-		error_msg_and_fail("syscall(__NR_s390_sthyi, 0, buf, ret, 0) "
+		error_msg_and_skip("syscall(__NR_s390_sthyi, 0, buf, ret, 0) "
 				   "returned unexpected value of %ld", rc);
 
 	printf("s390_sthyi(STHYI_FC_CP_IFL_CAP, ");

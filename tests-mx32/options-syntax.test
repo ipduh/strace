@@ -73,8 +73,9 @@ diff -u -- "$EXP" "$LOG" > /dev/null || {
 		"zeroargc $STRACE $args output mismatch"
 }
 
-if [ -n "${UID-}" ]; then
-	if [ "${UID-}" = 0 ]; then
+uid="${UID:-`id -u`}"
+if [ "$uid" -ge 0 ]; then
+	if [ "$uid" -eq 0 ]; then
 		umsg="Cannot find user ':nosuchuser:'"
 	else
 		umsg='You must be root to use the -u option'
@@ -92,9 +93,6 @@ $STRACE_EXE: -t has no effect with -c
 $STRACE_EXE: -T has no effect with -c
 $STRACE_EXE: -y has no effect with -c
 $STRACE_EXE: $umsg" -u :nosuchuser: -cirtTy true
-
-	check_e "-tt has no effect with -r
-$STRACE_EXE: $umsg" -u :nosuchuser: -r -tt true
 fi
 
 args='-p 2147483647'

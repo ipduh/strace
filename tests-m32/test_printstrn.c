@@ -2,6 +2,7 @@
  * Test printstrn/umoven.
  *
  * Copyright (c) 2015-2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,6 +76,15 @@ test_efault(const unsigned int test_max)
 	}
 }
 
+static void
+test_print_memory(char *const p, const unsigned int test_max)
+{
+	add_key(p, test_max);
+	printf("add_key(NULL, NULL, ");
+	print_quoted_memory(p, test_max);
+	printf(", %u, KEY_SPEC_THREAD_KEYRING) = %s\n", test_max, errstr);
+}
+
 void
 test_printstrn(const unsigned int test_max)
 {
@@ -99,4 +109,11 @@ test_printstrn(const unsigned int test_max)
 	for (i = 0; i < sizeof(long); ++i)
 		test_printstrn_at(p + page_size - i, test_max);
 	test_efault(test_max);
+
+	fill_memory_ex(p, test_max + page_size, 0x00, 0xFF);
+	/* Test corner cases when octal quoting goes before digit */
+	for (i = 0; i < 11; i++)
+		p[2 + 3 * i] = '0' + i - 1;
+
+	test_print_memory(p, test_max);
 }

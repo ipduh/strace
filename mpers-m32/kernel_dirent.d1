@@ -1,0 +1,89 @@
+Contents of the .debug_info section:
+
+  Compilation Unit @ offset 0x0:
+   Length:        0xb4 (32-bit)
+   Version:       2
+   Abbrev Offset: 0x0
+   Pointer Size:  4
+ <0><b>: Abbrev Number: 1 (DW_TAG_compile_unit)
+    <c>   DW_AT_producer    : (indirect string, offset: 0x0): Android clang version 5.0.300080  (based on LLVM 5.0.300080)
+    <10>   DW_AT_language    : 12	(ANSI C99)
+    <12>   DW_AT_name        : (indirect string, offset: 0x3d): mpers-m32/kernel_dirent.c
+    <16>   DW_AT_stmt_list   : 0x0
+    <1a>   DW_AT_comp_dir    : (indirect string, offset: 0x57): /usr/local/google/ndkports/.out/strace/package/strace-4.22
+ <1><1e>: Abbrev Number: 2 (DW_TAG_variable)
+    <1f>   DW_AT_name        : (indirect string, offset: 0x92): mpers_target_var
+    <23>   DW_AT_type        : <0x30>
+    <27>   DW_AT_external    : 1
+    <28>   DW_AT_decl_file   : 3
+    <29>   DW_AT_decl_line   : 36
+    <2a>   DW_AT_location    : 5 byte block: 3 4 0 0 0 	(DW_OP_addr: 4)
+ <1><30>: Abbrev Number: 3 (DW_TAG_typedef)
+    <31>   DW_AT_type        : <0x3b>
+    <35>   DW_AT_name        : (indirect string, offset: 0x10e): kernel_dirent
+    <39>   DW_AT_decl_file   : 2
+    <3a>   DW_AT_decl_line   : 56
+ <1><3b>: Abbrev Number: 4 (DW_TAG_structure_type)
+    <3c>   DW_AT_byte_size   : 12
+    <3d>   DW_AT_decl_file   : 2
+    <3e>   DW_AT_decl_line   : 51
+ <2><3f>: Abbrev Number: 5 (DW_TAG_member)
+    <40>   DW_AT_name        : (indirect string, offset: 0xa3): d_ino
+    <44>   DW_AT_type        : <0x78>
+    <48>   DW_AT_decl_file   : 2
+    <49>   DW_AT_decl_line   : 52
+    <4a>   DW_AT_data_member_location: 2 byte block: 23 0 	(DW_OP_plus_uconst: 0)
+ <2><4d>: Abbrev Number: 5 (DW_TAG_member)
+    <4e>   DW_AT_name        : (indirect string, offset: 0xdb): d_off
+    <52>   DW_AT_type        : <0x78>
+    <56>   DW_AT_decl_file   : 2
+    <57>   DW_AT_decl_line   : 53
+    <58>   DW_AT_data_member_location: 2 byte block: 23 4 	(DW_OP_plus_uconst: 4)
+ <2><5b>: Abbrev Number: 5 (DW_TAG_member)
+    <5c>   DW_AT_name        : (indirect string, offset: 0xe1): d_reclen
+    <60>   DW_AT_type        : <0x95>
+    <64>   DW_AT_decl_file   : 2
+    <65>   DW_AT_decl_line   : 54
+    <66>   DW_AT_data_member_location: 2 byte block: 23 8 	(DW_OP_plus_uconst: 8)
+ <2><69>: Abbrev Number: 5 (DW_TAG_member)
+    <6a>   DW_AT_name        : (indirect string, offset: 0xf9): d_name
+    <6e>   DW_AT_type        : <0x9c>
+    <72>   DW_AT_decl_file   : 2
+    <73>   DW_AT_decl_line   : 55
+    <74>   DW_AT_data_member_location: 2 byte block: 23 a 	(DW_OP_plus_uconst: 10)
+ <2><77>: Abbrev Number: 0
+ <1><78>: Abbrev Number: 3 (DW_TAG_typedef)
+    <79>   DW_AT_type        : <0x83>
+    <7d>   DW_AT_name        : (indirect string, offset: 0xcc): kernel_ulong_t
+    <81>   DW_AT_decl_file   : 2
+    <82>   DW_AT_decl_line   : 37
+ <1><83>: Abbrev Number: 3 (DW_TAG_typedef)
+    <84>   DW_AT_type        : <0x8e>
+    <88>   DW_AT_name        : (indirect string, offset: 0xbb): __kernel_ulong_t
+    <8c>   DW_AT_decl_file   : 1
+    <8d>   DW_AT_decl_line   : 24
+ <1><8e>: Abbrev Number: 6 (DW_TAG_base_type)
+    <8f>   DW_AT_name        : (indirect string, offset: 0xa9): long unsigned int
+    <93>   DW_AT_encoding    : 7	(unsigned)
+    <94>   DW_AT_byte_size   : 4
+ <1><95>: Abbrev Number: 6 (DW_TAG_base_type)
+    <96>   DW_AT_name        : (indirect string, offset: 0xea): unsigned short
+    <9a>   DW_AT_encoding    : 7	(unsigned)
+    <9b>   DW_AT_byte_size   : 2
+ <1><9c>: Abbrev Number: 7 (DW_TAG_array_type)
+    <9d>   DW_AT_type        : <0xa9>
+ <2><a1>: Abbrev Number: 8 (DW_TAG_subrange_type)
+    <a2>   DW_AT_type        : <0xb0>
+    <a6>   DW_AT_lower_bound : 0
+    <a7>   DW_AT_count       : 1
+ <2><a8>: Abbrev Number: 0
+ <1><a9>: Abbrev Number: 6 (DW_TAG_base_type)
+    <aa>   DW_AT_name        : (indirect string, offset: 0x100): char
+    <ae>   DW_AT_encoding    : 8	(unsigned char)
+    <af>   DW_AT_byte_size   : 1
+ <1><b0>: Abbrev Number: 9 (DW_TAG_base_type)
+    <b1>   DW_AT_name        : (indirect string, offset: 0x105): sizetype
+    <b5>   DW_AT_byte_size   : 8
+    <b6>   DW_AT_encoding    : 7	(unsigned)
+ <1><b7>: Abbrev Number: 0
+

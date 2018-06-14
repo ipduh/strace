@@ -33,7 +33,7 @@
 AC_PREREQ(2.57)
 AC_INIT([strace],
 	m4_esyscmd([./git-version-gen .tarball-version]),
-	[strace-devel@lists.sourceforge.net],
+	[strace-devel@lists.strace.io],
 	[strace],
 	[https://strace.io])
 m4_define([copyright_year], m4_esyscmd([./copyright-year-gen .year]))
@@ -436,7 +436,6 @@ AC_CHECK_HEADERS(m4_normalize([
 	sys/ipc.h
 	sys/msg.h
 	sys/quota.h
-	sys/reg.h
 	sys/sem.h
 	sys/shm.h
 	sys/signalfd.h
@@ -466,16 +465,8 @@ AC_CHECK_HEADERS([linux/input.h], [
 ])
 
 AC_CHECK_HEADERS([linux/bpf.h], [
-	AC_CHECK_MEMBERS(m4_normalize([
-		union bpf_attr.attach_flags,
-		union bpf_attr.bpf_fd,
-		union bpf_attr.flags,
-		union bpf_attr.info.info,
-		union bpf_attr.next_id,
-		union bpf_attr.numa_node,
-		union bpf_attr.prog_flags,
-		union bpf_attr.test.duration
-	]),,, [#include <linux/bpf.h>])
+	AC_CHECK_TYPES([struct bpf_insn],,, [#include <linux/bpf.h>])
+	st_BPF_ATTR
 ])
 
 AC_CHECK_TYPES(m4_normalize([
@@ -566,7 +557,8 @@ AC_CHECK_HEADERS([linux/btrfs.h], [
 		struct btrfs_ioctl_feature_flags.compat_flags,
 		struct btrfs_ioctl_fs_info_args.nodesize,
 		struct btrfs_ioctl_defrag_range_args.start,
-		struct btrfs_ioctl_search_args_v2.buf_size
+		struct btrfs_ioctl_search_args_v2.buf_size,
+		struct btrfs_ioctl_logical_ino_args.flags
 		]),,, [ #include <stdio.h>
 #include <linux/btrfs.h>])
 	AC_CHECK_DECLS(m4_normalize([BTRFS_COMPRESS_NONE, BTRFS_COMPRESS_ZLIB,
@@ -803,11 +795,50 @@ if test "x$st_cv_have_program_invocation_name" = xyes; then
 		  [Define to 1 if the system provides program_invocation_name variable])
 fi
 
+AC_CACHE_CHECK([for static_assert], [st_cv_have_static_assert],
+	       [AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <assert.h>]],
+						[[static_assert(1,"")]])],
+			       [st_cv_have_static_assert=yes],
+			       [st_cv_have_static_assert=no])])
+if test "x$st_cv_have_static_assert" = xyes; then
+	AC_DEFINE([HAVE_STATIC_ASSERT], [1],
+		  [Define to 1 if the system provides static_assert])
+fi
+
 AC_CHECK_LIB([dl], [dladdr], [dl_LIBS='-ldl'], [dl_LIBS=])
 if test "x$ac_cv_lib_dl_dladdr" = xyes; then
 	AC_DEFINE([HAVE_DLADDR], [1], [Define to 1 if the system provides dladdr])
 fi
 AC_SUBST(dl_LIBS)
+
+saved_LIBS="$LIBS"
+AC_SEARCH_LIBS([timer_create], [rt])
+LIBS="$saved_LIBS"
+case "$ac_cv_search_timer_create" in
+	no) AC_MSG_FAILURE([failed to find timer_create]) ;;
+	-l*) timer_LIBS="$ac_cv_search_timer_create" ;;
+	*) timer_LIBS= ;;
+esac
+AC_SUBST(timer_LIBS)
+
+saved_LIBS="$LIBS"
+AC_SEARCH_LIBS([clock_gettime], [rt])
+LIBS="$saved_LIBS"
+case "$ac_cv_search_clock_gettime" in
+	no) AC_MSG_FAILURE([failed to find clock_gettime]) ;;
+	-l*) clock_LIBS="$ac_cv_search_clock_gettime" ;;
+	*) clock_LIBS= ;;
+esac
+AC_SUBST(clock_LIBS)
+
+saved_LIBS="$LIBS"
+AC_SEARCH_LIBS([mq_open], [rt])
+LIBS="$saved_LIBS"
+case "$ac_cv_search_mq_open" in
+	-l*) mq_LIBS="$ac_cv_search_mq_open" ;;
+	*) mq_LIBS= ;;
+esac
+AC_SUBST(mq_LIBS)
 
 AC_PATH_PROG([PERL], [perl])
 

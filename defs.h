@@ -108,11 +108,7 @@ extern char *stpcpy(char *dst, const char *src);
 #ifndef DEFAULT_SORTBY
 # define DEFAULT_SORTBY "time"
 #endif
-/*
- * Experimental code using PTRACE_SEIZE can be enabled here.
- * This needs Linux kernel 3.4.x or later to work.
- */
-#define USE_SEIZE 1
+
 /* To force NOMMU build, set to 1 */
 #define NOMMU_SYSTEM 0
 
@@ -175,13 +171,17 @@ typedef struct ioctlent {
 	unsigned int code;
 } struct_ioctlent;
 
-#define INJECT_F_SIGNAL 1
-#define INJECT_F_RETVAL 2
+#define INJECT_F_SIGNAL		0x01
+#define INJECT_F_ERROR		0x02
+#define INJECT_F_RETVAL		0x04
+#define INJECT_F_DELAY_ENTER	0x08
+#define INJECT_F_DELAY_EXIT	0x10
 
 struct inject_data {
-	uint16_t flags;
-	uint16_t signo;
-	kernel_long_t rval;
+	uint8_t flags;		/* 5 of 8 flags are used so far */
+	uint8_t signo;		/* NSIG <= 128 */
+	uint16_t rval_idx;	/* index in retval_vec */
+	uint16_t delay_idx;	/* index in delay_data_vec */
 };
 
 struct inject_opts {
@@ -213,16 +213,18 @@ struct tcb {
 	const struct_sysent *s_ent; /* sysent[scno] or dummy struct for bad scno */
 	const struct_sysent *s_prev_ent; /* for "resuming interrupted SYSCALL" msg */
 	struct inject_opts *inject_vec[SUPPORTED_PERSONALITIES];
-	struct timeval stime;	/* System time usage as of last process wait */
-	struct timeval dtime;	/* Delta for system time usage */
-	struct timeval etime;	/* Syscall entry time */
+	struct timespec stime;	/* System time usage as of last process wait */
+	struct timespec dtime;	/* Delta for system time usage */
+	struct timespec etime;	/* Syscall entry time */
+	struct timespec delay_expiration_time; /* When does the delay end */
 
-#ifdef USE_LIBUNWIND
-	struct UPT_info *libunwind_ui;
 	struct mmap_cache_t *mmap_cache;
 	unsigned int mmap_cache_size;
 	unsigned int mmap_cache_generation;
-	struct queue_t *queue;
+
+#ifdef USE_LIBUNWIND
+	void *unwind_ctx;
+	struct unwind_queue_t *unwind_queue;
 #endif
 };
 
@@ -252,6 +254,9 @@ struct tcb {
 				 * in the middle of a syscall */
 #define TCB_RECOVERING	0x400	/* We try to recover after detecting incorrect
 				 * syscall entering/exiting state */
+#define TCB_INJECT_DELAY_EXIT	0x800	/* Current syscall needs to be delayed
+					   on exit */
+#define TCB_DELAYED	0x1000	/* Current syscall has been delayed */
 
 /* qualifier flags */
 #define QUAL_TRACE	0x001	/* this system call should be traced */
@@ -274,6 +279,8 @@ struct tcb {
 #define hide_log(tcp)	((tcp)->flags & TCB_HIDE_LOG)
 #define syscall_tampered(tcp)	((tcp)->flags & TCB_TAMPERED)
 #define recovering(tcp)	((tcp)->flags & TCB_RECOVERING)
+#define inject_delay_exit(tcp)	((tcp)->flags & TCB_INJECT_DELAY_EXIT)
+#define syscall_delayed(tcp)	((tcp)->flags & TCB_DELAYED)
 
 #include "xlat.h"
 
@@ -282,13 +289,19 @@ extern const struct xlat arp_hardware_types[];
 extern const struct xlat at_flags[];
 extern const struct xlat clocknames[];
 extern const struct xlat dirent_types[];
+
+/** Ethernet protocols list, sorted and unterminated, defined in sockaddr.c. */
 extern const struct xlat ethernet_protocols[];
+/** Ethernet protocols array size without terminating record. */
+extern const size_t ethernet_protocols_size;
+
 extern const struct xlat evdev_abs[];
 extern const struct xlat iffflags[];
 extern const struct xlat inet_protocols[];
 extern const struct xlat ip_type_of_services[];
 extern const struct xlat msg_flags[];
 extern const struct xlat netlink_protocols[];
+extern const struct xlat nl_netfilter_msg_types[];
 extern const struct xlat nl_route_types[];
 extern const struct xlat open_access_modes[];
 extern const struct xlat open_mode_flags[];
@@ -296,6 +309,7 @@ extern const struct xlat resource_flags[];
 extern const struct xlat routing_scopes[];
 extern const struct xlat routing_table_ids[];
 extern const struct xlat routing_types[];
+extern const struct xlat seccomp_filter_flags[];
 extern const struct xlat seccomp_ret_action[];
 extern const struct xlat setns_types[];
 extern const struct xlat sg_io_info[];
@@ -306,10 +320,9 @@ extern const struct xlat tcp_states[];
 extern const struct xlat whence_codes[];
 
 /* Format of syscall return values */
-#define RVAL_DECIMAL	000	/* decimal format */
+#define RVAL_UDECIMAL	000	/* unsigned decimal format */
 #define RVAL_HEX	001	/* hex format */
 #define RVAL_OCTAL	002	/* octal format */
-#define RVAL_UDECIMAL	003	/* unsigned decimal format */
 #define RVAL_FD		010	/* file descriptor */
 #define RVAL_MASK	013	/* mask for these values */
 
@@ -319,10 +332,6 @@ extern const struct xlat whence_codes[];
 #define RVAL_DECODED	0100	/* syscall decoding finished */
 #define RVAL_IOCTL_DECODED 0200	/* ioctl sub-parser successfully decoded
 				   the argument */
-#define RVAL_PRINT_ERR_VAL 0400 /* Print decoded error code along with
-				   syscall return value.  Needed for modify_ldt
-				   that for some reason decides to return
-				   an error with higher bits set to 0.  */
 
 #define IOCTL_NUMBER_UNKNOWN 0
 #define IOCTL_NUMBER_HANDLED 1
@@ -388,11 +397,11 @@ extern int syscall_entering_decode(struct tcb *);
 extern int syscall_entering_trace(struct tcb *, unsigned int *);
 extern void syscall_entering_finish(struct tcb *, int);
 
-extern int syscall_exiting_decode(struct tcb *, struct timeval *);
-extern int syscall_exiting_trace(struct tcb *, struct timeval, int);
+extern int syscall_exiting_decode(struct tcb *, struct timespec *);
+extern int syscall_exiting_trace(struct tcb *, struct timespec *, int);
 extern void syscall_exiting_finish(struct tcb *);
 
-extern void count_syscall(struct tcb *, const struct timeval *);
+extern void count_syscall(struct tcb *, const struct timespec *);
 extern void call_summary(FILE *);
 
 extern void clear_regs(struct tcb *tcp);
@@ -533,7 +542,10 @@ str_strip_prefix_len(const char *str, const char *prefix, size_t prefix_len)
 #define QUOTE_FORCE_HEX				0x10
 #define QUOTE_EMIT_COMMENT			0x20
 
-extern int string_quote(const char *, char *, unsigned int, unsigned int);
+extern int string_quote(const char *, char *, unsigned int, unsigned int,
+			const char *escape_chars);
+extern int print_quoted_string_ex(const char *, unsigned int, unsigned int,
+				  const char *escape_chars);
 extern int print_quoted_string(const char *, unsigned int, unsigned int);
 extern int print_quoted_cstring(const char *, unsigned int);
 
@@ -551,20 +563,25 @@ extern int getllval(struct tcb *, unsigned long long *, int);
 extern int printllval(struct tcb *, const char *, int)
 	ATTRIBUTE_FORMAT((printf, 2, 0));
 
+extern void printaddr64(uint64_t addr);
 extern void printaddr(kernel_ulong_t addr);
 extern int printxvals(const uint64_t, const char *, const struct xlat *, ...)
 	ATTRIBUTE_SENTINEL;
 extern int printxval_searchn(const struct xlat *xlat, size_t xlat_size,
 	uint64_t val, const char *dflt);
+/**
+ * Wrapper around printxval_searchn that passes ARRAY_SIZE - 1
+ * as the array size, as all arrays are XLAT_END-terminated and
+ * printxval_searchn expects a size without the terminating record.
+ */
 #define printxval_search(xlat__, val__, dflt__) \
-	printxval_searchn(xlat__, ARRAY_SIZE(xlat__), val__, dflt__)
+	printxval_searchn(xlat__, ARRAY_SIZE(xlat__) - 1, val__, dflt__)
 extern int sprintxval(char *buf, size_t size, const struct xlat *,
 	unsigned int val, const char *dflt);
 extern int printargs(struct tcb *);
 extern int printargs_u(struct tcb *);
 extern int printargs_d(struct tcb *);
 
-extern void addflags(const struct xlat *, uint64_t);
 extern int printflags_ex(uint64_t, const char *, const struct xlat *, ...)
 	ATTRIBUTE_SENTINEL;
 extern const char *sprintflags(const char *, const struct xlat *, uint64_t);
@@ -675,6 +692,7 @@ name ## _ioctl(struct tcb *, unsigned int request, kernel_ulong_t arg)	\
 /* End of DECL_IOCTL definition. */
 
 DECL_IOCTL(dm);
+DECL_IOCTL(evdev);
 DECL_IOCTL(file);
 DECL_IOCTL(fs_x);
 DECL_IOCTL(kvm);
@@ -687,6 +705,7 @@ DECL_IOCTL(uffdio);
 #undef DECL_IOCTL
 
 extern int decode_sg_io_v4(struct tcb *, const kernel_ulong_t arg);
+extern void print_evdev_ff_type(const kernel_ulong_t val);
 
 struct nlmsghdr;
 
@@ -700,25 +719,25 @@ decode_netlink_ ## name(struct tcb *, const struct nlmsghdr *,		\
 /* End of DECL_NETLINK definition. */
 
 DECL_NETLINK(crypto);
+DECL_NETLINK(netfilter);
 DECL_NETLINK(route);
 DECL_NETLINK(selinux);
 DECL_NETLINK(sock_diag);
 
-extern int tv_nz(const struct timeval *);
-extern int tv_cmp(const struct timeval *, const struct timeval *);
-extern double tv_float(const struct timeval *);
-extern void tv_add(struct timeval *, const struct timeval *, const struct timeval *);
-extern void tv_sub(struct timeval *, const struct timeval *, const struct timeval *);
-extern void tv_mul(struct timeval *, const struct timeval *, int);
-extern void tv_div(struct timeval *, const struct timeval *, int);
+extern int ts_nz(const struct timespec *);
+extern int ts_cmp(const struct timespec *, const struct timespec *);
+extern double ts_float(const struct timespec *);
+extern void ts_add(struct timespec *, const struct timespec *, const struct timespec *);
+extern void ts_sub(struct timespec *, const struct timespec *, const struct timespec *);
+extern void ts_mul(struct timespec *, const struct timespec *, int);
+extern void ts_div(struct timespec *, const struct timespec *, int);
 
 #ifdef USE_LIBUNWIND
 extern void unwind_init(void);
 extern void unwind_tcb_init(struct tcb *);
 extern void unwind_tcb_fin(struct tcb *);
-extern void unwind_cache_invalidate(struct tcb *);
-extern void unwind_print_stacktrace(struct tcb *);
-extern void unwind_capture_stacktrace(struct tcb *);
+extern void unwind_tcb_print(struct tcb *);
+extern void unwind_tcb_capture(struct tcb *);
 #endif
 
 static inline int
@@ -844,6 +863,34 @@ extern unsigned current_wordsize;
 extern unsigned current_klongsize;
 # endif
 #endif
+
+#define max_addr() (~0ULL >> ((8 - current_wordsize) * 8))
+#define max_kaddr() (~0ULL >> ((8 - current_klongsize) * 8))
+
+/*
+ * When u64 is interpreted by the kernel as an address, there is a difference
+ * in behaviour between 32-bit and 64-bit kernel in the way u64_to_user_ptr
+ * works (32-bit kernel trims higher bits during conversion which may result
+ * to a valid address).  Since 32-bit strace cannot figure out what kind of
+ * kernel the tracee is running on, it has to account for both possibilities.
+ */
+#if CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL
+
+/**
+ * Print raw 64-bit value as an address if it's too big to fit in strace's
+ * kernel_long_t.
+ */
+static inline void
+print_big_u64_addr(const uint64_t addr)
+{
+	if (sizeof(kernel_long_t) < 8 && addr > max_kaddr()) {
+		printaddr64(addr);
+		tprints(" or ");
+	}
+}
+#else /* !CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL */
+# define print_big_u64_addr(addr_) ((void) 0)
+#endif /* CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL */
 
 #if SIZEOF_KERNEL_LONG_T > 4		\
  && (SIZEOF_LONG < SIZEOF_KERNEL_LONG_T || !defined(current_wordsize))

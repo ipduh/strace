@@ -53,12 +53,12 @@
 .  el \
 .    BR "\\$1"
 ..
-.TH STRACE 1 "2018-02-11" "strace 4.21"
+.TH STRACE 1 "2018-04-04" "strace 4.22"
 .SH NAME
 strace \- trace system calls and signals
 .SH SYNOPSIS
 .SY strace
-.OP \-CdffhikqrtttTvVxxy
+.OP \-ACdffhikqrtttTvVxxy
 .OP \-I n
 .OP \-b execve
 .OM \-e expr
@@ -274,6 +274,10 @@ without affecting the redirections of executed programs.
 The latter is not compatible with
 .B \-ff
 option currently.
+.TP \-A
+Open the file provided in the
+.B \-o
+option in append mode.
 .TP
 .B \-q
 Suppress messages about attaching, detaching etc.  This happens
@@ -287,6 +291,13 @@ If given twice, suppress messages about process exit status.
 Print a relative timestamp upon entry to each system call.  This
 records the time difference between the beginning of successive
 system calls.
+Note that since
+.B \-r
+option uses the monotonic clock time for measuring time difference and not the
+wall clock time, its measurements can differ from the difference in time
+reported by the
+.B \-t
+option.
 .TP
 .BI "\-s " strsize
 Specify the maximum string size to print (the default is 32).  Note
@@ -318,12 +329,14 @@ Print all strings in hexadecimal string format.
 Print paths associated with file descriptor arguments.
 .TP
 .B \-yy
-Print protocol specific information associated with socket file descriptors.
+Print protocol specific information associated with socket file descriptors,
+and block/character device number associated with device file descriptors.
 .SS Statistics
 .TP 12
 .B \-c
 Count time, calls, and errors for each system call and report a summary on
-program exit.  This attempts to show system time (CPU time spent running
+program exit, suppressing the regular output.
+This attempts to show system time (CPU time spent running
 in the kernel) independent of wall clock time.  If
 .B \-c
 is used with
@@ -434,7 +447,7 @@ You can use
 .B POSIX
 Extended Regular Expression syntax (see
 .BR regex (7)).
-.PP
+.TP
 .BR "\-e\ trace" = %file
 .TQ
 .BR "\-e\ trace" = file " (deprecated)"
@@ -446,33 +459,33 @@ Furthermore, using the abbreviation will ensure that you don't
 accidentally forget to include a call like
 .B lstat
 in the list.  Betchya woulda forgot that one.
-.PP
+.TP
 .BR "\-e\ trace" = %process
 .TQ
 .BR "\-e\ trace" = process " (deprecated)"
 Trace all system calls which involve process management.  This
 is useful for watching the fork, wait, and exec steps of a process.
-.PP
+.TP
 .BR "\-e\ trace" = %network
 .TQ
 .BR "\-e\ trace" = network " (deprecated)"
 Trace all the network related system calls.
-.PP
+.TP
 .BR "\-e\ trace" = %signal
 .TQ
 .BR "\-e\ trace" = signal " (deprecated)"
 Trace all signal related system calls.
-.PP
+.TP
 .BR "\-e\ trace" = %ipc
 .TQ
 .BR "\-e\ trace" = ipc " (deprecated)"
 Trace all IPC related system calls.
-.PP
+.TP
 .BR "\-e\ trace" = %desc
 .TQ
 .BR "\-e\ trace" = desc " (deprecated)"
 Trace all file descriptor related system calls.
-.PP
+.TP
 .BR "\-e\ trace" = %memory
 .TQ
 .BR "\-e\ trace" = memory " (deprecated)"
@@ -582,14 +595,16 @@ Note that this is independent from the normal tracing of the
 system call which is controlled by the option
 .BR -e "\ " trace = write .
 .TP
-\fB\-e\ inject\fR=\,\fIset\/\fR[:\fBerror\fR=\,\fIerrno\/\fR|:\fBretval\fR=\,\fIvalue\/\fR][:\fBsignal\fR=\,\fIsig\/\fR][:\fBwhen\fR=\,\fIexpr\/\fR]
+\fB\-e\ inject\fR=\,\fIset\/\fR[:\fBerror\fR=\,\fIerrno\/\fR|:\fBretval\fR=\,\fIvalue\/\fR][:\fBsignal\fR=\,\fIsig\/\fR][:\fBdelay_enter\fR=\,\fIusecs\/\fR][:\fBdelay_exit\fR=\,\fIusecs\/\fR][:\fBwhen\fR=\,\fIexpr\/\fR]
 Perform syscall tampering for the specified set of syscalls.
 
 At least one of
 .BR error ,
 .BR retval ,
+.BR signal ,
+.BR delay_enter ,
 or
-.B signal
+.B delay_exit
 options has to be specified.
 .B error
 and
@@ -616,14 +631,24 @@ or a numeric value within 1..\fBSIGRTMAX\fR range,
 that signal is delivered on entering every syscall specified by the
 .IR set .
 
+If :\fBdelay_enter\fR=\,\fIusecs\/\fR or :\fBdelay_exit\fR=\,\fIusecs\/\fR
+options are specified, delay injection is performed: the tracee is delayed
+by at least
+.IR usecs
+microseconds on entering or exiting the syscall.
+
 If :\fBsignal\fR=\,\fIsig\/\fR option is specified without
-:\fBerror\fR=\,\fIerrno\/\fR or :\fBretval\fR=\,\fIvalue\/\fR options,
+:\fBerror\fR=\,\fIerrno\/\fR, :\fBretval\fR=\,\fIvalue\/\fR or
+:\fBdelay_{enter,exit}\fR=\,\fIusecs\/\fR options,
 then only a signal
 .I sig
-is delivered without a syscall fault injection.
+is delivered without a syscall fault or delay injection.
 Conversely, :\fBerror\fR=\,\fIerrno\/\fR or
 :\fBretval\fR=\,\fIvalue\/\fR option without
-:\fBsignal\fR=\,\fIsig\/\fR option injects a fault without delivering a signal.
+:\fBdelay_enter\fR=\,\fIusecs\/\fR,
+:\fBdelay_exit\fR=\,\fIusecs\/\fR or
+:\fBsignal\fR=\,\fIsig\/\fR options injects a fault without delivering a signal
+or injecting a delay, etc.
 
 If both :\fBerror\fR=\,\fIerrno\/\fR or :\fBretval\fR=\,\fIvalue\/\fR
 and :\fBsignal\fR=\,\fIsig\/\fR options are specified, then both
@@ -992,6 +1017,18 @@ to the traced process, but a few system calls aren't.
 Arguably, every instance of such behavior is a kernel bug.)
 This may have an unpredictable effect on the process
 if the process takes no action to restart the system call.
+.LP
+As
+.B strace
+executes the specified
+.I command
+directly and does not employ a shell for that, scripts without shebang
+that usually run just fine when invoked by shell fail to execute with
+.B ENOEXEC
+error.
+It is advisable to manually supply a shell as a
+.I command
+with the script as its argument.
 .SH BUGS
 Programs that use the
 .I setuid
@@ -1082,7 +1119,7 @@ Problems with
 .B strace
 should be reported to the
 .B strace
-mailing list at <strace\-devel@lists.sourceforge.net>.
+mailing list at <strace\-devel@lists.strace.io>.
 .SH "SEE ALSO"
 .BR strace-log-merge (1),
 .BR ltrace (1),

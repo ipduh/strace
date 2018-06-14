@@ -53,6 +53,18 @@
 	STRACE_PRINTF("%s%s=%#llx", (prefix_), #field_,			\
 		      zero_extend_signed_to_ull((where_).field_))
 
+#define PRINT_FIELD_ADDR(prefix_, where_, field_)			\
+	do {								\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		printaddr((where_).field_);				\
+	} while (0)
+
+#define PRINT_FIELD_ADDR64(prefix_, where_, field_)			\
+	do {								\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		printaddr64((where_).field_);				\
+	} while (0)
+
 #define PRINT_FIELD_0X(prefix_, where_, field_)				\
 	STRACE_PRINTF("%s%s=%#0*llx", (prefix_), #field_,		\
 		      (int) sizeof((where_).field_) * 2,		\
@@ -104,15 +116,23 @@
 #define PRINT_FIELD_CSTRING(prefix_, where_, field_)			\
 	do {								\
 		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
-		print_quoted_cstring((const char *)(where_).field_,	\
-				     sizeof((where_).field_));		\
+		print_quoted_cstring((const char *) (where_).field_,	\
+				     sizeof((where_).field_) +		\
+					MUST_BE_ARRAY((where_).field_)); \
+	} while (0)
+
+#define PRINT_FIELD_CSTRING_SZ(prefix_, where_, field_, size_)		\
+	do {								\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		print_quoted_cstring((const char *) (where_).field_,	\
+				     (size_));				\
 	} while (0)
 
 #define PRINT_FIELD_HEX_ARRAY(prefix_, where_, field_)			\
 	do {								\
 		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
 		print_quoted_string((const char *)(where_).field_,	\
-				     sizeof((where_).field_) +		\
+				    sizeof((where_).field_) +		\
 					    MUST_BE_ARRAY((where_).field_), \
 				    QUOTE_FORCE_HEX); \
 	} while (0)

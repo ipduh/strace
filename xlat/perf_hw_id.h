@@ -38,6 +38,7 @@
 
 static
 const struct xlat perf_hw_id[] = {
+
  XLAT(PERF_COUNT_HW_CPU_CYCLES),
  XLAT(PERF_COUNT_HW_INSTRUCTIONS),
  XLAT(PERF_COUNT_HW_CACHE_REFERENCES),
@@ -48,7 +49,7 @@ const struct xlat perf_hw_id[] = {
  XLAT(PERF_COUNT_HW_STALLED_CYCLES_FRONTEND),
  XLAT(PERF_COUNT_HW_STALLED_CYCLES_BACKEND),
  XLAT(PERF_COUNT_HW_REF_CPU_CYCLES),
- /* this array should remain not NULL-terminated */
+ XLAT_END
 };
 
 #endif /* !IN_MPERS */

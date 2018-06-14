@@ -4,7 +4,7 @@
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-2000 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +65,8 @@
 #endif
 
 #define SIZEOF_SA_FAMILY sizeof(((struct sockaddr *) 0)->sa_family)
+
+const size_t ethernet_protocols_size = ARRAY_SIZE(ethernet_protocols) - 1;
 
 static void
 print_sockaddr_data_un(const void *const buf, const int addrlen)
@@ -223,7 +225,8 @@ print_sockaddr_data_ll(const void *const buf, const int addrlen)
 	const struct sockaddr_ll *const sa_ll = buf;
 
 	tprints("sll_protocol=htons(");
-	printxval(ethernet_protocols, ntohs(sa_ll->sll_protocol), "ETH_P_???");
+	printxval_search(ethernet_protocols, ntohs(sa_ll->sll_protocol),
+			 "ETH_P_???");
 	PRINT_FIELD_IFINDEX("), ", *sa_ll, sll_ifindex);
 	tprints(", sll_hatype=");
 	printxval(arp_hardware_types, sa_ll->sll_hatype, "ARPHRD_???");

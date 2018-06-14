@@ -64,7 +64,7 @@ include xlat/Makemodule.am
 strace_CPPFLAGS = $(AM_CPPFLAGS)
 strace_CFLAGS = $(AM_CFLAGS)
 strace_LDFLAGS =
-strace_LDADD = libstrace.a
+strace_LDADD = libstrace.a $(clock_LIBS) $(timer_LIBS)
 noinst_LIBRARIES = libstrace.a
 
 libstrace_a_CPPFLAGS = $(strace_CPPFLAGS)
@@ -96,6 +96,7 @@ strace_SOURCES =	\
 	bjm.c		\
 	block.c		\
 	bpf.c		\
+	bpf_attr.h	\
 	bpf_filter.c	\
 	bpf_filter.h	\
 	bpf_fprog.h 	\
@@ -112,6 +113,8 @@ strace_SOURCES =	\
 	copy_file_range.c \
 	count.c		\
 	defs.h		\
+	delay.c		\
+	delay.h		\
 	desc.c		\
 	dirent.c	\
 	dirent64.c	\
@@ -122,6 +125,7 @@ strace_SOURCES =	\
 	error_prints.c	\
 	error_prints.h	\
 	evdev.c		\
+	evdev_mpers.c	\
 	eventfd.c	\
 	execve.c	\
 	fadvise.c	\
@@ -185,6 +189,8 @@ strace_SOURCES =	\
 	membarrier.c	\
 	memfd_create.c	\
 	mknod.c		\
+	mmap_cache.c	\
+	mmap_cache.h	\
 	mmsghdr.c	\
 	mount.c		\
 	mpers_type.h	\
@@ -200,6 +206,7 @@ strace_SOURCES =	\
 	netlink_crypto.c \
 	netlink_sock_diag.h \
 	netlink_inet_diag.c \
+	netlink_netfilter.c \
 	netlink_netlink_diag.c \
 	netlink_packet_diag.c \
 	netlink_route.c	\
@@ -255,6 +262,8 @@ strace_SOURCES =	\
 	regs.h		\
 	renameat.c	\
 	resource.c	\
+	retval.c	\
+	retval.h	\
 	riscv.c		\
 	rt_sigframe.c	\
 	rt_sigreturn.c	\
@@ -288,12 +297,14 @@ strace_SOURCES =	\
 	sock.c		\
 	sockaddr.c	\
 	socketutils.c	\
+	sparc.c		\
 	sram_alloc.c	\
 	stat.c		\
 	stat.h		\
 	stat64.c	\
 	statfs.c	\
 	statfs.h	\
+	static_assert.h	\
 	statx.c		\
 	statx.h		\
 	strace.c	\
@@ -333,10 +344,13 @@ strace_SOURCES =	\
 	xmalloc.c	\
 	xmalloc.h	\
 	xstring.h	\
+	$(strace_SOURCES_check) \
 	# end of strace_SOURCES
 
+strace_SOURCES_check = bpf_attr_check.c
+
 if USE_LIBUNWIND
-strace_SOURCES += unwind.c
+strace_SOURCES += unwind.c unwind.h unwind-libunwind.c
 strace_CPPFLAGS += $(libunwind_CPPFLAGS)
 strace_LDFLAGS += $(libunwind_LDFLAGS)
 strace_LDADD += $(libunwind_LIBS)
@@ -381,6 +395,7 @@ EXTRA_DIST =				\
 	debian/strace64.install		\
 	debian/strace64.manpages	\
 	debian/watch			\
+	gen_bpf_attr_check.sh		\
 	generate_sen.sh			\
 	ioctl_iocdef.c			\
 	ioctlsort.c			\
@@ -405,6 +420,7 @@ EXTRA_DIST =				\
 	linux/aarch64/ioctls_inc0.h	\
 	linux/aarch64/ioctls_inc1.h	\
 	linux/aarch64/nr_prefix.c	\
+	linux/aarch64/raw_syscall.h	\
 	linux/aarch64/set_error.c	\
 	linux/aarch64/set_scno.c	\
 	linux/aarch64/shuffle_scno.c	\
@@ -424,6 +440,7 @@ EXTRA_DIST =				\
 	linux/alpha/get_syscall_result.c	\
 	linux/alpha/ioctls_arch0.h	\
 	linux/alpha/ioctls_inc0.h	\
+	linux/alpha/raw_syscall.h	\
 	linux/alpha/set_error.c		\
 	linux/alpha/set_scno.c		\
 	linux/alpha/signalent.h		\
@@ -437,6 +454,7 @@ EXTRA_DIST =				\
 	linux/arc/get_syscall_args.c	\
 	linux/arc/ioctls_arch0.h	\
 	linux/arc/ioctls_inc0.h		\
+	linux/arc/raw_syscall.h		\
 	linux/arc/set_error.c		\
 	linux/arc/set_scno.c		\
 	linux/arc/syscallent.h		\
@@ -455,6 +473,7 @@ EXTRA_DIST =				\
 	linux/arm/ioctls_arch0.h	\
 	linux/arm/ioctls_inc0.h		\
 	linux/arm/nr_prefix.c		\
+	linux/arm/raw_syscall.h		\
 	linux/arm/set_error.c		\
 	linux/arm/set_scno.c		\
 	linux/arm/shuffle_scno.c	\
@@ -468,6 +487,7 @@ EXTRA_DIST =				\
 	linux/avr32/get_syscall_args.c	\
 	linux/avr32/ioctls_arch0.h	\
 	linux/avr32/ioctls_inc0.h	\
+	linux/avr32/raw_syscall.h	\
 	linux/avr32/set_error.c		\
 	linux/avr32/set_scno.c		\
 	linux/avr32/syscallent.h	\
@@ -481,6 +501,7 @@ EXTRA_DIST =				\
 	linux/bfin/get_syscall_result.c	\
 	linux/bfin/ioctls_arch0.h	\
 	linux/bfin/ioctls_inc0.h	\
+	linux/bfin/raw_syscall.h	\
 	linux/bfin/rt_sigframe.h	\
 	linux/bfin/set_error.c		\
 	linux/bfin/set_scno.c		\
@@ -500,6 +521,7 @@ EXTRA_DIST =				\
 	linux/hppa/get_syscall_result.c	\
 	linux/hppa/ioctls_arch0.h	\
 	linux/hppa/ioctls_inc0.h	\
+	linux/hppa/raw_syscall.h	\
 	linux/hppa/rt_sigframe.h	\
 	linux/hppa/set_error.c		\
 	linux/hppa/set_scno.c		\
@@ -516,6 +538,7 @@ EXTRA_DIST =				\
 	linux/i386/get_syscall_args.c	\
 	linux/i386/ioctls_arch0.h	\
 	linux/i386/ioctls_inc0.h	\
+	linux/i386/raw_syscall.h	\
 	linux/i386/rt_sigframe.h	\
 	linux/i386/set_error.c		\
 	linux/i386/set_scno.c		\
@@ -532,6 +555,7 @@ EXTRA_DIST =				\
 	linux/ia64/get_syscall_args.c	\
 	linux/ia64/ioctls_arch0.h	\
 	linux/ia64/ioctls_inc0.h	\
+	linux/ia64/raw_syscall.h	\
 	linux/ia64/rt_sigframe.h	\
 	linux/ia64/set_error.c		\
 	linux/ia64/set_scno.c		\
@@ -548,6 +572,7 @@ EXTRA_DIST =				\
 	linux/m68k/get_syscall_args.c	\
 	linux/m68k/ioctls_arch0.h	\
 	linux/m68k/ioctls_inc0.h	\
+	linux/m68k/raw_syscall.h	\
 	linux/m68k/rt_sigframe.h	\
 	linux/m68k/set_error.c		\
 	linux/m68k/set_scno.c		\
@@ -561,6 +586,7 @@ EXTRA_DIST =				\
 	linux/metag/get_syscall_args.c	\
 	linux/metag/ioctls_arch0.h	\
 	linux/metag/ioctls_inc0.h	\
+	linux/metag/raw_syscall.h	\
 	linux/metag/set_error.c		\
 	linux/metag/set_scno.c		\
 	linux/metag/syscallent.h	\
@@ -574,6 +600,7 @@ EXTRA_DIST =				\
 	linux/microblaze/get_syscall_result.c	\
 	linux/microblaze/ioctls_arch0.h	\
 	linux/microblaze/ioctls_inc0.h	\
+	linux/microblaze/raw_syscall.h	\
 	linux/microblaze/set_error.c	\
 	linux/microblaze/set_scno.c	\
 	linux/microblaze/syscallent.h	\
@@ -591,6 +618,7 @@ EXTRA_DIST =				\
 	linux/mips/get_syscall_args.c	\
 	linux/mips/ioctls_arch0.h	\
 	linux/mips/ioctls_inc0.h	\
+	linux/mips/raw_syscall.h	\
 	linux/mips/rt_sigframe.h	\
 	linux/mips/set_error.c		\
 	linux/mips/set_scno.c		\
@@ -611,6 +639,7 @@ EXTRA_DIST =				\
 	linux/nios2/get_syscall_args.c	\
 	linux/nios2/ioctls_arch0.h	\
 	linux/nios2/ioctls_inc0.h	\
+	linux/nios2/raw_syscall.h	\
 	linux/nios2/set_error.c		\
 	linux/nios2/set_scno.c		\
 	linux/nios2/syscallent.h	\
@@ -623,6 +652,7 @@ EXTRA_DIST =				\
 	linux/or1k/get_syscall_args.c	\
 	linux/or1k/ioctls_arch0.h	\
 	linux/or1k/ioctls_inc0.h	\
+	linux/or1k/raw_syscall.h	\
 	linux/or1k/set_error.c		\
 	linux/or1k/set_scno.c		\
 	linux/or1k/syscallent.h		\
@@ -641,6 +671,7 @@ EXTRA_DIST =				\
 	linux/powerpc/getregs_old.h	\
 	linux/powerpc/ioctls_arch0.h	\
 	linux/powerpc/ioctls_inc0.h	\
+	linux/powerpc/raw_syscall.h	\
 	linux/powerpc/set_error.c	\
 	linux/powerpc/set_scno.c	\
 	linux/powerpc/syscallent.h	\
@@ -661,6 +692,7 @@ EXTRA_DIST =				\
 	linux/powerpc64/ioctls_arch1.h	\
 	linux/powerpc64/ioctls_inc0.h	\
 	linux/powerpc64/ioctls_inc1.h	\
+	linux/powerpc64/raw_syscall.h	\
 	linux/powerpc64/rt_sigframe.h	\
 	linux/powerpc64/set_error.c	\
 	linux/powerpc64/set_scno.c	\
@@ -668,6 +700,7 @@ EXTRA_DIST =				\
 	linux/powerpc64/syscallent.h	\
 	linux/powerpc64/syscallent1.h	\
 	linux/powerpc64/userent.h	\
+	linux/raw_syscall.h		\
 	linux/riscv/arch_defs_.h	\
 	linux/riscv/arch_regs.c		\
 	linux/riscv/arch_regs.h		\
@@ -680,6 +713,7 @@ EXTRA_DIST =				\
 	linux/riscv/ioctls_arch1.h	\
 	linux/riscv/ioctls_inc0.h	\
 	linux/riscv/ioctls_inc1.h	\
+	linux/riscv/raw_syscall.h	\
 	linux/riscv/set_error.c		\
 	linux/riscv/set_scno.c		\
 	linux/riscv/signalent1.h	\
@@ -696,6 +730,7 @@ EXTRA_DIST =				\
 	linux/s390/get_syscall_args.c	\
 	linux/s390/ioctls_arch0.h	\
 	linux/s390/ioctls_inc0.h	\
+	linux/s390/raw_syscall.h	\
 	linux/s390/rt_sigframe.h	\
 	linux/s390/set_error.c		\
 	linux/s390/set_scno.c		\
@@ -716,6 +751,7 @@ EXTRA_DIST =				\
 	linux/s390x/ioctls_arch1.h	\
 	linux/s390x/ioctls_inc0.h	\
 	linux/s390x/ioctls_inc1.h	\
+	linux/s390x/raw_syscall.h	\
 	linux/s390x/rt_sigframe.h	\
 	linux/s390x/set_error.c		\
 	linux/s390x/set_scno.c		\
@@ -733,6 +769,7 @@ EXTRA_DIST =				\
 	linux/sh/get_syscall_result.c	\
 	linux/sh/ioctls_arch0.h		\
 	linux/sh/ioctls_inc0.h		\
+	linux/sh/raw_syscall.h		\
 	linux/sh/set_error.c		\
 	linux/sh/set_scno.c		\
 	linux/sh/syscallent.h		\
@@ -748,6 +785,7 @@ EXTRA_DIST =				\
 	linux/sh64/get_syscall_result.c	\
 	linux/sh64/ioctls_arch0.h	\
 	linux/sh64/ioctls_inc0.h	\
+	linux/sh64/raw_syscall.h	\
 	linux/sh64/rt_sigframe.h	\
 	linux/sh64/set_error.c		\
 	linux/sh64/set_scno.c		\
@@ -769,6 +807,7 @@ EXTRA_DIST =				\
 	linux/sparc/get_syscall_args.c	\
 	linux/sparc/ioctls_arch0.h	\
 	linux/sparc/ioctls_inc0.h	\
+	linux/sparc/raw_syscall.h	\
 	linux/sparc/rt_sigframe.h	\
 	linux/sparc/set_error.c		\
 	linux/sparc/set_scno.c		\
@@ -790,6 +829,7 @@ EXTRA_DIST =				\
 	linux/sparc64/ioctls_arch1.h	\
 	linux/sparc64/ioctls_inc0.h	\
 	linux/sparc64/ioctls_inc1.h	\
+	linux/sparc64/raw_syscall.h	\
 	linux/sparc64/rt_sigframe.h	\
 	linux/sparc64/set_error.c	\
 	linux/sparc64/set_scno.c	\
@@ -813,6 +853,7 @@ EXTRA_DIST =				\
 	linux/tile/ioctls_arch1.h	\
 	linux/tile/ioctls_inc0.h	\
 	linux/tile/ioctls_inc1.h	\
+	linux/tile/raw_syscall.h	\
 	linux/tile/rt_sigframe.h	\
 	linux/tile/set_error.c		\
 	linux/tile/set_scno.c		\
@@ -837,6 +878,7 @@ EXTRA_DIST =				\
 	linux/x32/ioctls_arch1.h	\
 	linux/x32/ioctls_inc0.h		\
 	linux/x32/ioctls_inc1.h		\
+	linux/x32/raw_syscall.h		\
 	linux/x32/rt_sigframe.h		\
 	linux/x32/set_error.c		\
 	linux/x32/set_scno.c		\
@@ -864,6 +906,7 @@ EXTRA_DIST =				\
 	linux/x86_64/ioctls_inc0.h	\
 	linux/x86_64/ioctls_inc1.h	\
 	linux/x86_64/ioctls_inc2.h	\
+	linux/x86_64/raw_syscall.h	\
 	linux/x86_64/rt_sigframe.h	\
 	linux/x86_64/set_error.c	\
 	linux/x86_64/set_scno.c		\
@@ -882,6 +925,7 @@ EXTRA_DIST =				\
 	linux/xtensa/get_syscall_result.c	\
 	linux/xtensa/ioctls_arch0.h	\
 	linux/xtensa/ioctls_inc0.h	\
+	linux/xtensa/raw_syscall.h	\
 	linux/xtensa/set_error.c	\
 	linux/xtensa/set_scno.c		\
 	linux/xtensa/syscallent.h	\
@@ -909,10 +953,15 @@ srpm: dist-xz
 $(srcdir)/.version:
 	$(AM_V_GEN)echo $(VERSION) > $@-t && mv $@-t $@
 
+bpf_attr_check.c: $(srcdir)/bpf_attr.h $(srcdir)/gen_bpf_attr_check.sh
+	$(srcdir)/gen_bpf_attr_check.sh $< > $@-t && mv $@-t $@
+
 strace_SOURCES_c = \
 	$(filter %.c,$(strace_SOURCES)) $(filter %.c,$(libstrace_a_SOURCES))
 
-sys_func.h: $(patsubst %,$(srcdir)/%,$(strace_SOURCES_c))
+sys_func_h_sources = $(filter-out $(strace_SOURCES_check),$(strace_SOURCES_c))
+
+sys_func.h: $(patsubst %,$(srcdir)/%,$(sys_func_h_sources))
 	for f in $^; do \
 		sed -n 's/^SYS_FUNC(.*/extern &;/p' $$f; \
 	done | sort -u > $@
@@ -985,10 +1034,12 @@ ioctls_all%.h: $(srcdir)/$(OS)/$(ARCH)/ioctls_inc%.h $(srcdir)/$(OS)/$(ARCH)/ioc
 	cat $^ > $@
 
 BUILT_SOURCES = $(ioctl_redefs_h) $(ioctlent_h) \
-		native_printer_decls.h native_printer_defs.h printers.h sen.h sys_func.h .version
+		bpf_attr_check.c native_printer_decls.h native_printer_defs.h \
+		printers.h sen.h sys_func.h .version
 CLEANFILES    = $(ioctl_redefs_h) $(ioctlent_h) $(mpers_preproc_files) \
 		ioctl_iocdef.h ioctl_iocdef.i \
-		native_printer_decls.h native_printer_defs.h printers.h sen.h sys_func.h
+		bpf_attr_check.c native_printer_decls.h native_printer_defs.h \
+		printers.h sen.h sys_func.h
 DISTCLEANFILES = gnu/stubs-32.h gnu/stubs-x32.h
 
 include scno.am
