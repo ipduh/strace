@@ -96,6 +96,7 @@ extern SYS_FUNC(ioctl);
 extern SYS_FUNC(io_destroy);
 extern SYS_FUNC(io_getevents);
 extern SYS_FUNC(ioperm);
+extern SYS_FUNC(io_pgetevents);
 extern SYS_FUNC(iopl);
 extern SYS_FUNC(ioprio_get);
 extern SYS_FUNC(ioprio_set);

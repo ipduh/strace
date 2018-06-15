@@ -5,7 +5,7 @@
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2003-2006 Roland McGrath <roland@redhat.com>
  * Copyright (c) 2006-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,15 +41,12 @@
 #endif
 
 #include "xlat/ipc_msg_flags.h"
+#include "xlat/ipc_private.h"
 #include "xlat/resource_flags.h"
 
 SYS_FUNC(msgget)
 {
-	const int key = (int) tcp->u_arg[0];
-	if (key)
-		tprintf("%#x", key);
-	else
-		tprints("IPC_PRIVATE");
+	printxval(ipc_private, (unsigned int) tcp->u_arg[0], NULL);
 	tprints(", ");
 	if (printflags(resource_flags, tcp->u_arg[1] & ~0777, NULL) != 0)
 		tprints("|");
@@ -99,7 +96,7 @@ fetch_msgrcv_args(struct tcb *const tcp, const kernel_ulong_t addr,
 		if (umove_or_printaddr(tcp, addr, &tmp))
 			return -1;
 		pair[0] = tmp[0];
-		pair[1] = tmp[1];
+		pair[1] = (int) tmp[1];
 	}
 	return 0;
 }

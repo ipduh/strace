@@ -2,7 +2,7 @@
  * Check decoding of kexec_load syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,7 +129,7 @@ main(void)
 		printf("{buf=%p, bufsz=%zu, mem=%p, memsz=%zu}, ",
 		       segms[i].buf, segms[i].bufsz,
 		       segms[i].mem, segms[i].memsz);
-	printf("%p], %s%s) = %s\n",
+	printf("... /* %p */], %s%s) = %s\n",
 	       segms + NUM_SEGMS,
 	       sizeof(long) == 8 ? flags[0].str64 : flags[0].str32,
 	       flags[0].str, errstr);

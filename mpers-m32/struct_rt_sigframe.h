@@ -82,10 +82,17 @@ uint64_t pstate;
 unsigned char mpers_filler_4[8];
 unsigned char __reserved[4096];
 } ATTRIBUTE_PACKED uc_mcontext;
+union {
+struct {
 struct {
 uint32_t sig[1];
 } ATTRIBUTE_PACKED uc_sigmask;
 uint32_t __padding_rt_sigset;
+} ATTRIBUTE_PACKED ;
+struct {
+uint32_t __bits[2];
+} ATTRIBUTE_PACKED uc_sigmask64;
+} ;
 char __padding[120];
 uint32_t uc_regspace[128];
 } ATTRIBUTE_PACKED uc;

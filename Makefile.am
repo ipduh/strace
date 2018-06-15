@@ -75,6 +75,8 @@ libstrace_a_SOURCES =	\
 	fstatfs64.c \
 	getpagesize.c \
 	ipc.c \
+	mmap_cache.c	\
+	mmap_cache.h	\
 	sigreturn.c	\
 	socketcall.c \
 	statfs.c \
@@ -128,6 +130,7 @@ strace_SOURCES =	\
 	evdev_mpers.c	\
 	eventfd.c	\
 	execve.c	\
+	f_owner_ex.h	\
 	fadvise.c	\
 	fallocate.c	\
 	fanotify.c	\
@@ -157,6 +160,7 @@ strace_SOURCES =	\
 	hdio.c		\
 	hostname.c	\
 	inotify.c	\
+	inotify_ioctl.c	\
 	io.c		\
 	ioctl.c		\
 	ioperm.c	\
@@ -178,6 +182,7 @@ strace_SOURCES =	\
 	ldt.c		\
 	link.c		\
 	linux/asm_stat.h \
+	linux/linux/signal.h \
 	linux/x32/asm_stat.h \
 	linux/x86_64/asm_stat.h \
 	listen.c	\
@@ -189,8 +194,8 @@ strace_SOURCES =	\
 	membarrier.c	\
 	memfd_create.c	\
 	mknod.c		\
-	mmap_cache.c	\
-	mmap_cache.h	\
+	mmap_notify.c	\
+	mmap_notify.h	\
 	mmsghdr.c	\
 	mount.c		\
 	mpers_type.h	\
@@ -204,6 +209,8 @@ strace_SOURCES =	\
 	netlink.c       \
 	netlink.h	\
 	netlink_crypto.c \
+	netlink_kobject_uevent.c \
+	netlink_kobject_uevent.h \
 	netlink_sock_diag.h \
 	netlink_inet_diag.c \
 	netlink_netfilter.c \
@@ -229,14 +236,17 @@ strace_SOURCES =	\
 	pathtrace.c	\
 	perf.c		\
 	perf_event_struct.h \
+	perf_ioctl.c	\
 	personality.c	\
 	pkeys.c		\
 	poll.c		\
 	prctl.c		\
+	print_aio_sigset.c \
 	print_dev_t.c	\
 	print_group_req.c \
 	print_fields.h	\
 	print_ifindex.c	\
+	print_mac.c	\
 	print_mq_attr.c	\
 	print_msgbuf.c	\
 	print_sg_req_info.c \
@@ -349,11 +359,21 @@ strace_SOURCES =	\
 
 strace_SOURCES_check = bpf_attr_check.c
 
+if ENABLE_STACKTRACE
+strace_SOURCES += unwind.c unwind.h
+if USE_LIBDW
+strace_SOURCES += unwind-libdw.c
+strace_CPPFLAGS += $(libdw_CPPFLAGS)
+strace_CFLAGS += $(libdw_CFLAGS)
+strace_LDFLAGS += $(libdw_LDFLAGS)
+strace_LDADD += $(libdw_LIBS)
+endif
 if USE_LIBUNWIND
-strace_SOURCES += unwind.c unwind.h unwind-libunwind.c
+strace_SOURCES += unwind-libunwind.c
 strace_CPPFLAGS += $(libunwind_CPPFLAGS)
 strace_LDFLAGS += $(libunwind_LDFLAGS)
 strace_LDADD += $(libunwind_LIBS)
+endif
 if USE_DEMANGLE
 strace_CPPFLAGS += $(libiberty_CPPFLAGS)
 strace_LDFLAGS += $(libiberty_LDFLAGS)
@@ -411,7 +431,6 @@ EXTRA_DIST =				\
 	linux/aarch64/arch_regs.h	\
 	linux/aarch64/arch_rt_sigframe.c	\
 	linux/aarch64/arch_sigreturn.c	\
-	linux/aarch64/errnoent1.h	\
 	linux/aarch64/get_error.c	\
 	linux/aarch64/get_scno.c	\
 	linux/aarch64/get_syscall_args.c	\
@@ -424,7 +443,6 @@ EXTRA_DIST =				\
 	linux/aarch64/set_error.c	\
 	linux/aarch64/set_scno.c	\
 	linux/aarch64/shuffle_scno.c	\
-	linux/aarch64/signalent1.h	\
 	linux/aarch64/syscallent.h	\
 	linux/aarch64/syscallent1.h	\
 	linux/alpha/arch_defs_.h	\
@@ -682,7 +700,6 @@ EXTRA_DIST =				\
 	linux/powerpc64/arch_rt_sigframe.c	\
 	linux/powerpc64/arch_sigreturn.c	\
 	linux/powerpc64/errnoent.h	\
-	linux/powerpc64/errnoent1.h	\
 	linux/powerpc64/get_error.c	\
 	linux/powerpc64/get_scno.c	\
 	linux/powerpc64/get_syscall_args.c	\
@@ -696,7 +713,6 @@ EXTRA_DIST =				\
 	linux/powerpc64/rt_sigframe.h	\
 	linux/powerpc64/set_error.c	\
 	linux/powerpc64/set_scno.c	\
-	linux/powerpc64/signalent1.h	\
 	linux/powerpc64/syscallent.h	\
 	linux/powerpc64/syscallent1.h	\
 	linux/powerpc64/userent.h	\
@@ -705,7 +721,6 @@ EXTRA_DIST =				\
 	linux/riscv/arch_regs.c		\
 	linux/riscv/arch_regs.h		\
 	linux/riscv/arch_rt_sigframe.c	\
-	linux/riscv/errnoent1.h		\
 	linux/riscv/get_error.c		\
 	linux/riscv/get_scno.c		\
 	linux/riscv/get_syscall_args.c	\
@@ -716,7 +731,6 @@ EXTRA_DIST =				\
 	linux/riscv/raw_syscall.h	\
 	linux/riscv/set_error.c		\
 	linux/riscv/set_scno.c		\
-	linux/riscv/signalent1.h	\
 	linux/riscv/syscallent.h	\
 	linux/riscv/syscallent1.h	\
 	linux/rt_sigframe.h		\
@@ -743,7 +757,6 @@ EXTRA_DIST =				\
 	linux/s390x/arch_regs.h		\
 	linux/s390x/arch_rt_sigframe.c	\
 	linux/s390x/arch_sigreturn.c	\
-	linux/s390x/errnoent1.h		\
 	linux/s390x/get_error.c		\
 	linux/s390x/get_scno.c		\
 	linux/s390x/get_syscall_args.c	\
@@ -755,7 +768,6 @@ EXTRA_DIST =				\
 	linux/s390x/rt_sigframe.h	\
 	linux/s390x/set_error.c		\
 	linux/s390x/set_scno.c		\
-	linux/s390x/signalent1.h	\
 	linux/s390x/syscallent.h	\
 	linux/s390x/syscallent1.h	\
 	linux/s390x/userent.h		\
@@ -821,7 +833,6 @@ EXTRA_DIST =				\
 	linux/sparc64/arch_rt_sigframe.c	\
 	linux/sparc64/arch_sigreturn.c	\
 	linux/sparc64/errnoent.h	\
-	linux/sparc64/errnoent1.h	\
 	linux/sparc64/get_error.c	\
 	linux/sparc64/get_scno.c	\
 	linux/sparc64/get_syscall_args.c	\
@@ -834,7 +845,6 @@ EXTRA_DIST =				\
 	linux/sparc64/set_error.c	\
 	linux/sparc64/set_scno.c	\
 	linux/sparc64/signalent.h	\
-	linux/sparc64/signalent1.h	\
 	linux/sparc64/syscallent.h	\
 	linux/sparc64/syscallent1.h	\
 	linux/sparc64/userent.h		\
@@ -845,7 +855,6 @@ EXTRA_DIST =				\
 	linux/tile/arch_regs.h		\
 	linux/tile/arch_rt_sigframe.c	\
 	linux/tile/arch_sigreturn.c	\
-	linux/tile/errnoent1.h		\
 	linux/tile/get_error.c		\
 	linux/tile/get_scno.c		\
 	linux/tile/get_syscall_args.c	\
@@ -857,7 +866,6 @@ EXTRA_DIST =				\
 	linux/tile/rt_sigframe.h	\
 	linux/tile/set_error.c		\
 	linux/tile/set_scno.c		\
-	linux/tile/signalent1.h		\
 	linux/tile/syscallent.h		\
 	linux/tile/syscallent1.h	\
 	linux/tile/userent.h		\
@@ -870,7 +878,6 @@ EXTRA_DIST =				\
 	linux/x32/arch_regs.h		\
 	linux/x32/arch_rt_sigframe.c	\
 	linux/x32/arch_sigreturn.c	\
-	linux/x32/errnoent1.h		\
 	linux/x32/get_error.c		\
 	linux/x32/get_scno.c		\
 	linux/x32/get_syscall_args.c	\
@@ -883,7 +890,6 @@ EXTRA_DIST =				\
 	linux/x32/set_error.c		\
 	linux/x32/set_scno.c		\
 	linux/x32/shuffle_scno.c	\
-	linux/x32/signalent1.h		\
 	linux/x32/syscallent.h		\
 	linux/x32/syscallent1.h		\
 	linux/x32/userent.h		\
@@ -893,8 +899,6 @@ EXTRA_DIST =				\
 	linux/x86_64/arch_regs.h	\
 	linux/x86_64/arch_rt_sigframe.c	\
 	linux/x86_64/arch_sigreturn.c	\
-	linux/x86_64/errnoent1.h	\
-	linux/x86_64/errnoent2.h	\
 	linux/x86_64/get_error.c	\
 	linux/x86_64/get_scno.c		\
 	linux/x86_64/get_syscall_args.c	\
@@ -911,8 +915,6 @@ EXTRA_DIST =				\
 	linux/x86_64/set_error.c	\
 	linux/x86_64/set_scno.c		\
 	linux/x86_64/shuffle_scno.c	\
-	linux/x86_64/signalent1.h	\
-	linux/x86_64/signalent2.h	\
 	linux/x86_64/syscallent.h	\
 	linux/x86_64/syscallent1.h	\
 	linux/x86_64/syscallent2.h	\
@@ -980,7 +982,7 @@ dist-hook:
 	${AM_V_GEN}echo $(COPYRIGHT_YEAR) > $(distdir)/.year
 	${AM_V_GEN}echo $(MANPAGE_DATE) > $(distdir)/.strace.1.in.date
 
-today = $(shell date +%Y-%m-%d)
+today = $(shell LC_TIME=C date -u +%Y-%m-%d)
 version_regexp = $(subst .,\.,$(VERSION))
 news_check_regexp = 'Noteworthy changes in release $(version_regexp) ($(today))'
 

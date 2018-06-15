@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,66 +33,36 @@
 
 # define TEST_SYSCALL_NR __NR_fcntl64
 # define TEST_SYSCALL_STR "fcntl64"
-# include "struct_flock.c"
-
-# define TEST_FLOCK64_EINVAL(cmd) test_flock64_einval(cmd, #cmd)
+# include "fcntl-common.c"
 
 static void
-test_flock64_einval(const int cmd, const char *name)
-{
-	struct_kernel_flock64 fl = {
-		.l_type = F_RDLCK,
-		.l_start = 0xdefaced1facefeedULL,
-		.l_len = 0xdefaced2cafef00dULL
-	};
-	long rc = invoke_test_syscall(cmd, &fl);
-	printf("%s(0, %s, {l_type=F_RDLCK, l_whence=SEEK_SET"
-	       ", l_start=%jd, l_len=%jd}) = %s\n", TEST_SYSCALL_STR, name,
-	       (intmax_t) fl.l_start, (intmax_t) fl.l_len, sprintrc(rc));
-}
-
-static void
-test_flock64(void)
+test_flock64_lk64(void)
 {
 	TEST_FLOCK64_EINVAL(F_SETLK64);
 	TEST_FLOCK64_EINVAL(F_SETLKW64);
-# ifdef F_OFD_SETLK
-	TEST_FLOCK64_EINVAL(F_OFD_SETLK);
-	TEST_FLOCK64_EINVAL(F_OFD_SETLKW);
-# endif
 
-	struct_kernel_flock64 fl = {
-		.l_type = F_RDLCK,
-		.l_len = FILE_LEN
-	};
-	long rc = invoke_test_syscall(F_SETLK64, &fl);
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct_kernel_flock64, fl);
+	memset(fl, 0, sizeof(*fl));
+	fl->l_type = F_RDLCK;
+	fl->l_len = FILE_LEN;
+
+	long rc = invoke_test_syscall(0, F_SETLK64, fl);
 	printf("%s(0, F_SETLK64, {l_type=F_RDLCK, l_whence=SEEK_SET"
 	       ", l_start=0, l_len=%d}) = %s\n",
-	       TEST_SYSCALL_STR, FILE_LEN, sprintrc(rc));
+	       TEST_SYSCALL_STR, FILE_LEN, errstr);
 
 	if (rc)
 		return;
 
-	invoke_test_syscall(F_GETLK64, &fl);
+	invoke_test_syscall(0, F_GETLK64, fl);
 	printf("%s(0, F_GETLK64, {l_type=F_UNLCK, l_whence=SEEK_SET"
 	       ", l_start=0, l_len=%d, l_pid=0}) = 0\n",
 	       TEST_SYSCALL_STR, FILE_LEN);
 
-	invoke_test_syscall(F_SETLK64, &fl);
-	printf("%s(0, F_SETLK64, {l_type=F_UNLCK, l_whence=SEEK_SET"
+	invoke_test_syscall(0, F_SETLKW64, fl);
+	printf("%s(0, F_SETLKW64, {l_type=F_UNLCK, l_whence=SEEK_SET"
 	       ", l_start=0, l_len=%d}) = 0\n",
 	       TEST_SYSCALL_STR, FILE_LEN);
-}
-
-int
-main(void)
-{
-	create_sample();
-	test_flock();
-	test_flock64();
-
-	puts("+++ exited with 0 +++");
-	return 0;
 }
 
 #else

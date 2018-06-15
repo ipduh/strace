@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2003 Roland McGrath <roland@redhat.com>
- * Copyright (c) 2003-2017 The strace developers.
+ * Copyright (c) 2003-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,8 +43,10 @@
 
 #define PRINTCTL(flagset, arg, dflt)				\
 	do {							\
-		if ((arg) & IPC_64)				\
-			tprints("IPC_64|");			\
+		if ((arg) & IPC_64) {				\
+			print_xlat(IPC_64);			\
+			tprints("|");				\
+		}						\
 		printxval((flagset), (arg) & ~IPC_64, dflt);	\
 	} while (0)
 

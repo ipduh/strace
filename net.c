@@ -84,10 +84,20 @@
 
 #include "xlat/inet_protocols.h"
 
-#ifdef HAVE_BLUETOOTH_BLUETOOTH_H
-# include <bluetooth/bluetooth.h>
-# include "xlat/bt_protocols.h"
-#endif
+#define XLAT_MACROS_ONLY
+# include "xlat/addrfams.h"
+#undef XLAT_MACROS_ONLY
+#include "xlat/irda_protocols.h"
+#include "xlat/can_protocols.h"
+#include "xlat/bt_protocols.h"
+#include "xlat/isdn_protocols.h"
+#include "xlat/phonet_protocols.h"
+#include "xlat/caif_protocols.h"
+#include "xlat/nfc_protocols.h"
+#include "xlat/kcm_protocols.h"
+#include "xlat/smc_protocols.h"
+
+const size_t inet_protocols_size = ARRAY_SIZE(inet_protocols) - 1;
 
 static void
 decode_sockbuf(struct tcb *const tcp, const int fd, const kernel_ulong_t addr,
@@ -113,7 +123,7 @@ tprint_sock_type(unsigned int flags)
 	const char *str = xlookup(socktypes, flags & SOCK_TYPE_MASK);
 
 	if (str) {
-		tprints(str);
+		print_xlat_ex(flags & SOCK_TYPE_MASK, str, XLAT_STYLE_DEFAULT);
 		flags &= ~SOCK_TYPE_MASK;
 		if (!flags)
 			return;
@@ -131,18 +141,53 @@ SYS_FUNC(socket)
 	switch (tcp->u_arg[0]) {
 	case AF_INET:
 	case AF_INET6:
-		printxval(inet_protocols, tcp->u_arg[2], "IPPROTO_???");
+		printxval_search(inet_protocols, tcp->u_arg[2], "IPPROTO_???");
 		break;
 
 	case AF_NETLINK:
 		printxval(netlink_protocols, tcp->u_arg[2], "NETLINK_???");
 		break;
 
-#ifdef HAVE_BLUETOOTH_BLUETOOTH_H
-	case AF_BLUETOOTH:
-		printxval(bt_protocols, tcp->u_arg[2], "BTPROTO_???");
+	case AF_IRDA:
+		printxval_index(can_protocols, tcp->u_arg[2], "IRDAPROTO_???");
 		break;
-#endif
+
+	case AF_CAN:
+		printxval_index(can_protocols, tcp->u_arg[2], "CAN_???");
+		break;
+
+	case AF_BLUETOOTH:
+		printxval_index(bt_protocols, tcp->u_arg[2], "BTPROTO_???");
+		break;
+
+	case AF_RXRPC:
+		printxval(addrfams, tcp->u_arg[2], "AF_???");
+		break;
+
+	case AF_ISDN:
+		printxval(isdn_protocols, tcp->u_arg[2], "ISDN_P_???");
+		break;
+
+	case AF_PHONET:
+		printxval_index(phonet_protocols, tcp->u_arg[2], "PN_PROTO_???");
+		break;
+
+	case AF_CAIF:
+		printxval_index(caif_protocols, tcp->u_arg[2], "CAIFPROTO_???");
+		break;
+
+	case AF_NFC:
+		printxval_index(nfc_protocols, tcp->u_arg[2],
+				"NFC_SOCKPROTO_???");
+		break;
+
+	case AF_KCM:
+		printxval_index(kcm_protocols, tcp->u_arg[2], "KCMPROTO_???");
+		break;
+
+	case AF_SMC:
+		printxval_index(smc_protocols, tcp->u_arg[2], "SMCPROTO_???");
+		break;
 
 	default:
 		tprintf("%" PRI_klu, tcp->u_arg[2]);
@@ -382,19 +427,37 @@ SYS_FUNC(socketpair)
 	return 0;
 }
 
-#include "xlat/sockoptions.h"
-#include "xlat/sockipoptions.h"
-#include "xlat/getsockipoptions.h"
-#include "xlat/setsockipoptions.h"
-#include "xlat/sockipv6options.h"
-#include "xlat/getsockipv6options.h"
-#include "xlat/setsockipv6options.h"
-#include "xlat/sockipxoptions.h"
-#include "xlat/socknetlinkoptions.h"
-#include "xlat/sockpacketoptions.h"
-#include "xlat/sockrawoptions.h"
-#include "xlat/socksctpoptions.h"
-#include "xlat/socktcpoptions.h"
+#include "xlat/sock_options.h"
+#include "xlat/getsock_options.h"
+#include "xlat/setsock_options.h"
+#include "xlat/sock_ip_options.h"
+#include "xlat/getsock_ip_options.h"
+#include "xlat/setsock_ip_options.h"
+#include "xlat/sock_ipv6_options.h"
+#include "xlat/getsock_ipv6_options.h"
+#include "xlat/setsock_ipv6_options.h"
+#include "xlat/sock_ipx_options.h"
+#include "xlat/sock_netlink_options.h"
+#include "xlat/sock_packet_options.h"
+#include "xlat/sock_raw_options.h"
+#include "xlat/sock_sctp_options.h"
+#include "xlat/sock_tcp_options.h"
+#include "xlat/sock_udp_options.h"
+#include "xlat/sock_irda_options.h"
+#include "xlat/sock_llc_options.h"
+#include "xlat/sock_dccp_options.h"
+#include "xlat/sock_tipc_options.h"
+#include "xlat/sock_rxrpc_options.h"
+#include "xlat/sock_pppol2tp_options.h"
+#include "xlat/sock_bluetooth_options.h"
+#include "xlat/sock_pnp_options.h"
+#include "xlat/sock_rds_options.h"
+#include "xlat/sock_iucv_options.h"
+#include "xlat/sock_caif_options.h"
+#include "xlat/sock_alg_options.h"
+#include "xlat/sock_nfcllcp_options.h"
+#include "xlat/sock_kcm_options.h"
+#include "xlat/sock_tls_options.h"
 
 static void
 print_sockopt_fd_level_name(struct tcb *tcp, int fd, unsigned int level,
@@ -402,38 +465,90 @@ print_sockopt_fd_level_name(struct tcb *tcp, int fd, unsigned int level,
 {
 	printfd(tcp, fd);
 	tprints(", ");
-	printxval(socketlayers, level, "SOL_??");
+	printxval_search(socketlayers, level, "SOL_??");
 	tprints(", ");
 
 	switch (level) {
 	case SOL_SOCKET:
-		printxval(sockoptions, name, "SO_???");
+		printxvals(name, "SO_???", sock_options,
+			   is_getsockopt ? getsock_options :
+					   setsock_options, NULL);
 		break;
 	case SOL_IP:
-		printxvals(name, "IP_???", sockipoptions,
-			is_getsockopt ? getsockipoptions : setsockipoptions, NULL);
+		printxvals(name, "IP_???", sock_ip_options,
+			   is_getsockopt ? getsock_ip_options :
+					   setsock_ip_options, NULL);
 		break;
 	case SOL_IPV6:
-		printxvals(name, "IPV6_???", sockipv6options,
-			is_getsockopt ? getsockipv6options : setsockipv6options, NULL);
+		printxvals(name, "IPV6_???", sock_ipv6_options,
+			   is_getsockopt ? getsock_ipv6_options :
+					   setsock_ipv6_options, NULL);
 		break;
 	case SOL_IPX:
-		printxval(sockipxoptions, name, "IPX_???");
+		printxval(sock_ipx_options, name, "IPX_???");
 		break;
 	case SOL_PACKET:
-		printxval(sockpacketoptions, name, "PACKET_???");
+		printxval(sock_packet_options, name, "PACKET_???");
 		break;
 	case SOL_TCP:
-		printxval(socktcpoptions, name, "TCP_???");
+		printxval(sock_tcp_options, name, "TCP_???");
 		break;
 	case SOL_SCTP:
-		printxval(socksctpoptions, name, "SCTP_???");
+		printxval(sock_sctp_options, name, "SCTP_???");
 		break;
 	case SOL_RAW:
-		printxval(sockrawoptions, name, "RAW_???");
+		printxval(sock_raw_options, name, "RAW_???");
 		break;
 	case SOL_NETLINK:
-		printxval(socknetlinkoptions, name, "NETLINK_???");
+		printxval(sock_netlink_options, name, "NETLINK_???");
+		break;
+	case SOL_UDP:
+		printxval(sock_udp_options, name, "UDP_???");
+		break;
+	case SOL_IRDA:
+		printxval_index(sock_irda_options, name, "IRLMP_???");
+		break;
+	case SOL_LLC:
+		printxval_index(sock_llc_options, name, "LLC_OPT_???");
+		break;
+	case SOL_DCCP:
+		printxval_search(sock_dccp_options, name, "DCCP_SOCKOPT_???");
+		break;
+	case SOL_TIPC:
+		printxval_search(sock_tipc_options, name, "TIPC_???");
+		break;
+	case SOL_RXRPC:
+		printxval_index(sock_rxrpc_options, name, "RXRPC_???");
+		break;
+	case SOL_PPPOL2TP:
+		printxval_index(sock_pppol2tp_options, name, "PPPOL2TP_SO_???");
+		break;
+	case SOL_BLUETOOTH:
+		printxval_search(sock_bluetooth_options, name, "BT_???");
+		break;
+	case SOL_PNPIPE:
+		printxval(sock_pnp_options, name, "PNPIPE_???");
+		break;
+	case SOL_RDS:
+		printxval_search(sock_rds_options, name, "RDS_???");
+		break;
+	case SOL_IUCV:
+		printxval(sock_iucv_options, name, "SO_???");
+		break;
+	case SOL_CAIF:
+		printxval(sock_caif_options, name, "CAIFSO_???");
+		break;
+	case SOL_ALG:
+		printxval_index(sock_alg_options, name, "ALG_???");
+		break;
+	case SOL_NFC:
+		printxval_index(sock_nfcllcp_options, name, "NFC_LLCP_???");
+		break;
+	case SOL_KCM:
+		printxval(sock_kcm_options, name, "KCM_???");
+		break;
+	case SOL_TLS:
+		printxval(sock_tls_options, name, "TLS_???");
 		break;
 
 		/* Other SOL_* protocol levels still need work. */
@@ -626,7 +741,7 @@ print_getsockopt(struct tcb *const tcp, const unsigned int level,
 			uint32_t buf;
 			print_array(tcp, addr, MIN(ulen, rlen) / sizeof(buf),
 				    &buf, sizeof(buf),
-				    umoven_or_printaddr, print_uint32, 0);
+				    tfetch_mem, print_uint32, 0);
 			break;
 			}
 		default:

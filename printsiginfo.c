@@ -126,10 +126,7 @@ print_si_code(int si_signo, unsigned int si_code)
 		}
 	}
 
-	if (code)
-		tprints(code);
-	else
-		tprintf("%#x", si_code);
+	print_xlat_ex(si_code, code, XLAT_STYLE_DEFAULT);
 }
 
 static void
@@ -280,5 +277,5 @@ MPERS_PRINTER_DECL(void, print_siginfo_array, struct tcb *const tcp,
 	siginfo_t si;
 
 	print_array(tcp, addr, len, &si, sizeof(si),
-		    umoven_or_printaddr, print_siginfo_t, 0);
+		    tfetch_mem, print_siginfo_t, 0);
 }

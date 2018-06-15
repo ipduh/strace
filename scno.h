@@ -833,6 +833,9 @@
 #ifndef __NR_statx
 # define __NR_statx (SYSCALL_BIT | 291)
 #endif
+#ifndef __NR_io_pgetevents
+# define __NR_io_pgetevents (SYSCALL_BIT | 292)
+#endif
 #ifndef __NR_open
 # define __NR_open (SYSCALL_BIT | 1024)
 #endif

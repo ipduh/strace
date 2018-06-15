@@ -1204,12 +1204,9 @@ SYS_FUNC(s390_runtime_instr)
 	int command = (int) tcp->u_arg[0];
 	int signum = (int) tcp->u_arg[1];
 
-	const char *command_descr =
-		xlookup(s390_runtime_instr_commands, command);
 
-	tprintf("%d", command);
-	tprints_comment(command_descr ? command_descr :
-			"S390_RUNTIME_INSTR_???");
+	printxval_d(s390_runtime_instr_commands, command,
+		    "S390_RUNTIME_INSTR_???");
 
 	/*
 	 * signum is ignored since Linux 4.4, but let's print it for start

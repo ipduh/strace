@@ -5,18 +5,19 @@ Release: 1%{?dist}
 License: BSD
 Group: Development/Debuggers
 URL: https://strace.io
-Source: https://github.com/strace/strace/releases/download/v%{version}/strace-%{version}.tar.xz
+Source: https://strace.io/files/%{version}/strace-%{version}.tar.xz
 BuildRequires: gcc
 %if 0%{?fedora} >= 18 || 0%{?centos} >= 8 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1200
 BuildRequires: pkgconfig(bluez)
 %endif
-%if 0%{?fedora} >= 20 || 0%{?centos} >= 8 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1300
-%define buildrequires_libunwind_devel BuildRequires: libunwind-devel binutils-devel
+%if 0%{?fedora} >= 20 || 0%{?centos} >= 6 || 0%{?rhel} >= 6
+%define buildrequires_stacktrace BuildRequires: elfutils-devel binutils-devel
 %endif
-%ifarch x86_64
-# for experimental -k option
-%{?buildrequires_libunwind_devel}
+%if 0%{?suse_version} >= 1100
+%define buildrequires_stacktrace BuildRequires: libdw-devel binutils-devel
 %endif
+# for -k option
+%{?buildrequires_stacktrace}
 %define strace64_arches ppc64 sparc64
 %{?!buildroot:BuildRoot: %_tmppath/buildroot-%name-%version-%release}
 
@@ -91,6 +92,8 @@ rm -f %{buildroot}%{_bindir}/strace-graph
 make %{?_smp_mflags} -k check VERBOSE=1
 echo 'BEGIN OF TEST SUITE INFORMATION'
 tail -n 99999 -- tests*/test-suite.log tests*/ksysent.log
+find tests* -type f -name '*.log' -print0 |
+	xargs -r0 grep -H '^KERNEL BUG:' -- ||:
 echo 'END OF TEST SUITE INFORMATION'
 
 %files
@@ -109,6 +112,9 @@ echo 'END OF TEST SUITE INFORMATION'
 %changelog
 * @RPM_CHANGELOGTIME@ @PACKAGE_BUGREPORT@ - @PACKAGE_VERSION@-1
 - @PACKAGE_STRING@ snapshot.
+
+* Thu Apr 05 2018 Dmitry V. Levin <ldv@altlinux.org> - 4.22-1
+- v4.21 -> v4.22.
 
 * Tue Feb 13 2018 Dmitry V. Levin <ldv@altlinux.org> - 4.21-1
 - v4.20 -> v4.21.

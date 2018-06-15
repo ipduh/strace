@@ -3,7 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,6 @@
 #include "xlat/f_owner_types.h"
 #include "xlat/f_seals.h"
 #include "xlat/fcntlcmds.h"
-#include "xlat/fcntl64cmds.h"
 #include "xlat/fdflags.h"
 #include "xlat/lockfcmds.h"
 #include "xlat/notifyflags.h"
@@ -197,18 +196,7 @@ SYS_FUNC(fcntl)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		const unsigned int cmd = tcp->u_arg[1];
-		const char *str = xlookup(fcntlcmds, cmd);
-		if (str) {
-			tprints(str);
-		} else {
-			/*
-			 * fcntl syscall does not recognize these
-			 * constants, but we would like to show them
-			 * for better debugging experience.
-			 */
-			printxval(fcntl64cmds, cmd, "F_???");
-		}
+		printxval(fcntlcmds, tcp->u_arg[1], "F_???");
 	}
 	return print_fcntl(tcp);
 }
@@ -219,12 +207,7 @@ SYS_FUNC(fcntl64)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		const char *str = xlookup(fcntl64cmds, cmd);
-		if (str) {
-			tprints(str);
-		} else {
-			printxval(fcntlcmds, cmd, "F_???");
-		}
+		printxval(fcntlcmds, cmd, "F_???");
 	}
 	switch (cmd) {
 		case F_SETLK64:

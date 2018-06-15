@@ -5,7 +5,7 @@
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2003-2006 Roland McGrath <roland@redhat.com>
  * Copyright (c) 2006-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ tprint_sembuf_array(struct tcb *const tcp, const kernel_ulong_t addr,
 #if defined HAVE_SYS_SEM_H || defined HAVE_LINUX_SEM_H
 	struct sembuf sb;
 	print_array(tcp, addr, count, &sb, sizeof(sb),
-		    umoven_or_printaddr, print_sembuf, 0);
+		    tfetch_mem, print_sembuf, 0);
 #else
 	printaddr(addr);
 #endif
@@ -103,11 +103,7 @@ SYS_FUNC(semtimedop)
 
 SYS_FUNC(semget)
 {
-	const int key = (int) tcp->u_arg[0];
-	if (key)
-		tprintf("%#x", key);
-	else
-		tprints("IPC_PRIVATE");
+	printxval(ipc_private, (unsigned int) tcp->u_arg[0], NULL);
 	tprintf(", %d, ", (int) tcp->u_arg[1]);
 	if (printflags(resource_flags, tcp->u_arg[2] & ~0777, NULL) != 0)
 		tprints("|");

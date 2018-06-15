@@ -44,6 +44,7 @@
 #include <sys/uio.h>
 
 #include "largefile_wrappers.h"
+#include "xlat.h"
 #include "xstring.h"
 
 int
@@ -234,12 +235,6 @@ printaddr64(const uint64_t addr)
 		tprints("NULL");
 	else
 		tprintf("%#" PRIx64, addr);
-}
-
-void
-printaddr(const kernel_ulong_t addr)
-{
-	printaddr64(addr);
 }
 
 #define DEF_PRINTNUM(name, type) \
@@ -693,7 +688,8 @@ print_quoted_string_ex(const char *str, unsigned int size,
 
 	alloc_size = 4 * size;
 	if (alloc_size / 4 != size) {
-		error_msg("Out of memory");
+		error_func_msg("requested %u bytes exceeds %u bytes limit",
+			       size, -1U / 4);
 		tprints("???");
 		return -1;
 	}
@@ -706,7 +702,8 @@ print_quoted_string_ex(const char *str, unsigned int size,
 	} else {
 		outstr = buf = malloc(alloc_size);
 		if (!buf) {
-			error_msg("Out of memory");
+			error_func_msg("memory exhausted when tried to allocate"
+				       " %u bytes", alloc_size);
 			tprints("???");
 			return -1;
 		}
@@ -870,25 +867,30 @@ dumpiov_upto(struct tcb *const tcp, const int len, const kernel_ulong_t addr,
 	} iovu;
 #define iov iovu.iov64
 #define sizeof_iov \
-	(current_wordsize == 4 ? sizeof(*iovu.iov32) : sizeof(*iovu.iov64))
+	(current_wordsize == 4 ? (unsigned int) sizeof(*iovu.iov32)	\
+			       : (unsigned int) sizeof(*iovu.iov64))
 #define iov_iov_base(i) \
 	(current_wordsize == 4 ? (uint64_t) iovu.iov32[i].base : iovu.iov64[i].base)
 #define iov_iov_len(i) \
 	(current_wordsize == 4 ? (uint64_t) iovu.iov32[i].len : iovu.iov64[i].len)
 #else
 	struct iovec *iov;
-#define sizeof_iov sizeof(*iov)
+#define sizeof_iov ((unsigned int) sizeof(*iov))
 #define iov_iov_base(i) ptr_to_kulong(iov[i].iov_base)
 #define iov_iov_len(i) iov[i].iov_len
 #endif
 	int i;
-	unsigned size;
+	unsigned int size = sizeof_iov * len;
+	if (size / sizeof_iov != (unsigned int) len) {
+		error_func_msg("requested %u iovec elements exceeds"
+			       " %u iovec limit", len, -1U / sizeof_iov);
+		return;
+	}
 
-	size = sizeof_iov * len;
-	/* Assuming no sane program has millions of iovs */
-	if ((unsigned)len > 1024*1024 /* insane or negative size? */
-	    || (iov = malloc(size)) == NULL) {
-		error_msg("Out of memory");
+	iov = malloc(size);
+	if (!iov) {
+		error_func_msg("memory exhausted when tried to allocate"
+			       " %u bytes", size);
 		return;
 	}
 	if (umoven(tcp, addr, size, iov) >= 0) {
@@ -928,6 +930,9 @@ dumpstr(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 	const unsigned char *src;
 	int i;
 
+	if ((len < 0) || (len > INT_MAX - 16))
+		return;
+
 	memset(outbuf, ' ', sizeof(outbuf));
 
 	if (strsize < len + 16) {
@@ -935,7 +940,8 @@ dumpstr(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 		str = malloc(len + 16);
 		if (!str) {
 			strsize = -1;
-			error_msg("Out of memory");
+			error_func_msg("memory exhausted when tried to allocate"
+				       " %zu bytes", (size_t) (len + 16));
 			return;
 		}
 		strsize = len + 16;
@@ -983,29 +989,70 @@ dumpstr(struct tcb *const tcp, const kernel_ulong_t addr, const int len)
 	}
 }
 
-int
-umoven_or_printaddr(struct tcb *const tcp, const kernel_ulong_t addr,
-		    const unsigned int len, void *const our_addr)
+bool
+tfetch_mem64(struct tcb *const tcp, const uint64_t addr,
+	     const unsigned int len, void *const our_addr)
 {
-	if (!addr || !verbose(tcp) || (exiting(tcp) && syserror(tcp)) ||
-	    umoven(tcp, addr, len, our_addr) < 0) {
-		printaddr(addr);
-		return -1;
-	}
-	return 0;
+	return addr && verbose(tcp) &&
+	       (entering(tcp) || !syserror(tcp)) &&
+	       !umoven(tcp, addr, len, our_addr);
+}
+
+bool
+tfetch_mem64_ignore_syserror(struct tcb *const tcp, const uint64_t addr,
+			     const unsigned int len, void *const our_addr)
+{
+	return addr && verbose(tcp) &&
+	       !umoven(tcp, addr, len, our_addr);
 }
 
 int
-umoven_or_printaddr_ignore_syserror(struct tcb *const tcp,
-				    const kernel_ulong_t addr,
-				    const unsigned int len,
-				    void *const our_addr)
+umoven_or_printaddr64(struct tcb *const tcp, const uint64_t addr,
+		      const unsigned int len, void *const our_addr)
 {
-	if (!addr || !verbose(tcp) || umoven(tcp, addr, len, our_addr) < 0) {
-		printaddr(addr);
-		return -1;
-	}
-	return 0;
+	if (tfetch_mem64(tcp, addr, len, our_addr))
+		return 0;
+	printaddr64(addr);
+	return -1;
+}
+
+int
+umoven_or_printaddr64_ignore_syserror(struct tcb *const tcp,
+				      const uint64_t addr,
+				      const unsigned int len,
+				      void *const our_addr)
+{
+	if (tfetch_mem64_ignore_syserror(tcp, addr, len, our_addr))
+		return 0;
+	printaddr64(addr);
+	return -1;
+}
+
+bool
+print_int32_array_member(struct tcb *tcp, void *elem_buf, size_t elem_size,
+			 void *data)
+{
+	tprintf("%" PRId32, *(int32_t *) elem_buf);
+
+	return true;
+}
+
+bool
+print_uint32_array_member(struct tcb *tcp, void *elem_buf, size_t elem_size,
+			  void *data)
+{
+	tprintf("%" PRIu32, *(uint32_t *) elem_buf);
+
+	return true;
+}
+
+bool
+print_uint64_array_member(struct tcb *tcp, void *elem_buf, size_t elem_size,
+			  void *data)
+{
+	tprintf("%" PRIu64, *(uint64_t *) elem_buf);
+
+	return true;
 }
 
 /*
@@ -1014,8 +1061,8 @@ umoven_or_printaddr_ignore_syserror(struct tcb *const tcp,
  *
  * Array elements are being fetched to the address specified by elem_buf.
  *
- * The fetcher callback function specified by umoven_func should follow
- * the same semantics as umoven_or_printaddr function.
+ * The fetcher callback function specified by tfetch_mem_func should follow
+ * the same semantics as tfetch_mem function.
  *
  * The printer callback function specified by print_func is expected
  * to print something; if it returns false, no more iterations will be made.
@@ -1027,9 +1074,7 @@ umoven_or_printaddr_ignore_syserror(struct tcb *const tcp,
  * - "NULL", if start_addr is NULL;
  * - "[]", if nmemb is 0;
  * - start_addr, if nmemb * elem_size overflows or wraps around;
- * - nothing, if the first element cannot be fetched
- *   (if umoven_func returns non-zero), but it is assumed that
- *   umoven_func has printed the address it failed to fetch data from;
+ * - start_addr, if the first tfetch_mem_func invocation returned false;
  * - elements of the array, delimited by ", ", with the array itself
  *   enclosed with [] brackets.
  *
@@ -1038,25 +1083,22 @@ umoven_or_printaddr_ignore_syserror(struct tcb *const tcp,
  * - "..." is printed instead of max_strlen+1 element
  *   and no more iterations will be made.
  *
- * This function returns true only if
- * - umoven_func has been called at least once AND
- * - umoven_func has not returned false.
+ * This function returns true only if tfetch_mem_func has returned true
+ * at least once.
  */
 bool
-print_array(struct tcb *const tcp,
-	    const kernel_ulong_t start_addr,
-	    const size_t nmemb,
-	    void *const elem_buf,
-	    const size_t elem_size,
-	    int (*const umoven_func)(struct tcb *,
-				     kernel_ulong_t,
-				     unsigned int,
-				     void *),
-	    bool (*const print_func)(struct tcb *,
-				     void *elem_buf,
-				     size_t elem_size,
-				     void *opaque_data),
-	    void *const opaque_data)
+print_array_ex(struct tcb *const tcp,
+	       const kernel_ulong_t start_addr,
+	       const size_t nmemb,
+	       void *const elem_buf,
+	       const size_t elem_size,
+	       tfetch_mem_fn tfetch_mem_func,
+	       print_fn print_func,
+	       void *const opaque_data,
+	       unsigned int flags,
+	       const struct xlat *index_xlat,
+	       size_t index_xlat_size,
+	       const char *index_dflt)
 {
 	if (!start_addr) {
 		tprints("NULL");
@@ -1080,13 +1122,22 @@ print_array(struct tcb *const tcp,
 		(abbrev(tcp) && max_strlen < nmemb) ?
 			start_addr + elem_size * max_strlen : end_addr;
 	kernel_ulong_t cur;
+	kernel_ulong_t idx = 0;
+	enum xlat_style xlat_style = flags & XLAT_STYLE_MASK;
 
-	for (cur = start_addr; cur < end_addr; cur += elem_size) {
+	for (cur = start_addr; cur < end_addr; cur += elem_size, idx++) {
 		if (cur != start_addr)
 			tprints(", ");
 
-		if (umoven_func(tcp, cur, elem_size, elem_buf))
+		if (!tfetch_mem_func(tcp, cur, elem_size, elem_buf)) {
+			if (cur == start_addr)
+				printaddr(cur);
+			else {
+				tprints("...");
+				printaddr_comment(cur);
+			}
 			break;
+		}
 
 		if (cur == start_addr)
 			tprints("[");
@@ -1095,6 +1146,25 @@ print_array(struct tcb *const tcp,
 			tprints("...");
 			cur = end_addr;
 			break;
+		}
+
+		if (flags & PAF_PRINT_INDICES) {
+			tprints("[");
+
+			if (!index_xlat) {
+				print_xlat_ex(idx, NULL, xlat_style);
+			} else if (flags & PAF_INDEX_XLAT_VALUE_INDEXED) {
+				printxval_indexn_ex(index_xlat,
+						    index_xlat_size, idx,
+						    index_dflt, xlat_style);
+			} else {
+				printxvals_ex(idx, index_dflt, xlat_style,
+					      (flags & PAF_INDEX_XLAT_SORTED)
+						&& idx ? NULL : index_xlat,
+					      NULL);
+			}
+
+			tprints("] = ");
 		}
 
 		if (!print_func(tcp, elem_buf, elem_size, opaque_data)) {

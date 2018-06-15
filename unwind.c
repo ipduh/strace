@@ -26,7 +26,6 @@
  */
 
 #include "defs.h"
-#include "mmap_cache.h"
 #include "unwind.h"
 
 #ifdef USE_DEMANGLE
@@ -59,7 +58,6 @@ unwind_init(void)
 {
 	if (unwinder.init)
 		unwinder.init();
-	mmap_cache_enable();
 }
 
 void
@@ -78,6 +76,9 @@ unwind_tcb_init(struct tcb *tcp)
 void
 unwind_tcb_fin(struct tcb *tcp)
 {
+	if (!tcp->unwind_queue)
+		return;
+
 	queue_print(tcp->unwind_queue);
 	free(tcp->unwind_queue);
 	tcp->unwind_queue = NULL;
@@ -293,19 +294,8 @@ unwind_tcb_print(struct tcb *tcp)
 		debug_func_msg("head: tcp=%p, queue=%p",
 			       tcp, tcp->unwind_queue->head);
 		queue_print(tcp->unwind_queue);
-	} else switch (mmap_cache_rebuild_if_invalid(tcp, __func__)) {
-		case MMAP_CACHE_REBUILD_RENEWED:
-			unwinder.tcb_flush_cache(tcp);
-			ATTRIBUTE_FALLTHROUGH;
-		case MMAP_CACHE_REBUILD_READY:
-			debug_func_msg("walk: tcp=%p, queue=%p",
-				       tcp, tcp->unwind_queue->head);
-			unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
-			break;
-		default:
-			/* Do nothing */
-			;
-	}
+	} else
+		unwinder.tcb_walk(tcp, print_call_cb, print_error_cb, NULL);
 }
 
 /*
@@ -322,19 +312,10 @@ unwind_tcb_capture(struct tcb *tcp)
 #endif
 	if (tcp->unwind_queue->head)
 		error_msg_and_die("bug: unprinted entries in queue");
-
-	switch (mmap_cache_rebuild_if_invalid(tcp, __func__)) {
-	case MMAP_CACHE_REBUILD_RENEWED:
-		unwinder.tcb_flush_cache(tcp);
-		ATTRIBUTE_FALLTHROUGH;
-	case MMAP_CACHE_REBUILD_READY:
-		unwinder.tcb_walk(tcp, queue_put_call, queue_put_error,
-				   tcp->unwind_queue);
-		debug_func_msg("tcp=%p, queue=%p",
+	else {
+		debug_func_msg("walk: tcp=%p, queue=%p",
 			       tcp, tcp->unwind_queue->head);
-		break;
-	default:
-		/* Do nothing */
-		;
+		unwinder.tcb_walk(tcp, queue_put_call, queue_put_error,
+				  tcp->unwind_queue);
 	}
 }

@@ -6,7 +6,7 @@
  * Copyright (c) 2007 Roland McGrath <roland@redhat.com>
  * Copyright (c) 2011-2012 Denys Vlasenko <vda.linux@googlemail.com>
  * Copyright (c) 2010-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2014-2017 The strace developers.
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,8 +57,11 @@ printargv(struct tcb *const tcp, kernel_ulong_t addr)
 		if (umoven(tcp, addr, wordsize, cp.data)) {
 			if (sep == start_sep)
 				printaddr(addr);
-			else
-				tprints(", ???]");
+			else {
+				tprints(", ...");
+				printaddr_comment(addr);
+				tprints("]");
+			}
 			return;
 		}
 		if (!(wordsize < sizeof(cp.p64) ? cp.p32 : cp.p64)) {

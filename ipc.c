@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,15 +34,11 @@ SYS_FUNC(ipc)
 	unsigned int call = tcp->u_arg[0];
 	unsigned int version = call >> 16;
 	call &= 0xffff;
-	const char *str = xlookup(ipccalls, call);
 
 	if (version)
 		tprintf("%u<<16|", version);
 
-	if (str)
-		tprints(str);
-	else
-		tprintf("%u", call);
+	printxval_u(ipccalls, call, NULL);
 
 	unsigned int i;
 	for (i = 1; i < tcp->s_ent->nargs; ++i)

@@ -2,7 +2,7 @@
  * Check decoding of process_vm_readv/process_vm_writev syscall.
  *
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -135,7 +135,7 @@ print_iov(const struct iovec *iov, const void *arg_ptr, long rc)
 	}
 
 	if (arg->addr_term)
-		printf(", %p", iov + arg->count);
+		printf(", ... /* %p */", iov + arg->count);
 
 	printf("]");
 }

@@ -5,7 +5,7 @@
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2003-2006 Roland McGrath <roland@redhat.com>
  * Copyright (c) 2006-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2015-2017 The strace developers.
+ * Copyright (c) 2015-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,11 +52,7 @@
 
 SYS_FUNC(shmget)
 {
-	const int key = (int) tcp->u_arg[0];
-	if (key)
-		tprintf("%#x", key);
-	else
-		tprints("IPC_PRIVATE");
+	printxval(ipc_private, (unsigned int) tcp->u_arg[0], NULL);
 	tprintf(", %" PRI_klu ", ", tcp->u_arg[1]);
 
 	unsigned int flags = tcp->u_arg[2] & ~0777;
@@ -67,10 +63,12 @@ SYS_FUNC(shmget)
 	if (flags || !hugetlb_value)
 		printflags(shm_resource_flags, flags, NULL);
 
-	if (hugetlb_value)
-		tprintf("%s%u<<SHM_HUGE_SHIFT",
+	if (hugetlb_value) {
+		tprintf("%s%u<<",
 			flags ? "|" : "",
 			hugetlb_value >> SHM_HUGE_SHIFT);
+		print_xlat_u(SHM_HUGE_SHIFT);
+	}
 
 	if (flags || hugetlb_value)
 		tprints("|");

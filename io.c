@@ -3,7 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -123,7 +123,7 @@ tprint_iov_upto(struct tcb *const tcp, const kernel_ulong_t len,
 	};
 
 	print_array(tcp, addr, len, iov, current_wordsize * 2,
-		    umoven_or_printaddr_ignore_syserror, print_iovec, &config);
+		    tfetch_mem_ignore_syserror, print_iovec, &config);
 }
 
 SYS_FUNC(readv)

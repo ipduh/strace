@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2014-2017 The strace developers.
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,12 +44,7 @@ struct keyctl_dh_params {
 static void
 print_keyring_serial_number(key_serial_t id)
 {
-	const char *str = xlookup(key_spec, (unsigned int) id);
-
-	if (str)
-		tprints(str);
-	else
-		tprintf("%d", id);
+	printxval_d(key_spec, id, NULL);
 }
 
 SYS_FUNC(add_key)
@@ -195,12 +190,8 @@ keyctl_reject_key(struct tcb *tcp, key_serial_t id1, unsigned timeout,
 
 	print_keyring_serial_number(id1);
 	tprintf(", %u, ", timeout);
-
-	if (err_str)
-		tprintf("%s, ", err_str);
-	else
-		tprintf("%u, ", error);
-
+	print_xlat_ex(error, err_str, XLAT_STYLE_FMT_U);
+	tprints(", ");
 	print_keyring_serial_number(id2);
 }
 
@@ -396,7 +387,8 @@ SYS_FUNC(keyctl)
 		break;
 
 	case KEYCTL_SET_REQKEY_KEYRING:
-		printxval(key_reqkeys, arg2, "KEY_REQKEY_DEFL_???");
+		printxvals_ex((int) arg2, "KEY_REQKEY_DEFL_???",
+			      XLAT_STYLE_FMT_D, key_reqkeys, NULL);
 		break;
 
 	case KEYCTL_SET_TIMEOUT:

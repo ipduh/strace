@@ -8,9 +8,14 @@ PURE_EXECUTABLES = \
   add_key \
   adjtimex \
   aio \
+  aio_pgetevents \
   alarm \
   bpf \
   bpf-v \
+  bpf-obj_get_info_by_fd \
+  bpf-obj_get_info_by_fd-v \
+  bpf-obj_get_info_by_fd-prog \
+  bpf-obj_get_info_by_fd-prog-v \
   brk \
   btrfs \
   caps \
@@ -43,6 +48,9 @@ PURE_EXECUTABLES = \
   fallocate \
   fanotify_init \
   fanotify_mark \
+  fanotify_mark-Xabbrev \
+  fanotify_mark-Xraw \
+  fanotify_mark-Xverbose \
   fchdir \
   fchmod \
   fchmodat \
@@ -105,10 +113,13 @@ PURE_EXECUTABLES = \
   ioctl_block \
   ioctl_dm \
   ioctl_evdev \
+  ioctl_inotify \
   ioctl_kvm_run \
   ioctl_loop \
   ioctl_mtd \
   ioctl_rtc \
+  ioctl_perf \
+  ioctl_ptp \
   ioctl_scsi \
   ioctl_sg_io_v3 \
   ioctl_sg_io_v4 \
@@ -121,15 +132,30 @@ PURE_EXECUTABLES = \
   ip_mreq \
   ipc \
   ipc_msg \
+  ipc_msg-Xabbrev \
+  ipc_msg-Xraw \
+  ipc_msg-Xverbose \
   ipc_msgbuf \
+  ipc_msgbuf-Xabbrev \
+  ipc_msgbuf-Xraw \
+  ipc_msgbuf-Xverbose \
   ipc_sem \
+  ipc_sem-Xabbrev \
+  ipc_sem-Xraw \
+  ipc_sem-Xverbose \
   ipc_shm \
+  ipc_shm-Xabbrev \
+  ipc_shm-Xraw \
+  ipc_shm-Xverbose \
   kcmp \
   kcmp-y \
   kern_features \
   kexec_file_load \
   kexec_load \
   keyctl \
+  keyctl-Xabbrev \
+  keyctl-Xraw \
+  keyctl-Xverbose \
   kill \
   lchown \
   lchown32 \
@@ -154,11 +180,20 @@ PURE_EXECUTABLES = \
   mlock2 \
   mlockall \
   mmap \
+  mmap-Xabbrev \
+  mmap-Xraw \
+  mmap-Xverbose \
   mmap64 \
+  mmap64-Xabbrev \
+  mmap64-Xraw \
+  mmap64-Xverbose \
   mmsg \
   mmsg_name \
   modify_ldt \
   mount \
+  mount-Xabbrev \
+  mount-Xraw \
+  mount-Xverbose \
   move_pages \
   mq \
   mq_sendrecv \
@@ -205,7 +240,9 @@ PURE_EXECUTABLES = \
   nlattr_ifaddrlblmsg \
   nlattr_ifaddrmsg \
   nlattr_ifinfomsg \
+  nlattr_ifla_af_spec \
   nlattr_ifla_brport \
+  nlattr_ifla_linkinfo \
   nlattr_ifla_port \
   nlattr_ifla_xdp \
   nlattr_inet_diag_msg \
@@ -230,6 +267,9 @@ PURE_EXECUTABLES = \
   old_mmap \
   old_mmap-P \
   old_mmap-v-none \
+  old_mmap-Xabbrev \
+  old_mmap-Xraw \
+  old_mmap-Xverbose \
   oldfstat \
   oldlstat \
   oldselect \
@@ -241,6 +281,9 @@ PURE_EXECUTABLES = \
   pause \
   perf_event_open \
   personality \
+  personality-Xabbrev \
+  personality-Xraw \
+  personality-Xverbose \
   pipe \
   pipe2 \
   pkey_alloc \
@@ -357,7 +400,13 @@ PURE_EXECUTABLES = \
   sigsuspend \
   so_linger \
   so_peercred \
+  so_peercred-Xabbrev \
+  so_peercred-Xraw \
+  so_peercred-Xverbose \
   sock_filter-v \
+  sock_filter-v-Xabbrev \
+  sock_filter-v-Xraw \
+  sock_filter-v-Xverbose \
   socketcall \
   sockopt-sol_netlink \
   splice \
