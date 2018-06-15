@@ -3,7 +3,7 @@
 # Skip the test if arch+kernel combination is not supported.
 #
 # Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
-# Copyright (c) 2016-2017 The strace developers.
+# Copyright (c) 2016-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ case "$STRACE_ARCH" in
 		require_min_kernel_version_or_skip 4.5 ;;
 	mips)
 		# Only the native ABI is supported by the kernel properly, see
-		# https://sourceforge.net/p/strace/mailman/message/35587571/
+		# https://lists.strace.io/pipermail/strace-devel/2017-January/005896.html
 		msg_prefix="mips $MIPS_ABI scno tampering does not work"
 		uname_m="$(uname -m)"
 		case "$MIPS_ABI:$uname_m" in

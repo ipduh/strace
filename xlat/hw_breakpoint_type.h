@@ -9,7 +9,7 @@
 # define HW_BREAKPOINT_W 2
 #endif
 #if !(defined(HW_BREAKPOINT_RW) || (defined(HAVE_DECL_HW_BREAKPOINT_RW) && HAVE_DECL_HW_BREAKPOINT_RW))
-# define HW_BREAKPOINT_RW HW_BREAKPOINT_R | HW_BREAKPOINT_W
+# define HW_BREAKPOINT_RW 3
 #endif
 #if !(defined(HW_BREAKPOINT_X) || (defined(HAVE_DECL_HW_BREAKPOINT_X) && HAVE_DECL_HW_BREAKPOINT_X))
 # define HW_BREAKPOINT_X 4
@@ -23,12 +23,13 @@
 
 static
 const struct xlat hw_breakpoint_type[] = {
+
  XLAT(HW_BREAKPOINT_EMPTY),
  XLAT(HW_BREAKPOINT_R),
  XLAT(HW_BREAKPOINT_W),
  XLAT(HW_BREAKPOINT_RW),
  XLAT(HW_BREAKPOINT_X),
- /* this array should remain not NULL-terminated */
+ XLAT_END
 };
 
 #endif /* !IN_MPERS */

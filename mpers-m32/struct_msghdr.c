@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2017 The strace developers.
+ * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,26 +25,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef STRACE_SUPPORTED_PERSONALITIES_H
-#define STRACE_SUPPORTED_PERSONALITIES_H
+#include "defs.h"
 
-#if defined X86_64
-# define SUPPORTED_PERSONALITIES 3
-#elif defined AARCH64 \
-   || defined POWERPC64 \
-   || defined RISCV \
-   || defined SPARC64 \
-   || defined TILE \
-   || defined X32
-# define SUPPORTED_PERSONALITIES 2
-#else
-# define SUPPORTED_PERSONALITIES 1
-#endif
 
-#if defined TILE && defined __tilepro__
-# define DEFAULT_PERSONALITY 1
-#else
-# define DEFAULT_PERSONALITY 0
-#endif
+#include "msghdr.h"
+typedef struct msghdr struct_msghdr;
 
-#endif /* !STRACE_SUPPORTED_PERSONALITIES_H */
+struct_msghdr mpers_target_var;

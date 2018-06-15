@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012 The Chromium OS Authors.
- * Copyright (c) 2012-2017 The strace developers.
+ * Copyright (c) 2012-2018 The strace developers.
  * Written by Mike Frysinger <vapier@gentoo.org>.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -156,7 +156,7 @@ MPERS_PRINTER_DECL(int, loop_ioctl,
 	case LOOP_GET_STATUS:
 		if (entering(tcp))
 			return 0;
-		/* fall through */
+		ATTRIBUTE_FALLTHROUGH;
 	case LOOP_SET_STATUS:
 		decode_loop_info(tcp, arg);
 		break;
@@ -164,7 +164,7 @@ MPERS_PRINTER_DECL(int, loop_ioctl,
 	case LOOP_GET_STATUS64:
 		if (entering(tcp))
 			return 0;
-		/* fall through */
+		ATTRIBUTE_FALLTHROUGH;
 	case LOOP_SET_STATUS64:
 		decode_loop_info64(tcp, arg);
 		break;

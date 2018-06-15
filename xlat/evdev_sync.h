@@ -2,13 +2,11 @@
 
 #ifdef IN_MPERS
 
-extern const struct xlat evdev_sync[];
+# error static const struct xlat evdev_sync in mpers mode
 
 #else
 
-# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
-# endif
 const struct xlat evdev_sync[] = {
 #if defined(SYN_REPORT) || (defined(HAVE_DECL_SYN_REPORT) && HAVE_DECL_SYN_REPORT)
   XLAT(SYN_REPORT),

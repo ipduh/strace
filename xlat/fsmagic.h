@@ -111,7 +111,7 @@ const struct xlat fsmagic[] = {
 { 0xf995e849,	"HPFS_SUPER_MAGIC"	},
 { 0xfe534d42,	"SMB2_MAGIC_NUMBER"	},
 { 0xff534d42,	"CIFS_MAGIC_NUMBER"	},
- /* this array should remain not NULL-terminated */
+ XLAT_END
 };
 
 #endif /* !IN_MPERS */

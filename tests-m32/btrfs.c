@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -225,7 +224,7 @@ btrfs_print_qgroup_inherit(struct btrfs_qgroup_inherit *inherit)
 		   "BTRFS_QGROUP_INHERIT_???");
 	printf(", num_qgroups=%" PRI__u64
 	       ", num_ref_copies=%" PRI__u64
-	       ", num_excl_copies=%" PRI__u64", lim={flags=",
+	       ", num_excl_copies=%" PRI__u64 ", lim={flags=",
 	       inherit->num_qgroups, inherit->num_ref_copies,
 	       inherit->num_excl_copies);
 	printflags(btrfs_qgroup_limit_flags,
@@ -438,7 +437,7 @@ btrfs_test_subvol_ioctls(void)
 		btrfs_print_vol_args_v2(&vol_args_v2, 1);
 		ioctl(btrfs_test_dir_fd, BTRFS_IOC_SUBVOL_CREATE_V2,
 		      &args_passed);
-		printf(" => {transid=%" PRI__u64"}) = 0\n",
+		printf(" => {transid=%" PRI__u64 "}) = 0\n",
 			args_passed.transid);
 
 		subvolfd = openat(btrfs_test_dir_fd, subvol_name,
@@ -454,7 +453,7 @@ btrfs_test_subvol_ioctls(void)
 		btrfs_print_vol_args_v2(&args_passed, 1);
 		ioctl(btrfs_test_dir_fd, BTRFS_IOC_SNAP_CREATE_V2,
 		      &args_passed);
-		printf(" => {transid=%" PRI__u64"}) = 0\n",
+		printf(" => {transid=%" PRI__u64 "}) = 0\n",
 			args_passed.transid);
 
 		/* This only works when mounted w/ -ouser_subvol_rm_allowed */
@@ -689,7 +688,7 @@ btrfs_test_clone_ioctls(void)
 static void
 btrfs_print_defrag_range_args(struct btrfs_ioctl_defrag_range_args *args)
 {
-	printf("{start=%" PRIu64", len=%" PRIu64 "%s, flags=",
+	printf("{start=%" PRIu64 ", len=%" PRIu64 "%s, flags=",
 		(uint64_t) args->start, (uint64_t) args->len,
 		maybe_print_uint64max(args->len));
 
@@ -796,10 +795,10 @@ btrfs_print_search_key(struct btrfs_ioctl_search_key *key)
 		printf(", max_offset=%" PRI__u64 "%s",
 		       key->max_offset, maybe_print_uint64max(key->max_offset));
 	if (key->min_transid)
-		printf(", min_transid=%" PRI__u64"%s", key->min_transid,
+		printf(", min_transid=%" PRI__u64 "%s", key->min_transid,
 		       maybe_print_uint64max(key->min_transid));
 	if (key->max_transid)
-		printf(", max_transid=%" PRI__u64"%s", key->max_transid,
+		printf(", max_transid=%" PRI__u64 "%s", key->max_transid,
 		       maybe_print_uint64max(key->max_transid));
 	printf(", min_type=");
 	btrfs_print_key_type(key->min_type);
@@ -1113,7 +1112,7 @@ btrfs_test_scrub_ioctls(void)
 	printf("ioctl(-1, BTRFS_IOC_SCRUB_CANCEL) = -1 EBADF (%m)\n");
 
 	printf("ioctl(-1, BTRFS_IOC_SCRUB, {devid=%" PRI__u64 ", start=%"
-		PRI__u64 "%s, end=%" PRI__u64"%s, flags=",
+		PRI__u64 "%s, end=%" PRI__u64 "%s, flags=",
 		args.devid, args.start, maybe_print_uint64max(args.start),
 		args.end, maybe_print_uint64max(args.end));
 	printflags(btrfs_scrub_flags, args.flags, "BTRFS_SCRUB_???");
@@ -1145,7 +1144,7 @@ btrfs_test_dev_info_ioctl(void)
 
 	ioctl(-1, BTRFS_IOC_DEV_INFO, &args);
 	printf("ioctl(-1, BTRFS_IOC_DEV_INFO, "
-	       "{devid=%" PRI__u64", uuid=%s}) = -1 EBADF (%m)\n",
+	       "{devid=%" PRI__u64 ", uuid=%s}) = -1 EBADF (%m)\n",
 		args.devid, uuid_reference_string);
 }
 
@@ -1161,8 +1160,21 @@ btrfs_test_ino_path_ioctls(void)
 	struct btrfs_ioctl_ino_path_args args = {
 		.inum = 256,
 		.size = sizeof(buf),
-		.fspath = (unsigned long)buf,
+		.reserved = {
+			0xdeadc0defacefeebULL,
+			0xdeadc0defacefeecULL,
+			0xdeadc0defacefeedULL,
+		},
+		.fspath = 0,
 	};
+
+#ifdef HAVE_BTRFS_IOCTL_LOGICAL_INO_ARGS
+	args.flags =
+#else
+	args.reserved[3] =
+#endif
+			0xdeadc0defacefeeeULL;
+
 
 	ioctl(-1, BTRFS_IOC_INO_PATHS, NULL);
 	printf("ioctl(-1, BTRFS_IOC_INO_PATHS, NULL) = -1 EBADF (%m)\n");
@@ -1172,13 +1184,54 @@ btrfs_test_ino_path_ioctls(void)
 
 	ioctl(-1, BTRFS_IOC_INO_PATHS, &args);
 	printf("ioctl(-1, BTRFS_IOC_INO_PATHS, "
-	       "{inum=%" PRI__u64", size=%" PRI__u64
+	       "{inum=%" PRI__u64 ", size=%" PRI__u64
+	       ", fspath=NULL}) = -1 EBADF (%m)\n",
+	       args.inum, args.size);
+
+	args.fspath = (uintptr_t) buf;
+	ioctl(-1, BTRFS_IOC_INO_PATHS, &args);
+	printf("ioctl(-1, BTRFS_IOC_INO_PATHS, "
+	       "{inum=%" PRI__u64 ", size=%" PRI__u64
 	       ", fspath=0x%" PRI__x64 "}) = -1 EBADF (%m)\n",
 	       args.inum, args.size, args.fspath);
 
+	args.fspath = 0;
 	ioctl(-1, BTRFS_IOC_LOGICAL_INO, &args);
 	printf("ioctl(-1, BTRFS_IOC_LOGICAL_INO, {logical=%" PRI__u64
-	       ", size=%" PRI__u64", inodes=0x%" PRI__x64
+	       ", size=%" PRI__u64 ", reserved=[0xdeadc0defacefeeb"
+	       ", 0xdeadc0defacefeec, 0xdeadc0defacefeed]"
+	       ", flags=0xdeadc0defacefeee /* BTRFS_LOGICAL_INO_ARGS_??? */"
+	       ", inodes=NULL}) = -1 EBADF (%m)\n",
+	       args.inum, args.size);
+
+	args.fspath = (uintptr_t) buf;
+	args.reserved[0] = 0;
+	args.reserved[2] = 0;
+#ifdef HAVE_BTRFS_IOCTL_LOGICAL_INO_ARGS
+	args.flags =
+#else
+	args.reserved[3] =
+#endif
+			1;
+
+	ioctl(-1, BTRFS_IOC_LOGICAL_INO, &args);
+	printf("ioctl(-1, BTRFS_IOC_LOGICAL_INO, {logical=%" PRI__u64
+	       ", size=%" PRI__u64 ", reserved=[0, 0xdeadc0defacefeec, 0]"
+	       ", flags=BTRFS_LOGICAL_INO_ARGS_IGNORE_OFFSET"
+	       ", inodes=0x%" PRI__x64 "}) = -1 EBADF (%m)\n",
+	       args.inum, args.size, args.fspath);
+
+	args.reserved[1] = 0;
+#ifdef HAVE_BTRFS_IOCTL_LOGICAL_INO_ARGS
+	args.flags =
+#else
+	args.reserved[3] =
+#endif
+			0;
+
+	ioctl(-1, BTRFS_IOC_LOGICAL_INO, &args);
+	printf("ioctl(-1, BTRFS_IOC_LOGICAL_INO, {logical=%" PRI__u64
+	       ", size=%" PRI__u64 ", flags=0, inodes=0x%" PRI__x64
 	       "}) = -1 EBADF (%m)\n", args.inum, args.size, args.fspath);
 
 #ifdef HAVE_LINUX_FIEMAP_H
@@ -1196,8 +1249,8 @@ btrfs_test_ino_path_ioctls(void)
 
 		args.inum = si.st_ino;
 		printf("ioctl(%d, BTRFS_IOC_INO_PATHS, "
-		       "{inum=%" PRI__u64", size=%" PRI__u64
-		       ", fspath=0x%" PRI__x64"}",
+		       "{inum=%" PRI__u64 ", size=%" PRI__u64
+		       ", fspath=0x%" PRI__x64 "}",
 		       btrfs_test_dir_fd, args.inum, args.size,
 		       args.fspath);
 		ioctl(btrfs_test_dir_fd, BTRFS_IOC_INO_PATHS, &args);
@@ -1240,7 +1293,7 @@ btrfs_test_ino_path_ioctls(void)
 
 		/* This is also a live test for FIEMAP */
 		printf("ioctl(%d, FS_IOC_FIEMAP, {fm_start=%" PRI__u64
-		       ", fm_length=%" PRI__u64", fm_flags=",
+		       ", fm_length=%" PRI__u64 ", fm_flags=",
 		       fd, fiemap->fm_start, fiemap->fm_length);
 		printflags(fiemap_flags, fiemap->fm_flags, "FIEMAP_FLAG_???");
 		printf(", fm_extent_count=%u}", fiemap->fm_extent_count);
@@ -1274,7 +1327,7 @@ btrfs_test_ino_path_ioctls(void)
 
 		args.inum = fiemap->fm_extents[0].fe_physical;
 		printf("ioctl(%d, BTRFS_IOC_LOGICAL_INO, {logical=%" PRI__u64
-		       ", size=%" PRI__u64", inodes=0x%" PRI__x64"}",
+		       ", size=%" PRI__u64 ", flags=0, inodes=0x%" PRI__x64 "}",
 		       fd, args.inum, args.size, args.fspath);
 		ioctl(fd, BTRFS_IOC_LOGICAL_INO, &args);
 		printf(" => {inodes={bytes_left=%u, bytes_missing=%u, elem_cnt=%u, elem_missed=%u, val=",
@@ -1314,7 +1367,7 @@ btrfs_test_set_received_subvol_ioctl(void)
 
 	ioctl(-1, BTRFS_IOC_SET_RECEIVED_SUBVOL, &args);
 	printf("ioctl(-1, BTRFS_IOC_SET_RECEIVED_SUBVOL, "
-	       "{uuid=%s, stransid=%" PRI__u64", stime=%" PRI__u64
+	       "{uuid=%s, stransid=%" PRI__u64 ", stime=%" PRI__u64
 	       ".%u, flags=0}) = -1 EBADF (%m)\n",
 	       uuid_reference_string, args.stransid, args.stime.sec,
 	       args.stime.nsec);
@@ -1427,7 +1480,7 @@ btrfs_test_qgroup_assign_ioctl(void)
 
 	ioctl(-1, BTRFS_IOC_QGROUP_ASSIGN, &args);
 	printf("ioctl(-1, BTRFS_IOC_QGROUP_ASSIGN, "
-	       "{assign=%" PRI__u64", src=%" PRI__u64", dst=%" PRI__u64
+	       "{assign=%" PRI__u64 ", src=%" PRI__u64 ", dst=%" PRI__u64
 	       "}) = -1 EBADF (%m)\n", args.assign, args.src, args.dst);
 }
 
@@ -1448,7 +1501,7 @@ btrfs_test_qgroup_create_ioctl(void)
 
 	ioctl(-1, BTRFS_IOC_QGROUP_CREATE, &args);
 	printf("ioctl(-1, BTRFS_IOC_QGROUP_CREATE, "
-	       "{create=%" PRI__u64", qgroupid=%" PRI__u64
+	       "{create=%" PRI__u64 ", qgroupid=%" PRI__u64
 	       "}) = -1 EBADF (%m)\n", args.create, args.qgroupid);
 }
 
@@ -1523,7 +1576,7 @@ btrfs_test_get_dev_stats_ioctl(void)
 	printf("ioctl(-1, BTRFS_IOC_GET_DEV_STATS, NULL) = -1 EBADF (%m)\n");
 
 	printf("ioctl(-1, BTRFS_IOC_GET_DEV_STATS, {devid=%" PRI__u64
-		", nr_items=%" PRI__u64", flags=",
+		", nr_items=%" PRI__u64 ", flags=",
 		args.devid, args.nr_items);
 	printflags(btrfs_dev_stats_flags, args.flags,
 		     "BTRFS_DEV_STATS_???");
@@ -1534,7 +1587,7 @@ btrfs_test_get_dev_stats_ioctl(void)
 		unsigned int i;
 		args.flags = BTRFS_DEV_STATS_RESET;
 		printf("ioctl(%d, BTRFS_IOC_GET_DEV_STATS, {devid=%" PRI__u64
-			", nr_items=%" PRI__u64", flags=",
+			", nr_items=%" PRI__u64 ", flags=",
 			btrfs_test_dir_fd, args.devid, args.nr_items);
 		printflags(btrfs_dev_stats_flags, args.flags,
 			     "BTRFS_DEV_STATS_???");
@@ -1579,7 +1632,7 @@ btrfs_test_dev_replace_ioctl(void)
 	ioctl(-1, BTRFS_IOC_DEV_REPLACE, &args);
 	printf("ioctl(-1, BTRFS_IOC_DEV_REPLACE, "
 	       "{cmd=BTRFS_IOCTL_DEV_REPLACE_CMD_START, start={srcdevid=%"
-	       PRI__u64", cont_reading_from_srcdev_mode=%" PRI__u64
+	       PRI__u64 ", cont_reading_from_srcdev_mode=%" PRI__u64
 	       ", srcdev_name=\"%s\", tgtdev_name=\"%s\"}}) = -1 EBADF (%m)\n",
 	       args.start.srcdevid,
 	       args.start.cont_reading_from_srcdev_mode,

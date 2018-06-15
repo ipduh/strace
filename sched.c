@@ -2,7 +2,7 @@
  * Copyright (c) 2004 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2005 Roland McGrath <roland@redhat.com>
  * Copyright (c) 2012-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2014-2017 The strace developers.
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,7 @@ SYS_FUNC(sched_getscheduler)
 		tprintf("%d", (int) tcp->u_arg[0]);
 	} else if (!syserror(tcp)) {
 		tcp->auxstr = xlookup(schedulers, (kernel_ulong_t) tcp->u_rval);
-		if (tcp->auxstr != NULL)
-			return RVAL_STR;
+		return RVAL_STR;
 	}
 	return 0;
 }
@@ -183,7 +182,7 @@ SYS_FUNC(sched_getattr)
 		 * Due to a subtle gcc bug that leads to miscompiled aarch64
 		 * kernels, the 3rd argument of sched_getattr is not quite 32-bit
 		 * as on other architectures.  For more details see
-		 * https://sourceforge.net/p/strace/mailman/message/35721703/
+		 * https://lists.strace.io/pipermail/strace-devel/2017-March/006085.html
 		 */
 		if (syserror(tcp))
 			print_abnormal_hi(tcp->u_arg[2]);

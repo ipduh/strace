@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2012 Mike Frysinger <vapier@gentoo.org>
- * Copyright (c) 2012-2017 The strace developers.
+ * Copyright (c) 2012-2018 The strace developers.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -274,7 +274,7 @@ MPERS_PRINTER_DECL(int, mtd_ioctl, struct tcb *const tcp,
 	case OTPGETREGIONINFO:
 		if (entering(tcp))
 			return 0;
-		/* fall through */
+		ATTRIBUTE_FALLTHROUGH;
 	case OTPLOCK:
 		decode_otp_info(tcp, arg);
 		break;

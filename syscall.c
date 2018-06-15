@@ -33,10 +33,13 @@
  */
 
 #include "defs.h"
+#include "mmap_cache.h"
 #include "native_defs.h"
 #include "ptrace.h"
 #include "nsig.h"
 #include "number_set.h"
+#include "delay.h"
+#include "retval.h"
 #include <limits.h>
 
 /* for struct iovec */
@@ -431,11 +434,35 @@ decode_syscall_subcall(struct tcb *tcp)
 static void
 dumpio(struct tcb *tcp)
 {
-	if (syserror(tcp))
-		return;
-
 	int fd = tcp->u_arg[0];
 	if (fd < 0)
+		return;
+
+	if (is_number_in_set(fd, write_set)) {
+		switch (tcp->s_ent->sen) {
+		case SEN_write:
+		case SEN_pwrite:
+		case SEN_send:
+		case SEN_sendto:
+		case SEN_mq_timedsend:
+			dumpstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
+			break;
+		case SEN_writev:
+		case SEN_pwritev:
+		case SEN_pwritev2:
+		case SEN_vmsplice:
+			dumpiov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1], -1);
+			break;
+		case SEN_sendmsg:
+			dumpiov_in_msghdr(tcp, tcp->u_arg[1], -1);
+			break;
+		case SEN_sendmmsg:
+			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
+			break;
+		}
+	}
+
+	if (syserror(tcp))
 		return;
 
 	if (is_number_in_set(fd, read_set)) {
@@ -459,29 +486,6 @@ dumpio(struct tcb *tcp)
 		case SEN_recvmmsg:
 			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
 			return;
-		}
-	}
-	if (is_number_in_set(fd, write_set)) {
-		switch (tcp->s_ent->sen) {
-		case SEN_write:
-		case SEN_pwrite:
-		case SEN_send:
-		case SEN_sendto:
-		case SEN_mq_timedsend:
-			dumpstr(tcp, tcp->u_arg[1], tcp->u_arg[2]);
-			break;
-		case SEN_writev:
-		case SEN_pwritev:
-		case SEN_pwritev2:
-		case SEN_vmsplice:
-			dumpiov_upto(tcp, tcp->u_arg[2], tcp->u_arg[1], -1);
-			break;
-		case SEN_sendmsg:
-			dumpiov_in_msghdr(tcp, tcp->u_arg[1], -1);
-			break;
-		case SEN_sendmmsg:
-			dumpiov_in_mmsghdr(tcp, tcp->u_arg[1]);
-			break;
 		}
 	}
 }
@@ -540,9 +544,13 @@ tamper_with_syscall_entering(struct tcb *tcp, unsigned int *signo)
 	if (!recovering(tcp)) {
 		if (opts->data.flags & INJECT_F_SIGNAL)
 			*signo = opts->data.signo;
-		if (opts->data.flags & INJECT_F_RETVAL &&
+		if (opts->data.flags & (INJECT_F_ERROR | INJECT_F_RETVAL) &&
 		    !arch_set_scno(tcp, -1))
 			tcp->flags |= TCB_TAMPERED;
+		if (opts->data.flags & INJECT_F_DELAY_ENTER)
+			delay_tcb(tcp, opts->data.delay_idx, true);
+		if (opts->data.flags & INJECT_F_DELAY_EXIT)
+			tcp->flags |= TCB_INJECT_DELAY_EXIT;
 	}
 
 	return 0;
@@ -551,6 +559,16 @@ tamper_with_syscall_entering(struct tcb *tcp, unsigned int *signo)
 static long
 tamper_with_syscall_exiting(struct tcb *tcp)
 {
+	struct inject_opts *opts = tcb_inject_opts(tcp);
+	if (!opts)
+		return 0;
+
+	if (inject_delay_exit(tcp))
+		delay_tcb(tcp, opts->data.delay_idx, false);
+
+	if (!syscall_tampered(tcp))
+		return 0;
+
 	if (!syserror(tcp)) {
 		error_msg("Failed to tamper with process %d: got no error "
 			  "(return value %#" PRI_klx ")",
@@ -559,16 +577,14 @@ tamper_with_syscall_exiting(struct tcb *tcp)
 		return 1;
 	}
 
-	struct inject_opts *opts = tcb_inject_opts(tcp);
 	bool update_tcb = false;
 
-	if (!opts)
-		return 0;
-
-	if (opts->data.rval >= 0) {
+	if (opts->data.flags & INJECT_F_RETVAL) {
+		kernel_long_t inject_rval =
+			retval_get(opts->data.rval_idx);
 		kernel_long_t u_rval = tcp->u_rval;
 
-		tcp->u_rval = opts->data.rval;
+		tcp->u_rval = inject_rval;
 		if (arch_set_success(tcp)) {
 			tcp->u_rval = u_rval;
 		} else {
@@ -576,7 +592,7 @@ tamper_with_syscall_exiting(struct tcb *tcp)
 			tcp->u_error = 0;
 		}
 	} else {
-		unsigned long new_error = -opts->data.rval;
+		unsigned long new_error = retval_get(opts->data.rval_idx);
 
 		if (new_error != tcp->u_error && new_error <= MAX_ERRNO_VALUE) {
 			unsigned long u_error = tcp->u_error;
@@ -692,7 +708,7 @@ syscall_entering_trace(struct tcb *tcp, unsigned int *sig)
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled) {
 		if (tcp->s_ent->sys_flags & STACKTRACE_CAPTURE_ON_ENTER)
-			unwind_capture_stacktrace(tcp);
+			unwind_tcb_capture(tcp);
 	}
 #endif
 
@@ -710,7 +726,7 @@ syscall_entering_finish(struct tcb *tcp, int res)
 	tcp->sys_func_rval = res;
 	/* Measure the entrance time as late as possible to avoid errors. */
 	if ((Tflag || cflag) && !filtered(tcp))
-		gettimeofday(&tcp->etime, NULL);
+		clock_gettime(CLOCK_MONOTONIC, &tcp->etime);
 }
 
 /* Returns:
@@ -722,18 +738,16 @@ syscall_entering_finish(struct tcb *tcp, int res)
  *    value. Anyway, call syscall_exiting_finish(tcp) then.
  */
 int
-syscall_exiting_decode(struct tcb *tcp, struct timeval *ptv)
+syscall_exiting_decode(struct tcb *tcp, struct timespec *pts)
 {
 	/* Measure the exit time as early as possible to avoid errors. */
 	if ((Tflag || cflag) && !(filtered(tcp) || hide_log(tcp)))
-		gettimeofday(ptv, NULL);
+		clock_gettime(CLOCK_MONOTONIC, pts);
 
-#ifdef USE_LIBUNWIND
-	if (stack_trace_enabled) {
+	if (mmap_cache_is_enabled()) {
 		if (tcp->s_ent->sys_flags & STACKTRACE_INVALIDATE_CACHE)
-			unwind_cache_invalidate(tcp);
+			mmap_cache_invalidate(tcp);
 	}
-#endif
 
 	if (filtered(tcp) || hide_log(tcp))
 		return 0;
@@ -746,13 +760,13 @@ syscall_exiting_decode(struct tcb *tcp, struct timeval *ptv)
 }
 
 int
-syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
+syscall_exiting_trace(struct tcb *tcp, struct timespec *ts, int res)
 {
-	if (syscall_tampered(tcp))
+	if (syscall_tampered(tcp) || inject_delay_exit(tcp))
 		tamper_with_syscall_exiting(tcp);
 
 	if (cflag) {
-		count_syscall(tcp, &tv);
+		count_syscall(tcp, ts);
 		if (cflag == CFLAG_ONLY_STATS) {
 			return 0;
 		}
@@ -808,7 +822,6 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 	tprints(") ");
 	tabto();
 	unsigned long u_error = tcp->u_error;
-	kernel_long_t u_rval;
 
 	if (raw(tcp)) {
 		if (u_error) {
@@ -876,15 +889,13 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 			tprints("= ? ERESTART_RESTARTBLOCK (Interrupted by signal)");
 			break;
 		default:
-			u_rval = sys_res & RVAL_PRINT_ERR_VAL ?
-				 tcp->u_rval : -1;
 			u_error_str = err_name(u_error);
 			if (u_error_str)
-				tprintf("= %" PRI_kld " %s (%s)",
-					u_rval, u_error_str, strerror(u_error));
+				tprintf("= %" PRI_kld " %s (%s)", tcp->u_rval,
+					u_error_str, strerror(u_error));
 			else
-				tprintf("= %" PRI_kld " %lu (%s)",
-					u_rval, u_error, strerror(u_error));
+				tprintf("= %" PRI_kld " %lu (%s)", tcp->u_rval,
+					u_error, strerror(u_error));
 			break;
 		}
 		if (syscall_tampered(tcp))
@@ -922,9 +933,6 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 					tprintf("= %" PRI_klu, tcp->u_rval);
 				}
 				break;
-			case RVAL_DECIMAL:
-				tprintf("= %" PRI_kld, tcp->u_rval);
-				break;
 			case RVAL_FD:
 				if (show_fd_path) {
 					tprints("= ");
@@ -943,9 +951,9 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 			tprints(" (INJECTED)");
 	}
 	if (Tflag) {
-		tv_sub(&tv, &tv, &tcp->etime);
+		ts_sub(ts, ts, &tcp->etime);
 		tprintf(" <%ld.%06ld>",
-			(long) tv.tv_sec, (long) tv.tv_usec);
+			(long) ts->tv_sec, (long) ts->tv_nsec / 1000);
 	}
 	tprints("\n");
 	dumpio(tcp);
@@ -953,7 +961,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 
 #ifdef USE_LIBUNWIND
 	if (stack_trace_enabled)
-		unwind_print_stacktrace(tcp);
+		unwind_tcb_print(tcp);
 #endif
 	return 0;
 }
@@ -961,7 +969,7 @@ syscall_exiting_trace(struct tcb *tcp, struct timeval tv, int res)
 void
 syscall_exiting_finish(struct tcb *tcp)
 {
-	tcp->flags &= ~(TCB_INSYSCALL | TCB_TAMPERED);
+	tcp->flags &= ~(TCB_INSYSCALL | TCB_TAMPERED | TCB_INJECT_DELAY_EXIT);
 	tcp->sys_func_rval = 0;
 	free_tcb_priv_data(tcp);
 }

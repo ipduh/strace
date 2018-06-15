@@ -2,6 +2,7 @@
  * Check decoding of remap_file_pages syscall.
  *
  * Copyright (c) 2016-2017 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,13 +82,21 @@ main(void)
 
 	k_remap_file_pages(addr, size, prot, pgoff, flags);
 	printf("remap_file_pages(%#jx, %ju, %s, %ju"
-	       ", %#x /* MAP_??? */"
+/*
+ * HP PA-RISC is the only architecture that has MAP_TYPE defined to 0x3, which
+ * is also used for MAP_SHARED_VALIDATE since Linux commit v4.15-rc1~71^2^2~23.
+ */
+# ifdef __hppa__
+	       ", MAP_SHARED_VALIDATE"
+# else
+	       ", 0xf /* MAP_??? */"
+# endif
 	       "|MAP_FIXED|MAP_NORESERVE|MAP_HUGETLB|21<<MAP_HUGE_SHIFT)"
 	       " = %s\n",
 	       (uintmax_t) addr, (uintmax_t) size,
 	       prot == PROT_NONE ? "PROT_NONE" :
 				   "0xdefaced00000000 /* PROT_??? */",
-	       (uintmax_t) pgoff, MAP_TYPE, errstr);
+	       (uintmax_t) pgoff, errstr);
 #endif /* MAP_HUGETLB */
 
 	puts("+++ exited with 0 +++");

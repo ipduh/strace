@@ -42,6 +42,24 @@ const struct xlat sigfpe_codes[] = {
  XLAT(FPE_FLTRES),
  XLAT(FPE_FLTINV),
  XLAT(FPE_FLTSUB),
+#if defined(FPE_MDAOVF) || (defined(HAVE_DECL_FPE_MDAOVF) && HAVE_DECL_FPE_MDAOVF)
+  XLAT(FPE_MDAOVF),
+#endif
+#if defined(__FPE_DECOVF) || (defined(HAVE_DECL___FPE_DECOVF) && HAVE_DECL___FPE_DECOVF)
+  XLAT(__FPE_DECOVF),
+#endif
+#if defined(__FPE_DECDIV) || (defined(HAVE_DECL___FPE_DECDIV) && HAVE_DECL___FPE_DECDIV)
+  XLAT(__FPE_DECDIV),
+#endif
+#if defined(__FPE_DECERR) || (defined(HAVE_DECL___FPE_DECERR) && HAVE_DECL___FPE_DECERR)
+  XLAT(__FPE_DECERR),
+#endif
+#if defined(__FPE_INVASC) || (defined(HAVE_DECL___FPE_INVASC) && HAVE_DECL___FPE_INVASC)
+  XLAT(__FPE_INVASC),
+#endif
+#if defined(__FPE_INVDEC) || (defined(HAVE_DECL___FPE_INVDEC) && HAVE_DECL___FPE_INVDEC)
+  XLAT(__FPE_INVDEC),
+#endif
  XLAT_END
 };
 

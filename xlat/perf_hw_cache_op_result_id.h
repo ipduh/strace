@@ -14,9 +14,10 @@
 
 static
 const struct xlat perf_hw_cache_op_result_id[] = {
+
  XLAT(PERF_COUNT_HW_CACHE_RESULT_ACCESS),
  XLAT(PERF_COUNT_HW_CACHE_RESULT_MISS),
- /* this array should remain not NULL-terminated */
+ XLAT_END
 };
 
 #endif /* !IN_MPERS */

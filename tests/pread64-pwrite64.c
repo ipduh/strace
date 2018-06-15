@@ -2,7 +2,7 @@
  * Check decoding of pread64 and pwrite64 syscalls.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -169,6 +169,7 @@ main(void)
 	if (rc != -1)
 		perror_msg_and_fail("pwrite64: expected -1, returned %ld", rc);
 	tprintf("pwrite64(1, \"\\0\", 1, -3) = -1 EINVAL (%m)\n");
+	dump_str(nil, 1);
 
 	rc = pwrite(1, w, w_len, 0);
 	if (rc != (int) w_len)

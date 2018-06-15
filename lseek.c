@@ -8,6 +8,7 @@
  * Copyright (c) 2012 H.J. Lu <hongjiu.lu@intel.com>
  * Copyright (c) 2013 Denys Vlasenko <vda.linux@googlemail.com>
  * Copyright (c) 2014-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,7 +63,7 @@ SYS_FUNC(lseek)
 
 	printxval(whence_codes, tcp->u_arg[2], "SEEK_???");
 
-	return RVAL_DECODED | RVAL_UDECIMAL;
+	return RVAL_DECODED;
 }
 
 /* llseek syscall takes explicitly two ulong arguments hi, lo,

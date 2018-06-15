@@ -6,13 +6,8 @@
 # define NFNL_MSG_BATCH_END 0x11
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat nl_netfilter_msg_types in mpers mode
-
-#else
-
-static
 const struct xlat nl_netfilter_msg_types[] = {
  XLAT(NFNL_MSG_BATCH_BEGIN),
  XLAT(NFNL_MSG_BATCH_END),

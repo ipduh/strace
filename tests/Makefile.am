@@ -42,7 +42,9 @@ AM_CPPFLAGS = $(ARCH_MFLAGS) \
 	      -I$(top_builddir)/$(OS) \
 	      -I$(top_srcdir)/$(OS) \
 	      -I$(top_builddir) \
-	      -I$(top_srcdir)
+	      -I$(top_srcdir) \
+	      -DTESTS_SIZEOF_KERNEL_LONG_T=$(SIZEOF_KERNEL_LONG_T) \
+	      -DTESTS_SIZEOF_LONG=$(SIZEOF_LONG)
 AM_LDFLAGS = $(ARCH_MFLAGS)
 
 libtests_a_SOURCES = \
@@ -97,13 +99,16 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	clone_parent \
 	clone_ptrace \
 	count-f \
+	delay \
 	execve-v \
 	execveat-v \
 	filter-unavailable \
 	fork-f \
+	fsync-y \
 	getpid	\
 	getppid	\
 	gettid \
+	inject-nf \
 	int_0x80 \
 	ioctl_dm-v \
 	ioctl_evdev-v \
@@ -114,6 +119,7 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	is_linux_mips_n64 \
 	ksysent \
 	list_sigaction_signum \
+	localtime \
 	mmsg-silent \
 	mmsg_name-v \
 	msg_control-v \
@@ -163,19 +169,17 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	zeroargc \
 	# end of check_PROGRAMS
 
-attach_f_p_LDADD = -lrt -lpthread $(LDADD)
-clock_xettime_LDADD = -lrt $(LDADD)
+attach_f_p_LDADD = -lpthread $(LDADD)
 count_f_LDADD = -lpthread $(LDADD)
+delay_LDADD = $(clock_LIBS) $(LDADD)
 filter_unavailable_LDADD = -lpthread $(LDADD)
 fstat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 fstatat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 ftruncate64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
+localtime_LDADD = $(clock_LIBS) $(LDADD)
 lstat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 mmap64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
-mq_LDADD = -lrt $(LDADD)
-mq_sendrecv_LDADD = -lrt $(LDADD)
-mq_sendrecv_read_LDADD = -lrt $(LDADD)
-mq_sendrecv_write_LDADD = -lrt $(LDADD)
+mq_LDADD = $(mq_LIBS) $(LDADD)
 newfstatat_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 pc_LDADD = $(dl_LIBS) $(LDADD)
 pread64_pwrite64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
@@ -184,8 +188,8 @@ preadv_pwritev_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 pwritev_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 stat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 statfs_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
-threads_execve_LDADD = -lrt -lpthread $(LDADD)
-times_LDADD = -lrt $(LDADD)
+threads_execve_LDADD = -lpthread $(clock_LIBS) $(LDADD)
+times_LDADD = $(clock_LIBS) $(LDADD)
 truncate64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 uio_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 
@@ -222,6 +226,7 @@ DECODER_TESTS = \
 	getuid.test \
 	ioctl.test \
 	ipc_msgbuf.test \
+	kern_features-fault.test \
 	llseek.test \
 	lseek.test \
 	mmap.test \
@@ -274,6 +279,7 @@ MISC_TESTS = \
 	clone_ptrace.test \
 	count-f.test \
 	count.test \
+	delay.test \
 	detach-running.test \
 	detach-sleeping.test \
 	detach-stopped.test \
@@ -282,8 +288,10 @@ MISC_TESTS = \
 	filtering_syscall-syntax.test \
 	fflush.test \
 	get_regs.test \
+	inject-nf.test \
 	interactive_block.test \
 	ksysent.test \
+	localtime.test \
 	opipe.test \
 	options-syntax.test \
 	pc.test \

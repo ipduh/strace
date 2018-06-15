@@ -6,13 +6,8 @@
 # define SECCOMP_FILTER_FLAG_LOG 2
 #endif
 
-#ifdef IN_MPERS
+#ifndef IN_MPERS
 
-# error static const struct xlat seccomp_filter_flags in mpers mode
-
-#else
-
-static
 const struct xlat seccomp_filter_flags[] = {
  XLAT(SECCOMP_FILTER_FLAG_TSYNC),
  XLAT(SECCOMP_FILTER_FLAG_LOG),

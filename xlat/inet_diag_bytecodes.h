@@ -19,6 +19,8 @@ const struct xlat inet_diag_bytecodes[] = {
  XLAT(INET_DIAG_BC_D_COND),
  XLAT(INET_DIAG_BC_DEV_COND),
  XLAT(INET_DIAG_BC_MARK_COND),
+ XLAT(INET_DIAG_BC_S_EQ),
+ XLAT(INET_DIAG_BC_D_EQ),
  XLAT_END
 };
 

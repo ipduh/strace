@@ -35,6 +35,15 @@
 #if !(defined(TCA_CHAIN) || (defined(HAVE_DECL_TCA_CHAIN) && HAVE_DECL_TCA_CHAIN))
 # define TCA_CHAIN 11
 #endif
+#if !(defined(TCA_HW_OFFLOAD) || (defined(HAVE_DECL_TCA_HW_OFFLOAD) && HAVE_DECL_TCA_HW_OFFLOAD))
+# define TCA_HW_OFFLOAD 12
+#endif
+#if !(defined(TCA_INGRESS_BLOCK) || (defined(HAVE_DECL_TCA_INGRESS_BLOCK) && HAVE_DECL_TCA_INGRESS_BLOCK))
+# define TCA_INGRESS_BLOCK 13
+#endif
+#if !(defined(TCA_EGRESS_BLOCK) || (defined(HAVE_DECL_TCA_EGRESS_BLOCK) && HAVE_DECL_TCA_EGRESS_BLOCK))
+# define TCA_EGRESS_BLOCK 14
+#endif
 
 #ifdef IN_MPERS
 
@@ -56,6 +65,9 @@ const struct xlat rtnl_tc_attrs[] = {
  XLAT(TCA_PAD),
  XLAT(TCA_DUMP_INVISIBLE),
  XLAT(TCA_CHAIN),
+ XLAT(TCA_HW_OFFLOAD),
+ XLAT(TCA_INGRESS_BLOCK),
+ XLAT(TCA_EGRESS_BLOCK),
  XLAT_END
 };
 

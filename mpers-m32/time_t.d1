@@ -1,0 +1,46 @@
+Contents of the .debug_info section:
+
+  Compilation Unit @ offset 0x0:
+   Length:        0x60 (32-bit)
+   Version:       2
+   Abbrev Offset: 0x0
+   Pointer Size:  4
+ <0><b>: Abbrev Number: 1 (DW_TAG_compile_unit)
+    <c>   DW_AT_producer    : (indirect string, offset: 0x0): Android clang version 5.0.300080  (based on LLVM 5.0.300080)
+    <10>   DW_AT_language    : 12	(ANSI C99)
+    <12>   DW_AT_name        : (indirect string, offset: 0x3d): mpers-m32/time_t.c
+    <16>   DW_AT_stmt_list   : 0x0
+    <1a>   DW_AT_comp_dir    : (indirect string, offset: 0x50): /usr/local/google/ndkports/.out/strace/package/strace-4.22
+ <1><1e>: Abbrev Number: 2 (DW_TAG_variable)
+    <1f>   DW_AT_name        : (indirect string, offset: 0x8b): mpers_target_var
+    <23>   DW_AT_type        : <0x30>
+    <27>   DW_AT_external    : 1
+    <28>   DW_AT_decl_file   : 3
+    <29>   DW_AT_decl_line   : 32
+    <2a>   DW_AT_location    : 5 byte block: 3 4 0 0 0 	(DW_OP_addr: 4)
+ <1><30>: Abbrev Number: 3 (DW_TAG_typedef)
+    <31>   DW_AT_type        : <0x3b>
+    <35>   DW_AT_name        : (indirect string, offset: 0xce): time_t
+    <39>   DW_AT_decl_file   : 2
+    <3a>   DW_AT_decl_line   : 96
+ <1><3b>: Abbrev Number: 3 (DW_TAG_typedef)
+    <3c>   DW_AT_type        : <0x46>
+    <40>   DW_AT_name        : (indirect string, offset: 0xc5): __time_t
+    <44>   DW_AT_decl_file   : 2
+    <45>   DW_AT_decl_line   : 95
+ <1><46>: Abbrev Number: 3 (DW_TAG_typedef)
+    <47>   DW_AT_type        : <0x51>
+    <4b>   DW_AT_name        : (indirect string, offset: 0xb5): __kernel_time_t
+    <4f>   DW_AT_decl_file   : 1
+    <50>   DW_AT_decl_line   : 77
+ <1><51>: Abbrev Number: 3 (DW_TAG_typedef)
+    <52>   DW_AT_type        : <0x5c>
+    <56>   DW_AT_name        : (indirect string, offset: 0xa5): __kernel_long_t
+    <5a>   DW_AT_decl_file   : 1
+    <5b>   DW_AT_decl_line   : 23
+ <1><5c>: Abbrev Number: 4 (DW_TAG_base_type)
+    <5d>   DW_AT_name        : (indirect string, offset: 0x9c): long int
+    <61>   DW_AT_encoding    : 5	(signed)
+    <62>   DW_AT_byte_size   : 4
+ <1><63>: Abbrev Number: 0
+

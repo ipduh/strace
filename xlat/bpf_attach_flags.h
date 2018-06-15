@@ -2,6 +2,9 @@
 #if !(defined(BPF_F_ALLOW_OVERRIDE) || (defined(HAVE_DECL_BPF_F_ALLOW_OVERRIDE) && HAVE_DECL_BPF_F_ALLOW_OVERRIDE))
 # define BPF_F_ALLOW_OVERRIDE 1
 #endif
+#if !(defined(BPF_F_ALLOW_MULTI) || (defined(HAVE_DECL_BPF_F_ALLOW_MULTI) && HAVE_DECL_BPF_F_ALLOW_MULTI))
+# define BPF_F_ALLOW_MULTI 2
+#endif
 
 #ifdef IN_MPERS
 
@@ -12,6 +15,7 @@
 static
 const struct xlat bpf_attach_flags[] = {
  XLAT(BPF_F_ALLOW_OVERRIDE),
+ XLAT(BPF_F_ALLOW_MULTI),
  XLAT_END
 };
 

@@ -44,6 +44,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <dirent.h>
+#include <locale.h>
 #include <sys/utsname.h>
 #ifdef HAVE_PRCTL
 # include <sys/prctl.h>
@@ -51,11 +52,13 @@
 #include <asm/unistd.h>
 
 #include "largefile_wrappers.h"
+#include "mmap_cache.h"
 #include "number_set.h"
 #include "scno.h"
 #include "printsiginfo.h"
 #include "trace_event.h"
 #include "xstring.h"
+#include "delay.h"
 
 /* In some libc, these aren't declared. Do it ourself: */
 extern char **environ;
@@ -121,13 +124,8 @@ static int opt_intr;
  */
 static bool daemonized_tracer;
 
-#if USE_SEIZE
 static int post_attach_sigstop = TCB_IGNORE_ONE_SIGSTOP;
-# define use_seize (post_attach_sigstop == 0)
-#else
-# define post_attach_sigstop TCB_IGNORE_ONE_SIGSTOP
-# define use_seize 0
-#endif
+#define use_seize (post_attach_sigstop == 0)
 
 /* Sometimes we want to print only succeeding syscalls. */
 bool not_failing_only;
@@ -152,6 +150,7 @@ static char *acolumn_spaces;
 static const char *outfname;
 /* If -ff, points to stderr. Else, it's our common output log */
 static FILE *shared_log;
+static bool open_append;
 
 struct tcb *printing_tcp;
 static struct tcb *current_tcp;
@@ -169,13 +168,15 @@ unsigned os_release; /* generated from uname()'s u.release */
 static void detach(struct tcb *tcp);
 static void cleanup(void);
 static void interrupt(int sig);
-static sigset_t start_set, blocked_set;
 
 #ifdef HAVE_SIG_ATOMIC_T
-static volatile sig_atomic_t interrupted;
+static volatile sig_atomic_t interrupted, restart_failed;
 #else
-static volatile int interrupted;
+static volatile int interrupted, restart_failed;
 #endif
+
+static sigset_t timer_set;
+static void timer_sighandler(int);
 
 #ifndef HAVE_STRERROR
 
@@ -334,7 +335,6 @@ static const char *ptrace_attach_cmd;
 static int
 ptrace_attach_or_seize(int pid)
 {
-#if USE_SEIZE
 	int r;
 	if (!use_seize)
 		return ptrace_attach_cmd = "PTRACE_ATTACH",
@@ -344,10 +344,6 @@ ptrace_attach_or_seize(int pid)
 		return ptrace_attach_cmd = "PTRACE_SEIZE", r;
 	r = ptrace(PTRACE_INTERRUPT, pid, 0L, 0L);
 	return ptrace_attach_cmd = "PTRACE_INTERRUPT", r;
-#else
-		return ptrace_attach_cmd = "PTRACE_ATTACH",
-		       ptrace(PTRACE_ATTACH, pid, 0L, 0L);
-#endif
 }
 
 /*
@@ -454,7 +450,7 @@ strace_fopen(const char *path)
 	FILE *fp;
 
 	swap_uid();
-	fp = fopen_for_output(path, "w");
+	fp = fopen_stream(path, open_append ? "a" : "w");
 	if (!fp)
 		perror_msg_and_die("Can't fopen '%s'", path);
 	swap_uid();
@@ -650,30 +646,47 @@ printleader(struct tcb *tcp)
 		tprintf("[pid %5u] ", tcp->pid);
 
 	if (tflag) {
-		char str[sizeof("HH:MM:SS")];
-		struct timeval tv, dtv;
-		static struct timeval otv;
+		struct timespec ts;
+		clock_gettime(CLOCK_REALTIME, &ts);
 
-		gettimeofday(&tv, NULL);
-		if (rflag) {
-			if (otv.tv_sec == 0)
-				otv = tv;
-			tv_sub(&dtv, &tv, &otv);
-			tprintf("%6ld.%06ld ",
-				(long) dtv.tv_sec, (long) dtv.tv_usec);
-			otv = tv;
-		} else if (tflag > 2) {
-			tprintf("%ld.%06ld ",
-				(long) tv.tv_sec, (long) tv.tv_usec);
+		if (tflag > 2) {
+			tprintf("%lld.%06ld ",
+				(long long) ts.tv_sec, (long) ts.tv_nsec / 1000);
 		} else {
-			time_t local = tv.tv_sec;
-			strftime(str, sizeof(str), "%T", localtime(&local));
+			time_t local = ts.tv_sec;
+			char str[MAX(sizeof("HH:MM:SS"), sizeof(ts.tv_sec) * 3)];
+			struct tm *tm = localtime(&local);
+
+			if (tm)
+				strftime(str, sizeof(str), "%T", tm);
+			else
+				xsprintf(str, "%lld", (long long) local);
 			if (tflag > 1)
-				tprintf("%s.%06ld ", str, (long) tv.tv_usec);
+				tprintf("%s.%06ld ",
+					str, (long) ts.tv_nsec / 1000);
 			else
 				tprintf("%s ", str);
 		}
 	}
+
+	if (rflag) {
+		struct timespec ts;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+
+		static struct timespec ots;
+		if (ots.tv_sec == 0)
+			ots = ts;
+
+		struct timespec dts;
+		ts_sub(&dts, &ts, &ots);
+		ots = ts;
+
+		tprintf("%s%6ld.%06ld%s ",
+			tflag ? "(+" : "",
+			(long) dts.tv_sec, (long) dts.tv_nsec / 1000,
+			tflag ? ")" : "");
+	}
+
 	if (iflag)
 		print_pc(tcp);
 }
@@ -802,6 +815,8 @@ droptcb(struct tcb *tcp)
 		unwind_tcb_fin(tcp);
 	}
 #endif
+
+	mmap_cache_delete(tcp, __func__);
 
 	nprocs--;
 	debug_msg("dropped tcb for pid %d, %d remain", tcp->pid, nprocs);
@@ -1083,15 +1098,6 @@ startup_attach(void)
 	unsigned int tcbi;
 	struct tcb *tcp;
 
-	/*
-	 * Block user interruptions as we would leave the traced
-	 * process stopped (process state T) if we would terminate in
-	 * between PTRACE_ATTACH and wait4() on SIGSTOP.
-	 * We rely on cleanup() from this point on.
-	 */
-	if (interactive)
-		sigprocmask(SIG_SETMASK, &blocked_set, NULL);
-
 	if (daemonized_tracer) {
 		pid_t pid = fork();
 		if (pid < 0)
@@ -1131,12 +1137,8 @@ startup_attach(void)
 
 		attach_tcb(tcp);
 
-		if (interactive) {
-			sigprocmask(SIG_SETMASK, &start_set, NULL);
-			if (interrupted)
-				goto ret;
-			sigprocmask(SIG_SETMASK, &blocked_set, NULL);
-		}
+		if (interrupted)
+			return;
 	} /* for each tcbtab[] */
 
 	if (daemonized_tracer) {
@@ -1147,10 +1149,6 @@ startup_attach(void)
 		kill(parent_pid, SIGKILL);
 		strace_child = 0;
 	}
-
- ret:
-	if (interactive)
-		sigprocmask(SIG_SETMASK, &start_set, NULL);
 }
 
 /* Stack-o-phobic exec helper, in the hope to work around
@@ -1469,7 +1467,6 @@ startup_child(char **argv)
 	redirect_standard_fds();
 }
 
-#if USE_SEIZE
 static void
 test_ptrace_seize(void)
 {
@@ -1519,9 +1516,6 @@ test_ptrace_seize(void)
 		error_func_msg_and_die("unexpected wait status %#x", status);
 	}
 }
-#else /* !USE_SEIZE */
-# define test_ptrace_seize() ((void)0)
-#endif
 
 static unsigned
 get_os_release(void)
@@ -1559,10 +1553,6 @@ get_os_release(void)
 static void
 set_sighandler(int signo, void (*sighandler)(int), struct sigaction *oldact)
 {
-	/* if signal handler is a function, add the signal to blocked_set */
-	if (sighandler != SIG_IGN && sighandler != SIG_DFL)
-		sigaddset(&blocked_set, signo);
-
 	const struct sigaction sa = { .sa_handler = sighandler };
 	sigaction(signo, &sa, oldact);
 }
@@ -1605,12 +1595,15 @@ init(int argc, char *argv[])
 #ifdef USE_LIBUNWIND
 	    "k"
 #endif
-	    "a:b:cCdDe:E:fFhiI:o:O:p:P:qrs:S:tTu:vVwxyz")) != EOF) {
+	    "a:Ab:cCdDe:E:fFhiI:o:O:p:P:qrs:S:tTu:vVwxyz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
 			if (acolumn < 0)
 				error_opt_arg(c, optarg);
+			break;
+		case 'A':
+			open_append = true;
 			break;
 		case 'b':
 			if (strcmp(optarg, "execve") != 0)
@@ -1775,18 +1768,9 @@ init(int argc, char *argv[])
 			error_msg("-%c has no effect with -c", 'y');
 	}
 
-	if (rflag) {
-		if (tflag > 1)
-			error_msg("-tt has no effect with -r");
-		tflag = 1;
-	}
-
 	acolumn_spaces = xmalloc(acolumn + 1);
 	memset(acolumn_spaces, ' ', acolumn);
 	acolumn_spaces[acolumn] = '\0';
-
-	sigprocmask(SIG_SETMASK, NULL, &start_set);
-	memcpy(&blocked_set, &start_set, sizeof(blocked_set));
 
 	set_sighandler(SIGCHLD, SIG_DFL, &params_for_tracee.child_sa);
 
@@ -1901,9 +1885,9 @@ init(int argc, char *argv[])
 			set_sighandler(SIGTSTP, SIG_IGN, NULL);
 		/*
 		 * In interactive mode (if no -o OUTFILE, or -p PID is used),
-		 * fatal signals are blocked while syscall stop is processed,
-		 * and acted on in between, when waiting for new syscall stops.
-		 * In non-interactive mode, signals are ignored.
+		 * fatal signals are handled asynchronously and acted
+		 * when waiting for process state changes.
+		 * In non-interactive mode these signals are ignored.
 		 */
 		set_sighandler(SIGHUP, interactive ? interrupt : SIG_IGN, NULL);
 		set_sighandler(SIGINT, interactive ? interrupt : SIG_IGN, NULL);
@@ -1911,6 +1895,11 @@ init(int argc, char *argv[])
 		set_sighandler(SIGPIPE, interactive ? interrupt : SIG_IGN, NULL);
 		set_sighandler(SIGTERM, interactive ? interrupt : SIG_IGN, NULL);
 	}
+
+	sigemptyset(&timer_set);
+	sigaddset(&timer_set, SIGALRM);
+	sigprocmask(SIG_BLOCK, &timer_set, NULL);
+	set_sighandler(SIGALRM, timer_sighandler, NULL);
 
 	if (nprocs != 0 || daemonized_tracer)
 		startup_attach();
@@ -1924,17 +1913,25 @@ init(int argc, char *argv[])
 }
 
 static struct tcb *
-pid2tcb(int pid)
+pid2tcb(const int pid)
 {
-	unsigned int i;
-
 	if (pid <= 0)
 		return NULL;
 
-	for (i = 0; i < tcbtabsize; i++) {
-		struct tcb *tcp = tcbtab[i];
+#define PID2TCB_CACHE_SIZE 1024U
+#define PID2TCB_CACHE_MASK (PID2TCB_CACHE_SIZE - 1)
+
+	static struct tcb *pid2tcb_cache[PID2TCB_CACHE_SIZE];
+	struct tcb **const ptcp = &pid2tcb_cache[pid & PID2TCB_CACHE_MASK];
+	struct tcb *tcp = *ptcp;
+
+	if (tcp && tcp->pid == pid)
+		return tcp;
+
+	for (unsigned int i = 0; i < tcbtabsize; ++i) {
+		tcp = tcbtab[i];
 		if (tcp->pid == pid)
-			return tcp;
+			return *ptcp = tcp;
 	}
 
 	return NULL;
@@ -2223,7 +2220,6 @@ static enum trace_event
 next_event(int *pstatus, siginfo_t *si)
 {
 	int pid;
-	int wait_errno;
 	int status;
 	struct tcb *tcp;
 	struct rusage ru;
@@ -2252,12 +2248,42 @@ next_event(int *pstatus, siginfo_t *si)
 			return TE_BREAK;
 	}
 
-	if (interactive)
-		sigprocmask(SIG_SETMASK, &start_set, NULL);
+	const bool unblock_delay_timer = is_delay_timer_armed();
+
+	/*
+	 * The window of opportunity to handle expirations
+	 * of the delay timer opens here.
+	 *
+	 * Unblock the signal handler for the delay timer
+	 * iff the delay timer is already created.
+	 */
+	if (unblock_delay_timer)
+		sigprocmask(SIG_UNBLOCK, &timer_set, NULL);
+
+	/*
+	 * If the delay timer has expired, then its expiration
+	 * has been handled already by the signal handler.
+	 *
+	 * If the delay timer expires during wait4(),
+	 * then the system call will be interrupted and
+	 * the expiration will be handled by the signal handler.
+	 */
 	pid = wait4(-1, pstatus, __WALL, (cflag ? &ru : NULL));
-	wait_errno = errno;
-	if (interactive)
-		sigprocmask(SIG_SETMASK, &blocked_set, NULL);
+	const int wait_errno = errno;
+
+	/*
+	 * The window of opportunity to handle expirations
+	 * of the delay timer closes here.
+	 *
+	 * Block the signal handler for the delay timer
+	 * iff it was unblocked earlier.
+	 */
+	if (unblock_delay_timer) {
+		sigprocmask(SIG_BLOCK, &timer_set, NULL);
+
+		if (restart_failed)
+			return TE_BREAK;
+	}
 
 	if (pid < 0) {
 		if (wait_errno == EINTR)
@@ -2298,8 +2324,12 @@ next_event(int *pstatus, siginfo_t *si)
 	set_current_tcp(tcp);
 
 	if (cflag) {
-		tv_sub(&tcp->dtime, &ru.ru_stime, &tcp->stime);
-		tcp->stime = ru.ru_stime;
+		struct timespec stime = {
+			.tv_sec = ru.ru_stime.tv_sec,
+			.tv_nsec = ru.ru_stime.tv_usec * 1000
+		};
+		ts_sub(&tcp->dtime, &stime, &tcp->stime);
+		tcp->stime = stime;
 	}
 
 	if (WIFSIGNALED(status))
@@ -2348,7 +2378,6 @@ next_event(int *pstatus, siginfo_t *si)
 			return stopped ? TE_GROUP_STOP : TE_SIGNAL_DELIVERY_STOP;
 		}
 		break;
-#if USE_SEIZE
 	case PTRACE_EVENT_STOP:
 		/*
 		 * PTRACE_INTERRUPT-stop or group-stop.
@@ -2362,7 +2391,6 @@ next_event(int *pstatus, siginfo_t *si)
 			return TE_GROUP_STOP;
 		}
 		return TE_RESTART;
-#endif
 	case PTRACE_EVENT_EXEC:
 		return TE_STOP_BEFORE_EXECVE;
 	case PTRACE_EVENT_EXIT:
@@ -2386,10 +2414,10 @@ trace_syscall(struct tcb *tcp, unsigned int *sig)
 		syscall_entering_finish(tcp, res);
 		return res;
 	} else {
-		struct timeval tv = {};
-		int res = syscall_exiting_decode(tcp, &tv);
+		struct timespec ts = {};
+		int res = syscall_exiting_decode(tcp, &ts);
 		if (res != 0) {
-			res = syscall_exiting_trace(tcp, tv, res);
+			res = syscall_exiting_trace(tcp, &ts, res);
 		}
 		syscall_exiting_finish(tcp);
 		return res;
@@ -2524,12 +2552,84 @@ dispatch_event(enum trace_event ret, int *pstatus, siginfo_t *si)
 	if (interrupted)
 		return false;
 
+	/* If the process is being delayed, do not ptrace_restart just yet */
+	if (syscall_delayed(current_tcp))
+		return true;
+
 	if (ptrace_restart(restart_op, current_tcp, restart_sig) < 0) {
 		/* Note: ptrace_restart emitted error message */
 		exit_code = 1;
 		return false;
 	}
 	return true;
+}
+
+static bool
+restart_delayed_tcb(struct tcb *const tcp)
+{
+	debug_func_msg("pid %d", tcp->pid);
+
+	tcp->flags &= ~TCB_DELAYED;
+
+	struct tcb *const prev_tcp = current_tcp;
+	current_tcp = tcp;
+	bool ret = dispatch_event(TE_RESTART, NULL, NULL);
+	current_tcp = prev_tcp;
+
+	return ret;
+}
+
+static bool
+restart_delayed_tcbs(void)
+{
+	struct tcb *tcp_next = NULL;
+	struct timespec ts_now;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts_now);
+
+	for (size_t i = 0; i < tcbtabsize; i++) {
+		struct tcb *tcp = tcbtab[i];
+
+		if (tcp->pid && syscall_delayed(tcp)) {
+			if (ts_cmp(&ts_now, &tcp->delay_expiration_time) > 0) {
+				if (!restart_delayed_tcb(tcp))
+					return false;
+			} else {
+				/* Check whether this tcb is the next.  */
+				if (!tcp_next ||
+				    ts_cmp(&tcp_next->delay_expiration_time,
+					   &tcp->delay_expiration_time) > 0) {
+					tcp_next = tcp;
+				}
+			}
+		}
+	}
+
+	if (tcp_next)
+		arm_delay_timer(tcp_next);
+
+	return true;
+}
+
+/*
+ * As this signal handler does a lot of work that is not suitable
+ * for signal handlers, extra care must be taken to ensure that
+ * it is enabled only in those places where it's safe.
+ */
+static void
+timer_sighandler(int sig)
+{
+	delay_timer_expired();
+
+	if (restart_failed)
+		return;
+
+	int saved_errno = errno;
+
+	if (!restart_delayed_tcbs())
+		restart_failed = 1;
+
+	errno = saved_errno;
 }
 
 #ifdef ENABLE_COVERAGE_GCOV
@@ -2579,6 +2679,7 @@ terminate(void)
 int
 main(int argc, char *argv[])
 {
+	setlocale(LC_ALL, "");
 	init(argc, argv);
 
 	exit_code = !nprocs;

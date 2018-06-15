@@ -138,6 +138,7 @@ struct btrfs_ioctl_search_args_v2 {
 #include "xlat/btrfs_features_compat_ro.h"
 #include "xlat/btrfs_features_incompat.h"
 #include "xlat/btrfs_key_types.h"
+#include "xlat/btrfs_logical_ino_args_flags.h"
 #include "xlat/btrfs_qgroup_ctl_cmds.h"
 #include "xlat/btrfs_qgroup_inherit_flags.h"
 #include "xlat/btrfs_qgroup_limit_flags.h"
@@ -538,7 +539,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 	case BTRFS_IOC_START_SYNC: /* R */
 		if (entering(tcp))
 			return 0;
-	/* fall through */
+	ATTRIBUTE_FALLTHROUGH;
 	/* takes a u64 */
 	case BTRFS_IOC_DEFAULT_SUBVOL: /* W */
 	case BTRFS_IOC_WAIT_SYNC: /* W */
@@ -922,7 +923,9 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		if (entering(tcp)) {
 			tprintf("inum=%" PRI__u64 ", size=%" PRI__u64,
 				args.inum, args.size);
-			tprintf(", fspath=0x%" PRI__x64 "}", args.fspath);
+			tprints(", fspath=");
+			printaddr64(args.fspath);
+			tprints("}");
 			return 0;
 		}
 
@@ -951,7 +954,27 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 		if (entering(tcp)) {
 			tprintf("logical=%" PRI__u64 ", size=%" PRI__u64,
 				args.logical, args.size);
-			tprintf(", inodes=0x%" PRI__x64 "}", args.inodes);
+
+			if (!IS_ARRAY_ZERO(args.reserved)) {
+				tprints(", reserved=[");
+				for (size_t i = 0; i < 3; ++i)
+					tprintf("%s%#" PRI__x64,
+						i ? ", " : "",
+						args.reserved[i]);
+				tprints("]");
+			}
+
+			tprintf(", flags=");
+			printflags64(btrfs_logical_ino_args_flags,
+#ifdef HAVE_STRUCT_BTRFS_IOCTL_LOGICAL_INO_ARGS_FLAGS
+				     args.flags
+#else
+				     args.reserved[3]
+#endif
+				     , "BTRFS_LOGICAL_INO_ARGS_???");
+			tprints(", inodes=");
+			printaddr64(args.inodes);
+			tprints("}");
 			return 0;
 		}
 
@@ -1318,7 +1341,7 @@ MPERS_PRINTER_DECL(int, btrfs_ioctl,
 	case BTRFS_IOC_GET_FSLABEL: /* R */
 		if (entering(tcp))
 			return 0;
-		/* fall through */
+		ATTRIBUTE_FALLTHROUGH;
 	case BTRFS_IOC_SET_FSLABEL: { /* W */
 		char label[BTRFS_LABEL_SIZE];
 

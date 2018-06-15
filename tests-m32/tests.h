@@ -29,14 +29,25 @@
 #ifndef STRACE_TESTS_H
 #define STRACE_TESTS_H
 
-# ifdef HAVE_CONFIG_H
-#  include "config.h"
-# endif
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
-# include <sys/types.h>
-# include "kernel_types.h"
-# include "gcc_compat.h"
-# include "macros.h"
+#ifdef TESTS_SIZEOF_KERNEL_LONG_T
+# undef SIZEOF_KERNEL_LONG_T
+# define SIZEOF_KERNEL_LONG_T TESTS_SIZEOF_KERNEL_LONG_T
+#endif
+
+#ifdef TESTS_SIZEOF_LONG
+# undef SIZEOF_LONG
+# define SIZEOF_LONG TESTS_SIZEOF_LONG
+#endif
+
+#include <stdbool.h>
+#include <sys/types.h>
+#include "kernel_types.h"
+#include "gcc_compat.h"
+#include "macros.h"
 
 /*
  * The printf-like function to use in header files
@@ -140,6 +151,9 @@ const char *hexquote_strndup(const char *, size_t);
 /* Return inode number of socket descriptor. */
 unsigned long inode_of_sockfd(int);
 
+/* Print string in a quoted form with optional escape characters. */
+void print_quoted_string_ex(const char *, bool quote, const char *escape_str);
+
 /* Print string in a quoted form. */
 void print_quoted_string(const char *);
 
@@ -148,6 +162,10 @@ void print_quoted_string(const char *);
  * in a quoted form.
  */
 void print_quoted_cstring(const char *str, size_t size);
+
+/* Print memory in a quoted form with optional escape characters. */
+void print_quoted_memory_ex(const void *, size_t, bool quote,
+			    const char *escape_chars);
 
 /* Print memory in a quoted form. */
 void print_quoted_memory(const void *, size_t);
@@ -249,19 +267,19 @@ f8ill_ptr_to_kulong(const void *const ptr)
 	 sizeof(v) == sizeof(long) ? (long long) (long) (v) : \
 	 (long long) (v))
 
-# define SKIP_MAIN_UNDEFINED(arg) \
+#define SKIP_MAIN_UNDEFINED(arg) \
 	int main(void) { error_msg_and_skip("undefined: %s", arg); }
 
-# if WORDS_BIGENDIAN
-#  define LL_PAIR(HI, LO) (HI), (LO)
-# else
-#  define LL_PAIR(HI, LO) (LO), (HI)
-# endif
-# define LL_VAL_TO_PAIR(llval) LL_PAIR((long) ((llval) >> 32), (long) (llval))
+#if WORDS_BIGENDIAN
+# define LL_PAIR(HI, LO) (HI), (LO)
+#else
+# define LL_PAIR(HI, LO) (LO), (HI)
+#endif
+#define LL_VAL_TO_PAIR(llval) LL_PAIR((long) ((llval) >> 32), (long) (llval))
 
-# define _STR(_arg) #_arg
-# define ARG_STR(_arg) (_arg), #_arg
-# define ARG_ULL_STR(_arg) _arg##ULL, #_arg
+#define _STR(_arg) #_arg
+#define ARG_STR(_arg) (_arg), #_arg
+#define ARG_ULL_STR(_arg) _arg##ULL, #_arg
 
 /*
  * Assign an object of type DEST_TYPE at address DEST_ADDR

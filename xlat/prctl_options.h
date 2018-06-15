@@ -137,6 +137,12 @@
 #if !(defined(PR_CAP_AMBIENT) || (defined(HAVE_DECL_PR_CAP_AMBIENT) && HAVE_DECL_PR_CAP_AMBIENT))
 # define PR_CAP_AMBIENT 47
 #endif
+#if !(defined(PR_SVE_SET_VL) || (defined(HAVE_DECL_PR_SVE_SET_VL) && HAVE_DECL_PR_SVE_SET_VL))
+# define PR_SVE_SET_VL 50
+#endif
+#if !(defined(PR_SVE_GET_VL) || (defined(HAVE_DECL_PR_SVE_GET_VL) && HAVE_DECL_PR_SVE_GET_VL))
+# define PR_SVE_GET_VL 51
+#endif
 #if !(defined(PR_SET_VMA) || (defined(HAVE_DECL_PR_SET_VMA) && HAVE_DECL_PR_SET_VMA))
 # define PR_SET_VMA 0x53564d41
 #endif
@@ -195,6 +201,8 @@ const struct xlat prctl_options[] = {
  XLAT(PR_SET_FP_MODE),
  XLAT(PR_GET_FP_MODE),
  XLAT(PR_CAP_AMBIENT),
+ XLAT(PR_SVE_SET_VL),
+ XLAT(PR_SVE_GET_VL),
  XLAT(PR_SET_VMA),
  XLAT_END
 };

@@ -5,7 +5,7 @@
  * Copyright (c) 2016 Masatake Yamato <yamato@redhat.com>
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2016 Eugene Syromyatnikov <evgsyr@gmail.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,7 @@ dm_decode_values(struct tcb *tcp, const unsigned int code,
 		case DM_DEV_SUSPEND:
 			if (ioc->flags & DM_SUSPEND_FLAG)
 				break;
-			/* Fall through */
+			ATTRIBUTE_FALLTHROUGH;
 		case DM_DEV_RENAME:
 		case DM_DEV_REMOVE:
 		case DM_DEV_WAIT:

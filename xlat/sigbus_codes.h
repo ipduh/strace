@@ -28,6 +28,9 @@ const struct xlat sigbus_codes[] = {
  XLAT(BUS_ADRALN),
  XLAT(BUS_ADRERR),
  XLAT(BUS_OBJERR),
+#if defined(BUS_OPFETCH) || (defined(HAVE_DECL_BUS_OPFETCH) && HAVE_DECL_BUS_OPFETCH)
+  XLAT(BUS_OPFETCH),
+#endif
  XLAT(BUS_MCEERR_AR),
  XLAT(BUS_MCEERR_AO),
  XLAT_END

@@ -103,6 +103,7 @@ extern SYS_FUNC(io_setup);
 extern SYS_FUNC(io_submit);
 extern SYS_FUNC(ipc);
 extern SYS_FUNC(kcmp);
+extern SYS_FUNC(kern_features);
 extern SYS_FUNC(kexec_file_load);
 extern SYS_FUNC(kexec_load);
 extern SYS_FUNC(keyctl);

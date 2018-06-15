@@ -49,6 +49,7 @@ clock_xettime	-a36 -e trace=clock_getres,clock_gettime,clock_settime
 copy_file_range
 creat	-a20
 delete_module	-a23
+dev-yy	-a30 -e trace=openat,fsync -P "/dev/full" -P "/dev/zero" -P "/dev/sda" -yy
 dup	-a8
 dup2	-a13
 dup3	-a24
@@ -85,6 +86,7 @@ fstatat64	-a32 -v -P stat.sample -P /dev/full
 fstatfs	-a18
 fstatfs64	-a24
 fsync	-a10
+fsync-y -y -e trace=fsync
 ftruncate	-a24
 ftruncate64	-a36
 futimesat	-a28
@@ -152,6 +154,7 @@ ipc_sem	+ipc.sh
 ipc_shm	+ipc.sh
 kcmp	-a22
 kcmp-y	-a22 -y -e trace=kcmp
+kern_features -a16
 kexec_file_load	-s9
 kexec_load	-s9
 keyctl	-a31 -s10
@@ -195,6 +198,7 @@ munlockall	-a13
 nanosleep	-a20
 net-icmp_filter	-e trace=getsockopt,setsockopt
 net-sockaddr	-a24 -e trace=connect
+net-yy-inet6	+net-yy-inet.test
 netlink_audit	+netlink_sock_diag.test
 netlink_crypto	+netlink_sock_diag.test
 netlink_generic	+netlink_sock_diag.test
@@ -291,7 +295,7 @@ quotactl
 quotactl-v	-v -e trace=quotactl
 quotactl-xfs	-e trace=quotactl
 quotactl-xfs-v	-v -e trace=quotactl
-read-write	-a15 -eread=0 -ewrite=1 -e trace=read,write -P read-write-tmpfile -P /dev/zero -P /dev/null
+read-write	-a15 -eread=0,5 -ewrite=1,4 -e trace=read,write -P read-write-tmpfile -P /dev/zero -P /dev/null
 readahead	-a1
 readdir	-a16
 readlink	-xx

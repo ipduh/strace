@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+export LC_ALL=C
 ME_="${0##*/}"
 LOG="log"
 OUT="out"
@@ -236,7 +237,7 @@ kernel_version_code()
 	(
 		set -f
 		IFS=.
-		set -- $1
+		set -- $1 0 0
 		v1="${1%%[!0-9]*}" && [ -n "$v1" ] || v1=0
 		v2="${2%%[!0-9]*}" && [ -n "$v2" ] || v2=0
 		v3="${3%%[!0-9]*}" && [ -n "$v3" ] || v3=0

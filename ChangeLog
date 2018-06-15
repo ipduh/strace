@@ -1,7 +1,2046 @@
+2018-04-05  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Prepare for 4.22 release.
+	* NEWS: Update for 4.22 release.
+
+	Update copyright headers.
+	Headers updated automatically using maint/update_copyright_years.sh
+	script.
+
+2018-04-05  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update NEWS.
+
+2018-04-05  Masatake YAMATO  <yamato@redhat.com>
+
+	unwind: split unwind code into front-end and back-end.
+	This opens the way for alternative unwinder back-ends.
+
+	* unwind.h: New file, defines the unwinder back-end interface.
+	* unwind.c: Move all libunwind related code ...
+	* unwind-libunwind.c: ... here.
+	* Makefile.am [USE_LIBUNWIND] (strace_SOURCES): Add unwind.h
+	and unwind-libunwind.c.
+
+2018-04-05  Masatake YAMATO  <yamato@redhat.com>
+
+	unwind: rename public functions in an object-oriented fashion.
+	This change renames functions exported to strace core part from unwind
+	subsystem.
+
+	The new names imply that unwind subsystem exports two types of
+	functions.  One is for manipulating back-end itself, "unwind_" prefix
+	is used for this type.  Another is for manipulating back-end private data
+	structure (unwind_ctx) attached to tcb, "unwind_tcb_" is used for this
+	type.
+
+	This naming should help people to understand unwind subsystem
+	and the relation between unwind subsystem and back-ends.
+
+	* defs.h (unwind_print_stacktrace): Rename to unwind_tcb_print.
+	(unwind_capture_stacktrace): Rename to unwind_tcb_capture.
+	* unwind.c: Ditto.
+	* syscall.c (syscall_entering_trace, syscall_exiting_trace): Use
+	new names.
+
+2018-04-05  Masatake YAMATO  <yamato@redhat.com>
+
+	unwind: add unwind_ prefix to struct tcb.queue field and its type.
+	The names given to struct tcb.queue field and its type are too common,
+	this may cause conflicts in the future if new fields are added
+	to struct tcb.
+
+	* defs.h (struct tcb): Rename queue field to unwind_queue,
+	rename its type queue_t to unwind_queue_t.
+	* unwind.c (struct unwind_queue_t): Rename to unwind_queue_t.
+	All users updated.
+
+2018-04-05  Masatake YAMATO  <yamato@redhat.com>
+
+	unwind: make the field type of struct tcb independent from libunwind.
+	Narrowing the area where the code refers to names associated with
+	libunwind is needed to utilize libdw of elfutils as an alternative
+	unwinder.
+
+	* defs.h (struct tcb): Rename libunwind_ui field to unwind_ctx, change
+	its type to "void *".
+	* unwind.c (unwind_tcb_init, unwind_tcb_fin, stracetrace_walk): Reflect
+	* the above field renaming.
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: robustify options-syntax.test against ash.
+	* tests/options-syntax.test: Do not assume that shell provides $UID,
+	use "id -u" if it doesn't.
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.c: add support for opening output file in append mode.
+	* strace.c (open_append): New variable.
+	(init): Handle -A option.
+	(strace_fopen): Open file in "a" mode if open_append is set to true.
+	* strace.1.in: Document this.
+	* NEWS: Mention this.
+
+	Suggested-by: Philipp Marek <philipp.marek@emerion.com>
+	Closes: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=528488
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.c: support simultaneous usage of -r and -t options.
+	* strace.c (init): Do not set tflag when rflag is set.
+	(printleader): Handle rflag and tflag separately.
+	* strace.1.in (.SH OPTIONS): Add a note about differences between
+	the monotonic clock time  and the wall clock time.
+	* tests/options-syntax.test: Remove the check for
+	"-tt has no effect with -r" warning.
+	* NEWS: Mention this.
+
+	Suggested-by: Josh Triplett <josh@freedesktop.org>
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+	Closes: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=466195
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	syscall.c: dump write I/O even if error is returned.
+	It makes sense to try to dump the argument of write syscalls as they can
+	be readily available despite the fact that error has been returned.
+
+	* syscall.c (dumpio): Move check for syserror and check for fd in
+	read_set to the end of the function.
+	* tests/read-write.c: Add a check for this behaviour.
+	* tests/pread64-pwrite64.c: Update expected output.
+	* NEWS: Mention this.
+
+	Suggested-by: J. Bruce Fields <bfields@fieldses.org>
+	Closes: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=436284
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace: handle possible NULL from localtime() call.
+	* strace.c (printleader): Print raw tv_sec value if localtime() returned
+	NULL.
+	* tests/localtime.c: New file.
+	* tests/localtime.test: New test.
+	* tests/Makefile.am (check_PROGRAMS): Add localtime.
+	(MISC_TESTS): Add localtime.test.
+	(localtime_LDADD): New variable.
+	* tests/.gitignore: Add localtime.
+	* ci/install-dependencies.sh (common_packages): Add faketime.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+	Closes: https://github.com/strace/strace/issues/42
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Return RVAL_STR unconditionally.
+	There is no reason to check for auxstr being non-NULL
+	because syscall_exiting_trace already does the check.
+
+	* sched.c (SYS_FUNC(sched_getscheduler)): Do not check tcp->auxstr,
+	return RVAL_STR unconditionally.
+	* time.c (do_adjtimex): Likewise.
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	dist/README: s/linux/Linux/
+	* dist/README: Replace "linux" with "Linux".
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.1.in: fix formatting of -e trace class descriptions.
+	Use .TP instead .PP as it is ought to be.
+
+	* strace.1.in (.SS Filtering): Use .TP instead .PP as it is ought to be.
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	nlattr: check NLA_TYPE_MASK at compile time.
+	* nlattr.c: Include "static_assert.h"
+	(print_nlattr): Check the expectations about NLA_TYPE_MASK.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf: add a comment about bpf_attr decoding.
+	* bpf.c: Add comment.
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check decoding of bpf_attr of size 1.
+	* tests/bpf.c (BPF_PROG_GET_NEXT_ID_checks): New entry.
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf: use print_big_u64_addr.
+	Since pointers stored in the bpf_attr union are 64-bit regardless
+	of architecture bitness.
+
+	* bpf.c (DEF_BPF_CMD_DECODER(BPF_PROG_LOAD)): Call print_big_u64_addr
+	for attr.license.
+	(DEF_BPF_CMD_DECODER(BPF_OBJ_PIN)): Call print_big_u64_addr
+	for attr.pathname.
+	* tests/bpf.c (BPF_OBJ_PIN_checks): Check it.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf: add support for file mode flags.
+	These were introduced by Linux commit v4.15-rc1~84^2~384^2~4.
+
+	* bpf_attr.h (struct BPF_OBJ_PIN_struct): Add file_flags field.
+	(struct BPF_PROG_GET_NEXT_ID_struct, struct BPF_PROG_GET_FD_BY_ID_struct,
+	struct BPF_MAP_GET_FD_BY_ID_struct): Add open_flags field.
+	(BPF_OBJ_PIN_struct_size, expected_BPF_OBJ_PIN_struct_size,
+	expected_BPF_PROG_GET_NEXT_ID_struct_size,
+	expected_BPF_PROG_GET_FD_BY_ID_struct_size,
+	expected_BPF_MAP_GET_FD_BY_ID_struct_size): Update.
+	* bpf.c (DEF_BPF_CMD_DECODER(BPF_OBJ_PIN)): Check the length, skip
+	printing the rest of attributes if it is less than offset of the
+	end of the bpf_fd field, print file_flags field otherwise.
+	(DEF_BPF_CMD_DECODER(BPF_PROG_GET_NEXT_ID),
+	DEF_BPF_CMD_DECODER(BPF_PROG_GET_FD_BY_ID),
+	DEF_BPF_CMD_DECODER(BPF_MAP_GET_FD_BY_ID)): Check the length, skip
+	printing the rest of attributes if it is less than offset of the
+	end of the next_id field, print open_flags field otherwise.
+	* xlat/bpf_file_mode_flags.in: New file.
+	* tests/bpf.c (BPF_OBJ_PIN_checks, BPF_PROG_GET_NEXT_ID_checks,
+	BPF_PROG_GET_FD_BY_ID_checks, BPF_MAP_GET_FD_BY_ID_checks): Check it.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: refactor bpf test.
+	The aim of this change is to introduce an ability to perform multiple
+	checks for a specific bpf command.  In order to achieve so, all the
+	related data is stored in check descriptor, and test_bpf iterates over
+	it.  There are also some provisions made in regard to future changes
+	(specifically, the way bpf_attr_data union is defined).
+
+	* tests/bpf.c (print_bpf_attr): New function, a wrapper around
+	struct bpf_check.printer.
+	(test_bpf_): Rename to...
+	(test_bpf): ...this.  Replace arguments with struct bpf_check pointer.
+	Iterate over possible attribute variants. Account for changes in
+	attribute initialisation routine: provide a pointer to locally defined
+	union bpf_attr_data and perform memcpy afterwards. Initialise memory
+	from data each time before a bpf call.
+	(TEST_BPF, DEF_*, init_*, print_*): Remove.
+	(init_BPF_PROG_LOAD_attr, print_BPF_PROG_LOAD_attr,
+	init_BPF_OBJ_PIN_attr): New functions.
+	(license, pathname): New variables.
+	(BPF_MAP_CREATE_checks, BPF_MAP_LOOKUP_ELEM_checks,
+	BPF_MAP_UPDATE_ELEM_checks, BPF_MAP_DELETE_ELEM_checks,
+	BPF_MAP_GET_NEXT_KEY_checks, BPF_PROG_LOAD_checks, BPF_OBJ_PIN_checks,
+	BPF_PROG_ATTACH_checks, BPF_PROG_DETACH_checks,
+	BPF_PROG_TEST_RUN_checks, BPF_PROG_GET_NEXT_ID_checks,
+	BPF_PROG_GET_FD_BY_ID_checks, BPF_MAP_GET_FD_BY_ID_checks,
+	BPF_OBJ_GET_INFO_BY_FD_checks): New arrays.
+	(BPF_OBJ_GET_checks, BPF_MAP_GET_NEXT_ID_checks): New macros.
+	(CHK): New macro, a shorthand for initialising array of struct bpf_check.
+	(main): New static constant checks, iterate over checks and run test_bpf
+	with each element.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	print_fields.h: introduce PRINT_FIELD_ADDR and PRINT_FIELD_ADDR64 macros
+	* print_fields.h (PRINT_FIELD_ADDR, PRINT_FIELD_ADDR64): New macro.
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	print_fields.h: introduce PRINT_FIELD_CSTRING_SZ macro.
+	A variant of PRINT_FIELD_CSTRING with an ability to pass string size
+	explicitly.
+
+	* print_fields.h (PRINT_FIELD_CSTRING_SZ): New macro.
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	print_fields.h: check whether passed field is an array in PRINT_FIELD_CSTRING
+	* print_fields.h (PRINT_FIELD_CSTRING): Add MUST_BE_ARRAY to the size
+	value in order to check whether (where_).field_ is an array in compile
+	time.
+
+	print_fields.h: whitespace fix in PRINT_FIELD_HEX_ARRAY.
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	bpf_attr: add more size checks.
+	* bpf_attr.h: Add expected sizes of structures.
+	* gen_bpf_attr_check.sh: Check them.
+
+	tests: check bpf syscall decoder unconditionally.
+	* configure.ac (AC_CHECK_HEADERS([linux/bpf.h])): Check for
+	struct bpf_insn.
+	* tests/bpf.c: Remove the test guard, include "scno.h", "bpf_attr.h",
+	"xlat.h", and "xlat/bpf_commands.h".  Conditionalize inclusion of
+	<linux/bpf.h> on HAVE_LINUX_BPF_H.  Remove all HAVE_UNION_* checks.
+	(BPF_ATTR_DATA_FIELD): New macro.
+	(bpf_attr_data): New union.  Note that it is larger than modern
+	union bpf_attr, this allows more checks to be implemented in the future.
+	(sizeof_attr, test_bpf_): Replace union bpf_attr with
+	union bpf_attr_data.
+	(DEF_BPF_INIT_FIRST): Replace union bpf_attr with the corresponding
+	structure.
+	(init_BPF_MAP_CREATE_attr): Replace union bpf_attr with
+	struct BPF_MAP_CREATE_struct.
+	(init_BPF_MAP_LOOKUP_ELEM_attr): Replace union bpf_attr with
+	struct BPF_MAP_LOOKUP_ELEM_struct.
+	(init_BPF_MAP_UPDATE_ELEM_attr): Replace union bpf_attr with
+	struct BPF_MAP_UPDATE_ELEM_struct.
+	(init_BPF_MAP_DELETE_ELEM_attr): Replace union bpf_attr with
+	struct BPF_MAP_DELETE_ELEM_struct.
+	(init_BPF_MAP_GET_NEXT_KEY_attr): Replace union bpf_attr with
+	struct BPF_MAP_GET_NEXT_KEY_struct.
+	(init_BPF_PROG_LOAD_attr): Replace union bpf_attr with
+	struct BPF_PROG_LOAD_struct.
+	(init_BPF_OBJ_PIN_attr): Replace union bpf_attr with
+	struct BPF_OBJ_PIN_struct.
+	(init_BPF_PROG_ATTACH_attr): Replace union bpf_attr with
+	struct BPF_PROG_ATTACH_struct.
+	(init_BPF_PROG_DETACH_attr): Replace union bpf_attr with
+	struct BPF_PROG_DETACH_struct.
+	(init_BPF_PROG_GET_NEXT_ID_attr): Replace union bpf_attr with
+	struct BPF_PROG_GET_NEXT_ID_struct.
+	(sample_BPF_PROG_TEST_RUN_attr): Change type from union bpf_attr to
+	struct BPF_PROG_TEST_RUN_struct, all users updated.
+	(sample_BPF_OBJ_GET_INFO_BY_FD_attr): Change type from union bpf_attr
+	to struct BPF_OBJ_GET_INFO_BY_FD_struct, all users updated.
+
+	Check that structures defined by bpf_attr.h match system union bpf_attr.
+	* gen_bpf_attr_check.sh: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	(strace_SOURCES_check): New variable.
+	(strace_SOURCES): Add $(strace_SOURCES_check).
+	(BUILT_SOURCES, CLEANFILES): Add bpf_attr_check.c.
+	(bpf_attr_check.c): New rule.
+	(sys_func_h_sources): New variable.
+	(sys_func.h): Use it instead of strace_SOURCES_c.
+	* .gitignore: Add /bpf_attr_check.c.
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	build: generate all union bpf_attr checks automatically.
+	Rather than list by hand some members of union bpf_attr that we check
+	for availability, automatically list all members of union bpf_attr we
+	are aware of.
+
+	* m4/gen_bpf_attr_m4.sh: New file.
+	* bootstrap: Invoke it.
+	* configure.ac (AC_CHECK_HEADERS([linux/bpf.h])): Use st_BPF_ATTR.
+	* m4/.gitignore: New file.
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	bpf: move definitions of bpf_attr structures to separate header file.
+	This also unifies decoders of bpf commands by moving common code
+	to new macros.
+
+	* bpf_attr.h: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* bpf.c: Include it.
+	(DEF_BPF_CMD_DECODER): Rename to BEGIN_BPF_CMD_DECODER, add code common
+	to all decoders.  All users updated.
+	(END_BPF_CMD_DECODER): New macro, add its invocation to all users
+	of BEGIN_BPF_CMD_DECODER macro.
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Introduce print_big_u64_addr.
+	This is needed at least for bpf, btrfs, and sg_io, as 32-bit tracer
+	cannot figure out whether the kernel is 32-bit or 64-bit,
+	and its behaviour differs when it handles u64 as a pointer.
+
+	* linux/arch_defs_.h [!CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL]
+	(CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL): New definition, default to 0.
+	* linux/arm/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Define to 1.
+	* linux/i386/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Likewise.
+	* linux/mips/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Likewise.
+	* linux/powerpc/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Likewise.
+	* linux/riscv/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Likewise.
+	* linux/s390/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Likewise.
+	* linux/sparc/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Likewise.
+	* linux/tile/arch_defs_.h (CAN_ARCH_BE_COMPAT_ON_64BIT_KERNEL):
+	Likewise.
+	* defs.h (print_big_u64_addr): New function.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-04-04  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	defs.h: introduce max_addr and max_kaddr macros.
+	In order to check an address against maximum addr/kaddr value
+	for the current personality.
+
+	* degs.h (max_addr, max_kaddr): New macros.
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce static_assert.
+	We are going to use static_assert provided by <assert.h> or,
+	if it doesn't work, our cheap imitation that doesn't display
+	the message specified as the second argument of static_assert.
+
+	* configure.ac (AC_CACHE_CHECK): Check for static_assert in <assert.h>,
+	define HAVE_STATIC_ASSERT if it is available.
+	* static_assert.h: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: forward SIZEOF_KERNEL_LONG_T and SIZEOF_LONG to C preprocessor.
+	* tests/Makefile.am (AM_CPPFLAGS): Forward SIZEOF_KERNEL_LONG_T
+	and SIZEOF_LONG as TESTS_SIZEOF_KERNEL_LONG_T and TESTS_SIZEOF_LONG.
+	* tests/tests.h [TESTS_SIZEOF_KERNEL_LONG_T] (SIZEOF_KERNEL_LONG_T):
+	Redefine to TESTS_SIZEOF_KERNEL_LONG_T.
+	[TESTS_SIZEOF_LONG] (SIZEOF_LONG): Redefine to TESTS_SIZEOF_LONG.
+
+	Complements: v4.21~5 ("Export SIZEOF_LONG and SIZEOF_KERNEL_LONG_T to tests")
+
+2018-04-04  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests/tests.h: fix indentation.
+
+	tests: fix potential errno clobbering in netlink_kobject_uevent.test.
+	* tests/netlink_kobject_uevent.c (errstr): New variable.
+	(sys_send): New function.
+	(main): Use them.
+
+2018-04-03  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	Restore kvm ioctl definitions for aarch64 and mips architectures.
+	* maint/ioctls_sym.sh: Add aarch64 and mips architectures to the list
+	of kvm-capable architectures.
+	* linux/aarch64/ioctls_arch0.h: Regenerate.
+	* linux/mips/ioctls_arch0.h: Regenerate.
+
+	Fixes: v4.15~92 ("Move KVM_* ioctl entries from ioctls_inc*.h to ioctls_arch*.h")
+
+2018-04-03  Gleb Fotengauer-Malinovskiy  <glebfm@altlinux.org>
+
+	Update ioctl entries from linux v4.16.
+	* linux/32/ioctls_inc_align16.h: Update from linux v4.16
+	using ioctls_gen.sh.
+	* linux/32/ioctls_inc_align32.h: Likewise.
+	* linux/32/ioctls_inc_align64.h: Likewise.
+	* linux/64/ioctls_inc.h: Likewise.
+	* linux/x32/ioctls_inc0.h: Likewise.
+	* linux/arm/ioctls_arch0.h: Likewise.
+	* linux/i386/ioctls_arch0.h: Likewise.
+	* linux/powerpc/ioctls_arch0.h: Likewise.
+	* linux/s390/ioctls_arch0.h: Likewise.
+	* linux/s390x/ioctls_arch0.h: Likewise.
+	* linux/x86_64/ioctls_arch0.h: Likewise.
+	* NEWS: Mention this.
+
+	maint: update for linux 4.16.
+	* maint/ioctls_sym.sh: Add workaround for linux/ndctl.h file.
+	Update workaround for media/v4l2-common.h file.
+	(x86_list): Add KVM_GET_MSR_FEATURE_INDEX_LIST.
+
+2018-04-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util.c: amend sprinttime_ex description a bit.
+	* util.c (sprinttime_ex): Document return value.
+
+	tests/bpf.c: add a check for NULL bpf_attr pointer.
+	* tests/bpf.c (main): Add a check with 0 passed in the third argument.
+
+2018-04-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf: print byte range for extra data.
+	As it could be not entirely clear what bytes are printed.
+
+	* bpf.c (decode_attr_extra_data): Print a comment about the byte range
+	to be printed.
+	* tests/bpf.c: Update expected output.
+
+2018-04-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Remove addflags.
+	It has only single user and implementation of xlat styles for it would
+	lead to lots of code duplication.
+
+	* defs.h (addflags): Remove declaration.
+	* mem.c (print_mmap_flags): Convert addflags call into printflags64 with
+	non-zeroeness flags check.
+	* xlat.c (addflags): Remove.
+
+2018-04-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Add i18n support.
+	Let's make a step towards the growing strace userbase all around
+	the world and translate something to the language of their choice.
+
+	This change enables translation of error messages corresponding
+	to errno codes, making it consistent with error diagnostics of other
+	i18n-aware tools, e.g.
+
+	$ LANG=es_ES strace -qq -a38 -P /missing unlink /missing
+	unlink("/missing")                    = -1 ENOENT (No existe el fichero o el directorio)
+	unlink: no se puede deshacer el enlace '/missing': No existe el fichero o el directorio
+
+	* strace.c: Include <locale.h>.
+	(main): Invoke setlocale.
+	* tests/init.sh: Export LC_ALL=C.
+	* NEWS: Mention this enhancement.
+
+2018-03-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Remove RVAL_PRINT_ERR_VAL.
+	* defs.h (RVAL_PRINT_ERR_VAL): Remove.
+	* ldt.c (SYS_FUNC(modify_ldt)): Return 0.
+	* syscall.c (syscall_exiting_trace): When printing an error,
+	always print struct tcb.u_rval as if RVAL_PRINT_ERR_VAL was set.
+
+2018-03-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Treat RVAL_DECIMAL the same way as RVAL_UDECIMAL.
+	Assuming that syscalls may return negative values only as error codes,
+	always print non-error syscall return codes as unsigned.
+
+	* defs.h (RVAL_UDECIMAL): Remove.
+	(RVAL_DECIMAL): Rename to RVAL_UDECIMAL.
+	* syscall.c (syscall_exiting_trace) <case RVAL_DECIMAL>: Remove.
+	* clone.c (SYS_FUNC(fork)): Remove RVAL_UDECIMAL.
+	* lseek.c (SYS_FUNC(lseek)): Likewise.
+	* prctl.c (SYS_FUNC(prctl)): Likewise.
+	* uid.c (SYS_FUNC(getuid), SYS_FUNC(setfsuid)): Likewise.
+	* times.c (SYS_FUNC(times)): Always return 0.
+	* tests/inject-nf.c (main): Update expected output.
+
+2018-03-29  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: check handling of some invalid delay injection parameters.
+	* tests/qual_inject-syntax.test: Check for negative delay injection
+	parameters.  Check for overriding delay injection parameters.
+
+2018-03-29  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement injection of negative return values.
+	Extend the range of injected return value to the maximum, print warnings
+	if negative injection value can be clipped in compat personality or can
+	inadvertently turn into a fault injection.
+
+	* defs.h (INJECT_F_ERROR): New macro.
+	* filter_qualify.c (parse_inject_token): Revert type of intval local
+	variable back to int, check INJECT_F_ERROR along with INJECT_F_RETVAL,
+	use strtoull to parse retval argument, print warnings in case of retval
+	clipping and inadvertent fault injection.
+	(qualify_inject_common): Set INJECT_F_ERROR instead of INJECT_F_RETVAL.
+	* syscall.c (tamper_with_syscall_exiting): Check inject_data.flags
+	to determine whether a fault injection or retval injection has to be
+	performed.
+	(syscall_exiting_trace) <case RVAL_DECIMAL>: Explicitly print
+	tcp->u_rval as int if current_klongsize < sizeof(tcp->u_rval).
+	* tests/inject-nf.c (main): Update.
+	* tests/inject-nf.test: Test injection of negative return values.
+	* tests/qual_inject-syntax.test: Remove retval=-1 check as it is now
+	allowed, add checks for invalid retval parameters.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	arch_defs.h: fix typo in comment.
+
+	Move delay interface from defs.h to delay.h.
+	* defs.h (alloc_delay_data, fill_delay_data, is_delay_timer_armed,
+	delay_timer_expired, arm_delay_timer, delay_tcb): Move...
+	* delay.h: ... to new file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* filter_qualify.c: Include it.
+	* strace.c: Likewise.
+	* syscall.c: Likewise.
+
+2018-03-28  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Turn struct inject_data.rval into an index.
+	Add one level of indirection to decrease the size of struct inject_data
+	as hundreds of these structures are created for each process when
+	injection mechanism is activated.
+
+	* retval.h: New file.
+	* retval.c: Likewise.
+	* Makefile.am (strace_SOURCES): Add them.
+	* defs.h (struct inject_data): Replace rval field with rval_idx.
+	* filter_qualify.c: Include "retval.h".
+	(parse_inject_token, qualify_inject_common): Initialize
+	struct inject_data.rval_idx using retval_new.
+	* syscall.c: Include "retval.h".
+	(tamper_with_syscall_exiting): Obtain the value that has to be injected
+	using retval_get.
+
+2018-03-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	defs.h: update comment.
+	* defs.h (struct inject_data): Update comment about flags.
+
+	Complements: v4.21-108-gba8e768 ("Implement delay injection")
+
+2018-03-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: cleanup mmap_flags.in.
+	* xlat/mmap_flags.in (_MAP_NEW): Remove SunOS-specific comment, add
+	a comment that this is a SPARC-specific constant (from
+	arch/sparc/include/uapi/asm/mman.h).
+	(MAP_GROWSUP): IA-64-specific constant (from
+	arch/ia64/include/uapi/asm/mman.h).
+	(MAP_INHERIT): Add a comment that this is a SPARC-specific constant
+	(from arch/sparc/include/uapi/asm/mman.h).
+	(_MAP_INHERIT): Add a comment that this is an Alpha-specific constant
+	(from arch/alpha/include/uapi/asm/mman.h).
+	(MAP_ANON): Remove, FreeBSD-specific constant.
+	(MAP_HASSEMAPHORE): Rename to...
+	(_MAP_HASSEMAPHORE): ...this, add a comment that this is an
+	Alpha-specific constant (from arch/alpha/include/uapi/asm/mman.h).
+	(MAP_NOSYNC, MAP_NOCORE): Remove.
+	(MAP_AUTOGROW, MAP_AUTORSRV, MAP_LOCAL): Add a comment that this is
+	an architecture-specific constant (from
+	arch/mips/include/uapi/asm/mman.h, arch/xtensa/include/uapi/asm/mman.h).
+	(_MAP_UNALIGNED): Add a comment that this is an Alpha-specific constant
+	(from arch/alpha/include/uapi/asm/mman.h).
+
+2018-03-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check decoding of kern_features syscall.
+	* tests/kern_features.c: New file.
+	* tests/kern_features-fault.test: New test.
+	* tests/gen_tests.in (kern_features): New entry.
+	* tests/Makefile.am (DECODER_TESTS): Add kern_features-fault.test.
+	* tests/pure_executables.list: Add kern_features.
+	* tests/.gitignore: Likewise.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	sparc, sparc64: implement kern_features decoder.
+	* sparc.c: New file.
+	* Makefile.am (EXTRA_DIST): Add it.
+	* linux/sparc/syscallent.h ([340]): Remove NF flag, set kern_features
+	decoder.
+	* linux/sparc64/syscallent.h ([340]): Likewise.
+	* xlat/sparc_kern_features.in: New file.
+	* NEWS: Mention this enhancement.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	evdev: move mpers-specific parsers to a separate file.
+	This change reduces binary code duplication on mpers platforms
+	and prepares evdev parsers to use printxval_bsearch.
+
+	* defs.h (evdev_ioctl, print_evdev_ff_type): New prototypes.
+	* evdev.c (evdev_ioctl): Un-mpersify.
+	(evdev_write_ioctl) Remove EVIOCSFF case, forward default case
+	to evdev_write_ioctl_mpers.
+	(decode_envelope, ff_effect_ioctl): Move to...
+	* evdev_mpers.c: ... new file.
+	* Makefile.am (strace_SOURCES): Add evdev_mpers.c.
+
+2018-03-26  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	ci: install libunwind8-dev.
+	While in debian/control we use libunwind-dev in Build-Depends, in case
+	of ci we have to be more conservative and use the name portable across
+	different ci implementations.
+
+	* ci/install-dependencies.sh (common_packages): Add libunwind8-dev.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-23  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check injection of return values into a "never fails" syscall.
+	* tests/inject-nf.c: New file.
+	* tests/inject-nf.test: New test.
+	* tests/.gitignore: Add inject-nf.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(MISC_TESTS): Add inject-nf.test.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce raw syscall invocation wrappers.
+	Unfortunately, syscall(3) provided by libc is too smart
+	for some of our needs.
+
+	* linux/raw_syscall.h: New file.
+	* linux/aarch64/raw_syscall.h: Likewise.
+	* linux/alpha/raw_syscall.h: Likewise.
+	* linux/arc/raw_syscall.h: Likewise.
+	* linux/arm/raw_syscall.h: Likewise.
+	* linux/avr32/raw_syscall.h: Likewise.
+	* linux/bfin/raw_syscall.h: Likewise.
+	* linux/hppa/raw_syscall.h: Likewise.
+	* linux/i386/raw_syscall.h: Likewise.
+	* linux/ia64/raw_syscall.h: Likewise.
+	* linux/m68k/raw_syscall.h: Likewise.
+	* linux/metag/raw_syscall.h: Likewise.
+	* linux/microblaze/raw_syscall.h: Likewise.
+	* linux/mips/raw_syscall.h: Likewise.
+	* linux/nios2/raw_syscall.h: Likewise.
+	* linux/or1k/raw_syscall.h: Likewise.
+	* linux/powerpc/raw_syscall.h: Likewise.
+	* linux/powerpc64/raw_syscall.h: Likewise.
+	* linux/riscv/raw_syscall.h: Likewise.
+	* linux/s390/raw_syscall.h: Likewise.
+	* linux/s390x/raw_syscall.h: Likewise.
+	* linux/sh/raw_syscall.h: Likewise.
+	* linux/sh64/raw_syscall.h: Likewise.
+	* linux/sparc/raw_syscall.h: Likewise.
+	* linux/sparc64/raw_syscall.h: Likewise.
+	* linux/tile/raw_syscall.h: Likewise.
+	* linux/x32/raw_syscall.h: Likewise.
+	* linux/x86_64/raw_syscall.h: Likewise.
+	* linux/xtensa/raw_syscall.h: Likewise.
+	* Makefile.am (EXTRA_DIST): Add them.
+
+2018-03-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: fix potentially unbound variable in kernel_version_code.
+	Fix the following use case:
+
+		$ sh -uc '. tests/init.sh; kernel_version_code 4.5'
+		tests/init.sh: line 242: 3: unbound variable
+
+	* tests/init.sh (kernel_version_code): Fix potentially unbound variable.
+
+2018-03-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace: further optimize unblocking of the delay signal handler.
+	Do not unblock the delay signal handler unless the delay timer is armed.
+
+	* defs.h (is_delay_timer_created): Remove.
+	(is_delay_timer_armed, delay_timer_expired): New prototypes.
+	* delay.c (delay_timer_is_armed): New static variable.
+	(is_delay_timer_created): Add static qualifier.
+	(is_delay_timer_armed, delay_timer_expired): New functions.
+	(arm_delay_timer): Set delay_timer_is_armed.
+	* strace.c (next_event): Use is_delay_timer_armed instead of
+	is_delay_timer_created to check whether the delay signal handler
+	has to be unblocked.
+	(timer_sighandler): Invoke delay_timer_expired.
+
+2018-03-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace: rewrite restart error handling without sigsetjmp/siglongjmp.
+	Further simplify and optimize error handling of the delay signal handler
+	by replacing sigsetjmp/siglongjmp mechanism with an error flag.
+
+	* strace.c: Do not include <setjmp.h>.
+	(restart_failed): New volatile variable.
+	(timer_jmp_buf): Remove.
+	(next_event): Cache is_delay_timer_created() return value,
+	remove sigsetjmp invocation, check restart_failed instead.
+	(timer_sighandler): Replace siglongjmp with setting restart_failed.
+
+2018-03-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace: do not call sigsetjmp without a delay timer.
+	As sigsetjmp costs a syscall, do not call it unless a delay timer
+	is already created and its signal handler is going to be unblocked.
+
+	* strace.c (next_event): Move sigsetjmp invocation under
+	is_delay_timer_created() condition.
+
+	Optimizes: v4.21-108-gba8e768 ("Implement delay injection")
+
+2018-03-22  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/bpf.c: convert TEST_BPF_ macro to a function.
+	As it looks like there's no compelling reason to keep it as a macro and
+	leaving it so quite complicates modification of the routine and makes
+	them error-prone.
+
+	* tests/bpf.c (TEST_BPF_): Convert it to...
+	(test_bpf): ...this.  Rename cmd_ to cmd, cmd_str_ to cmd_str,
+	init_first_ to init_first, print_first_ to print_first, init_attr_
+	to init_attr, print_attr_ to print_attr.
+	(TEST_BPF): Call test_bpf_ instead of TEST_BPF_.
+
+2018-03-22  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: btrfs.c whitespace cleanup.
+	* tests/btrfs.c: Add spaces after PRI* format specifiers.
+
+2018-03-22  Elvira Khabirova  <lineprinter@altlinux.org>
+
+	tests: check delay injection.
+	* tests/delay.c: New file.
+	* tests/delay.test: New test.
+	* tests/.gitignore: Add delay.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	(delay_LDADD): New variable.
+	(MISC_TESTS): Add delay.test.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-22  Elvira Khabirova  <lineprinter@altlinux.org>
+
+	Implement delay injection.
+	Add -e inject=SET:delay_enter= and -e inject=SET:delay_exit= options.
+
+	* configure.ac (AC_SEARCH_LIBS): Check for timer_create -lrt.
+	* delay.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	(strace_LDADD): Add $(timer_LIBS).
+	* defs.h (INJECT_F_DELAY_ENTER, INJECT_F_DELAY_EXIT,
+	TCB_INJECT_DELAY_EXIT, TCB_DELAYED, inject_delay_exit, syscall_delayed):
+	New macros.
+	(alloc_delay_data, fill_delay_data, is_delay_timer_created,
+	arm_delay_timer, delay_tcb): New prototypes.
+	(struct inject_data): Replace reserved field with delay_idx.
+	(struct tcb): Add delay_expiration_time field.
+	* filter_qualify.c (parse_delay_token): New function.
+	(parse_inject_token): Use it.
+	(qualify_inject_common): Initialize struct inject_opts.data.delay_idx.
+	* strace.c: Include <setjmp.h>
+	(timer_jmp_buf, timer_set): New static variables.
+	(timer_sighandler, restart_delayed_tcb, restart_delayed_tcbs): New
+	functions.
+	(init): Block SIGALRM, set SIGALRM handler.
+	(dispatch_event): Do not restart delayed syscalls.
+	(next_event): Unblock SIGALRM during wait4 invocation.
+	* syscall.c (tamper_with_syscall_entering): Arm delay timer if
+	INJECT_F_DELAY_ENTER injection flag is set, set TCB_INJECT_DELAY_EXIT
+	flag if INJECT_F_DELAY_EXIT injection flag is set.
+	tamper_with_syscall_exiting): Arm delay timer if inject_delay_exit.
+	(syscall_exiting_trace): Call tamper_with_syscall_exiting in case of
+	inject_delay_exit.
+	(syscall_exiting_finish): Clear TCB_INJECT_DELAY_EXIT flag.
+	* strace.1.in: Document delay injection.
+	* NEWS: Mention this improvement.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-22  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Do not block handled signals in interactive mode.
+	Let these signals be handled asynchronously as they are acted on
+	only when waiting for process state changes.
+
+	* strace.c (start_set, blocked_set): Remove.
+	(set_sighandler): Do not update blocked_set.
+	(startup_attach, init, next_event): Remove all sigprocmask calls.
+
+2018-03-21  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf: improve handling of various sizes of bpf_prog_attr structure.
+	As program attributes have been added gradually over kernel versions,
+	attribute size less than expected should be printed accordingly.
+
+	* bpf.c (DEF_BPF_CMD_DECODER(BPF_PROG_LOAD)): Do not print structure
+	fields if their size is less than the initially introduced (in Linux
+	commit v3.18-rc1~52^2~1^2~7) version.  Print fields of union bpf_attr
+	introduced in various kernel versions when the length is big enough
+	(new fields were introduced in Linux commits v3.18-rc1~52^2~1^2~4,
+	v4.1-rc1~84^2~50, and v4.12-rc2~34^2~29^2~2).
+	* tests/bpf.c (print_BPF_PROG_LOAD_first): Update expected output.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	btrfs: print struct btrfs_ioctl_logical_ino_args.reserved if non-zero.
+	* btrfs.c (btrfs_ioctl) <case BTRFS_IOC_LOGICAL_INO>: Print
+	struct btrfs_ioctl_logical_ino_args.reserved field if it is not zero.
+	* tests/btrfs.c (btrfs_test_ino_path_ioctls): Check it.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Move is_filled and IS_ZERO to macros.h, rename IS_ZERO to IS_ARRAY_ZERO.
+	* s390.c: Replace all IS_ZERO invocations with IS_ARRAY_ZERO.
+	(is_filled, IS_ZERO): Move...
+	* macros.h: ...here.
+	(is_filled): Add inline qualifier, add const qualifier to ptr.
+	(IS_ZERO): Rename to IS_ARRAY_ZERO, cast arr_ to "const char *".
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mpers.m4: enhance workaround for missing gnu/stubs-*.h files.
+	Make generated empty gnu stub files available for mpers_test.sh check.
+
+	* m4/mpers.m4 (st_MPERS): Add $IFLAG to CPPFLAGS for mpers_test.sh
+	invocation.
+
+	Complements: v4.11~223 ("mpers.m4: workaround missing gnu/stubs-*.h files")
+
+2018-03-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	README.md: add references to binary strace packages.
+	* README.md: Add references to binary strace packages in OBS,
+	Fedora rawhide, and Sisyphus.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-20  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	INSTALL-git.md: enhance phrasing.
+	* INSTALL-git.md: Enhance phrasing.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	bootstrap: distribute README.
+	* bootstrap: Install README before invoking autoreconf to get README
+	included into distributed tarball.
+
+	Fixes: v4.21-93-g4bb8454 ("Move README to dist subdirectory")
+
+2018-03-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Replace struct timeval with struct timespec in time measurements.
+	This is required to implement more precise time measurements.
+
+	* Makefile.am (strace_LDADD): Add $(clock_LIBS).
+	* defs.h (struct tcb): Change the type of stime, dtime, and etime fields
+	from struct timeval to struct timespec, all users updated.
+	(syscall_exiting_decode, syscall_exiting_trace, count_syscall): Change
+	the type of "struct timeval *" argument to "struct timespec *", all
+	users updated.
+	(tv_nz, tv_cmp, tv_float, tv_add, tv_sub, tv_div, tv_mul): Rename to
+	ts_nz, ts_cmp, ts_float, ts_add, ts_sub, ts_div, and ts_mul.  Change
+	the type of all "struct timeval *" arguments to "struct timespec *",
+	all users updated.
+	* util.c (tv_nz, tv_cmp, tv_float, tv_add, tv_sub, tv_div, tv_mul):
+	Rename to ts_nz, ts_cmp, ts_float, ts_add, ts_sub, ts_div, and ts_mul.
+	Change the type of all "struct timeval *" arguments to "struct timespec *".
+	* count.c (struct call_counts): Change the type of "time" field
+	from struct timeval to struct timespec, all users updated.
+	(overhead): Change type from struct timeval to struct timespec, all
+	users updated.
+	(count_syscall): Change the type of "struct timeval *" argument to
+	"struct timespec *".
+	* strace.c (printleader): Change the type of struct timeval variables
+	to struct timespec, call clock_gettime instead of gettimeofday.
+	(next_event, trace_syscall): Change the type of struct timeval variables
+	to struct timespec.
+	* syscall.c (syscall_entering_finish, syscall_exiting_decode): Call
+	clock_gettime instead of gettimeofday.
+
+2018-03-20  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Fix -O option handling.
+	Fast syscalls usually take less than a microsecond of system cpu time
+	nowadays, making -O option almost useless.
+
+	* count.c (call_summary_pers): Avoid negative time counts.
+	* tests/count.test: Check it.
+	* NEWS: Mention it.
+
+2018-03-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	count: cleanup count_syscall.
+	* count.c (shortest): Remove.
+	(overhead): Initialize to zero.
+	(call_summary_pers): Remove shortest handling.
+	(count_syscall): Remove dead code.  The remaining code does the same
+	wrong calculations as before the change, though.
+
+	printleader: cleanup tflag handling.
+	* strace.c (printleader): Move declarations of variables closer
+	to their first use.
+
+2018-03-16  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move install.texi to maint subdirectory.
+	This file comes from GNU Autoconf and is used to generate INSTALL file.
+
+	* install.texi: Move...
+	* maint/install.texi: ...here.
+
+2018-03-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	doc: update commit requirements.
+	* README-hacking (Requirements): Enhance phrasing.
+	(Commit log requirements): Rename to "Commit requirements",
+	describe "absence of whitespace errors" requirement, add references
+	to the Linux kernel coding style and scripts/checkpatch.pl script.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-16  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Move README to dist subdirectory.
+	README was originally written for users of distribution tarballs.
+	Nowadays it appears to be confusing for those who build strace
+	using a GIT version of strace source code.
+
+	* README: Move...
+	* dist/README: ...here.
+	* bootstrap: Copy README from dist subdirectory to the toplevel
+	directory after successful autoreconf.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+	References: https://github.com/strace/strace/issues/56
+
+2018-03-15  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	README: synchronise with README.md.
+	* README: Extend description, reference COPYING.
+
+2018-03-15  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	poll.c: remove special INFTIM handling.
+	On Linux, poll syscall interprets any negative timeout value as an
+	infinite timeout, so no need to handle BSD-specific INFTIM.
+
+	* poll.c (SYS_FUNC(poll)): Remove INFTIM handling.
+
+2018-03-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	build: do not hardcode -lrt.
+	Depending on libc implementation, various -lrt functions can be
+	implemented either in -lc or in -lrt.  For example, starting with
+	glibc-2.17 the clock_* suite of functions is available directly in -lc.
+
+	Check whether clock_* and mq_* suites of functions are provided
+	by -lrt or by the main C library, do not link with -lrt unnecessarily.
+
+	This change affects only tests yet, but this is going to be
+	more important as soon as strace starts using clock_gettime.
+
+	* configure.ac (AC_SEARCH_LIBS): Check for clock_gettime and mq_open
+	in -lrt.
+	(AC_SUBST): Add clock_LIBS and mq_LIBS.
+	* tests/Makefile.am (mq_LDADD): Replace -lrt with $(mq_LIBS).
+	(threads_execve_LDADD, times_LDADD): Replace -lrt with $(clock_LIBS).
+
+2018-03-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: do not link with -lrt unnecessarily.
+	* tests/Makefile.am (attach_f_p_LDADD): Remove -lrt.
+	(clock_xettime_LDADD, mq_sendrecv_LDADD, mq_sendrecv_read_LDADD,
+	mq_sendrecv_write_LDADD): Remove.
+
+2018-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Optimize pid2tcb.
+	Introduce an internal cache of pid2tcb translations.
+	This can save more than 80% of CPU user time spent by strace.
+
+	Tested using the following setup:
+
+		#include <unistd.h>
+		#include <sys/stat.h>
+		#include <sys/wait.h>
+		int main()
+		{
+			int i;
+			sleep(1);
+			for (i = 1; i < 1000; ++i) {
+				pid_t pid = fork();
+				if (pid < 0)
+					return 2;
+				if (pid)
+					return wait(&i) != pid || i;
+			}
+			sleep(1);
+			for (i = 0; i < 10000000; ++i)
+				umask(0777);
+			return 0;
+		}
+
+		old$ ./set_ptracer_any ./pid2tcb >pid2tcb.wait & \
+		  while [ ! -s pid2tcb.wait ]; do sleep 0.1; done; \
+		  time -f '%Uuser %Ssystem %eelapsed %PCPU' \
+		  ../strace -qq -enone -esignal=none -f -p $!
+		5.51user 104.90system 122.45elapsed 90%CPU
+
+		new$ ./set_ptracer_any ./pid2tcb >pid2tcb.wait & \
+		  while [ ! -s pid2tcb.wait ]; do sleep 0.1; done; \
+		  time -f '%Uuser %Ssystem %eelapsed %PCPU' \
+		  ../strace -qq -enone -esignal=none -f -p $!
+		1.29user 102.78system 114.97elapsed 90%CPU
+
+2018-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Enable USE_SEIZE code unconditionally.
+	It is by no means an experimental code.
+
+	* defs.h (USE_SEIZE): Remove.
+	* strace.c [!USE_SEIZE]: Remove.
+
+2018-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ci: clone musl from the local server.
+	Assume that strace project on the local server contains an appropriate
+	musl repository, use this repository instead of hardcoded github
+	location.
+
+	* ci/install-dependencies.sh (clone_repo): Use local server by default.
+	(musl-gcc): Un-hardcode the location of musl repository.
+
+2018-03-13  Dmitry V. Levin  <ldv@altlinux.org>
+
+	ci: refactor cloning of additional repositories.
+	* ci/install-dependencies.sh (clone_repo): New function.
+	Use it instead of direct invocations of git clone.
+
+	ci: extend error diagnostics when configure invocation fails.
+	* ci/run-build-and-tests.sh: Include $CC -dumpspecs output in addition
+	to config.log when ./configure fails.
+
+	ci: rename travis-build.sh and travis-install.sh scripts.
+	* travis-build.sh: Rename to ci/run-build-and-tests.sh, all callers
+	updated.
+	* travis-install.sh: Rename to ci/install-dependencies.sh, all callers
+	updated.
+
+	tests: extend ioctl.test libc protection to -y output.
+	* tests/ioctl.test: Extend the filter of ioctl calls with standard
+	descriptor arguments to -y output.
+
+2018-03-12  Harsha Sharma  <harshasharmaiitr@gmail.com>
+
+	ptp.c: print field names and use macros form print_fields.h.
+	* ptp.c: Include "print_fields.h".
+	(ptp_ioctl): Print field names with field values for PTP_PEROUT_REQUEST,
+	use macros from print_fields.h.
+
+2018-03-11  Chen Jingpiao  <chenjingpiao@gmail.com>
+
+	tests: add check for decoding of netfilter subsystem.
+	* tests/netlink_netfilter.c(test_nfgenmsg): Add check for decoding
+	of netfilter subsystem.
+
+	nfnetlink: introduce generic netfilter subsystem decoder.
+	* netlink_netfilter.c: Include "nlattr.h".
+	(decode_netlink_netfilter): Call decode_nlattr.
+
+2018-03-11  Chen Jingpiao  <chenjingpiao@gmail.com>
+
+	Move nl_netfilter_msg_types definition from netlink.c to netlink_netfilter.c
+	The side effect of #include "xlat/nl_netfilter_msg_types.h" is
+	NFNL_MSG_BATCH_* constants properly defined in that header file.
+	While netlink.c does not use these constants itself,
+	netlink_netfilter.c is going to need them soon.
+
+	* defs.h (nl_netfilter_msg_types): New xlat prototype.
+	* netlink.c: Move inclusion of "xlat/nl_netfilter_msg_types.h" ...
+	* netlink_netfilter.c: ... here.
+
+2018-03-11  Chen Jingpiao  <chenjingpiao@gmail.com>
+
+	tests: add check for NETLINK_NETFILTER parser.
+	* tests/netlink_netfilter.c: Include <netinet/in.h>, <arpa/inet.h>
+	and <linux/netfilter/nf_tables.h>.
+	Replace "netlink.h" with "test_netlink.h".
+	(NFNL_SUBSYS_NFTABLES, NFT_MSG_NEWTABLE): New macros.
+	(test_nlmsg_done, test_nfgenmsg): New functions.
+	(main): Use them.
+
+	netlink: introduce NETLINK_NETFILTER parser.
+	* netlink_netfilter.c: New file.
+	* Makefile.am (strace_SOURCES): Add it.
+	* defs.h (decode_netlink_netfilter): New prototype.
+	* netlink.c (netlink_decoders): Add NETLINK_NETFILTER.
+	* xlat/netfilter_versions.in: New file.
+
+2018-03-11  Chen Jingpiao  <chenjingpiao@gmail.com>
+
+	xlat: remove NFNL_SUBSYS_COUNT constant.
+	NFNL_SUBSYS_COUNT is not a symbol with some constant value, it changes
+	with time, just print it as an unrecognized number.
+
+	* xlat/nl_netfilter_subsys_ids.in (NFNL_SUBSYS_COUNT): Remove.
+
+2018-03-10  Dmitry V. Levin  <ldv@altlinux.org>
+
+	inject_data: make room for more injection features.
+	* defs.h (struct inject_data): Squeeze flags and signo fields from
+	uint16_t to uint8_t to make room for more injection features.
+
+2018-03-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: sort v4l2_pix_fmts.in and v4l2_sdr_fmts.in.
+	* xlat/v4l2_pix_fmts.in: Sort by value, add a comment about sorting.
+	* xlat/v4l2_sdr_fmts.in: Likewise.
+
+2018-03-09  Dmitry V. Levin  <ldv@altlinux.org>
+
+	xlat: add comments to all sorted xlat files.
+	Add a short comment describing the method used to sort entries.
+
+	* xlat/ethernet_protocols.in: Update the comment about sorting.
+	* xlat/fsmagic.in: Likewise.
+	* xlat/evdev_keycode.in: Add a comment about sorting.
+	* xlat/hw_breakpoint_type.in: Likewise.
+	* xlat/perf_hw_cache_id.in: Likewise.
+	* xlat/perf_hw_cache_op_id.in: Likewise.
+	* xlat/perf_hw_cache_op_result_id.in: Likewise.
+	* xlat/perf_hw_id.in: Likewise.
+	* xlat/perf_sw_ids.in: Likewise.
+	* xlat/perf_type_id.in: Likewise.
+
+2018-03-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf: remove page size caching.
+	get_pagesize() has a static cache anyway, no need to duplicate it.
+
+	* bpf.c (SYS_FUNC(bpf)): Remove static size_t page_size and its
+	initialisation, use get_pagesize() as the size of buf directly.
+
+2018-03-09  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf_filter: fix indentation of the switch clause.
+	* bpf_filter.c (print_bpf_filter_code): Fix switch clause indentation.
+
+2018-03-08  Dmitry V. Levin  <ldv@altlinux.org>
+
+	xlat: provide fallback definitions for arch-independent mmap flags.
+	This is important for recently introduced MAP_SHARED_VALIDATE flag.
+
+	* xlat/mmap_flags.in (MAP_SHARED, MAP_PRIVATE, MAP_SHARED_VALIDATE):
+	Add constant values.
+
+	Fixes: v4.21-67-g8c209d1 ("tests: fix remap_file_pages.test breakage on hppa")
+
+2018-03-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	bpf: print kern_version in the form of KERNEL_VERSION macro.
+	* bpf.c (DEF_BPF_CMD_DECODER(BPF_PROG_LOAD)): Print
+	union bpf_attr.kern_version in the form of KERNEL_VERSION macro call.
+	* tests/bpf.c: Update expected output.
+
+2018-03-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: fix remap_file_pages.test breakage on hppa.
+	Apparently, hppa is the only architecture that has MAP_TYPE
+	defined to 0x3 instead of 0xf, and the tests hit that corner case.
+
+	* tests/remap_file_pages.c (main) [MAP_HUGETLB]: Print the value
+	of mapping type depending on the architecture (MAP_SHARED_VALIDATE
+	for hppa and unknown value for other architectures).
+
+	Fixes: v4.21~59 ("xlat: update MAP_* constants")
+
+2018-03-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Sort Ethernet protocols xlat.
+	* defs.h (ethernet_protocols_size): New declaration.
+	* netlink_packet_diag.c (decode_packet_diag_req): Use
+	printxval_searchnn to print Ethernet protocols.
+	* sockaddr.c (ethernet_protocols_size): New constant, item count
+	in ethernet_protocols array.
+	(print_sockaddr_data_ll): Use printxval_search instead of
+	printxval to print Ethernet protocols.
+	* xlat/ethernet_protocols.in: Sort it by value, add comment
+	about the fact.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-07  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Change sorted arrays to be terminated with XLAT_END like unsorted arrays
+	It is quite unwieldy to have this distinction between sorted and
+	unsorted arrays when we can just decrement the size in a wrapper.
+
+	* defs.h (printxval_search): Decrement array size.
+	* xlat/fsmagic.in (#unterminated): Remove.
+	* xlat/hw_breakpoint_type.in (#unterminated): Remove.
+	* xlat/perf_hw_cache_id.in (#unterminated): Remove.
+	* xlat/perf_hw_cache_op_id.in (#unterminated): Remove.
+	* xlat/perf_hw_cache_op_result_id.in (#unterminated): Remove.
+	* xlat/perf_hw_id.in (#unterminated): Remove.
+	* xlat/perf_sw_ids.in (#unterminated): Remove.
+	* xlat/perf_type_id.in (#unterminated): Remove.
+	* xlat/gen.sh (gen_header): Remove #unterminated support.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.1.in: add a note about tracing of scripts without shebang.
+	* strace.1.in (.SH NOTES): Note that tracing of scripts without shebang
+	won't work.
+
+	Reported-by: Mike Parker
+	Closes: https://github.com/strace/strace/issues/46
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	strace.1.in: mention that -c suppresses regular output.
+	As the note that -C makes strace "also print regular output" can be
+	easily overlooked.
+
+	* strace.1.in (.SS Statistics) <.TP .B \-c>: Mention that -c supresses
+	regular output.
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	errnoent.h: add ERECALLCONFLICT.
+	* linux/errnoent.h ([530]): Add ERECALLCONFLICT error introduced by
+	Linux commit v4.7-rc1~40^2~6.
+	* linux/alpha/errnoent.h ([530]): Likewise.
+	* linux/hppa/errnoent.h ([530]): Likewise.
+	* linux/mips/errnoent.h ([530]): Likewise.
+	* linux/sparc/errnoent.h ([530]): Likewise.
+
+	xlat: add BPF_F_ALLOW_MULTI constant.
+	* xlat/bpf_attach_flags.in (BPF_F_ALLOW_MULTI): New constant, introduced
+	by Linux commit v4.15-rc1~84^2~558^2~7.
+
+	xlat: add BPF_MAP_TYPE_CPUMAP constant.
+	* xlat/bpf_map_types.in (BPF_MAP_TYPE_CPUMAP): New constant, introduced
+	by Linux commit v4.15-rc1~84^2~427^2~4.
+
+	tests/test_printstrn.c: do not declare i again.
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/s390_sthyi.c: make utility functions inline.
+	When built with --enable-gcc-Werror, s390_sthyi test build fails
+	with the following error:
+
+		s390_sthyi.c:63:1: error: ‘print_u8’ defined but not used [-Werror=unused-function]
+		 print_u8(const char *prefix, unsigned char *buf, unsigned int offs, bool zero)
+		 ^~~~~~~~
+
+	Apparently, after some back and forth, all occurrences of printing u8
+	values landed under verbose printing, so this function is no longer
+	used in non-verbose mode.  Let's avoid this in the future by inlining
+	all the utility functions in this test.
+
+	* tests/s390_sthyi.c (print_0x8, print_u8, print_u16, print_x32,
+	print_weight, ebcdic2ascii, is_empty, print_ebcdic): Add inline
+	qualifier.
+	[!VERBOSE] (is_empty): Remove "# if VERBOSE" guard.
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	btrfs: print struct btrfs_ioctl_logical_ino_args.flags field.
+	The field has been introduced in Linux commit v4.15-rc1~135^2~17.
+
+	* btrfs.c: Implement decoding of
+	struct btrfs_ioctl_logical_ino_args.flags field.
+	* configure.ac: Check for struct btrfs_ioctl_logical_ino_args.flags
+	presence in linux/btrfs.h.
+	* tests/btrfs.c: Update expected output, add additional checks.
+	* xlat/btrfs_logical_ino_args_flags.in: New file.
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	btrfs.c: print __u64 fields with pointer semantics using printaddr64.
+	* btrfs.c (btrfs_ioctl) <case BTRFS_IOC_INO_PATHS>: Print fspath field
+	with printaddr64.
+	(btrfs_ioctl) <case BTRFS_IOC_LOGICAL_INO>: Print inodes field with
+	printaddr64.
+	* tests/btrfs.c: Add checks for NULL in fspath and inodes fields.
+	* NEWS: Mention it.
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util.c: introduce printaddr64.
+	Sometimes, 64-bit value is expected to be interpreted as an address
+	(in BTRFS ioctl interface, for example).
+
+	* defs.h (printaddr64): New declaration.
+	* util.c (printaddr64): Rename from printaddr, change argument type
+	to uint64_t.
+	(printaddr): Turn into a thin wrapper around printaddr64.
+	(printnum_addr_int, printnum_addr_int64): Use printaddr64 instead of
+	printaddr.  printnum_addr_int64 is not used outside the cases where
+	kernel_long is less or equal than 64 bit currently, so this change
+	should be safe.
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	prctl: add decoding of PR_SVE_SET_VL and PR_SVE_GET_VL commands.
+	These commands were introduced in Linux commit v4.15-rc1~110^2~9.
+
+	* xlat/pr_sve_vl_flags.in: New file.
+	* xlat/prctl_options.in: Likewise.
+	* prctl.c: Include "xstring.h" and "xlat/pr_sve_vl_flags.h".
+	[!PR_SVE_VL_LEN_MASK] (PR_SVE_VL_LEN_MASK): New macro constant.
+	(sprint_sve_val): New function.
+	(SYS_FUNC(prctl)): Add decoding for PR_SVE_GET_VL and PR_SVE_SET_VL
+	commands.
+	* NEWS: Mention it.
+
+2018-03-06  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Implement PTRACE_SECCOMP_GET_METADATA ptrace request decoding.
+	* defs.h (seccomp_filter_flags): New declaration.
+	* process.c (SYS_FUNC(ptrace)): Implement PTRACE_SECCOMP_GET_METADATA
+	request decoding.
+	* ptrace.h [!PTRACE_SECCOMP_GET_METADATA] (PTRACE_SECCOMP_GET_METADATA):
+	New macro constant.
+	* xlat/ptrace_cmds.in (PTRACE_SECCOMP_GET_METADATA): New constant.
+	* tests/ptrace.c (main): Add some checks for PTRACE_SECCOMP_GET_METADATA
+	request decoding.
+	* NEWS: Mention it.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-06  Dmitry V. Levin  <ldv@altlinux.org>
+
+	build: prepare for -Wimplicit-fallthrough=5.
+	* gcc_compat.h (ATTRIBUTE_FALLTHROUGH): New macro.
+	* block.c (block_ioctl): Use it instead of "fall through" comment.
+	* btrfs.c (btrfs_ioctl): Likewise.
+	* loop.c (loop_ioctl): Likewise.
+	* mtd.c (mtd_ioctl): Likewise.
+	* rtc.c (rtc_ioctl): Likewise.
+	* v4l2.c (v4l2_ioctl): Likewise.
+	* dm.c (dm_decode_values): Likewise.
+	* process.c (SYS_FUNC(ptrace)): Likewise.
+	* quota.c (decode_cmd_data): Likewise.
+	* ucopy.c (umovestr): Likewise.
+	* unwind.c (unwind_print_stacktrace, unwind_capture_stacktrace)):
+	Likewise.
+	* term.c (term_ioctl): Add ATTRIBUTE_FALLTHROUGH.
+	* ioctl.c (ioctl_decode) [ALPHA || POWERPC]: Likewise.
+	* m4/st_warn_cflags.m4 (gl_WARN_ADD): Add -Wimplicit-fallthrough=5.
+	* tests/ioctl_v4l2.c (init_v4l2_format): Reorganize the switch statement
+	without implicit fallthrough.
+
+2018-03-05  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: add eBPF-based device controller constants.
+	Add new BPF_PROG_TYPE_CGROUP_DEVICE eBPF program type and new
+	BPF_CGROUP_DEVICE eBPF program attach type, added in Linux commit
+	v4.15-rc1~84^2~120^2~2.
+
+	* xlat/bpf_attach_type.in (BPF_CGROUP_DEVICE): New constant.
+	* xlat/bpf_prog_types.in (BPF_PROG_TYPE_CGROUP_DEVICE): Likewise.
+	* NEWS: Mention it.
+
+2018-03-02  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: provide fallback definitions for input event constants.
+	Values added using the following pair of commands:
+
+		$ cat xlat/evdev_keycode.in |
+			while read r; do [ -n "$r" ] &&
+				sed -rn 's/^#define[[:space:]]+('$r'[[:space:]]+[^[:space:]]+).*/\1/p' \
+				~/dev/linux/include/uapi/linux/input-event-codes.h || echo;
+			done > xlat/evdev_keycode.in.new
+		$ sort -s -n -k1,1 \
+			<(awk '{if (NF>1) {last = strtonum($2)}; printf("%d %s\n", last, $0)}' \
+				xlat/evdev_keycode.in.new) \
+			| sed 's/^[0-9]* //'  > xlat/evdev_keycode.in
+
+	It also verifies that the values are sorted and bsearch-ready.
+
+	* xlat/evdev_keycode.in: Add constant values.
+
+2018-03-02  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: update the list of input event constants.
+	Remove some duplicating definitions and add the new ones.
+
+	* xlat/evdev_keycode.in (KEY_HANGUEL): Remove, an alternative name for
+	KEY_HANGEUL.
+	(KEY_DIRECTION): Remove, an alternative name for KEY_ROTATE_DISPLAY.
+	(KEY_BRIGHTNESS_ZERO): Remove, an alternative name for
+	KEY_BRIGHTNESS_AUTO.
+	(KEY_WIMAX): Remove, an alternative name for KEY_WWAN.
+	(BTN_A): Remove, an alternative name for BTN_SOUTH.
+	(BTN_B): Remove, an alternative name for BTN_EAST.
+	(BTN_X): Remove, an alternative name for BTN_NORTH.
+	(BTN_Y): Remove, an alternative name for BTN_WEST.
+	(BTN_STYLUS3): New constant, added in Linux commit v4.15-rc1~114^2^2~1.
+	(KEY_BRIGHTNESS_TOGGLE): Remove, an alternative name for
+	KEY_DISPLAYTOGGLE.
+	(KEY_ROTATE_LOCK_TOGGLE): New constant, added in Linux commit
+	v4.16-rc1~54^2~67.
+	(KEY_DATA): New constant, added in Linux commit v4.9-rc8~12^2.
+	(KEY_ONSCREEN_KEYBOARD): New constant, added in Linux commit
+	v4.12-rc1~126^2~2^12~5.
+	* NEWS: Mention it.
+
+2018-03-02  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: provide fallback definitions for SCTP socket option constants.
+	Values for SCTP_GET_PEER_ADDRS_NUM_OLD, SCTP_GET_PEER_ADDRS_OLD,
+	SCTP_GET_LOCAL_ADDRS_NUM_OLD, SCTP_GET_LOCAL_ADDRS_OLD are reconstructed
+	from Linux commit v2.6.33-rc1~388^2~167^2~7.
+
+	xlat/socksctpoptions.in: Add constant values.
+
+2018-03-02  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: update the list of SCTP socket option constants.
+	* xlat/socksctpoptions.in (SCTP_DELAYED_ACK): Rename to...
+	(SCTP_DELAYED_SACK): ...this, per Linux commit v2.6.38-rc2~33^2.
+	(SCTP_SOCKOPT_PEELOFF_FLAGS): New constant, introduced in Linux commit
+	v4.13-rc1~157^2~39.
+	(SCTP_STREAM_SCHEDULER): New constant, introduced in Linux commit
+	v4.15-rc1~84^2~567^2~3.
+	(SCTP_STREAM_SCHEDULER_VALUE): New constant, introduced in Linux commit
+	v4.15-rc1~84^2~567^2~2.
+	(SCTP_INTERLEAVING_SUPPORTED): New constant, introduced in Linux commit
+	 v4.16-rc1~123^2~384^2~11.
+	* NEWS: Mention it.
+
+2018-03-02  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: provide fallback definitions for Ethernet protocol constants.
+	As those are not architecture-specific.
+
+	* xlat/ethernet_protocols.in: Add values to constants.
+
+2018-03-02  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: update the list of Ethernet protocol constants.
+	* xlat/ethernet_protocols.in (ETH_P_ERSPAN2): New constant, introduced
+	in Linux commit v4.16-rc1~123^2~355^2~2.
+	(ETH_P_IBOE): New constant, introduced in commit v4.11-rc1~73^2~74.
+	* NEWS: Mention it.
+
+	v4l2: print known pixel/SDR formats.
+	* xlat/v4l2_pix_fmts.in: New file.
+	* xlat/v4l2_sdr_fmts.in: Likewise.
+	* v4l2.c [!v4l2_fourcc_be] (v4l2_fourcc_be): New macro.
+	(print_pixelformat): Add xlat parameter, print constant name
+	as a comment if it has been found in xlat.
+	(print_v4l2_fmtdesc, print_v4l2_frmivalenum): Pass v4l2_pix_fmts
+	to print_pixelformat.
+	(print_v4l2_format_fmt) <case V4L2_BUF_TYPE_VIDEO_CAPTURE, case
+	V4L2_BUF_TYPE_VIDEO_OUTPUT, case V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
+	case V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE, case V4L2_BUF_TYPE_VBI_CAPTURE,
+	case V4L2_BUF_TYPE_VBI_OUTPUT>: Pass v4l2_pix_fmts to print_pixelformat.
+	(print_v4l2_format_fmt) <case V4L2_BUF_TYPE_SDR_OUTPUT, case
+	V4L2_BUF_TYPE_SDR_CAPTURE>: Pass v4l2_sdr_fmts to print_pixelformat.
+	* tests/v4l2.c: Test it, update expected output.
+	* NEWS: Mention it.
+
+2018-03-02  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	v4l2: v4l2_fourcc is endianness-agnostic.
+	v4l2_fourcc(a, b, c, d) is defined as (a | (b << 8) | (c << 16) | (d << 24)
+	regardless of endianness (no mnemonic on big-endian architectures),
+	so we don't need special handling for WORDS_BIGENDIAN both in decoder
+	and in the test.
+
+	* v4l2.c (print_pixelformat): Change initialisation to a simple
+	assignment of character array.
+	* tests/ioctl_v4l2.c [WORDS_BIGENDIAN]: Remove.
+	* NEWS: Mention this fix.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+	Fixes: v4.10~371 "Implement Video4Linux video-input ioctls decoder"
+
+2018-03-01  Dmitry V. Levin  <ldv@altlinux.org>
+
+	tests: do not include <stdbool.h> in files that include "tests.h"
+	Starting with commit v4.21-37-g4f63bc70ca95012d72e288fc3c1eeb3ba26068a4,
+	<stdbool.h> is included by tests.h, so all tests that already include
+	"tests.h" do not need to include <stdbool.h>.
+
+	* tests/btrfs.c: Do not include <stdbool.h>.
+	* tests/file_handle.c: Likewise.
+	* tests/futex.c: Likewise.
+	* tests/ioctl_dm.c: Likewise.
+	* tests/ioctl_loop.c: Likewise.
+	* tests/ioctl_sock_gifconf.c: Likewise.
+	* tests/keyctl.c: Likewise.
+	* tests/mq_sendrecv.c: Likewise.
+	* tests/perf_event_open.c: Likewise.
+	* tests/s390_guarded_storage.c: Likewise.
+	* tests/s390_pci_mmio_read_write.c: Likewise.
+	* tests/s390_sthyi.c: Likewise.
+	* tests/xet_thread_area_x86.c: Likewise.
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check printing of block/char device numbers in -yy mode.
+	* tests/dev-yy.c: New file.
+	* tests/pure_executables.list: Add dev-yy.
+	* tests/.gitignore: Likewise.
+	* tests/gen_tests.in (dev-yy): New test.
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	printfd: print character/block device number in -yy mode.
+	* util.c: Include <sys/stat.h>, <sys/sysmacros.h>,
+	and "largefile_wrappers.h".
+	(printsocket, printdev): New functions.
+	(printfd): Move socket matching/printing logic to printsocket.  Check
+	also for printdev.  Escape opening angle bracket in addition to closing angle
+	bracket as it can show up as a separator in printdev.
+	* tests/fsync-y.c: Update expected output.
+	* strace.1.in: Mention this.
+	* NEWS: Likewise.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util.c: escape closing angle bracket in printfd.
+	* util.c (printfd): Use print_quoted_string_ex instead of
+	print_quoted_string, specify ">" as escape_chars argument.
+	* tests/fsync-y.c (main): Update expected output.
+	* NEWS: Mention it.
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util.c: add support for additional escape characters in string_quote.
+	Quotes are not always used to denote string limits; printfd uses angle
+	brackets for that, for example.  As result, mechanism for supplying
+	set of additional characters in order to avoid ambiguities regarding
+	the end of the quoted string is needed.
+
+	* defs.h (string_quote): Add escape_chars parameter.
+	(print_quoted_string_ex): New function prototype.
+	* util.c (string_quote): Add escape_chars parameter.
+	(print_quoted_string_ex): Rename from print_quoted_string, add
+	escape_chars parameter, pass it to string_quote call.
+	(print_quoted_string): Turn into a thin wrapper around
+	print_quoted_string_ex.
+	(printstr_ex): Pass NULL as escape_chars argument of string_quote call.
+	* socketutils.c (unix_parse_response): Pass NULL as escape_chars
+	argument of string_quote call.
+	* tests/print_quoted_string.c (print_octal): New function.
+	print_quoted_memory_ex): Use it.  Add escape_chars parameter.
+	(print_quoted_memory): Pass NULL as escape_chars argument
+	of print_quoted_memory_ex call.
+	* tests/tests.h (print_quoted_string_ex, print_quoted_memory_ex): Add
+	escape_chars parameter.
+	* tests/fsync-y.c: Pass NULL as escape_chars argument of
+	print_quoted_string_ex call.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: check file name printing in strace -y mode.
+	* tests/fsync-y.c: New file.
+	* tests/.gitignore: Add fsync-y.
+	* tests/Makefile.am (check_PROGRAMS): Likewise.
+	* tests/gen_tests.in (fsync-y): New test.
+
+	Co-Authored-by: Dmitry V. Levin <ldv@altlinux.org>
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests: add print_quoted_string_ex and print_quoted_memory_ex functions.
+	* tests/tests.h (print_quoted_string_ex, print_quoted_memory_ex): New
+	declarations.
+	* tests/print_quoted_string.c (print_quoted_string_ex): New function,
+	a thin wrapper around print_quoted_memory_ex wrapper.
+	(print_quoted_memory_ex): Rename from print_quoted_memory, add quote
+	argument.
+	(print_quoted_memory): Turn into a thin wrapper around
+	print_quoted_memory_ex.
+
+	tests: check escaping in string printing.
+	* tests/test_printstrn.c (test_print_memory): New function.
+	(test_printstrn): Use it.
+
+	Do not go full octal if the next char is '8' or '9'
+	* util.c (string_quote): Change the upper limit for the next character
+	in unabbreviated octal printing from '9' to '7'.
+	* tests/print_quoted_string.c (print_quoted_memory): Likewise.
+
+	tests: fix abbreviated octal escape check in print_quoted_memory.
+	* tests/print_quoted_string.c (print_quoted_memory): Check the next
+	character after octal-escaped one instead of the first one in the
+	string.
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util.c: reduce indentation in non-hexadecimal case in string_quote.
+	As it is already too deep there.
+
+	* util.c (string_quote): Add string_ended label, jump there
+	after the loop in "if (usehex)" case.
+
+2018-03-01  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	util.c: fix switch statement indentation in string_quote.
+	While we are here, let's also remove unnecessary break statement
+	in the default case.
+
+2018-02-27  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Replace fopen_for_input and fopen_for_output with fopen_stream.
+	* largefile_wrappers.h (fopen_for_input, fopen_for_output): Replace
+	with fopen_stream.
+	* mmap_cache.c (fopen_for_input) Likewise.
+	* strace.c (fopen_for_output): Likewise.
+
+2018-02-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Update the list of INET_DIAG_BC_* operators.
+	* linux/inet_diag.h (INET_DIAG_BC_S_EQ, INET_DIAG_BC_D_EQ): New
+	enumeration items introduced by linux kernel commit v4.16-rc1~123^2~259.
+	* xlat/inet_diag_bytecodes.in (INET_DIAG_BC_S_EQ, INET_DIAG_BC_D_EQ): New
+	constants.
+	* NEWS: Mention it.
+
+	xlat: update the list of SCHED_FLAG_* constants.
+	* xlat/sched_flags.in (SCHED_FLAG_RECLAIM, SCHED_FLAG_DL_OVERRUN): New
+	constants introduced by linux kernel commits v4.13-rc1~205^2~27 and
+	v4.16-rc1~164^2~8, respectively.
+	(SCHED_FLAG_RESET_ON_FORK): Add constant value.
+	* tests/sched_xetattr.c: Update expected output.
+	* NEWS: Mention it.
+
+	xlat: provide fallback definitions for arch-independent poll event flags
+	* xlat/pollflags.in (POLLIN, POLLPRI, POLLOUT, POLLRDNORM, POLLRDBAND,
+	POLLERR, POLLHUP, POLLNVAL, POLL_BUSY_LOOP): Add constant values.
+
+2018-02-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: update the list of poll event flags.
+	POLL_BUSY_LOOP was introduced by linux kernel commit v3.11-rc1~64^2~129
+	as POLL_LL and then renamed in v3.11-rc1~64^2~9.  POLLRDHUP was
+	introduced by linux kernel commit v2.6.17-rc1~796.  POLLMSG and
+	POLLREMOVE predate git repository.  POLLFREE was introduced by linux
+	kernel commit v3.3-rc5~8 for internal use only.
+
+	* xlat/pollflags.in (POLLMSG, POLLREMOVE, POLLRDHUP, POLL_BUSY_LOOP):
+	New constants.
+	* NEWS: Mention it.
+
+2018-02-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	xlat: add arch-specific si_codes constants.
+	Based on Linux commits v4.16-rc1~159^2~17, v4.16-rc1~159^2~16,
+	v4.16-rc1~159^2~15, and v4.16-rc1~159^2~14.
+
+	* xlat/sigbus_codes.in (BUS_OPFETCH): New constant.
+	* xlat/sigfpe_codes.in (FPE_MDAOVF, __FPE_DECOVF, __FPE_DECDIV,
+	__FPE_DECERR, __FPE_INVASC, __FPE_INVDEC): New constants.
+	* xlat/sigill_codes.in (ILL_ILLPARAOP, ILL_ILLEXCPT, ILL_CPLB_VI,
+	ILL_CPLB_MISS, ILL_CPLB_MULHIT, ILL_DBLFLT, ILL_HARDWALL, ILL_BADIADDR,
+	__ILL_BREAK, __ILL_BNDMOD): Likewise.
+	* xlat/sigsegv_codes.in (SEGV_STACKFLOW, __SEGV_PSTKOVF): Likewise.
+	* xlat/sigtrap_codes.in (TRAP_STEP, TRAP_TRACEFLOW, TRAP_WATCHPT,
+	TRAP_ILLTRAP): Likewise.
+	* NEWS: Mention it.
+
+2018-02-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	rtnl_tc: support new TCA_* attributes.
+	* xlat/rtnl_tc_attrs.in (TCA_HW_OFFLOAD, TCA_INGRESS_BLOCK,
+	TCA_EGRESS_BLOCK): New constants introduced by linux kernel commits
+	v4.15-rc4~13^2~5^2~2 and v4.16-rc1~123^2~139^2~5.
+	* rtnl_tc.c (tcmsg_nla_decoders) <TCA_HW_OFFLOAD, TCA_INGRESS_BLOCK,
+	TCA_EGRESS_BLOCK>: New items.
+
+	rtnl_link: add decoding of new IFLA_* attributes.
+	* xlat/rtnl_link_attrs.in (IFLA_NEW_NETNSID, IFLA_IF_NETNSID,
+	IFLA_CARRIER_UP_COUNT, IFLA_CARRIER_DOWN_COUNT, IFLA_NEW_IFINDEX): New
+	constants introduced by linux kernel commits v4.15-rc1~84^2~557,
+	v4.15-rc1~84^2~133^2, v4.16-rc1~123^2~91, and v4.16-rc1~123^2~24^2.
+	* rtnl_link.c (ifinfomsg_nla_decoders) <IFLA_NEW_NETNSID,
+	IFLA_IF_NETNSID, IFLA_CARRIER_UP_COUNT, IFLA_CARRIER_DOWN_COUNT,
+	IFLA_NEW_IFINDEX>: New items.
+
+	rtnl_link: implement IFLA_EVENT_* decoding.
+	* rtnl_link.c (decode_ifla_event): New function.
+	(ifinfomsg_nla_decoders) <[IFLA_EVENT]>: Use it.
+	* xlat/rtnl_ifla_events.in: New file.
+	* NEWS: Mention it.
+
+	xlat: update the list of RWF_* constants.
+	* xlat/rwf_flags.in (RWF_APPEND): New constant introduced by linux
+	kernel commit v4.16-rc1~145^2~7.
+	* NEWS: Mention it.
+
+	tests: check decoding of ip6:port pairs associated with socket descriptors
+	* tests/net-yy-inet.c: Generalise test.
+	* tests/net-yy-inet6.c: New file.
+	* tests/pure_executables.list: Add net-yy-inet6.
+	* tests/.gitignore: Likewise.
+	* tests/gen_tests.in (net-yy-inet6): New entry.
+
+2018-02-27  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	Print IPv6 addresses in brackets.
+	Follow a common practice for printing address:port pair to distinguish
+	address parts delimiter from address/port delimiter.
+
+	* socketutils.c (inet_parse_response) <ob, cb>: New variables,
+	initialise them to open/closing brackets or empty strings based
+	on address family.
+	(inet_parse_response): Print ob and cb around src_buf and dst_buf.
+	* NEWS: Mention this improvement.
+
+2018-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	strace.spec.in: add gcc to build requirements.
+	There are rumors in circulation that some rpm-based distributions
+	are going to exclude gcc from their default build environments.
+	Workaround this policy silliness by adding gcc to build requirements.
+
+	* strace.spec.in (BuildRequires): Add gcc.
+
+2018-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Move definitions of fopen_for_input to largefile_wrappers.h.
+	* largefile_wrappers.h (fopen_for_input): Define along with
+	fopen_for_output.
+	* mmap_cache.c: Include "largefile_wrappers.h".
+	(fopen_for_input): Remove.
+
+2018-02-26  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Introduce mmap_cache.h.
+	Let's avoid bloating defs.h and introduce a separate header for
+	mmap_cache.
+
+	* defs.h (struct mmap_cache_t, enum mmap_cache_protection,
+	enum mmap_cache_rebuild_result, mmap_cache_enable, mmap_cache_is_enabled,
+	mmap_cache_invalidate, mmap_cache_delete, mmap_cache_rebuild_if_invalid,
+	mmap_cache_search): Move ...
+	* mmap_cache.h: ... to this new file.
+	* Makefile.am (strace_SOURCES): Add mmap_cache.h.
+	* mmap_cache.c: Include mmap_cache.h.
+	* strace.c: Likewise.
+	* syscall.c: Likewise.
+	* unwind.c: Likewise.
+
+2018-02-26  Masatake YAMATO  <yamato@redhat.com>
+
+	mmap_cache: record device major and minor numbers.
+	* defs.h (struct mmap_cache_t): Add major and minor fields.
+	* mmap_cache.c (build_mmap_cache): Record device major and minor numbers.
+
+2018-02-26  Masatake YAMATO  <yamato@redhat.com>
+
+	mmap_cache: add function to enable mmap_cache.
+	mmap_cache was enabled indirectly via unwind feature.  As now mmap_cache
+	can be used by other part of strace, a way to enable mmap_cache directly
+	is needed.
+
+	* defs.h (mmap_cache_enable, mmap_cache_is_enabled): New function
+	prototypes.
+	* mmap_cache.c (use_mmap_cache): New file local variable.
+	(mmap_cache_enable, mmap_cache_is_enabled): New functions.
+	* syscall.c (syscall_exiting_decode): Use mmap_cache_is_enabled()
+	instead of stack_trace_enabled.
+	* unwind.c (unwind_init): Invoke mmap_cache_enable.
+
+2018-02-26  Masatake YAMATO  <yamato@redhat.com>
+
+	mmap_cache, unwind: lift up mmap_cache_delete invocation from unwind.c.
+	mmap_cache_delete function used to be called by destructor of unwind
+	related code.  Now that other parts can use mmap cache,
+	mmap_cache_delete is called separately from unwind_tcb_fin.
+
+	* unwind.c (unwind_tcb_fin): Move mmap_cache_delete invocation ...
+	* strace.c (droptcb): ... here.
+
+2018-02-26  Masatake YAMATO  <yamato@redhat.com>
+
+	mmap_cache: record protection bits.
+	To make mmap_cache reusable, records protection bits of mmap entries.
+
+	* defs.h (mmap_cache_protection): New enum.
+	* mmap_cache.c (build_mmpa_cache): Don't ignore entries that are not
+	executable, just record the protection bits here.
+	* unwind.c (print_stack_frame): Ignore entries that are not executable.
+
+2018-02-26  Masatake YAMATO  <yamato@redhat.com>
+
+	mmap_cache: move code for searching a mmap cache from unwind.
+	print_stack_frame function in unwind.c searches a mmap entry in mmap
+	cache.  The found entry is then used for unwinding.  However, a function
+	searching for a mmap entry may be useful for other purposes than
+	unwinding.
+
+	This change re-factors the function; code for searching an entry is
+	now defined as a stand-alone function named mmap_cache_search.
+
+	* defs.h (mmap_cache_search): New function prototype.
+	print_stack_frame.
+	* mmap_cached.c (mmap_cache_search): New function derived from
+	print_stack_frame.
+	* unwind.c (print_stack_frame): Use it.
+
+2018-02-26  Masatake YAMATO  <yamato@redhat.com>
+
+	mmap_cache: new subsystem derived from unwind.c.
+	For making mmap cache code reusable from other areas in strace than
+	unwind, mmap cache related code and unwind related code should be
+	separated.
+
+	This change moves the most of mmap cache code from unwind.c
+	to mmap_cache.c, a new file.
+
+	* unwind.c: Move mmap_cache implementation ...
+	* mmap_cache.c: ... to this new file.
+	* Makefile.am (strace_SOURCES): add mmap_cache.c.
+	* defs.h (struct tcb): Move mmap_cache, mmap_cache_size, and
+	mmap_cache_generation fields out of [USE_LIBUNWIND] condition.
+	(mmap_cache_invalidate, mmap_cache_delete,
+	mmap_cache_rebuild_if_invalid): New function prototypes.
+	(struct mmap_cache_t, enum mmap_cache_rebuild_result): Move from
+	unwind.c.
+	* syscall.c (syscall_exiting_decode): Replace unwind_cache_invalidate
+	with mmap_cache_invalidate.
+
+2018-02-26  Masatake YAMATO  <yamato@redhat.com>
+
+	unwind: lift up unw_flush_cache from mmap cache management code.
+	For making mmap cache code reusable from other areas in strace
+	than unwind, mmap cache related code and unwind related code
+	should be separated.
+
+	This change is one of the steps for the separation.  It moves
+	unw_flush_cache function call from the core of mmap cache code
+	to upper level code.
+
+	* unwind.c (mmap_cache_rebuild_result): New enum.
+	(rebuild_cache_if_invalid): Return MMAP_CACHE_REBUILD_* instead of
+	a bool value.
+	(build_mmap_cache): Don't call unw_flush_cache here.
+	(unwind_print_stacktrace, unwind_capture_stacktrace): Call
+	unw_flush_cache here instead.
+
+2018-02-25  Dmitry V. Levin  <ldv@altlinux.org>
+
+	debian: sync with 4.21-1 package.
+	Versioned dependency on debhelper is not updated for backwards
+	compatibility.
+
+	* debian/changelog.in: Fix ancient changelog entries.
+	* debian/control (Build-Depends): Add dependency on libbluetooth-dev.
+	(Standards-Version): Update to 4.1.3.
+	(Vcs-Git, Vcs-Browser): Move from alioth to salsa.d.o.
+	(strace, strace-udeb) <Architecture>: Change to linux-any.
+	(strace64, strace-udeb) <Priority>: Change to optional.
+	* debian/rules: Use /usr/share/dpkg/architecture.mk instead of manually
+	setting build variables.
+	(configure): New target.
+	(build/Makefile, build-udeb/Makefile, build64/Makefile): Depend on it.
+	(binary-arch): Use build64/strace.1 for strace64 subpackage.
+	* debian/strace.manpages: Add build/ prefix.
+	* debian/strace64.manpages: Add build64/ prefix.
+
+2018-02-24  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	m4/mpers.m4: fix mpers name in comments added to config.h.
+	* m4/mpers.m4 (st_MPERS_STRUCT_STAT): Use mpers_name instead of
+	MPERS_NAME in comments generated by AC_DEFINE.
+
+	Fixes: v4.14~169 ("mpers.m4: check for struct stat64, struct stat, and their members")
+
+2018-02-24  Dmitry V. Levin  <ldv@altlinux.org>
+
+	mpers.awk: use stdint.h instead of inttypes.h.
+	As <inttypes.h> is included in files generated by mpers.awk to obtain
+	definitions of uintNN_t types provided by <stdint.h>, replace the former
+	header with the latter.
+
+	* mpers.awk: Use <stdint.h> instead of <inttypes.h>.
+	* mpers_test.sh: Update expected output.
+
+2018-02-23  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Wipe out references to defunct sourceforge.
+	The old location of strace-devel mailing list is defunct, it used to
+	lose email messages and sometimes did not deliver any mails for days.
+
+	The mailing list has been moved to strace-devel@lists.strace.io.
+
+	* CREDITS.in: Update the mailing list address.
+	(Zhang Le): Update email address.
+	* README: Update the mailing list address.
+	* README.md: Likewise.
+	* configure.ac (AC_INIT): Likewise.
+	* strace.1.in (.SH REPORTING BUGS): Likewise.
+	* strace-log-merge.1.in (.SH REPORTING BUGS): Likewise.
+	* sched.c (SYS_FUNC(sched_getattr)): Update the mailing list reference.
+	* tests/scno_tampering.sh: Likewise.
+	* qemu_multiarch_testing/README: Update git repository address.
+	* NEWS: Mention the change of the mailing list address.
+
+	Closes: https://github.com/strace/strace/issues/38
+
+2018-02-21  Dmitry V. Levin  <ldv@altlinux.org>
+
+	m68k: fix build.
+	When <sys/reg.h> is included after <linux/ptrace.h>, the build fails
+	on m68k with the following diagnostics:
+
+	  In file included from /usr/include/linux/ptrace.h:101:0,
+	                   from ptrace.h:51,
+	                   from sigreturn.c:2:
+	  /usr/include/m68k-linux-gnu/sys/reg.h:26:3: error: expected identifier
+	  before numeric constant
+	     PT_D1 = 0,
+	     ^
+
+	Apparently, the only architecture where strace needs definitions
+	provided by <sys/reg.h> is x86_64, other three (m68k, tile, and x86)
+	are fine with definitions already provided by <linux/ptrace.h>.
+
+	Fix the issue by getting rid of <sys/reg.h> and defining necessary
+	macros in linux/x86_64/arch_regs.h file.
+
+	* configure.ac (AC_CHECK_HEADERS): Remove sys/reg.h.
+	* regs.h: Do not include <sys/reg.h>.
+	* linux/x86_64/arch_regs.h (R15, R14, R13, R12, RBP, RBX, R11, R10,
+	R9, R8, RAX, RCX, RDX, RSI, RDI, ORIG_RAX, RIP, CS, EFLAGS, RSP, SS,
+	FS_BASE, GS_BASE, DS, ES, FS, GS): New macros.
+	* NEWS: Mention this fix.
+
+	Fixes: v4.21~21 ("Include <sys/ptrace.h> early")
+
+2018-02-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Demote sourceforge.net.
+	https://sourceforge.net/p/strace/code/ is defunct: it doesn't accept
+	new commits for too long.
+	Likewise, https://sourceforge.net/projects/strace/files/ doesn't accept
+	new files for too long.
+
+	* README.md: Remove sourceforge.net URL.
+	* debian/copyright: Replace the sourceforge.net based strace project URL
+	with a github based one.
+	* strace.spec.in (Source): Likewise.
+
+2018-02-15  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Update copyright headers.
+	* COPYING: Update copyright year number range.
+	* debian/copyright: Sync with COPYING.
+
+2018-02-14  Dmitry V. Levin  <ldv@altlinux.org>
+
+	Post-release administrivia.
+	* NEWS: Add a header line for the next release.
+	* debian/changelog.in: Add a changelog entry for 4.21-1.
+	* strace.spec.in: Likewise.
+
 2018-02-13  Dmitry V. Levin  <ldv@altlinux.org>
 
 	Prepare for 4.21 release.
 	* NEWS: Update for 4.21 release.
+
+2018-02-13  Eugene Syromyatnikov  <evgsyr@gmail.com>
+
+	tests/s390_sthyi.c: skip the test if s390_sthyi returns an error.
+	tests/s390_sthyi.c (main): replace error_msg_and_fail with
+	error_msg_and_skip if rc is non-zero.
+
+2018-02-13  Dmitry V. Levin  <ldv@altlinux.org>
 
 	Update copyright headers.
 	Headers updated automatically using maint/update_copyright_years.sh

@@ -2,13 +2,11 @@
 
 #ifdef IN_MPERS
 
-extern const struct xlat evdev_ff_types[];
+# error static const struct xlat evdev_ff_types in mpers mode
 
 #else
 
-# if !(defined HAVE_M32_MPERS || defined HAVE_MX32_MPERS)
 static
-# endif
 const struct xlat evdev_ff_types[] = {
 #if defined(FF_RUMBLE) || (defined(HAVE_DECL_FF_RUMBLE) && HAVE_DECL_FF_RUMBLE)
   XLAT(FF_RUMBLE),
