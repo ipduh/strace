@@ -2,6 +2,7 @@
  * Check decoding of set_mempolicy syscall.
  *
  * Copyright (c) 2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,7 +77,7 @@ print_nodes(const unsigned long maxnode, unsigned int offset)
 				printf("%#0*lx", (int) sizeof(long) * 2 + 2,
 				       nodemask[i]);
 			} else {
-				printf("%p", nodemask + i);
+				printf("... /* %p */", nodemask + i);
 				break;
 			}
 		}

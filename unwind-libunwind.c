@@ -36,6 +36,8 @@ static unw_addr_space_t libunwind_as;
 static void
 init(void)
 {
+	mmap_cache_enable();
+
 	libunwind_as = unw_create_addr_space(&_UPT_accessors, 0);
 	if (!libunwind_as)
 		error_msg_and_die("failed to create address space"
@@ -87,26 +89,25 @@ print_stack_frame(struct tcb *tcp,
 		  size_t *symbol_name_size)
 {
 	unw_word_t ip;
-	struct mmap_cache_t *cur_mmap_cache;
 
 	if (unw_get_reg(cursor, UNW_REG_IP, &ip) < 0) {
 		perror_msg("cannot walk the stack of process %d", tcp->pid);
 		return -1;
 	}
 
-	cur_mmap_cache = mmap_cache_search(tcp, ip);
-	if (cur_mmap_cache
+	struct mmap_cache_entry_t *entry = mmap_cache_search(tcp, ip);
+
+	if (entry
 	    /* ignore mappings that have no PROT_EXEC bit set */
-	    && (cur_mmap_cache->protections & MMAP_CACHE_PROT_EXECUTABLE)) {
-		unsigned long true_offset;
+	    && (entry->protections & MMAP_CACHE_PROT_EXECUTABLE)) {
 		unw_word_t function_offset;
 
 		get_symbol_name(cursor, symbol_name, symbol_name_size,
 				&function_offset);
-		true_offset = ip - cur_mmap_cache->start_addr +
-			cur_mmap_cache->mmap_offset;
+		unsigned long true_offset =
+			ip - entry->start_addr + entry->mmap_offset;
 		call_action(data,
-			    cur_mmap_cache->binary_filename,
+			    entry->binary_filename,
 			    *symbol_name,
 			    function_offset,
 			    true_offset);
@@ -125,10 +126,10 @@ print_stack_frame(struct tcb *tcp,
 }
 
 static void
-tcb_walk(struct tcb *tcp,
-	 unwind_call_action_fn call_action,
-	 unwind_error_action_fn error_action,
-	 void *data)
+walk(struct tcb *tcp,
+     unwind_call_action_fn call_action,
+     unwind_error_action_fn error_action,
+     void *data)
 {
 	char *symbol_name;
 	size_t symbol_name_size = 40;
@@ -137,8 +138,6 @@ tcb_walk(struct tcb *tcp,
 
 	if (!tcp->mmap_cache)
 		error_func_msg_and_die("mmap_cache is NULL");
-	if (tcp->mmap_cache_size == 0)
-		error_func_msg_and_die("mmap_cache is empty");
 
 	symbol_name = xmalloc(symbol_name_size);
 
@@ -159,9 +158,27 @@ tcb_walk(struct tcb *tcp,
 }
 
 static void
-tcb_flush_cache(struct tcb *tcp)
+tcb_walk(struct tcb *tcp,
+	 unwind_call_action_fn call_action,
+	 unwind_error_action_fn error_action,
+	 void *data)
 {
-	unw_flush_cache(libunwind_as, 0, 0);
+	switch (mmap_cache_rebuild_if_invalid(tcp, __func__)) {
+		case MMAP_CACHE_REBUILD_RENEWED:
+			/*
+			 * Rebuild the unwinder internal cache.
+			 * Called when mmap cache subsystem detects a
+			 * change of tracee memory mapping.
+			 */
+			unw_flush_cache(libunwind_as, 0, 0);
+			ATTRIBUTE_FALLTHROUGH;
+		case MMAP_CACHE_REBUILD_READY:
+			walk(tcp, call_action, error_action, data);
+			break;
+		default:
+			/* Do nothing */
+			;
+	}
 }
 
 const struct unwind_unwinder_t unwinder = {
@@ -170,5 +187,4 @@ const struct unwind_unwinder_t unwinder = {
 	.tcb_init = tcb_init,
 	.tcb_fin = tcb_fin,
 	.tcb_walk = tcb_walk,
-	.tcb_flush_cache = tcb_flush_cache,
 };

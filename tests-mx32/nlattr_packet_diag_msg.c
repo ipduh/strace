@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2017 The strace developers.
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,7 +67,7 @@ print_packet_diag_msg(const unsigned int msg_len)
 }
 
 static void
-print_packet_diag_mclist(const struct packet_diag_mclist *const dml)
+print_packet_diag_mclist(const struct packet_diag_mclist *const dml, size_t i)
 {
 	printf("{pdmc_index=" IFINDEX_LO_STR);
 	PRINT_FIELD_U(", ", *dml, pdmc_count);
@@ -84,7 +84,7 @@ static const struct sock_filter filter[] = {
 };
 
 static void
-print_sock_filter(const struct sock_filter *const f)
+print_sock_filter(const struct sock_filter *const f, size_t i)
 {
 	if (f == filter)
 		printf("BPF_STMT(BPF_LD|BPF_B|BPF_ABS"
@@ -98,13 +98,6 @@ main(void)
 {
 	skip_if_unavailable("/proc/self/fd/");
 
-	int fd = create_nl_socket(NETLINK_SOCK_DIAG);
-	const unsigned int hdrlen = sizeof(struct packet_diag_msg);
-	void *const nlh0 = tail_alloc(NLMSG_SPACE(hdrlen));
-
-	static char pattern[4096];
-	fill_memory_ex(pattern, sizeof(pattern), 'a', 'z' - 'a' + 1);
-
 	static const struct packet_diag_info pinfo = {
 		.pdi_index = 0xabcddafa,
 		.pdi_version = 0xbabcdafb,
@@ -113,16 +106,6 @@ main(void)
 		.pdi_tstamp = 0xeafbaadf,
 		.pdi_flags = PDI_RUNNING
 	};
-	TEST_NLATTR_OBJECT(fd, nlh0, hdrlen,
-			   init_packet_diag_msg, print_packet_diag_msg,
-			   PACKET_DIAG_INFO, pattern, pinfo,
-			   PRINT_FIELD_U("{", pinfo, pdi_index);
-			   PRINT_FIELD_U(", ", pinfo, pdi_version);
-			   PRINT_FIELD_U(", ", pinfo, pdi_reserve);
-			   PRINT_FIELD_U(", ", pinfo, pdi_copy_thresh);
-			   PRINT_FIELD_U(", ", pinfo, pdi_tstamp);
-			   printf(", pdi_flags=PDI_RUNNING}"));
-
 	const struct packet_diag_mclist dml[] = {
 		{
 			.pdmc_index = ifindex_lo(),
@@ -139,11 +122,6 @@ main(void)
 			.pdmc_addr = "5678"
 		}
 	};
-	TEST_NLATTR_ARRAY(fd, nlh0, hdrlen,
-			  init_packet_diag_msg, print_packet_diag_msg,
-			  PACKET_DIAG_MCLIST, pattern, dml,
-			  print_packet_diag_mclist);
-
 	static const struct packet_diag_ring pdr = {
 		.pdr_block_size = 0xabcdafed,
 		.pdr_block_nr = 0xbcadefae,
@@ -153,6 +131,30 @@ main(void)
 		.pdr_sizeof_priv = 0xfeadeacd,
 		.pdr_features = 0xadebadea
 	};
+
+	int fd = create_nl_socket(NETLINK_SOCK_DIAG);
+	const unsigned int hdrlen = sizeof(struct packet_diag_msg);
+	void *const nlh0 = midtail_alloc(NLMSG_SPACE(hdrlen),
+					 NLA_HDRLEN + sizeof(dml));
+
+	static char pattern[4096];
+	fill_memory_ex(pattern, sizeof(pattern), 'a', 'z' - 'a' + 1);
+
+	TEST_NLATTR_OBJECT(fd, nlh0, hdrlen,
+			   init_packet_diag_msg, print_packet_diag_msg,
+			   PACKET_DIAG_INFO, pattern, pinfo,
+			   PRINT_FIELD_U("{", pinfo, pdi_index);
+			   PRINT_FIELD_U(", ", pinfo, pdi_version);
+			   PRINT_FIELD_U(", ", pinfo, pdi_reserve);
+			   PRINT_FIELD_U(", ", pinfo, pdi_copy_thresh);
+			   PRINT_FIELD_U(", ", pinfo, pdi_tstamp);
+			   printf(", pdi_flags=PDI_RUNNING}"));
+
+	TEST_NLATTR_ARRAY(fd, nlh0, hdrlen,
+			  init_packet_diag_msg, print_packet_diag_msg,
+			  PACKET_DIAG_MCLIST, pattern, dml,
+			  print_packet_diag_mclist);
+
 	TEST_NLATTR_OBJECT(fd, nlh0, hdrlen,
 			   init_packet_diag_msg, print_packet_diag_msg,
 			   PACKET_DIAG_RX_RING, pattern, pdr,

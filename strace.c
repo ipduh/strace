@@ -65,7 +65,7 @@ extern char **environ;
 extern int optind;
 extern char *optarg;
 
-#ifdef USE_LIBUNWIND
+#ifdef ENABLE_STACKTRACE
 /* if this is true do the stack trace for every system call */
 bool stack_trace_enabled;
 #endif
@@ -147,6 +147,9 @@ unsigned int max_strlen = DEFAULT_STRLEN;
 static int acolumn = DEFAULT_ACOLUMN;
 static char *acolumn_spaces;
 
+/* Default output style for xlat entities */
+enum xlat_style xlat_verbosity = XLAT_STYLE_ABBREV;
+
 static const char *outfname;
 /* If -ff, points to stderr. Else, it's our common output log */
 static FILE *shared_log;
@@ -203,12 +206,12 @@ static void
 print_version(void)
 {
 	static const char features[] =
-#ifdef USE_LIBUNWIND
-		" stack-unwind"
-#endif /* USE_LIBUNWIND */
+#ifdef ENABLE_STACKTRACE
+		" stack-trace=" USE_UNWINDER
+#endif
 #ifdef USE_DEMANGLE
 		" stack-demangle"
-#endif /* USE_DEMANGLE */
+#endif
 #if SUPPORTED_PERSONALITIES > 1
 # if defined HAVE_M32_MPERS
 		" m32-mpers"
@@ -248,9 +251,9 @@ Output format:\n\
   -a column      alignment COLUMN for printing syscall results (default %d)\n\
   -i             print instruction pointer at time of syscall\n\
 "
-#ifdef USE_LIBUNWIND
+#ifdef ENABLE_STACKTRACE
 "\
-  -k             obtain stack trace between each syscall (experimental)\n\
+  -k             obtain stack trace between each syscall\n\
 "
 #endif
 "\
@@ -418,7 +421,8 @@ set_cloexec_flag(int fd)
 	if (flags == newflags)
 		return;
 
-	fcntl(fd, F_SETFD, newflags); /* never fails */
+	if (fcntl(fd, F_SETFD, newflags)) /* never fails */
+		perror_msg_and_die("fcntl(%d, F_SETFD, %#x)", fd, newflags);
 }
 
 static void
@@ -703,14 +707,20 @@ tabto(void)
  * may create bogus empty FILE.<nonexistant_pid>, and then die.
  */
 static void
-newoutf(struct tcb *tcp)
+after_successful_attach(struct tcb *tcp, const unsigned int flags)
 {
+	tcp->flags |= TCB_ATTACHED | TCB_STARTUP | flags;
 	tcp->outf = shared_log; /* if not -ff mode, the same file is for all */
 	if (followfork >= 2) {
 		char name[PATH_MAX];
 		xsprintf(name, "%s.%u", outfname, tcp->pid);
 		tcp->outf = strace_fopen(name);
 	}
+
+#ifdef ENABLE_STACKTRACE
+	if (stack_trace_enabled)
+		unwind_tcb_init(tcp);
+#endif
 }
 
 static void
@@ -752,12 +762,6 @@ alloctcb(int pid)
 #if SUPPORTED_PERSONALITIES > 1
 			tcp->currpers = current_personality;
 #endif
-
-#ifdef USE_LIBUNWIND
-			if (stack_trace_enabled)
-				unwind_tcb_init(tcp);
-#endif
-
 			nprocs++;
 			debug_msg("new tcb for pid %d, active tcbs:%d",
 				  tcp->pid, nprocs);
@@ -810,13 +814,13 @@ droptcb(struct tcb *tcp)
 
 	free_tcb_priv_data(tcp);
 
-#ifdef USE_LIBUNWIND
-	if (stack_trace_enabled) {
+#ifdef ENABLE_STACKTRACE
+	if (stack_trace_enabled)
 		unwind_tcb_fin(tcp);
-	}
 #endif
 
-	mmap_cache_delete(tcp, __func__);
+	if (tcp->mmap_cache)
+		tcp->mmap_cache->free_fn(tcp, __func__);
 
 	nprocs--;
 	debug_msg("dropped tcb for pid %d, %d remain", tcp->pid, nprocs);
@@ -1039,9 +1043,7 @@ attach_tcb(struct tcb *const tcp)
 		return;
 	}
 
-	tcp->flags |= TCB_ATTACHED | TCB_GRABBED | TCB_STARTUP |
-		      post_attach_sigstop;
-	newoutf(tcp);
+	after_successful_attach(tcp, TCB_GRABBED | post_attach_sigstop);
 	debug_msg("attach to pid %d (main) succeeded", tcp->pid);
 
 	static const char task_path[] = "/proc/%d/task";
@@ -1069,12 +1071,10 @@ attach_tcb(struct tcb *const tcp)
 						 ptrace_attach_cmd, tid);
 				continue;
 			}
-			debug_msg("attach to pid %d succeeded", tid);
 
-			struct tcb *tid_tcp = alloctcb(tid);
-			tid_tcp->flags |= TCB_ATTACHED | TCB_GRABBED |
-					  TCB_STARTUP | post_attach_sigstop;
-			newoutf(tid_tcp);
+			after_successful_attach(alloctcb(tid),
+						TCB_GRABBED | post_attach_sigstop);
+			debug_msg("attach to pid %d succeeded", tid);
 		}
 
 		closedir(dir);
@@ -1419,18 +1419,20 @@ startup_child(char **argv)
 				kill(pid, SIGCONT);
 		}
 		tcp = alloctcb(pid);
-		tcp->flags |= TCB_ATTACHED | TCB_STARTUP
-			    | TCB_SKIP_DETACH_ON_FIRST_EXEC
-			    | (NOMMU_SYSTEM ? 0 : (TCB_HIDE_LOG | post_attach_sigstop));
-		newoutf(tcp);
+		after_successful_attach(tcp, TCB_SKIP_DETACH_ON_FIRST_EXEC
+					     | (NOMMU_SYSTEM ? 0
+						: (TCB_HIDE_LOG
+						   | post_attach_sigstop)));
 	} else {
 		/* With -D, we are *child* here, the tracee is our parent. */
 		strace_child = strace_tracer_pid;
 		strace_tracer_pid = getpid();
 		tcp = alloctcb(strace_child);
 		tcp->flags |= TCB_SKIP_DETACH_ON_FIRST_EXEC | TCB_HIDE_LOG;
-		/* attaching will be done later, by startup_attach */
-		/* note: we don't do newoutf(tcp) here either! */
+		/*
+		 * Attaching will be done later, by startup_attach.
+		 * Note: we don't do after_successful_attach() here either!
+		 */
 
 		/* NOMMU BUG! -D mode is active, we (child) return,
 		 * and we will scribble over parent's stack!
@@ -1592,10 +1594,10 @@ init(int argc, char *argv[])
 #endif
 	qualify("signal=all");
 	while ((c = getopt(argc, argv, "+"
-#ifdef USE_LIBUNWIND
+#ifdef ENABLE_STACKTRACE
 	    "k"
 #endif
-	    "a:Ab:cCdDe:E:fFhiI:o:O:p:P:qrs:S:tTu:vVwxyz")) != EOF) {
+	    "a:Ab:cCdDe:E:fFhiI:o:O:p:P:qrs:S:tTu:vVwxX:yz")) != EOF) {
 		switch (c) {
 		case 'a':
 			acolumn = string_to_uint(optarg);
@@ -1653,7 +1655,7 @@ init(int argc, char *argv[])
 			if (opt_intr <= 0)
 				error_opt_arg(c, optarg);
 			break;
-#ifdef USE_LIBUNWIND
+#ifdef ENABLE_STACKTRACE
 		case 'k':
 			stack_trace_enabled = true;
 			break;
@@ -1710,6 +1712,16 @@ init(int argc, char *argv[])
 		case 'x':
 			xflag++;
 			break;
+		case 'X':
+			if (!strcmp(optarg, "raw"))
+				xlat_verbosity = XLAT_STYLE_RAW;
+			else if (!strcmp(optarg, "abbrev"))
+				xlat_verbosity = XLAT_STYLE_ABBREV;
+			else if (!strcmp(optarg, "verbose"))
+				xlat_verbosity = XLAT_STYLE_VERBOSE;
+			else
+				error_opt_arg(c, optarg);
+			break;
 		case 'y':
 			show_fd_path++;
 			break;
@@ -1754,7 +1766,7 @@ init(int argc, char *argv[])
 	if (cflag == CFLAG_ONLY_STATS) {
 		if (iflag)
 			error_msg("-%c has no effect with -c", 'i');
-#ifdef USE_LIBUNWIND
+#ifdef ENABLE_STACKTRACE
 		if (stack_trace_enabled)
 			error_msg("-%c has no effect with -c", 'k');
 #endif
@@ -1774,15 +1786,9 @@ init(int argc, char *argv[])
 
 	set_sighandler(SIGCHLD, SIG_DFL, &params_for_tracee.child_sa);
 
-#ifdef USE_LIBUNWIND
-	if (stack_trace_enabled) {
-		unsigned int tcbi;
-
+#ifdef ENABLE_STACKTRACE
+	if (stack_trace_enabled)
 		unwind_init();
-		for (tcbi = 0; tcbi < tcbtabsize; ++tcbi) {
-			unwind_tcb_init(tcbtab[tcbi]);
-		}
-	}
 #endif
 
 	/* See if they want to run as another user. */
@@ -2031,8 +2037,7 @@ maybe_allocate_tcb(const int pid, int status)
 	if (followfork) {
 		/* We assume it's a fork/vfork/clone child */
 		struct tcb *tcp = alloctcb(pid);
-		tcp->flags |= TCB_ATTACHED | TCB_STARTUP | post_attach_sigstop;
-		newoutf(tcp);
+		after_successful_attach(tcp, post_attach_sigstop);
 		if (!qflag)
 			error_msg("Process %d attached", pid);
 		return tcp;

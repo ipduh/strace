@@ -4,7 +4,7 @@
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-2000 Wichert Akkerman <wichert@cistron.nl>
  * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -350,8 +350,8 @@ decode_msg_control(struct tcb *const tcp, const kernel_ulong_t addr,
 		buf_len -= len;
 	}
 	if (buf_len) {
-		tprints(", ");
-		printaddr(addr + (control_len - buf_len));
+		tprints(", ...");
+		printaddr_comment(addr + (control_len - buf_len));
 	} else if (control_len < in_control_len) {
 		tprints(", ...");
 	}

@@ -46,9 +46,9 @@ AM_INIT_AUTOMAKE([foreign nostdinc dist-xz silent-rules parallel-tests 1.13])
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
 
-RPM_CHANGELOGTIME="$(LC_TIME=C date '+%a %b %d %Y')"
+RPM_CHANGELOGTIME="$(LC_TIME=C date -u '+%a %b %d %Y')"
 AC_SUBST(RPM_CHANGELOGTIME)
-DEB_CHANGELOGTIME="$(LC_TIME=C date -R)"
+DEB_CHANGELOGTIME="$(LC_TIME=C date -u -R)"
 AC_SUBST(DEB_CHANGELOGTIME)
 
 AC_PROG_CC
@@ -322,7 +322,9 @@ AC_CHECK_TYPES(m4_normalize([
 	struct flock,
 	struct flock64,
 	struct __kernel_flock,
-	struct __kernel_flock64
+	struct __kernel_flock64,
+	struct f_owner_ex,
+	struct __kernel_f_owner_ex
 ]),,,
 [#include <sys/types.h>
 #include <linux/fcntl.h>])
@@ -382,7 +384,6 @@ AC_CHECK_HEADERS(m4_normalize([
 	asm/cachectl.h
 	asm/guarded_storage.h
 	asm/sysmips.h
-	bluetooth/bluetooth.h
 	elf.h
 	iconv.h
 	inttypes.h
@@ -465,8 +466,18 @@ AC_CHECK_HEADERS([linux/input.h], [
 ])
 
 AC_CHECK_HEADERS([linux/bpf.h], [
-	AC_CHECK_TYPES([struct bpf_insn],,, [#include <linux/bpf.h>])
+	AC_CHECK_TYPES(m4_normalize([
+		struct bpf_insn,
+		struct bpf_map_info,
+		struct bpf_prog_info
+	]),,, [#include <linux/bpf.h>])
 	st_BPF_ATTR
+])
+
+AC_CHECK_HEADERS([bluetooth/bluetooth.h], [
+	AC_CHECK_MEMBERS([struct sockaddr_l2.l2_bdaddr_type],,,
+			 [#include <bluetooth/bluetooth.h>
+			 #include <bluetooth/l2cap.h>])
 ])
 
 AC_CHECK_TYPES(m4_normalize([
@@ -485,7 +496,8 @@ AC_CHECK_TYPES([struct netconfmsg],,, [#include <linux/netconf.h>])
 AC_CHECK_TYPES(m4_normalize([
 	struct rta_mfc_stats,
 	struct rtvia
-]),,, [#include <linux/rtnetlink.h>])
+]),,, [#include <sys/socket.h>
+#include <linux/rtnetlink.h>])
 
 AC_CHECK_MEMBERS([struct ndt_stats.ndts_table_fulls],,, [#include <linux/neighbour.h>])
 AC_CHECK_TYPES(m4_normalize([
@@ -495,13 +507,23 @@ AC_CHECK_TYPES(m4_normalize([
 
 AC_CHECK_TYPES(m4_normalize([
 	struct ifla_bridge_id,
+	struct ifla_cacheinfo,
 	struct ifla_port_vsi,
 	struct rtnl_link_stats64
-]),,, [#include <linux/if_link.h>])
+]),,, [#include <sys/socket.h>
+#include <linux/rtnetlink.h>])
 AC_CHECK_MEMBERS(m4_normalize([
 	struct rtnl_link_stats.rx_nohandler,
 	struct rtnl_link_stats64.rx_nohandler
-]),,, [#include <linux/if_link.h>])
+]),,, [#include <sys/socket.h>
+#include <linux/rtnetlink.h>])
+AC_CHECK_DECLS(m4_normalize([
+	IFLA_PORT_SELF,
+	IFLA_PROTINFO,
+	IFLA_AF_SPEC,
+	IFLA_XDP
+]),,, [#include <sys/socket.h>
+#include <linux/rtnetlink.h>])
 
 AC_CHECK_TYPES(m4_normalize([
 	struct gnet_stats_basic,
@@ -510,9 +532,15 @@ AC_CHECK_TYPES(m4_normalize([
 	struct gnet_stats_rate_est64
 ]),,, [#include <linux/gen_stats.h>])
 
-AC_CHECK_TYPES([struct tc_sizespec],,, [#include <linux/pkt_sched.h>])
+AC_CHECK_TYPES([struct tc_sizespec],,, [#include <linux/types.h>
+#include <linux/pkt_sched.h>])
+AC_CHECK_DECLS([TCA_STAB_DATA],,, [#include <linux/types.h>
+#include <linux/pkt_sched.h>])
 
-AC_CHECK_TYPES([struct fib_rule_uid_range],,, [#include <linux/fib_rules.h>])
+AC_CHECK_TYPES(m4_normalize([
+	struct fib_rule_uid_range,
+	struct fib_rule_port_range
+]),,, [#include <linux/fib_rules.h>])
 
 AC_CHECK_TYPES([struct statfs], [
 	AC_CHECK_MEMBERS(m4_normalize([
@@ -551,6 +579,11 @@ AC_CHECK_TYPES(m4_normalize([
 	struct kvm_sregs,
 	struct kvm_userspace_memory_region
 ]),,, [#include <linux/kvm.h>])
+
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -I$srcdir/linux"
+AC_CHECK_TYPES([struct __aio_sigset],,, [#include <linux/aio_abi.h>])
+CPPFLAGS="$saved_CPPFLAGS"
 
 AC_CHECK_HEADERS([linux/btrfs.h], [
 	AC_CHECK_MEMBERS(m4_normalize([
@@ -797,13 +830,31 @@ fi
 
 AC_CACHE_CHECK([for static_assert], [st_cv_have_static_assert],
 	       [AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <assert.h>]],
-						[[static_assert(1,"")]])],
+						[[static_assert(1,"")]]
+					       )
+			       ],
 			       [st_cv_have_static_assert=yes],
-			       [st_cv_have_static_assert=no])])
-if test "x$st_cv_have_static_assert" = xyes; then
-	AC_DEFINE([HAVE_STATIC_ASSERT], [1],
-		  [Define to 1 if the system provides static_assert])
-fi
+			       [AC_LINK_IFELSE([AC_LANG_PROGRAM([],
+								[[_Static_assert(1,"")]]
+							       )
+					       ],
+					       [st_cv_have_static_assert=_Static_assert],
+					       [st_cv_have_static_assert=no]
+					      )
+			       ]
+			      )
+	       ]
+	      )
+case "x$st_cv_have_static_assert" in
+	xyes)
+		AC_DEFINE([HAVE_STATIC_ASSERT], [1],
+			  [Define to 1 if the system provides static_assert])
+		;;
+	x_Static_assert)
+		AC_DEFINE([HAVE__STATIC_ASSERT], [1],
+			  [Define to 1 if the system provides _Static_assert])
+		;;
+esac
 
 AC_CHECK_LIB([dl], [dladdr], [dl_LIBS='-ldl'], [dl_LIBS=])
 if test "x$ac_cv_lib_dl_dladdr" = xyes; then
@@ -844,148 +895,7 @@ AC_PATH_PROG([PERL], [perl])
 
 AC_CHECK_TOOL([READELF], [readelf])
 
-dnl stack trace with libunwind
-libunwind_CPPFLAGS=
-libunwind_LDFLAGS=
-libunwind_LIBS=
-AC_ARG_WITH([libunwind],
-	    [AS_HELP_STRING([--with-libunwind],
-			    [use libunwind to implement stack tracing support])],
-	    [case "${withval}" in
-	     yes|no|check) ;;
-	     *) with_libunwind=yes
-		libunwind_CPPFLAGS="-I${withval}/include"
-		libunwind_LDFLAGS="-L${withval}/lib" ;;
-	     esac],
-	    [with_libunwind=check]
-)
-
-use_libunwind=no
-AS_IF([test "x$with_libunwind" != xno],
-      [saved_CPPFLAGS="$CPPFLAGS"
-       CPPFLAGS="$CPPFLAGS $libunwind_CPPFLAGS"
-
-       AC_CHECK_HEADERS([libunwind-ptrace.h],
-	 [saved_LDFLAGS="$LDFLAGS"
-	  LDFLAGS="$LDFLAGS $libunwind_LDFLAGS"
-
-	  AC_CHECK_LIB([unwind], [backtrace],
-	    [libunwind_LIBS="-lunwind $libunwind_LIBS"
-
-	     AC_MSG_CHECKING([for unw_create_addr_space in libunwind-generic])
-	     saved_LIBS="$LIBS"
-	     LIBS="-lunwind-generic $libunwind_LIBS $LIBS"
-
-	     AC_LINK_IFELSE(
-	       [AC_LANG_PROGRAM([[#include <libunwind-ptrace.h>]],
-				[[return !unw_create_addr_space(0, 0)]])
-	       ],
-	       [AC_MSG_RESULT([yes])
-		libunwind_LIBS="-lunwind-generic $libunwind_LIBS"
-
-		AC_CHECK_LIB([unwind-ptrace], [_UPT_create],
-		  [libunwind_LIBS="-lunwind-ptrace $libunwind_LIBS"
-		   use_libunwind=yes
-		  ],
-		  [if test "x$with_libunwind" != xcheck; then
-		     AC_MSG_FAILURE([failed to find _UPT_create in libunwind-ptrace])
-		   fi
-		  ],
-		  [$libunwind_LIBS]
-		)
-	       ],
-	       [AC_MSG_RESULT([no])
-		if test "x$with_libunwind" != xcheck; then
-		  AC_MSG_FAILURE([failed to find unw_create_addr_space in libunwind-generic])
-		fi
-	       ]
-	     )
-
-	     LIBS="$saved_LIBS"
-	    ],
-	    [if test "x$with_libunwind" != xcheck; then
-	       AC_MSG_FAILURE([failed to find libunwind])
-	     fi
-	    ],
-	    [$libunwind_LIBS]
-	  )
-
-	  LDFLAGS="$saved_LDFLAGS"
-	 ],
-	 [if test "x$with_libunwind" != xcheck; then
-	    AC_MSG_FAILURE([failed to find libunwind-ptrace.h])
-	  fi
-	 ]
-       )
-
-       CPPFLAGS="$saved_CPPFLAGS"
-      ]
-)
-
-dnl enable libunwind
-AC_MSG_CHECKING([whether to enable stack tracing support using libunwind])
-if test "x$use_libunwind" = xyes; then
-	AC_DEFINE([USE_LIBUNWIND], 1, [Compile stack tracing functionality])
-	AC_SUBST(libunwind_LIBS)
-	AC_SUBST(libunwind_LDFLAGS)
-	AC_SUBST(libunwind_CPPFLAGS)
-fi
-AM_CONDITIONAL([USE_LIBUNWIND], [test "x$use_libunwind" = xyes])
-AC_MSG_RESULT([$use_libunwind])
-
-dnl demangling symbols in the stack trace
-libiberty_CPPFLAGS=
-libiberty_LDFLAGS=
-libiberty_LIBS=
-AC_ARG_WITH([libiberty],
-	    [AS_HELP_STRING([--with-libiberty],
-			    [use libiberty to demangle symbols in stack trace])],
-	    [case "${withval}" in
-	     yes|no|check) ;;
-	     *) with_libiberty=yes
-		libiberty_CPPFLAGS="-I${withval}/include"
-		libiberty_LDFLAGS="-L${withval}/lib" ;;
-	     esac],
-	    [with_libiberty=check]
-)
-
-use_libiberty=no
-AS_IF([test "x$use_libunwind" = xyes && test "x$with_libiberty" != xno],
-      [saved_CPPFLAGS="$CPPFLAGS"
-       CPPFLAGS="$CPPFLAGS $libiberty_CPPFLAGS"
-       AC_CHECK_HEADERS([demangle.h libiberty/demangle.h],
-	 [saved_LDFLAGS="$LDFLAGS"
-	  LDFLAGS="$LDFLAGS $libiberty_LDFLAGS"
-	  AC_CHECK_LIB([iberty],[cplus_demangle],
-	    [libiberty_LIBS="-liberty"
-	     use_libiberty=yes
-	    ],
-	    [if test "x$with_libiberty" != xcheck; then
-	       AC_MSG_FAILURE([failed to find cplus_demangle in libiberty])
-	     fi
-	    ]
-	  )
-	  LDFLAGS="$saved_LDFLAGS"
-	 ],
-	 [if test "x$with_libiberty" != xcheck; then
-	      AC_MSG_FAILURE([failed to find demangle.h])
-	  fi
-	 ]
-       )
-       CPPFLAGS="$saved_CPPFLAGS"
-      ]
-)
-
-dnl enable libiberty
-AC_MSG_CHECKING([whether to enable demangling symbols in stack trace])
-if test "x$use_libiberty" = xyes; then
-	AC_DEFINE([USE_DEMANGLE], 1, [Do demangling symbols in stack trace])
-	AC_SUBST(libiberty_LIBS)
-	AC_SUBST(libiberty_LDFLAGS)
-	AC_SUBST(libiberty_CPPFLAGS)
-fi
-AM_CONDITIONAL([USE_DEMANGLE], [test "x$use_libiberty" = xyes])
-AC_MSG_RESULT([$use_libiberty])
+st_STACKTRACE
 
 if test "$arch" = mips && test "$no_create" != yes; then
 	mkdir -p linux/mips

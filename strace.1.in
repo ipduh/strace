@@ -58,13 +58,19 @@
 strace \- trace system calls and signals
 .SH SYNOPSIS
 .SY strace
+.if '@ENABLE_STACKTRACE_TRUE@'#' .ig end_unwind_opt
 .OP \-ACdffhikqrtttTvVxxy
+.end_unwind_opt
+.if '@ENABLE_STACKTRACE_FALSE@'#' .ig end_no_unwind_opt
+.OP \-ACdffhiqrtttTvVxxy
+.end_no_unwind_opt
 .OP \-I n
 .OP \-b execve
 .OM \-e expr
 .OP \-a column
 .OP \-o file
 .OP \-s strsize
+.OP \-X format
 .OM \-P path
 .OM \-p pid
 .BR "" {
@@ -170,7 +176,9 @@ This example shows the shell performing ">>xyzzy" output redirection:
 .CW
 open("xyzzy", O_WRONLY|O_APPEND|O_CREAT, 0666) = 3
 .CE
-Here, the third argument of open is decoded by breaking down the
+Here, the third argument of
+.B open
+is decoded by breaking down the
 flag argument into its three bitwise-OR constituents and printing the
 mode value in octal by tradition.  Where the traditional or native
 usage differs from ANSI or POSIX, the latter forms are preferred.
@@ -205,8 +213,7 @@ Syscalls unknown to
 are printed raw, with the unknown system call number printed in hexadecimal form
 and prefixed with "syscall_":
 .CW
-syscall_0xbad(0xfedcba9876543210, 0xfedcba9876543211, 0xfedcba9876543212,
-0xfedcba9876543213, 0xfedcba9876543214, 0xfedcba9876543215) = -1 (errno 38)
+syscall_0xbad(0x1, 0x2, 0x3, 0x4, 0x5, 0x6) = -1 ENOSYS (Function not implemented)
 .CE
 .LP
 Character pointers are dereferenced and printed as C strings.
@@ -252,12 +259,11 @@ Align return values in a specific column (default column 40).
 .TP
 .B \-i
 Print the instruction pointer at the time of the system call.
+.if '@ENABLE_STACKTRACE_TRUE@'#' .ig end_unwind
 .TP
 .B \-k
-Print the execution stack trace of the traced processes after each system call (experimental).
-This option is available only if
-.B strace
-is built with libunwind.
+Print the execution stack trace of the traced processes after each system call.
+.end_unwind
 .TP
 .BI "\-o " filename
 Write the trace output to the file
@@ -274,7 +280,8 @@ without affecting the redirections of executed programs.
 The latter is not compatible with
 .B \-ff
 option currently.
-.TP \-A
+.TP
+.B \-A
 Open the file provided in the
 .B \-o
 option in append mode.
@@ -324,6 +331,27 @@ Print all non-ASCII strings in hexadecimal string format.
 .TP
 .B \-xx
 Print all strings in hexadecimal string format.
+.TP
+.BI "\-X " format
+Set the format for printing of named constants and flags.
+Supported
+.I format
+values are:
+.RS
+.TP 10
+.B raw
+Raw number output, without decoding.
+.TP
+.B abbrev
+Output a named constant or a set of flags instead of the raw number if they are
+found.
+This is the default
+.B strace
+behaviour.
+.TP
+.B verbose
+Output both the raw value and the decoded string (as a comment).
+.RE
 .TP
 .B \-y
 Print paths associated with file descriptor arguments.
@@ -418,6 +446,9 @@ means to trace every system call except
 .BR open .
 Question mark before the syscall qualification allows suppression of error
 in case no syscalls matched the qualification provided.
+Appending one of "@64", "@32", or "@x32" suffixes to the syscall qualification
+allows specifying syscalls only for the 64-bit, 32-bit, or 32-on-64-bit
+personality, respectively.
 In addition, the special values
 .B all
 and
@@ -555,6 +586,9 @@ This option has the effect of causing all arguments to be printed
 in hexadecimal.  This is mostly useful if you don't trust the
 decoding or you need to know the actual numeric value of an
 argument.
+See also
+.B \-X raw
+option.
 .TP
 \fB\-e\ signal\fR=\,\fIset\fR
 Trace only the specified subset of signals.  The default is
@@ -595,7 +629,7 @@ Note that this is independent from the normal tracing of the
 system call which is controlled by the option
 .BR -e "\ " trace = write .
 .TP
-\fB\-e\ inject\fR=\,\fIset\/\fR[:\fBerror\fR=\,\fIerrno\/\fR|:\fBretval\fR=\,\fIvalue\/\fR][:\fBsignal\fR=\,\fIsig\/\fR][:\fBdelay_enter\fR=\,\fIusecs\/\fR][:\fBdelay_exit\fR=\,\fIusecs\/\fR][:\fBwhen\fR=\,\fIexpr\/\fR]
+\fB\-e\ inject\fR=\,\fIset\/\fR[:\fBerror\fR=\,\fIerrno\/\fR|:\fBretval\fR=\,\fIvalue\/\fR][:\fBsignal\fR=\,\fIsig\/\fR][:\fBsyscall\fR=\fIsyscall\fR][:\fBdelay_enter\fR=\,\fIusecs\/\fR][:\fBdelay_exit\fR=\,\fIusecs\/\fR][:\fBwhen\fR=\,\fIexpr\/\fR]
 Perform syscall tampering for the specified set of syscalls.
 
 At least one of
@@ -613,7 +647,8 @@ are mutually exclusive.
 
 If :\fBerror\fR=\,\fIerrno\/\fR option is specified,
 a fault is injected into a syscall invocation:
-the syscall number is replaced by -1 which corresponds to an invalid syscall,
+the syscall number is replaced by -1 which corresponds to an invalid syscall
+(unless a syscall is specified with :\fBsyscall=\fR option),
 and the error code is specified using a symbolic
 .I errno
 value like
@@ -653,6 +688,12 @@ or injecting a delay, etc.
 If both :\fBerror\fR=\,\fIerrno\/\fR or :\fBretval\fR=\,\fIvalue\/\fR
 and :\fBsignal\fR=\,\fIsig\/\fR options are specified, then both
 a fault or success is injected and a signal is delivered.
+
+if :\fBsyscall\fR=\fIsyscall\fR option is specified, the corresponding syscall
+with no side effects is injected instead of -1.
+Currently, only "pure" (see
+.BR "-e trace" = "%pure"
+description) syscalls can be specified there.
 
 Unless a :\fBwhen\fR=\,\fIexpr\fR subexpression is specified,
 an injection is being made into every invocation of each syscall from the
@@ -1008,6 +1049,14 @@ ARM syscall and
 Xtensa syscall are filtered and printed as
 .BR fadvise64_64 (2).
 .LP
+On x32, syscalls that are intended to be used by 64-bit processes and not x32
+ones (for example,
+.BR readv ,
+that has syscall number 19 on x86_64, with its x32 counterpart has syscall
+number 515), but called with
+.B __X32_SYSCALL_BIT
+flag being set, are designated with "#64" suffix.
+.LP
 On some platforms a process that is attached to with the
 .B \-p
 option may observe a spurious EINTR return from the current
@@ -1085,7 +1134,7 @@ development migrated to CVS; ports to FreeBSD and many architectures on Linux
 (including ARM, IA-64, MIPS, PA-RISC, PowerPC, s390, SPARC) were introduced.
 In 2002, the burden of
 .B strace
-maintainership was transferred to Ronald McGrath.
+maintainership was transferred to Roland McGrath.
 Since then,
 .B strace
 gained support for several new Linux architectures (AMD64, s390x, SuperH),

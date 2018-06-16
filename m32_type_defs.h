@@ -70,6 +70,9 @@
 #ifdef MPERS_m32_struct_mtd_oob_buf
 # define struct_mtd_oob_buf MPERS_m32_struct_mtd_oob_buf
 #endif
+#ifdef MPERS_m32_strace_aio_sigset
+# define strace_aio_sigset MPERS_m32_strace_aio_sigset
+#endif
 #ifdef MPERS_m32_struct_group_req
 # define struct_group_req MPERS_m32_struct_group_req
 #endif

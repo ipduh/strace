@@ -64,17 +64,6 @@ typedef struct v4l2_standard struct_v4l2_standard;
 #include "print_fields.h"
 #include "xstring.h"
 
-/* some historical constants */
-#ifndef V4L2_CID_HCENTER
-#define V4L2_CID_HCENTER (V4L2_CID_BASE+22)
-#endif
-#ifndef V4L2_CID_VCENTER
-#define V4L2_CID_VCENTER (V4L2_CID_BASE+23)
-#endif
-#ifndef V4L2_CID_BAND_STOP_FILTER
-#define V4L2_CID_BAND_STOP_FILTER (V4L2_CID_BASE+33)
-#endif
-
 /* v4l2_fourcc_be was added by Linux commit v3.18-rc1~101^2^2~127 */
 #ifndef v4l2_fourcc_be
 # define v4l2_fourcc_be(a, b, c, d) (v4l2_fourcc(a, b, c, d) | (1 << 31))
@@ -281,7 +270,7 @@ print_v4l2_format_fmt(struct tcb *const tcp, const char *prefix,
 		tprintf(", chromakey=%#x, clips=", f->fmt.win.chromakey);
 		ret = print_array(tcp, ptr_to_kulong(f->fmt.win.clips),
 				  f->fmt.win.clipcount, &clip, sizeof(clip),
-				  umoven_or_printaddr, print_v4l2_clip, 0);
+				  tfetch_mem, print_v4l2_clip, 0);
 		tprintf(", clipcount=%u, bitmap=", f->fmt.win.clipcount);
 		printaddr(ptr_to_kulong(f->fmt.win.bitmap));
 #ifdef HAVE_STRUCT_V4L2_WINDOW_GLOBAL_ALPHA
@@ -624,6 +613,12 @@ print_v4l2_input(struct tcb *const tcp, const kernel_ulong_t arg)
 	return RVAL_IOCTL_DECODED;
 }
 
+/*
+ * We include it here and not before print_v4l2_ext_controls as we need
+ * V4L2_CTRL_CLASS_* definitions for V4L2_CID_*_BASE ones.
+ */
+#include "xlat/v4l2_control_classes.h"
+#include "xlat/v4l2_control_id_bases.h"
 #include "xlat/v4l2_control_ids.h"
 
 static int
@@ -729,7 +724,8 @@ print_v4l2_queryctrl(struct tcb *const tcp, const kernel_ulong_t arg)
 		const unsigned long next = c.id & V4L2_CTRL_FLAG_NEXT_CTRL;
 		set_tcb_priv_ulong(tcp, next);
 		if (next) {
-			tprints("V4L2_CTRL_FLAG_NEXT_CTRL|");
+			print_xlat(V4L2_CTRL_FLAG_NEXT_CTRL);
+			tprints("|");
 			c.id &= ~V4L2_CTRL_FLAG_NEXT_CTRL;
 		}
 #endif
@@ -824,8 +820,6 @@ print_v4l2_ext_control(struct tcb *tcp, void *elem_buf, size_t elem_size, void *
 	return true;
 }
 
-#include "xlat/v4l2_control_classes.h"
-
 static int
 print_v4l2_ext_controls(struct tcb *const tcp, const kernel_ulong_t arg,
 			const bool is_get)
@@ -859,7 +853,7 @@ print_v4l2_ext_controls(struct tcb *const tcp, const kernel_ulong_t arg,
 	struct_v4l2_ext_control ctrl;
 	bool fail = !print_array(tcp, ptr_to_kulong(c.controls), c.count,
 				 &ctrl, sizeof(ctrl),
-				 umoven_or_printaddr_ignore_syserror,
+				 tfetch_mem_ignore_syserror,
 				 print_v4l2_ext_control, 0);
 
 	if (exiting(tcp) && syserror(tcp))

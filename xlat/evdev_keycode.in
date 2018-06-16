@@ -1,3 +1,4 @@
+#value_indexed
 /* awk '{if (NF>1) {n=strtonum($2)}; printf("%d %s\n", n, $0)}' |sort -s -k1,1n |sed 's/^[0-9]* //' */
 KEY_RESERVED		0
 KEY_ESC			1
@@ -253,6 +254,19 @@ KEY_BRIGHTNESS_AUTO	244
 KEY_DISPLAY_OFF		245
 
 KEY_WWAN		246
+
+#ifndef STRACE_WORKAROUND_FOR_KEY_RFKILL
+# define STRACE_WORKAROUND_FOR_KEY_RFKILL
+/*
+ * KEY_RFKILL and KEY_NUMERIC_A constants were introduced by Linux kernel
+ * commits v2.6.33~17^2~2 and v4.1-rc1~150^2~1^10~6, respectively.
+ * Apparently, RHEL6 introduced an alternative KEY_RFKILL constant
+ * with the same value as upstream KEY_NUMERIC_A.
+ * Downstream vendors are *not* allowed to do this.
+ * Ignore the system value of KEY_RFKILL.
+ */
+# undef KEY_RFKILL
+#endif
 KEY_RFKILL		247
 
 KEY_MICMUTE		248
@@ -268,7 +282,6 @@ BTN_7			0x107
 BTN_8			0x108
 BTN_9			0x109
 
-BTN_MOUSE		0x110
 BTN_LEFT		0x110
 BTN_RIGHT		0x111
 BTN_MIDDLE		0x112
@@ -278,7 +291,6 @@ BTN_FORWARD		0x115
 BTN_BACK		0x116
 BTN_TASK		0x117
 
-BTN_JOYSTICK		0x120
 BTN_TRIGGER		0x120
 BTN_THUMB		0x121
 BTN_THUMB2		0x122
@@ -293,7 +305,6 @@ BTN_BASE5		0x12a
 BTN_BASE6		0x12b
 BTN_DEAD		0x12f
 
-BTN_GAMEPAD		0x130
 BTN_SOUTH		0x130
 BTN_EAST		0x131
 BTN_C			0x132
@@ -310,7 +321,6 @@ BTN_MODE		0x13c
 BTN_THUMBL		0x13d
 BTN_THUMBR		0x13e
 
-BTN_DIGI		0x140
 BTN_TOOL_PEN		0x140
 BTN_TOOL_RUBBER		0x141
 BTN_TOOL_BRUSH		0x142
@@ -328,7 +338,6 @@ BTN_TOOL_DOUBLETAP	0x14d
 BTN_TOOL_TRIPLETAP	0x14e
 BTN_TOOL_QUADTAP	0x14f
 
-BTN_WHEEL		0x150
 BTN_GEAR_DOWN		0x150
 BTN_GEAR_UP		0x151
 
@@ -517,7 +526,20 @@ KEY_SCREENSAVER		0x245
 KEY_VOICECOMMAND		0x246
 KEY_ASSISTANT		0x247
 
+#ifndef STRACE_WORKAROUND_FOR_KEY_BRIGHTNESS_MIN
+# define STRACE_WORKAROUND_FOR_KEY_BRIGHTNESS_MIN
+/*
+ * KEY_BRIGHTNESS_MIN and KEY_BRIGHTNESS_MAX constants were introduced
+ * by Linux kernel commit v3.16-rc1~30^2~6^2~1^2~7.
+ * Apparently, RHEL7 introduced an alternative KEY_BRIGHTNESS_MIN constant
+ * with the same value as upstream KEY_BRIGHTNESS_MAX.
+ * Downstream vendors are *not* allowed to do this.
+ * Ignore the system value of KEY_BRIGHTNESS_MIN.
+ */
+# undef KEY_BRIGHTNESS_MIN
+#endif
 KEY_BRIGHTNESS_MIN		0x250
+
 KEY_BRIGHTNESS_MAX		0x251
 
 KEY_KBDINPUTASSIST_PREV		0x260
@@ -546,10 +568,22 @@ KEY_VOD				0x273
 KEY_UNMUTE			0x274
 KEY_FASTREVERSE			0x275
 KEY_SLOWREVERSE			0x276
+
+#ifndef STRACE_WORKAROUND_FOR_KEY_DATA
+# define STRACE_WORKAROUND_FOR_KEY_DATA
+/*
+ * Linux kernel commit v4.9-rc8~12^2 has changed the value of KEY_DATA
+ * constant introduced by commit v4.7-rc6~32^2~6^2 because the old value
+ * was already used by KEY_FASTREVERSE.
+ * Looks like the best way to handle this situation is to pretend that
+ * the old value of KEY_DATA didn't exist.
+ */
+# undef KEY_DATA
+#endif
 KEY_DATA			0x277
+
 KEY_ONSCREEN_KEYBOARD		0x278
 
-BTN_TRIGGER_HAPPY		0x2c0
 BTN_TRIGGER_HAPPY1		0x2c0
 BTN_TRIGGER_HAPPY2		0x2c1
 BTN_TRIGGER_HAPPY3		0x2c2

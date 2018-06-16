@@ -1,22 +1,23 @@
 Summary: Tracks and displays system calls associated with a running process
 Name: strace
-Version: 4.22
+Version: 4.23
 Release: 1%{?dist}
 License: BSD
 Group: Development/Debuggers
 URL: https://strace.io
-Source: https://github.com/strace/strace/releases/download/v%{version}/strace-%{version}.tar.xz
+Source: https://strace.io/files/%{version}/strace-%{version}.tar.xz
 BuildRequires: gcc
 %if 0%{?fedora} >= 18 || 0%{?centos} >= 8 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1200
 BuildRequires: pkgconfig(bluez)
 %endif
-%if 0%{?fedora} >= 20 || 0%{?centos} >= 8 || 0%{?rhel} >= 8 || 0%{?suse_version} >= 1300
-%define buildrequires_libunwind_devel BuildRequires: libunwind-devel binutils-devel
+%if 0%{?fedora} >= 20 || 0%{?centos} >= 6 || 0%{?rhel} >= 6
+%define buildrequires_stacktrace BuildRequires: elfutils-devel binutils-devel
 %endif
-%ifarch x86_64
-# for experimental -k option
-%{?buildrequires_libunwind_devel}
+%if 0%{?suse_version} >= 1100
+%define buildrequires_stacktrace BuildRequires: libdw-devel binutils-devel
 %endif
+# for -k option
+%{?buildrequires_stacktrace}
 %define strace64_arches ppc64 sparc64
 %{?!buildroot:BuildRoot: %_tmppath/buildroot-%name-%version-%release}
 
@@ -53,7 +54,7 @@ The `strace' program in the `strace' package is for 32-bit processes.
 %setup -q
 echo -n %version-%release > .tarball-version
 echo -n 2018 > .year
-echo -n 2018-04-04 > .strace.1.in.date
+echo -n 2018-06-13 > .strace.1.in.date
 
 %build
 echo 'BEGIN OF BUILD ENVIRONMENT INFORMATION'
@@ -91,6 +92,8 @@ rm -f %{buildroot}%{_bindir}/strace-graph
 make %{?_smp_mflags} -k check VERBOSE=1
 echo 'BEGIN OF TEST SUITE INFORMATION'
 tail -n 99999 -- tests*/test-suite.log tests*/ksysent.log
+find tests* -type f -name '*.log' -print0 |
+	xargs -r0 grep -H '^KERNEL BUG:' -- ||:
 echo 'END OF TEST SUITE INFORMATION'
 
 %files
@@ -107,8 +110,11 @@ echo 'END OF TEST SUITE INFORMATION'
 %endif
 
 %changelog
-* Thu Jun 14 2018 strace-devel@lists.strace.io - 4.22-1
-- strace 4.22 snapshot.
+* Fri Jun 15 2018 strace-devel@lists.strace.io - 4.23-1
+- strace 4.23 snapshot.
+
+* Thu Apr 05 2018 Dmitry V. Levin <ldv@altlinux.org> - 4.22-1
+- v4.21 -> v4.22.
 
 * Tue Feb 13 2018 Dmitry V. Levin <ldv@altlinux.org> - 4.21-1
 - v4.20 -> v4.21.

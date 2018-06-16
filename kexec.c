@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2014-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2014-2017 The strace developers.
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,7 @@ print_kexec_segments(struct tcb *const tcp, const kernel_ulong_t addr,
 	const size_t sizeof_seg = ARRAY_SIZE(seg) * current_wordsize;
 
 	print_array(tcp, addr, len, seg, sizeof_seg,
-		    umoven_or_printaddr, print_seg, 0);
+		    tfetch_mem, print_seg, 0);
 }
 
 SYS_FUNC(kexec_load)

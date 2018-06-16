@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016 Jeff Mahoney <jeffm@suse.com>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -185,7 +185,7 @@ file_ioctl(struct tcb *const tcp, const unsigned int code,
 
 		rc = print_array(tcp, arg + offsetof(typeof(args), info),
 				 args.dest_count, &info, sizeof(info),
-				 umoven_or_printaddr,
+				 tfetch_mem,
 				 print_file_dedupe_range_info, limit);
 
 		tprints("}");
@@ -225,15 +225,15 @@ file_ioctl(struct tcb *const tcp, const unsigned int code,
 			     "FIEMAP_FLAG_???");
 		tprintf(", fm_mapped_extents=%u",
 			args.fm_mapped_extents);
-		tprints(", fm_extents=");
 		if (abbrev(tcp)) {
-			tprints("...");
+			tprints(", ...");
 		} else {
 			struct fiemap_extent fe;
+			tprints(", fm_extents=");
 			print_array(tcp,
 				    arg + offsetof(typeof(args), fm_extents),
 				    args.fm_mapped_extents, &fe, sizeof(fe),
-				    umoven_or_printaddr,
+				    tfetch_mem,
 				    print_fiemap_extent, 0);
 		}
 		tprints("}");

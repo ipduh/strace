@@ -2,7 +2,7 @@
  * Check verbose decoding of seccomp SECCOMP_SET_MODE_FILTER.
  *
  * Copyright (c) 2015-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -118,7 +118,7 @@ main(void)
 	prog->len = 3;
 	syscall(__NR_seccomp, SECCOMP_SET_MODE_FILTER, 0, prog);
 	tprintf("seccomp(SECCOMP_SET_MODE_FILTER, 0, {len=%u"
-		", filter=[%s, %p]}) = -1 EFAULT (%m)\n",
+		", filter=[%s, ... /* %p */]}) = -1 EFAULT (%m)\n",
 		prog->len, kill_stmt_txt, filter +  ARRAY_SIZE(filter_c));
 
 	prog->len = 0;
@@ -136,7 +136,8 @@ main(void)
 	prog->filter = big_filter;
 	prog->len = BPF_MAXINSNS + 1;
 	tprintf("seccomp(SECCOMP_SET_MODE_FILTER, %s, {len=%u, filter=[",
-		"SECCOMP_FILTER_FLAG_TSYNC|SECCOMP_FILTER_FLAG_LOG|0xfffffffc",
+		"SECCOMP_FILTER_FLAG_TSYNC|SECCOMP_FILTER_FLAG_LOG|"
+		"SECCOMP_FILTER_FLAG_SPEC_ALLOW|0xfffffff8",
 		prog->len);
 	for (i = 0; i < BPF_MAXINSNS; ++i) {
 		if (i)

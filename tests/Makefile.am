@@ -93,6 +93,12 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	attach-p-cmd-cmd \
 	attach-p-cmd-p \
 	block_reset_raise_run \
+	bpf-obj_get_info_by_fd \
+	bpf-obj_get_info_by_fd-v \
+	bpf-obj_get_info_by_fd-prog \
+	bpf-obj_get_info_by_fd-prog-v \
+	bpf-success \
+	bpf-success-v \
 	caps-abbrev \
 	check_sigblock \
 	check_sigign \
@@ -115,6 +121,7 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	ioctl_loop-nv \
 	ioctl_loop-v \
 	ioctl_nsfs \
+	ioctl_perf-success \
 	ioctl_rtc-v \
 	is_linux_mips_n64 \
 	ksysent \
@@ -137,6 +144,7 @@ check_PROGRAMS = $(PURE_EXECUTABLES) \
 	ppoll-v \
 	prctl-seccomp-filter-v \
 	prctl-seccomp-strict \
+	prctl-spec-inject \
 	print_maxfd \
 	qual_fault \
 	qual_inject-error-signal \
@@ -179,6 +187,9 @@ ftruncate64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 localtime_LDADD = $(clock_LIBS) $(LDADD)
 lstat64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 mmap64_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
+mmap64_Xabbrev_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
+mmap64_Xraw_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
+mmap64_Xverbose_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 mq_LDADD = $(mq_LIBS) $(LDADD)
 newfstatat_CPPFLAGS = $(AM_CPPFLAGS) -D_FILE_OFFSET_BITS=64
 pc_LDADD = $(dl_LIBS) $(LDADD)
@@ -202,20 +213,26 @@ stack_fcall_mangled_SOURCES = stack-fcall-mangled.c \
 
 include gen_tests.am
 
-if USE_LIBUNWIND
-LIBUNWIND_TESTS = strace-k.test
+if ENABLE_STACKTRACE
+STACKTRACE_TESTS = strace-k.test
 if USE_DEMANGLE
-LIBUNWIND_TESTS += strace-k-demangle.test
+STACKTRACE_TESTS += strace-k-demangle.test
 endif
 else
-LIBUNWIND_TESTS =
+STACKTRACE_TESTS =
 endif
 
 DECODER_TESTS = \
+	bpf-success.test \
+	bpf-success-v.test \
 	brk.test \
 	btrfs-v.test \
 	btrfs-vw.test \
+	btrfs-vwX.test \
+	btrfs-vX.test \
 	btrfs-w.test \
+	btrfs-wX.test \
+	btrfs-X.test \
 	caps-abbrev.test \
 	caps.test \
 	eventfd.test \
@@ -225,6 +242,7 @@ DECODER_TESTS = \
 	futex.test \
 	getuid.test \
 	ioctl.test \
+	ioctl_perf-success.test \
 	ipc_msgbuf.test \
 	kern_features-fault.test \
 	llseek.test \
@@ -251,6 +269,7 @@ DECODER_TESTS = \
 	prctl-seccomp-filter-v.test \
 	prctl-seccomp-strict.test \
 	prctl-securebits.test \
+	prctl-spec-inject.test \
 	prctl-tid_address.test \
 	prctl-tsc.test \
 	qual_fault-exit_group.test \
@@ -299,9 +318,13 @@ MISC_TESTS = \
 	printstrn-umoven-legacy.test \
 	qual_fault-syntax.test \
 	qual_fault.test \
+	qual_fault-syscall.test \
 	qual_inject-error-signal.test \
+	qual_inject-error-signal-syscall.test \
 	qual_inject-retval.test \
+	qual_inject-retval-syscall.test \
 	qual_inject-signal.test \
+	qual_inject-signal-syscall.test \
 	qual_inject-syntax.test \
 	qual_signal.test \
 	qual_syscall.test \
@@ -324,11 +347,11 @@ MISC_TESTS = \
 	threads-execve.test \
 	# end of MISC_TESTS
 
-TESTS = $(GEN_TESTS) $(DECODER_TESTS) $(MISC_TESTS) $(LIBUNWIND_TESTS)
+TESTS = $(GEN_TESTS) $(DECODER_TESTS) $(MISC_TESTS) $(STACKTRACE_TESTS)
 
 XFAIL_TESTS_ =
-XFAIL_TESTS_m32 = $(LIBUNWIND_TESTS)
-XFAIL_TESTS_mx32 = $(LIBUNWIND_TESTS)
+XFAIL_TESTS_m32 = $(STACKTRACE_TESTS)
+XFAIL_TESTS_mx32 = $(STACKTRACE_TESTS)
 XFAIL_TESTS_x86_64 = int_0x80.gen.test
 XFAIL_TESTS_x32 = int_0x80.gen.test
 XFAIL_TESTS = $(XFAIL_TESTS_$(MPERS_NAME)) $(XFAIL_TESTS_$(ARCH))
@@ -352,6 +375,7 @@ EXTRA_DIST = \
 	count-f.expected \
 	eventfd.expected \
 	fadvise.h \
+	fcntl-common.c \
 	filter-unavailable.expected \
 	fstatat.c \
 	fstatx.c \
@@ -362,12 +386,12 @@ EXTRA_DIST = \
 	init.sh \
 	init_delete_module.h \
 	ipc.sh \
-	ipc_msgbuf.expected \
 	ksysent.sed \
 	lstatx.c \
 	match.awk \
 	net.expected \
 	netlink_sock_diag-v.sh \
+	nlattr_ifla.h \
 	pipe.expected \
 	print_user_desc.c \
 	process_vm_readv_writev.c \
@@ -375,6 +399,8 @@ EXTRA_DIST = \
 	qual_fault-exit_group.expected \
 	qual_inject-error-signal.expected \
 	qual_inject-signal.expected \
+	qualify_personality.sh \
+	qualify_personality_empty.in \
 	quotactl.h \
 	regex.in \
 	rt_sigaction.awk \
@@ -392,16 +418,23 @@ EXTRA_DIST = \
 	strace-E.expected \
 	strace-T.expected \
 	strace-ff.expected \
+	strace-k-demangle.expected \
 	strace-k-demangle.test \
+	strace-k.expected \
 	strace-k.test \
 	strace-r.expected \
 	strace.supp \
-	struct_flock.c \
 	sun_path.expected \
 	syntax.sh \
 	trace_fstat.in \
 	trace_fstatfs.in \
 	trace_lstat.in \
+	trace_personality_32.in \
+	trace_personality_64.in \
+	trace_personality_x32.in \
+	trace_personality_regex_32.in \
+	trace_personality_regex_64.in \
+	trace_personality_regex_x32.in \
 	trace_question.in \
 	trace_stat.in \
 	trace_stat_like.in \

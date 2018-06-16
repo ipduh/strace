@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2014-2017 Dmitry V. Levin <ldv@altlinux.org>
  * Copyright (c) 2016 Fabien Siron <fabien.siron@epita.fr>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -125,7 +126,8 @@ send_query(const int fd)
 		struct req req1;
 		char padding[NLMSG_ALIGN(sizeof(struct req)) - sizeof(struct req)];
 		struct req req2;
-	} *const reqs = tail_alloc(sizeof(*reqs));
+	};
+	TAIL_ALLOC_OBJECT_CONST_PTR(struct reqs, reqs);
 	memcpy(&reqs->req1, &c_req, sizeof(c_req));
 	memcpy(&reqs->req2, &c_req, sizeof(c_req));
 
@@ -144,7 +146,7 @@ send_query(const int fd)
 	rc = sendto(fd, efault2, sizeof(*reqs), MSG_DONTWAIT, NULL, 0);
 	printf("sendto(%d, [{{len=%u, type=NLMSG_NOOP, flags=NLM_F_REQUEST|0x%x"
 	       ", seq=0, pid=0}, \"\\x61\\x62\\x63\\x64\"}"
-	       ", %p], %u, MSG_DONTWAIT, NULL, 0) = %s\n",
+	       ", ... /* %p */], %u, MSG_DONTWAIT, NULL, 0) = %s\n",
 	       fd, reqs->req1.nlh.nlmsg_len, NLM_F_DUMP,
 	       &((struct reqs *) efault2)->req2, (unsigned) sizeof(*reqs),
 	       sprintrc(rc));
@@ -203,7 +205,7 @@ test_nlmsgerr(const int fd)
 {
 	struct nlmsgerr *err;
 	struct nlmsghdr *nlh;
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(*err) + 4);
 	long rc;
 
 	/* error message without enough room for the error code */
@@ -318,9 +320,9 @@ static void
 test_nlmsg_done(const int fd)
 {
 	struct nlmsghdr *nlh;
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
-	long rc;
 	const int num = 0xfacefeed;
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(num));
+	long rc;
 
 	/* NLMSG_DONE message without enough room for an integer payload */
 	nlh = nlh0;

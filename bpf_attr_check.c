@@ -56,6 +56,20 @@
 		      "BPF_MAP_CREATE_struct.numa_node offset mismatch");
 # endif /* HAVE_UNION_BPF_ATTR_NUMA_NODE */
 
+# ifdef HAVE_UNION_BPF_ATTR_MAP_NAME
+	static_assert(SoM(struct BPF_MAP_CREATE_struct, map_name) == SoM(union bpf_attr, map_name),
+		      "BPF_MAP_CREATE_struct.map_name size mismatch");
+	static_assert(offsetof(struct BPF_MAP_CREATE_struct, map_name) == offsetof(union bpf_attr, map_name),
+		      "BPF_MAP_CREATE_struct.map_name offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_MAP_NAME */
+
+# ifdef HAVE_UNION_BPF_ATTR_MAP_IFINDEX
+	static_assert(SoM(struct BPF_MAP_CREATE_struct, map_ifindex) == SoM(union bpf_attr, map_ifindex),
+		      "BPF_MAP_CREATE_struct.map_ifindex size mismatch");
+	static_assert(offsetof(struct BPF_MAP_CREATE_struct, map_ifindex) == offsetof(union bpf_attr, map_ifindex),
+		      "BPF_MAP_CREATE_struct.map_ifindex offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_MAP_IFINDEX */
+
 static_assert(BPF_MAP_CREATE_struct_size == expected_BPF_MAP_CREATE_struct_size,
 	      "BPF_MAP_CREATE_struct_size mismatch");
 
@@ -217,6 +231,27 @@ static_assert(BPF_MAP_GET_NEXT_KEY_struct_size == expected_BPF_MAP_GET_NEXT_KEY_
 	static_assert(offsetof(struct BPF_PROG_LOAD_struct, prog_flags) == offsetof(union bpf_attr, prog_flags),
 		      "BPF_PROG_LOAD_struct.prog_flags offset mismatch");
 # endif /* HAVE_UNION_BPF_ATTR_PROG_FLAGS */
+
+# ifdef HAVE_UNION_BPF_ATTR_PROG_NAME
+	static_assert(SoM(struct BPF_PROG_LOAD_struct, prog_name) == SoM(union bpf_attr, prog_name),
+		      "BPF_PROG_LOAD_struct.prog_name size mismatch");
+	static_assert(offsetof(struct BPF_PROG_LOAD_struct, prog_name) == offsetof(union bpf_attr, prog_name),
+		      "BPF_PROG_LOAD_struct.prog_name offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_PROG_NAME */
+
+# ifdef HAVE_UNION_BPF_ATTR_PROG_IFINDEX
+	static_assert(SoM(struct BPF_PROG_LOAD_struct, prog_ifindex) == SoM(union bpf_attr, prog_ifindex),
+		      "BPF_PROG_LOAD_struct.prog_ifindex size mismatch");
+	static_assert(offsetof(struct BPF_PROG_LOAD_struct, prog_ifindex) == offsetof(union bpf_attr, prog_ifindex),
+		      "BPF_PROG_LOAD_struct.prog_ifindex offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_PROG_IFINDEX */
+
+# ifdef HAVE_UNION_BPF_ATTR_EXPECTED_ATTACH_TYPE
+	static_assert(SoM(struct BPF_PROG_LOAD_struct, expected_attach_type) == SoM(union bpf_attr, expected_attach_type),
+		      "BPF_PROG_LOAD_struct.expected_attach_type size mismatch");
+	static_assert(offsetof(struct BPF_PROG_LOAD_struct, expected_attach_type) == offsetof(union bpf_attr, expected_attach_type),
+		      "BPF_PROG_LOAD_struct.expected_attach_type offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_EXPECTED_ATTACH_TYPE */
 
 static_assert(BPF_PROG_LOAD_struct_size == expected_BPF_PROG_LOAD_struct_size,
 	      "BPF_PROG_LOAD_struct_size mismatch");
@@ -454,5 +489,220 @@ static_assert(BPF_MAP_GET_FD_BY_ID_struct_size == expected_BPF_MAP_GET_FD_BY_ID_
 
 static_assert(BPF_OBJ_GET_INFO_BY_FD_struct_size == expected_BPF_OBJ_GET_INFO_BY_FD_struct_size,
 	      "BPF_OBJ_GET_INFO_BY_FD_struct_size mismatch");
+
+# ifdef HAVE_UNION_BPF_ATTR_QUERY_TARGET_FD
+	static_assert(SoM(struct BPF_PROG_QUERY_struct, target_fd) == SoM(union bpf_attr, query.target_fd),
+		      "BPF_PROG_QUERY_struct.target_fd size mismatch");
+	static_assert(offsetof(struct BPF_PROG_QUERY_struct, target_fd) == offsetof(union bpf_attr, query.target_fd),
+		      "BPF_PROG_QUERY_struct.target_fd offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_QUERY_TARGET_FD */
+
+# ifdef HAVE_UNION_BPF_ATTR_QUERY_ATTACH_TYPE
+	static_assert(SoM(struct BPF_PROG_QUERY_struct, attach_type) == SoM(union bpf_attr, query.attach_type),
+		      "BPF_PROG_QUERY_struct.attach_type size mismatch");
+	static_assert(offsetof(struct BPF_PROG_QUERY_struct, attach_type) == offsetof(union bpf_attr, query.attach_type),
+		      "BPF_PROG_QUERY_struct.attach_type offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_QUERY_ATTACH_TYPE */
+
+# ifdef HAVE_UNION_BPF_ATTR_QUERY_QUERY_FLAGS
+	static_assert(SoM(struct BPF_PROG_QUERY_struct, query_flags) == SoM(union bpf_attr, query.query_flags),
+		      "BPF_PROG_QUERY_struct.query_flags size mismatch");
+	static_assert(offsetof(struct BPF_PROG_QUERY_struct, query_flags) == offsetof(union bpf_attr, query.query_flags),
+		      "BPF_PROG_QUERY_struct.query_flags offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_QUERY_QUERY_FLAGS */
+
+# ifdef HAVE_UNION_BPF_ATTR_QUERY_ATTACH_FLAGS
+	static_assert(SoM(struct BPF_PROG_QUERY_struct, attach_flags) == SoM(union bpf_attr, query.attach_flags),
+		      "BPF_PROG_QUERY_struct.attach_flags size mismatch");
+	static_assert(offsetof(struct BPF_PROG_QUERY_struct, attach_flags) == offsetof(union bpf_attr, query.attach_flags),
+		      "BPF_PROG_QUERY_struct.attach_flags offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_QUERY_ATTACH_FLAGS */
+
+# ifdef HAVE_UNION_BPF_ATTR_QUERY_PROG_IDS
+	static_assert(SoM(struct BPF_PROG_QUERY_struct, prog_ids) == SoM(union bpf_attr, query.prog_ids),
+		      "BPF_PROG_QUERY_struct.prog_ids size mismatch");
+	static_assert(offsetof(struct BPF_PROG_QUERY_struct, prog_ids) == offsetof(union bpf_attr, query.prog_ids),
+		      "BPF_PROG_QUERY_struct.prog_ids offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_QUERY_PROG_IDS */
+
+# ifdef HAVE_UNION_BPF_ATTR_QUERY_PROG_CNT
+	static_assert(SoM(struct BPF_PROG_QUERY_struct, prog_cnt) == SoM(union bpf_attr, query.prog_cnt),
+		      "BPF_PROG_QUERY_struct.prog_cnt size mismatch");
+	static_assert(offsetof(struct BPF_PROG_QUERY_struct, prog_cnt) == offsetof(union bpf_attr, query.prog_cnt),
+		      "BPF_PROG_QUERY_struct.prog_cnt offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_QUERY_PROG_CNT */
+
+static_assert(BPF_PROG_QUERY_struct_size == expected_BPF_PROG_QUERY_struct_size,
+	      "BPF_PROG_QUERY_struct_size mismatch");
+
+# ifdef HAVE_UNION_BPF_ATTR_RAW_TRACEPOINT_NAME
+	static_assert(SoM(struct BPF_RAW_TRACEPOINT_OPEN_struct, name) == SoM(union bpf_attr, raw_tracepoint.name),
+		      "BPF_RAW_TRACEPOINT_OPEN_struct.name size mismatch");
+	static_assert(offsetof(struct BPF_RAW_TRACEPOINT_OPEN_struct, name) == offsetof(union bpf_attr, raw_tracepoint.name),
+		      "BPF_RAW_TRACEPOINT_OPEN_struct.name offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_RAW_TRACEPOINT_NAME */
+
+# ifdef HAVE_UNION_BPF_ATTR_RAW_TRACEPOINT_PROG_FD
+	static_assert(SoM(struct BPF_RAW_TRACEPOINT_OPEN_struct, prog_fd) == SoM(union bpf_attr, raw_tracepoint.prog_fd),
+		      "BPF_RAW_TRACEPOINT_OPEN_struct.prog_fd size mismatch");
+	static_assert(offsetof(struct BPF_RAW_TRACEPOINT_OPEN_struct, prog_fd) == offsetof(union bpf_attr, raw_tracepoint.prog_fd),
+		      "BPF_RAW_TRACEPOINT_OPEN_struct.prog_fd offset mismatch");
+# endif /* HAVE_UNION_BPF_ATTR_RAW_TRACEPOINT_PROG_FD */
+
+static_assert(BPF_RAW_TRACEPOINT_OPEN_struct_size == expected_BPF_RAW_TRACEPOINT_OPEN_struct_size,
+	      "BPF_RAW_TRACEPOINT_OPEN_struct_size mismatch");
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_TYPE
+	static_assert(SoM(struct bpf_map_info_struct, type) == SoM(struct bpf_map_info, type),
+		      "bpf_map_info_struct.type size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, type) == offsetof(struct bpf_map_info, type),
+		      "bpf_map_info_struct.type offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_TYPE */
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_ID
+	static_assert(SoM(struct bpf_map_info_struct, id) == SoM(struct bpf_map_info, id),
+		      "bpf_map_info_struct.id size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, id) == offsetof(struct bpf_map_info, id),
+		      "bpf_map_info_struct.id offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_ID */
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_KEY_SIZE
+	static_assert(SoM(struct bpf_map_info_struct, key_size) == SoM(struct bpf_map_info, key_size),
+		      "bpf_map_info_struct.key_size size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, key_size) == offsetof(struct bpf_map_info, key_size),
+		      "bpf_map_info_struct.key_size offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_KEY_SIZE */
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_VALUE_SIZE
+	static_assert(SoM(struct bpf_map_info_struct, value_size) == SoM(struct bpf_map_info, value_size),
+		      "bpf_map_info_struct.value_size size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, value_size) == offsetof(struct bpf_map_info, value_size),
+		      "bpf_map_info_struct.value_size offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_VALUE_SIZE */
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_MAX_ENTRIES
+	static_assert(SoM(struct bpf_map_info_struct, max_entries) == SoM(struct bpf_map_info, max_entries),
+		      "bpf_map_info_struct.max_entries size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, max_entries) == offsetof(struct bpf_map_info, max_entries),
+		      "bpf_map_info_struct.max_entries offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_MAX_ENTRIES */
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_MAP_FLAGS
+	static_assert(SoM(struct bpf_map_info_struct, map_flags) == SoM(struct bpf_map_info, map_flags),
+		      "bpf_map_info_struct.map_flags size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, map_flags) == offsetof(struct bpf_map_info, map_flags),
+		      "bpf_map_info_struct.map_flags offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_MAP_FLAGS */
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_NAME
+	static_assert(SoM(struct bpf_map_info_struct, name) == SoM(struct bpf_map_info, name),
+		      "bpf_map_info_struct.name size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, name) == offsetof(struct bpf_map_info, name),
+		      "bpf_map_info_struct.name offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_NAME */
+
+# ifdef HAVE_STRUCT_BPF_MAP_INFO_IFINDEX
+	static_assert(SoM(struct bpf_map_info_struct, ifindex) == SoM(struct bpf_map_info, ifindex),
+		      "bpf_map_info_struct.ifindex size mismatch");
+	static_assert(offsetof(struct bpf_map_info_struct, ifindex) == offsetof(struct bpf_map_info, ifindex),
+		      "bpf_map_info_struct.ifindex offset mismatch");
+# endif /* HAVE_STRUCT_BPF_MAP_INFO_IFINDEX */
+
+static_assert(bpf_map_info_struct_size == expected_bpf_map_info_struct_size,
+	      "bpf_map_info_struct_size mismatch");
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_TYPE
+	static_assert(SoM(struct bpf_prog_info_struct, type) == SoM(struct bpf_prog_info, type),
+		      "bpf_prog_info_struct.type size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, type) == offsetof(struct bpf_prog_info, type),
+		      "bpf_prog_info_struct.type offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_TYPE */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_ID
+	static_assert(SoM(struct bpf_prog_info_struct, id) == SoM(struct bpf_prog_info, id),
+		      "bpf_prog_info_struct.id size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, id) == offsetof(struct bpf_prog_info, id),
+		      "bpf_prog_info_struct.id offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_ID */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_TAG
+	static_assert(SoM(struct bpf_prog_info_struct, tag) == SoM(struct bpf_prog_info, tag),
+		      "bpf_prog_info_struct.tag size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, tag) == offsetof(struct bpf_prog_info, tag),
+		      "bpf_prog_info_struct.tag offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_TAG */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_JITED_PROG_LEN
+	static_assert(SoM(struct bpf_prog_info_struct, jited_prog_len) == SoM(struct bpf_prog_info, jited_prog_len),
+		      "bpf_prog_info_struct.jited_prog_len size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, jited_prog_len) == offsetof(struct bpf_prog_info, jited_prog_len),
+		      "bpf_prog_info_struct.jited_prog_len offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_JITED_PROG_LEN */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_XLATED_PROG_LEN
+	static_assert(SoM(struct bpf_prog_info_struct, xlated_prog_len) == SoM(struct bpf_prog_info, xlated_prog_len),
+		      "bpf_prog_info_struct.xlated_prog_len size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, xlated_prog_len) == offsetof(struct bpf_prog_info, xlated_prog_len),
+		      "bpf_prog_info_struct.xlated_prog_len offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_XLATED_PROG_LEN */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_JITED_PROG_INSNS
+	static_assert(SoM(struct bpf_prog_info_struct, jited_prog_insns) == SoM(struct bpf_prog_info, jited_prog_insns),
+		      "bpf_prog_info_struct.jited_prog_insns size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, jited_prog_insns) == offsetof(struct bpf_prog_info, jited_prog_insns),
+		      "bpf_prog_info_struct.jited_prog_insns offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_JITED_PROG_INSNS */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_XLATED_PROG_INSNS
+	static_assert(SoM(struct bpf_prog_info_struct, xlated_prog_insns) == SoM(struct bpf_prog_info, xlated_prog_insns),
+		      "bpf_prog_info_struct.xlated_prog_insns size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, xlated_prog_insns) == offsetof(struct bpf_prog_info, xlated_prog_insns),
+		      "bpf_prog_info_struct.xlated_prog_insns offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_XLATED_PROG_INSNS */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_LOAD_TIME
+	static_assert(SoM(struct bpf_prog_info_struct, load_time) == SoM(struct bpf_prog_info, load_time),
+		      "bpf_prog_info_struct.load_time size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, load_time) == offsetof(struct bpf_prog_info, load_time),
+		      "bpf_prog_info_struct.load_time offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_LOAD_TIME */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_CREATED_BY_UID
+	static_assert(SoM(struct bpf_prog_info_struct, created_by_uid) == SoM(struct bpf_prog_info, created_by_uid),
+		      "bpf_prog_info_struct.created_by_uid size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, created_by_uid) == offsetof(struct bpf_prog_info, created_by_uid),
+		      "bpf_prog_info_struct.created_by_uid offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_CREATED_BY_UID */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_NR_MAP_IDS
+	static_assert(SoM(struct bpf_prog_info_struct, nr_map_ids) == SoM(struct bpf_prog_info, nr_map_ids),
+		      "bpf_prog_info_struct.nr_map_ids size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, nr_map_ids) == offsetof(struct bpf_prog_info, nr_map_ids),
+		      "bpf_prog_info_struct.nr_map_ids offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_NR_MAP_IDS */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_MAP_IDS
+	static_assert(SoM(struct bpf_prog_info_struct, map_ids) == SoM(struct bpf_prog_info, map_ids),
+		      "bpf_prog_info_struct.map_ids size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, map_ids) == offsetof(struct bpf_prog_info, map_ids),
+		      "bpf_prog_info_struct.map_ids offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_MAP_IDS */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_NAME
+	static_assert(SoM(struct bpf_prog_info_struct, name) == SoM(struct bpf_prog_info, name),
+		      "bpf_prog_info_struct.name size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, name) == offsetof(struct bpf_prog_info, name),
+		      "bpf_prog_info_struct.name offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_NAME */
+
+# ifdef HAVE_STRUCT_BPF_PROG_INFO_IFINDEX
+	static_assert(SoM(struct bpf_prog_info_struct, ifindex) == SoM(struct bpf_prog_info, ifindex),
+		      "bpf_prog_info_struct.ifindex size mismatch");
+	static_assert(offsetof(struct bpf_prog_info_struct, ifindex) == offsetof(struct bpf_prog_info, ifindex),
+		      "bpf_prog_info_struct.ifindex offset mismatch");
+# endif /* HAVE_STRUCT_BPF_PROG_INFO_IFINDEX */
+
+static_assert(bpf_prog_info_struct_size == expected_bpf_prog_info_struct_size,
+	      "bpf_prog_info_struct_size mismatch");
 
 #endif /* HAVE_LINUX_BPF_H */

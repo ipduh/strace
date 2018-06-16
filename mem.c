@@ -40,8 +40,18 @@ get_pagesize(void)
 {
 	static unsigned long pagesize;
 
-	if (!pagesize)
-		pagesize = sysconf(_SC_PAGESIZE);
+	if (!pagesize) {
+		long ret = sysconf(_SC_PAGESIZE);
+
+		if (ret < 0)
+			perror_func_msg_and_die("sysconf(_SC_PAGESIZE)");
+		if (ret == 0)
+			error_func_msg_and_die("sysconf(_SC_PAGESIZE) "
+					       "returned 0");
+
+		pagesize = (unsigned long) ret;
+	}
+
 	return pagesize;
 }
 
@@ -350,7 +360,7 @@ SYS_FUNC(subpage_prot)
 
 	unsigned int entry;
 	print_array(tcp, map, nmemb, &entry, sizeof(entry),
-		    umoven_or_printaddr, print_protmap_entry, 0);
+		    tfetch_mem, print_protmap_entry, 0);
 
 	return RVAL_DECODED;
 }

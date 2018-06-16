@@ -3,7 +3,7 @@
  * Copyright (c) 2007-2008 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2009 Andreas Schwab <schwab@redhat.com>
  * Copyright (c) 2014-2015 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2014-2017 The strace developers.
+ * Copyright (c) 2014-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,9 @@
 #endif
 #ifndef FUTEX_CLOCK_REALTIME
 # define FUTEX_CLOCK_REALTIME 256
+#endif
+#ifndef FUTEX_OP_OPARG_SHIFT
+# define FUTEX_OP_OPARG_SHIFT 8
 #endif
 
 #include "xlat/futexops.h"
@@ -94,8 +97,10 @@ SYS_FUNC(futex)
 		tprintf(", %u, ", val2);
 		printaddr(uaddr2);
 		tprints(", ");
-		if ((val3 >> 28) & 8)
-			tprints("FUTEX_OP_OPARG_SHIFT<<28|");
+		if ((val3 >> 28) & FUTEX_OP_OPARG_SHIFT) {
+			print_xlat(FUTEX_OP_OPARG_SHIFT);
+			tprints("<<28|");
+		}
 		comment = printxval(futexwakeops, (val3 >> 28) & 0x7, NULL)
 			? NULL : "FUTEX_OP_???";
 		tprints("<<28");

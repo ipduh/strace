@@ -33,11 +33,6 @@
 #include <linux/ioctl.h>
 #include "xlat/ioctl_dirs.h"
 
-#ifdef HAVE_LINUX_INPUT_H
-# include <linux/input.h>
-#endif
-
-#include "xlat/evdev_abs.h"
 #include "xlat/evdev_ev.h"
 
 static int
@@ -92,7 +87,8 @@ evdev_decode_number(const unsigned int code)
 	if (_IOC_DIR(code) == _IOC_WRITE) {
 		if (nr >= 0xc0 && nr <= 0xc0 + 0x3f) {
 			tprints("EVIOCSABS(");
-			printxval(evdev_abs, nr - 0xc0, "ABS_???");
+			printxval_indexn(evdev_abs, evdev_abs_size, nr - 0xc0,
+					 "ABS_???");
 			tprints(")");
 			return 1;
 		}
@@ -108,7 +104,8 @@ evdev_decode_number(const unsigned int code)
 		return 1;
 	} else if (nr >= 0x40 && nr <= 0x40 + 0x3f) {
 		tprints("EVIOCGABS(");
-		printxval(evdev_abs, nr - 0x40, "ABS_???");
+		printxval_indexn(evdev_abs, evdev_abs_size, nr - 0x40,
+				 "ABS_???");
 		tprints(")");
 		return 1;
 	}
@@ -258,6 +255,8 @@ ioctl_decode(struct tcb *tcp)
 	const kernel_ulong_t arg = tcp->u_arg[2];
 
 	switch (_IOC_TYPE(code)) {
+	case '$':
+		return perf_ioctl(tcp, code, arg);
 #if defined(ALPHA) || defined(POWERPC)
 	case 'f': {
 		int ret = file_ioctl(tcp, code, arg);
@@ -325,6 +324,8 @@ ioctl_decode(struct tcb *tcp)
 	case 0xae:
 		return kvm_ioctl(tcp, code, arg);
 #endif
+	case 'I':
+		return inotify_ioctl(tcp, code, arg);
 	default:
 		break;
 	}
@@ -339,19 +340,29 @@ SYS_FUNC(ioctl)
 	if (entering(tcp)) {
 		printfd(tcp, tcp->u_arg[0]);
 		tprints(", ");
-		ret = ioctl_decode_command_number(tcp);
-		if (!(ret & IOCTL_NUMBER_STOP_LOOKUP)) {
-			iop = ioctl_lookup(tcp->u_arg[1]);
-			if (iop) {
-				if (ret)
-					tprints(" or ");
-				tprints(iop->symbol);
-				while ((iop = ioctl_next_match(iop)))
-					tprintf(" or %s", iop->symbol);
-			} else if (!ret) {
-				ioctl_print_code(tcp->u_arg[1]);
+
+		if (xlat_verbosity != XLAT_STYLE_ABBREV)
+			tprintf("%#x", (unsigned int) tcp->u_arg[1]);
+		if (xlat_verbosity == XLAT_STYLE_VERBOSE)
+			tprints(" /* ");
+		if (xlat_verbosity != XLAT_STYLE_RAW) {
+			ret = ioctl_decode_command_number(tcp);
+			if (!(ret & IOCTL_NUMBER_STOP_LOOKUP)) {
+				iop = ioctl_lookup(tcp->u_arg[1]);
+				if (iop) {
+					if (ret)
+						tprints(" or ");
+					tprints(iop->symbol);
+					while ((iop = ioctl_next_match(iop)))
+						tprintf(" or %s", iop->symbol);
+				} else if (!ret) {
+					ioctl_print_code(tcp->u_arg[1]);
+				}
 			}
 		}
+		if (xlat_verbosity == XLAT_STYLE_VERBOSE)
+			tprints(" */");
+
 		ret = ioctl_decode(tcp);
 	} else {
 		ret = ioctl_decode(tcp) | RVAL_DECODED;

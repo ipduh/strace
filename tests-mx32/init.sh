@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # Copyright (c) 2011-2016 Dmitry V. Levin <ldv@altlinux.org>
-# Copyright (c) 2011-2017 The strace developers.
+# Copyright (c) 2011-2018 The strace developers.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -228,6 +228,17 @@ run_strace_match_diff()
 	run_prog > /dev/null
 	run_strace "$@" $args > "$EXP"
 	match_diff "$LOG" "$EXP"
+}
+
+# Usage: run_strace_match_grep [args to run_strace]
+run_strace_match_grep()
+{
+	args="$*"
+	[ -n "$args" -a -z "${args##*-e trace=*}" ] ||
+		set -- -e trace="$NAME" "$@"
+	run_prog > /dev/null
+	run_strace "$@" $args > "$EXP"
+	match_grep "$LOG" "$EXP"
 }
 
 # Print kernel version code.

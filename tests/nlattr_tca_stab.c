@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
- * Copyright (c) 2017 The strace developers.
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,8 +36,8 @@
 #ifndef TCA_STAB
 # define TCA_STAB 8
 #endif
-#ifndef TCA_STAB_DATA
-# define TCA_STAB_DATA 2
+#if !HAVE_DECL_TCA_STAB_DATA
+enum { TCA_STAB_DATA = 2 };
 #endif
 
 const unsigned int hdrlen = sizeof(struct tcmsg);
@@ -76,7 +76,7 @@ print_tcmsg(const unsigned int msg_len)
 }
 
 static void
-print_uint16(const uint16_t *p)
+print_uint16(const uint16_t *p, size_t idx)
 {
 	printf("%u", *p);
 }
@@ -87,7 +87,11 @@ main(void)
 	skip_if_unavailable("/proc/self/fd/");
 
 	const int fd = create_nl_socket(NETLINK_ROUTE);
-	void *nlh0 = tail_alloc(NLMSG_SPACE(hdrlen));
+	void *nlh0 = midtail_alloc(NLMSG_SPACE(hdrlen), NLA_HDRLEN + 4
+#ifdef HAVE_STRUCT_TC_SIZESPEC
+			- 4 + sizeof(struct tc_sizespec)
+#endif
+			);
 
 	static char pattern[4096];
 	fill_memory_ex(pattern, sizeof(pattern), 'a', 'z' - 'a' + 1);

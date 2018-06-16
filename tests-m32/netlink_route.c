@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2017 JingPiao Chen <chenjingpiao@gmail.com>
+ * Copyright (c) 2017-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -143,8 +144,8 @@ test_nlmsg_flags(const int fd)
 static void
 test_nlmsg_done(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	const int num = 0xabcdefad;
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(num));
 
 	TEST_NETLINK(fd, nlh0, NLMSG_DONE, NLM_F_REQUEST,
 		     sizeof(num), &num, sizeof(num),
@@ -154,10 +155,11 @@ test_nlmsg_done(const int fd)
 static void
 test_rtnl_unspec(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
+	uint8_t family = 0;
+	char buf[sizeof(family) + 4];
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(buf));
 
 	/* unspecified family only */
-	uint8_t family = 0;
 	TEST_NETLINK_(fd, nlh0,
 		      0xffff, "0xffff /* RTM_??? */",
 		      NLM_F_REQUEST, "NLM_F_REQUEST",
@@ -180,7 +182,6 @@ test_rtnl_unspec(const int fd)
 		      printf("%p", NLMSG_DATA(TEST_NETLINK_nlh)));
 
 	/* unspecified family and string */
-	char buf[sizeof(family) + 4];
 	family = 0;
 	memcpy(buf, &family, sizeof(family));
 	memcpy(buf + sizeof(family), "1234", 4);
@@ -204,7 +205,6 @@ test_rtnl_unspec(const int fd)
 static void
 test_rtnl_link(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	const struct ifinfomsg ifinfo = {
 		.ifi_family = AF_UNIX,
 		.ifi_type = ARPHRD_LOOPBACK,
@@ -212,6 +212,7 @@ test_rtnl_link(const int fd)
 		.ifi_flags = IFF_UP,
 		.ifi_change = 0xfabcdeba
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(ifinfo));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETLINK, ifinfo,
 		      printf("{ifi_family=AF_UNIX"),
@@ -225,7 +226,6 @@ test_rtnl_link(const int fd)
 static void
 test_rtnl_addr(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	const struct ifaddrmsg msg = {
 		.ifa_family = AF_UNIX,
 		.ifa_prefixlen = 0xde,
@@ -233,6 +233,7 @@ test_rtnl_addr(const int fd)
 		.ifa_scope = RT_SCOPE_UNIVERSE,
 		.ifa_index = ifindex_lo()
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETADDR, msg,
 		      printf("{ifa_family=AF_UNIX"),
@@ -246,7 +247,6 @@ test_rtnl_addr(const int fd)
 static void
 test_rtnl_route(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	static const struct rtmsg msg = {
 		.rtm_family = AF_UNIX,
 		.rtm_dst_len = 0xaf,
@@ -258,6 +258,7 @@ test_rtnl_route(const int fd)
 		.rtm_type = RTN_LOCAL,
 		.rtm_flags = RTM_F_NOTIFY
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETROUTE, msg,
 		      printf("{rtm_family=AF_UNIX"),
@@ -275,7 +276,6 @@ test_rtnl_route(const int fd)
 static void
 test_rtnl_rule(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	struct rtmsg msg = {
 		.rtm_family = AF_UNIX,
 		.rtm_dst_len = 0xaf,
@@ -285,6 +285,7 @@ test_rtnl_rule(const int fd)
 		.rtm_type = FR_ACT_TO_TBL,
 		.rtm_flags = FIB_RULE_INVERT
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETRULE, msg,
 		      printf("{family=AF_UNIX"),
@@ -301,7 +302,6 @@ test_rtnl_rule(const int fd)
 static void
 test_rtnl_neigh(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	const struct ndmsg msg = {
 		.ndm_family = AF_UNIX,
 		.ndm_ifindex = ifindex_lo(),
@@ -309,6 +309,7 @@ test_rtnl_neigh(const int fd)
 		.ndm_flags = NTF_PROXY,
 		.ndm_type = RTN_UNSPEC
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETNEIGH, msg,
 		      printf("{ndm_family=AF_UNIX"),
@@ -321,10 +322,10 @@ test_rtnl_neigh(const int fd)
 static void
 test_rtnl_neightbl(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	static const struct ndtmsg msg = {
 		.ndtm_family = AF_NETLINK
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NETLINK(fd, nlh0,
 		     RTM_GETNEIGHTBL, NLM_F_REQUEST,
@@ -335,7 +336,6 @@ test_rtnl_neightbl(const int fd)
 static void
 test_rtnl_tc(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	const struct tcmsg msg = {
 		.tcm_family = AF_UNIX,
 		.tcm_ifindex = ifindex_lo(),
@@ -343,6 +343,7 @@ test_rtnl_tc(const int fd)
 		.tcm_parent = 0xafbcadab,
 		.tcm_info = 0xbcaedafa
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETQDISC, msg,
 		      printf("{tcm_family=AF_UNIX"),
@@ -356,10 +357,10 @@ test_rtnl_tc(const int fd)
 static void
 test_rtnl_tca(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	struct tcamsg msg = {
 		.tca_family = AF_INET
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NETLINK(fd, nlh0,
 		     RTM_GETACTION, NLM_F_REQUEST,
@@ -371,7 +372,6 @@ test_rtnl_tca(const int fd)
 static void
 test_rtnl_addrlabel(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	const struct ifaddrlblmsg msg = {
 		.ifal_family = AF_UNIX,
 		.ifal_prefixlen = 0xaf,
@@ -379,6 +379,7 @@ test_rtnl_addrlabel(const int fd)
 		.ifal_index = ifindex_lo(),
 		.ifal_seq = 0xfadcdafb
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETADDRLABEL, msg,
 		      printf("{ifal_family=AF_UNIX"),
@@ -394,11 +395,11 @@ test_rtnl_addrlabel(const int fd)
 static void
 test_rtnl_dcb(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	static const struct dcbmsg msg = {
 		.dcb_family = AF_UNIX,
 		.cmd = DCB_CMD_UNDEFINED
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETDCB, msg,
 		      printf("{dcb_family=AF_UNIX"),
@@ -410,10 +411,10 @@ test_rtnl_dcb(const int fd)
 static void
 test_rtnl_netconf(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	static const struct netconfmsg msg = {
 		.ncm_family = AF_INET
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NETLINK(fd, nlh0,
 		     RTM_GETNETCONF, NLM_F_REQUEST,
@@ -426,11 +427,11 @@ test_rtnl_netconf(const int fd)
 static void
 test_rtnl_mdb(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	const struct br_port_msg msg = {
 		.family = AF_UNIX,
 		.ifindex = ifindex_lo()
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NL_ROUTE(fd, nlh0, RTM_GETMDB, msg,
 		      printf("{family=AF_UNIX"),
@@ -442,10 +443,10 @@ test_rtnl_mdb(const int fd)
 static void
 test_rtnl_nsid(const int fd)
 {
-	void *const nlh0 = tail_alloc(NLMSG_HDRLEN);
 	static const struct rtgenmsg msg = {
 		.rtgen_family = AF_UNIX
 	};
+	void *const nlh0 = midtail_alloc(NLMSG_HDRLEN, sizeof(msg));
 
 	TEST_NETLINK(fd, nlh0,
 		     RTM_GETNSID, NLM_F_REQUEST,

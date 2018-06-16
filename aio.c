@@ -3,7 +3,7 @@
  * Copyright (c) 1993 Branko Lankester <branko@hacktic.nl>
  * Copyright (c) 1993, 1994, 1995, 1996 Rick Sladkey <jrs@world.std.com>
  * Copyright (c) 1996-1999 Wichert Akkerman <wichert@cistron.nl>
- * Copyright (c) 1999-2017 The strace developers.
+ * Copyright (c) 1999-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -196,7 +196,7 @@ SYS_FUNC(io_submit)
 		printaddr(addr);
 	else
 		print_array(tcp, addr, nr, &iocbp, current_wordsize,
-			    umoven_or_printaddr, print_iocbp, 0);
+			    tfetch_mem, print_iocbp, 0);
 
 	return RVAL_DECODED;
 }
@@ -238,7 +238,8 @@ SYS_FUNC(io_cancel)
 	return 0;
 }
 
-SYS_FUNC(io_getevents)
+static int
+print_io_getevents(struct tcb *tcp, bool has_usig)
 {
 	if (entering(tcp)) {
 		printaddr(tcp->u_arg[0]);
@@ -248,16 +249,30 @@ SYS_FUNC(io_getevents)
 	} else {
 		struct io_event buf;
 		print_array(tcp, tcp->u_arg[3], tcp->u_rval, &buf, sizeof(buf),
-			    umoven_or_printaddr, print_io_event, 0);
+			    tfetch_mem, print_io_event, 0);
 		tprints(", ");
 		/*
-		 * Since the timeout parameter is read by the kernel
+		 * Since the timeout and usig parameters are read by the kernel
 		 * on entering syscall, it has to be decoded the same way
 		 * whether the syscall has failed or not.
 		 */
 		temporarily_clear_syserror(tcp);
 		print_timespec(tcp, tcp->u_arg[4]);
+		if (has_usig) {
+			tprints(", ");
+			print_aio_sigset(tcp, tcp->u_arg[5]);
+		}
 		restore_cleared_syserror(tcp);
 	}
 	return 0;
+}
+
+SYS_FUNC(io_getevents)
+{
+	return print_io_getevents(tcp, false);
+}
+
+SYS_FUNC(io_pgetevents)
+{
+	return print_io_getevents(tcp, true);
 }

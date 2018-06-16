@@ -91,6 +91,31 @@
 			    (dflt_));		\
 	} while (0)
 
+#define PRINT_FIELD_XVAL_U(prefix_, where_, field_, xlat_, dflt_)	\
+	do {								\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		printxvals_ex(zero_extend_signed_to_ull((where_).field_), \
+			      (dflt_), XLAT_STYLE_FMT_U,		\
+			      (xlat_), NULL);				\
+	} while (0)
+
+#define PRINT_FIELD_XVAL_SORTED_SIZED(prefix_, where_, field_, xlat_,	\
+				      xlat_size_, dflt_)		\
+	do {								\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		printxval_searchn((xlat_), (xlat_size_),		\
+				  zero_extend_signed_to_ull((where_).field_), \
+				  (dflt_));				\
+	} while (0)
+
+#define PRINT_FIELD_XVAL_INDEX(prefix_, where_, field_, xlat_, dflt_)	\
+	do {								\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		printxval_index((xlat_),				\
+				zero_extend_signed_to_ull((where_).field_), \
+				(dflt_));				\
+	} while (0)
+
 /*
  * Generic "ID" printing. ID is considered unsigned except for the special value
  * of -1.
@@ -105,6 +130,16 @@
 	} while (0)
 
 #define PRINT_FIELD_UID PRINT_FIELD_ID
+
+#define PRINT_FIELD_U64(prefix_, where_, field_)					\
+	do {										\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);				\
+		if (zero_extend_signed_to_ull((where_).field_) == UINT64_MAX)		\
+			print_xlat_ex(UINT64_MAX, "UINT64_MAX", XLAT_STYLE_FMT_U);	\
+		else									\
+			STRACE_PRINTF("%llu",						\
+				      zero_extend_signed_to_ull((where_).field_));	\
+	} while (0)
 
 #define PRINT_FIELD_STRING(prefix_, where_, field_, len_, style_)	\
 	do {								\
@@ -200,6 +235,19 @@
 	do {								\
 		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
 		printpath((tcp_), (where_).field_);			\
+	} while (0)
+
+#define PRINT_FIELD_MAC(prefix_, where_, field_)			\
+	PRINT_FIELD_MAC_SZ((prefix_), (where_), field_,			\
+			   ARRAY_SIZE((where_).field_))
+
+#define PRINT_FIELD_MAC_SZ(prefix_, where_, field_, size_)		\
+	do {								\
+		static_assert(sizeof(((where_).field_)[0]) == 1,	\
+			      "MAC address is not a byte array");	\
+		STRACE_PRINTF("%s%s=", (prefix_), #field_);		\
+		print_mac_addr("", (const uint8_t *) ((where_).field_),	\
+			       (size_));				\
 	} while (0)
 
 #endif /* !STRACE_PRINT_FIELDS_H */

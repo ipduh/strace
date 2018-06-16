@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014-2016 Dmitry V. Levin <ldv@altlinux.org>
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,7 +66,7 @@ print_iovec(const struct iovec *iov, unsigned int cnt, unsigned int size)
 		if (i)
 			fputs(", ", stdout);
 		if (i == size) {
-			printf("%p", &iov[i]);
+			printf("... /* %p */", &iov[i]);
 			break;
 		}
 		if (i == LIM) {

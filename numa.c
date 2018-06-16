@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2003-2007 Ulrich Drepper <drepper@redhat.com>
  * Copyright (c) 2005-2016 Dmitry V. Levin <ldv@altlinux.org>
- * Copyright (c) 2016-2017 The strace developers.
+ * Copyright (c) 2016-2018 The strace developers.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,7 @@ print_nodemask(struct tcb *const tcp, const kernel_ulong_t addr,
 
 	kernel_ulong_t buf;
 	print_array(tcp, addr, nmemb, &buf, current_wordsize,
-		    umoven_or_printaddr, print_node, 0);
+		    tfetch_mem, print_node, 0);
 }
 
 SYS_FUNC(migrate_pages)
@@ -166,14 +166,14 @@ SYS_FUNC(move_pages)
 	if (entering(tcp)) {
 		tprintf("%d, %" PRI_klu ", ", (int) tcp->u_arg[0], npages);
 		print_array(tcp, tcp->u_arg[2], npages, &buf, current_wordsize,
-			    umoven_or_printaddr, print_addr, 0);
+			    tfetch_mem, print_addr, 0);
 		tprints(", ");
 		print_array(tcp, tcp->u_arg[3], npages, &buf, sizeof(int),
-			    umoven_or_printaddr, print_int, 0);
+			    tfetch_mem, print_int, 0);
 		tprints(", ");
 	} else {
 		print_array(tcp, tcp->u_arg[4], npages, &buf, sizeof(int),
-			    umoven_or_printaddr, print_status, 0);
+			    tfetch_mem, print_status, 0);
 		tprints(", ");
 		printflags(move_pages_flags, tcp->u_arg[5], "MPOL_???");
 	}

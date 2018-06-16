@@ -36,19 +36,29 @@
 #include <linux/sock_diag.h>
 #include "static_assert.h"
 
+#include "xlat/netlink_sk_meminfo_indices.h"
+
 static bool
 fetch_nlattr(struct tcb *const tcp, struct nlattr *const nlattr,
-	     const kernel_ulong_t addr, const unsigned int len)
+	     const kernel_ulong_t addr, const unsigned int len,
+	     const bool in_array)
 {
 	if (len < sizeof(struct nlattr)) {
 		printstr_ex(tcp, addr, len, QUOTE_FORCE_HEX);
 		return false;
 	}
 
-	if (umove_or_printaddr(tcp, addr, nlattr))
-		return false;
+	if (tfetch_obj(tcp, addr, nlattr))
+		return true;
 
-	return true;
+	if (in_array) {
+		tprints("...");
+		printaddr_comment(addr);
+	} else {
+		printaddr(addr);
+	}
+
+	return false;
 }
 
 static void
@@ -60,10 +70,14 @@ print_nlattr(const struct nlattr *const nla,
 		      "wrong NLA_TYPE_MASK");
 
 	tprintf("{nla_len=%u, nla_type=", nla->nla_len);
-	if (nla->nla_type & NLA_F_NESTED)
-		tprints("NLA_F_NESTED|");
-	if (nla->nla_type & NLA_F_NET_BYTEORDER)
-		tprints("NLA_F_NET_BYTEORDER|");
+	if (nla->nla_type & NLA_F_NESTED) {
+		print_xlat(NLA_F_NESTED);
+		tprints("|");
+	}
+	if (nla->nla_type & NLA_F_NET_BYTEORDER) {
+		print_xlat(NLA_F_NET_BYTEORDER);
+		tprints("|");
+	}
 	printxval(table, nla->nla_type & NLA_TYPE_MASK, dflt);
 	tprints("}");
 }
@@ -79,7 +93,7 @@ decode_nlattr_with_data(struct tcb *const tcp,
 			const unsigned int size,
 			const void *const opaque_data)
 {
-	const unsigned int nla_len = nla->nla_len > len ? len : nla->nla_len;
+	const unsigned int nla_len = MIN(nla->nla_len, len);
 
 	if (nla_len > NLA_HDRLEN)
 		tprints("{");
@@ -87,13 +101,18 @@ decode_nlattr_with_data(struct tcb *const tcp,
 	print_nlattr(nla, table, dflt);
 
 	if (nla_len > NLA_HDRLEN) {
+		const unsigned int idx = size ? nla->nla_type : 0;
+
 		tprints(", ");
 		if (!decoders
-		    || nla->nla_type >= size
-		    || !decoders[nla->nla_type]
-		    || !decoders[nla->nla_type](tcp, addr + NLA_HDRLEN,
-						nla_len - NLA_HDRLEN,
-						opaque_data))
+		    || (size && idx >= size)
+		    || !decoders[idx]
+		    || !decoders[idx](
+				tcp, addr + NLA_HDRLEN,
+				nla_len - NLA_HDRLEN,
+				size ? opaque_data
+				     : (const void *) (uintptr_t) nla->nla_type)
+		    )
 			printstr_ex(tcp, addr + NLA_HDRLEN,
 				    nla_len - NLA_HDRLEN, QUOTE_FORCE_HEX);
 		tprints("}");
@@ -111,10 +130,17 @@ decode_nlattr(struct tcb *const tcp,
 	      const void *const opaque_data)
 {
 	struct nlattr nla;
-	bool print_array = false;
+	bool is_array = false;
 	unsigned int elt;
 
-	for (elt = 0; fetch_nlattr(tcp, &nla, addr, len); elt++) {
+	if (decoders && !size && opaque_data)
+		error_func_msg("[xlat %p, dflt \"%s\", decoders %p] "
+			       "size is zero (going to pass nla_type as "
+			       "decoder argument), but opaque data (%p) is not "
+			       "- will be ignored",
+			       table, dflt, decoders, opaque_data);
+
+	for (elt = 0; fetch_nlattr(tcp, &nla, addr, len, is_array); elt++) {
 		if (abbrev(tcp) && elt == max_strlen) {
 			tprints("...");
 			break;
@@ -131,9 +157,9 @@ decode_nlattr(struct tcb *const tcp,
 				next_addr = addr + nla_len;
 		}
 
-		if (!print_array && next_addr) {
+		if (!is_array && next_addr) {
 			tprints("[");
-			print_array = true;
+			is_array = true;
 		}
 
 		decode_nlattr_with_data(tcp, &nla, addr, len, table, dflt,
@@ -147,7 +173,7 @@ decode_nlattr(struct tcb *const tcp,
 		len = next_len;
 	}
 
-	if (print_array) {
+	if (is_array) {
 		tprints("]");
 	}
 }
@@ -174,24 +200,6 @@ decode_nla_strn(struct tcb *const tcp,
 	return true;
 }
 
-static bool
-print_meminfo(struct tcb *const tcp,
-	      void *const elem_buf,
-	      const size_t elem_size,
-	      void *const opaque_data)
-{
-	unsigned int *const count = opaque_data;
-
-	if ((*count)++ >= SK_MEMINFO_VARS) {
-		tprints("...");
-		return false;
-	}
-
-	tprintf("%" PRIu32, *(uint32_t *) elem_buf);
-
-	return true;
-}
-
 bool
 decode_nla_meminfo(struct tcb *const tcp,
 		   const kernel_ulong_t addr,
@@ -205,8 +213,12 @@ decode_nla_meminfo(struct tcb *const tcp,
 		return false;
 
 	unsigned int count = 0;
-	print_array(tcp, addr, nmemb, &mem, sizeof(mem),
-		    umoven_or_printaddr, print_meminfo, &count);
+	print_array_ex(tcp, addr, nmemb, &mem, sizeof(mem),
+		       tfetch_mem, print_uint32_array_member, &count,
+		       PAF_PRINT_INDICES | PAF_INDEX_XLAT_VALUE_INDEXED
+			| XLAT_STYLE_FMT_U,
+		       ARRSZ_PAIR(netlink_sk_meminfo_indices),
+		       "SK_MEMINFO_???");
 
 	return true;
 }
@@ -228,6 +240,31 @@ decode_nla_fd(struct tcb *const tcp,
 }
 
 bool
+decode_nla_uid(struct tcb *const tcp,
+	       const kernel_ulong_t addr,
+	       const unsigned int len,
+	       const void *const opaque_data)
+{
+	uint32_t uid;
+
+	if (len < sizeof(uid))
+		return false;
+	else if (!umove_or_printaddr(tcp, addr, &uid))
+		printuid("", uid);
+
+	return true;
+}
+
+bool
+decode_nla_gid(struct tcb *const tcp,
+	       const kernel_ulong_t addr,
+	       const unsigned int len,
+	       const void *const opaque_data)
+{
+	return decode_nla_uid(tcp, addr, len, opaque_data);
+}
+
+bool
 decode_nla_ifindex(struct tcb *const tcp,
 	       const kernel_ulong_t addr,
 	       const unsigned int len,
@@ -239,6 +276,121 @@ decode_nla_ifindex(struct tcb *const tcp,
 		return false;
 	else if (!umove_or_printaddr(tcp, addr, &ifindex))
 		print_ifindex(ifindex);
+
+	return true;
+}
+
+bool
+decode_nla_xval(struct tcb *const tcp,
+		const kernel_ulong_t addr,
+		unsigned int len,
+		const void *const opaque_data)
+{
+	const struct decode_nla_xlat_opts * const opts = opaque_data;
+	union {
+		uint64_t val;
+		uint8_t  bytes[sizeof(uint64_t)];
+	} data = { .val = 0 };
+
+	if (len > sizeof(data) || len < opts->size)
+		return false;
+
+	if (opts->size)
+		len = MIN(len, opts->size);
+
+	const size_t bytes_offs = is_bigendian ? sizeof(data) - len : 0;
+
+	if (!umoven_or_printaddr(tcp, addr, len, data.bytes + bytes_offs)) {
+		if (opts->process_fn)
+			data.val = opts->process_fn(data.val);
+		if (opts->prefix)
+			tprints(opts->prefix);
+		printxval_dispatch_ex(opts->xlat, opts->xlat_size, data.val,
+				      opts->dflt, opts->xt, opts->style);
+		if (opts->suffix)
+			tprints(opts->suffix);
+	}
+
+	return true;
+}
+
+static uint64_t
+process_host_order(uint64_t val)
+{
+	return ntohs(val);
+}
+
+bool
+decode_nla_ether_proto(struct tcb *const tcp,
+		       const kernel_ulong_t addr,
+		       const unsigned int len,
+		       const void *const opaque_data)
+{
+	const struct decode_nla_xlat_opts opts = {
+		.xlat = ethernet_protocols,
+		.xlat_size = ethernet_protocols_size,
+		.dflt = "ETHER_P_???",
+		.xt = XT_SORTED,
+		.prefix = "htons(",
+		.suffix = ")",
+		.size = 2,
+		.process_fn = process_host_order,
+	};
+
+	return decode_nla_xval(tcp, addr, len, &opts);
+}
+
+bool
+decode_nla_ip_proto(struct tcb *const tcp,
+		    const kernel_ulong_t addr,
+		    const unsigned int len,
+		    const void *const opaque_data)
+{
+	const struct decode_nla_xlat_opts opts = {
+		.xlat = inet_protocols,
+		.xlat_size = inet_protocols_size,
+		.xt = XT_SORTED,
+		.dflt = "IPPROTO_???",
+		.size = 1,
+	};
+
+	return decode_nla_xval(tcp, addr, len, &opts);
+}
+
+bool
+decode_nla_flags(struct tcb *const tcp,
+		 const kernel_ulong_t addr,
+		 unsigned int len,
+		 const void *const opaque_data)
+{
+	const struct decode_nla_xlat_opts * const opts = opaque_data;
+	union {
+		uint64_t flags;
+		uint8_t  bytes[sizeof(uint64_t)];
+	} data = { .flags = 0 };
+
+	if (len > sizeof(data) || len < opts->size)
+		return false;
+
+	if (opts->size)
+		len = MIN(len, opts->size);
+
+	const size_t bytes_offs = is_bigendian ? sizeof(data) - len : 0;
+
+	if (opts->xt == XT_INDEXED)
+		error_func_msg("indexed xlats are currently incompatible with "
+			       "printflags");
+
+	if (!umoven_or_printaddr(tcp, addr, len, data.bytes + bytes_offs)) {
+		if (opts->process_fn)
+			data.flags = opts->process_fn(data.flags);
+		if (opts->prefix)
+			tprints(opts->prefix);
+		printflags_ex(data.flags, opts->dflt, opts->style, opts->xlat,
+			      NULL);
+		if (opts->suffix)
+			tprints(opts->suffix);
+	}
 
 	return true;
 }
@@ -295,6 +447,10 @@ decode_nla_ ## name(struct tcb *const tcp,		\
 	return true;					\
 }
 
+DECODE_NLA_INTEGER(x8, uint8_t, "%#" PRIx8)
+DECODE_NLA_INTEGER(x16, uint16_t, "%#" PRIx16)
+DECODE_NLA_INTEGER(x32, uint32_t, "%#" PRIx32)
+DECODE_NLA_INTEGER(x64, uint64_t, "%#" PRIx64)
 DECODE_NLA_INTEGER(u8, uint8_t, "%" PRIu8)
 DECODE_NLA_INTEGER(u16, uint16_t, "%" PRIu16)
 DECODE_NLA_INTEGER(u32, uint32_t, "%" PRIu32)

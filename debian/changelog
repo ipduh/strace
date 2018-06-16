@@ -1,8 +1,14 @@
-strace (4.22-1) experimental; urgency=low
+strace (4.23-1) experimental; urgency=low
 
-  * strace 4.22 snapshot.
+  * strace 4.23 snapshot.
 
- -- Strace <strace-devel@lists.strace.io>  Thu, 14 Jun 2018 16:29:09 -0700
+ -- Strace <strace-devel@lists.strace.io>  Fri, 15 Jun 2018 17:54:18 +0000
+
+strace (4.22-1) unstable; urgency=medium
+
+  * New upstream version.
+
+ -- Dmitry V. Levin <ldv@altlinux.org>  Thu, 05 Apr 2018 04:05:06 +0000
 
 strace (4.21-1) unstable; urgency=medium
 
