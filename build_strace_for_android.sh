@@ -6,6 +6,7 @@ if [ "$1" = "-h" -o "$1" = "-help" ]
   then
     echo -e "\t $0 arch api_version rmbuild verbose stip"
     echo -e "\t example: $0 arm64 24 rmbuild"
+    echo -e "\t add rmbuild to reset config"
     echo -e "\t with no arguments, it will  attempt to build socat for the android seen over adb"
     echo ""
     exit 0
@@ -15,6 +16,8 @@ PROJECT='strace'
 COLORS=1
 DEFAULT_ARCH='arm'
 DEFAULT_SDKV='23'
+ROOT=`pwd`
+BINARIES='binaries'
 
 SDKV=$(adb shell getprop ro.build.version.sdk 2>/dev/null)
 [ -z "$SDKV" ] && SDKV=$DEFAULT_SDKV
@@ -64,13 +67,15 @@ _say(){
 [ $# -ge 3 ] && OP3=$3
 [ $# -ge 4 ] && OP4=$4
 [ $# -ge 5 ] && OP5=$5
-[ $# -ge 6 ] && OP6=$6
 
-[[ "$OP6" = 'clean' ]] && git ls-files --others --exclude-standard |xargs rm
+if [ "$OP3" = 'rmbuild' ]
+  then
+    _say "git ls-files --others --exclude-standard |xargs rm"
+    git ls-files --others --exclude-standard |xargs rm
+fi
 
 _say "Building $PROJECT for Architecture:$ARCH, Android SDK API version:$SDKV"
 
-ROOT=`pwd`
 BUILD="${ROOT}/builds/${ARCH}_${SDKV}"
 mkdir -p $BUILD
 
@@ -90,13 +95,8 @@ LD="$TCDIR/bin/$HOST-ld"
 AR="$TCDIR/bin/$HOST-ar"
 RANLIB="$TCDIR/bin/$HOST-ranlib"
 STRIP="$TCDIR/bin/$HOST-strip"
-# SIZE="$TCDIR/bin/$HOST-size"
-# CLIBS="-lm -lefence"
-# LIBS="-static"
 
 CFLAGS="-fPIE -fPIC"
-# CFLAGS="-fPIE -fPIC -static -fno-debug-info-for-profiling -fno-debug-macro"
-# CFLAGS="-02 -static"
 [[ "$OP4" = 'verbose' ]] && CFLAGS="$CFLAGS -v"
 
 LDFLAGS="-fPIE -pie"
@@ -109,8 +109,6 @@ _say "LD: $LD"
 _say "LDFLAGS: $LDFLAGS"
 _say "AR: $AR"
 _say "RANLIB: $RANLIB"
-# _say "CLIBS: $CLIBS"
-# _say "LIBS: $LIBS"
 
 export CFLAGS="$CFLAGS"
 export CC="$CC"
@@ -119,19 +117,11 @@ export AR="$AR"
 export LDFLAGS="$LDFLAGS"
 export LD="$LD"
 export PATH="$TCDIR/bin:$PATH"
-# export SIZE="$SIZE"
-# export CLIBS="$CLIBS"
-# export LIBS="$LIBS"
-
 
 rm -rf $TCDIR
 V=''
 [[ "$OP4" = 'verbose' ]] && V="-v"
 make_standalone_toolchain.py $V --arch $ARCH --api $SDKV --install-dir $TCDIR --force
-
-# Create configure script
-# autoconf || _die "autoconf failed"
-# cd $BUILD
 
 cd ${ROOT}
 
@@ -145,21 +135,20 @@ ${ROOT}/configure \
 _handle_bin(){
   if [ -e "${ROOT}/${1}" ]
     then
-      mkdir -p ${ROOT}/binaries/${ARCH}/${SDKV}
-      cp ${ROOT}/${1} ${ROOT}/binaries/${ARCH}/${SDKV}/${1}
-      [[ "$OP5" = 'strip' ]] && $STRIP ${ROOT}/binaries/${ARCH}/${SDKV}/${1}
+      mkdir -p ${ROOT}/$BINARIES/${ARCH}/${SDKV}
+      cp ${ROOT}/${1} ${ROOT}/$BINARIES/${ARCH}/${SDKV}/${1}
+      [[ "$OP5" = 'strip' ]] && $STRIP ${ROOT}/$BINARIES/${ARCH}/${SDKV}/${1}
 
-      _say "Build finished, ${1} has been generated successfuly in ${ROOT}/binaries/$ARCH/$SDKV/${1}"
+      _say "Build finished, ${1} has been generated successfuly in ${ROOT}/$BINARIES/$ARCH/$SDKV/${1}"
   else
       STATUS=$((STATUS+1))
       printf "${RED}%s${RESET}\n" "${1} was not made"
   fi
 }
 
-# MAKE='make'
 MAKE="$TCDIR/bin/make"
 J=$(sysctl -n hw.ncpu)
-# [ "$J" -ge 2 -a "$J" -le 16 ] && MAKE="$MAKE -j${J}"
+[ "$J" -ge 2 -a "$J" -le 16 ] && MAKE="$MAKE -j${J}"
 _say "$MAKE"
 
 $MAKE || _die "make failed"
@@ -169,8 +158,13 @@ _handle_bin "$PROJECT"
 
 if [ "$OP3" = 'rmbuild' -a -d "$BUILD" ]
   then
+    _say "git add ./binaries/*"
+    git add ./binaries/*
     rm -r ${BUILD}
     [ ! -d "$BUILD" ] && _say "deleted $BUILD"
+    echo "deleting untracked git files."
+    _say "git ls-files --others --exclude-standard |xargs rm"
+    git ls-files --others --exclude-standard |xargs rm
 fi
 
 exit $STATUS
