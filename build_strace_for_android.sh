@@ -58,11 +58,15 @@ _say(){
 # OP3='rmbuild'
 # OP4='verbose'
 # OP5='strip'
+# OP6='clean'
 [ $# -ge 1 ] && ARCH=$1
 [ $# -ge 2 ] && SDKV=$2
 [ $# -ge 3 ] && OP3=$3
 [ $# -ge 4 ] && OP4=$4
 [ $# -ge 5 ] && OP5=$5
+[ $# -ge 6 ] && OP6=$6
+
+[[ "$OP6" = 'clean' ]] && git ls-files --others --exclude-standard |xargs rm
 
 _say "Building $PROJECT for Architecture:$ARCH, Android SDK API version:$SDKV"
 
