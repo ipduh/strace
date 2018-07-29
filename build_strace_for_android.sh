@@ -18,6 +18,7 @@ DEFAULT_ARCH='arm'
 DEFAULT_SDKV='23'
 ROOT=`pwd`
 BINARIES='binaries'
+# BINARIES='binaries-oabi'
 
 SDKV=$(adb shell getprop ro.build.version.sdk 2>/dev/null)
 [ -z "$SDKV" ] && SDKV=$DEFAULT_SDKV
@@ -70,7 +71,7 @@ _say(){
 
 if [ "$OP3" = 'rmbuild' ]
   then
-    _say "git ls-files --others --exclude-standard |xargs rm"
+    _say "deleting untracked git files"
     git ls-files --others --exclude-standard |xargs rm
 fi
 
@@ -149,8 +150,8 @@ _handle_bin(){
 MAKE="$TCDIR/bin/make"
 J=$(sysctl -n hw.ncpu)
 [ "$J" -ge 2 -a "$J" -le 16 ] && MAKE="$MAKE -j${J}"
-_say "$MAKE"
 
+_say "$MAKE"
 $MAKE || _die "make failed"
 _say "Build finished, $PROJECT has been generated successfuly in $ROOT/$PROJECT"
 
@@ -158,12 +159,12 @@ _handle_bin "$PROJECT"
 
 if [ "$OP3" = 'rmbuild' -a -d "$BUILD" ]
   then
-    _say "git add ./binaries/*"
+    _say "git add ./binaries{,-oabi}/*"
     git add ./binaries/*
+    git add ./binaries-oabi/*
     rm -r ${BUILD}
     [ ! -d "$BUILD" ] && _say "deleted $BUILD"
-    echo "deleting untracked git files."
-    _say "git ls-files --others --exclude-standard |xargs rm"
+    _say "deleting untracked git files."
     git ls-files --others --exclude-standard |xargs rm
 fi
 
