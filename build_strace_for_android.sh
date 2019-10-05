@@ -49,7 +49,7 @@ sed --help |grep -q GNU > /dev/null 2>&1
 [ ! $? -eq "0" ] && _die "GNU sed was not found. Giving up."
 
 ndk-which gcc > /dev/null 2>&1
-[ ! $? -eq "0" ] && _die "this NDK does not gcc. Giving up."
+[ ! $? -eq "0" ] && _die "this NDK, if any, does not do gcc. Giving up."
 
 SDKV=$(adb shell getprop ro.build.version.sdk 2>/dev/null)
 [ -z "$SDKV" ] && SDKV=$DEFAULT_SDKV
