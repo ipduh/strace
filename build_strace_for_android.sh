@@ -2,30 +2,28 @@
 # build strace for android
 # g0, 2018
 
-if [ "$1" = "-h" -o "$1" = "-help" ]
-  then
-    echo -e "\t $0 arch api_version rmbuild verbose stip"
-    echo -e "\t example: $0 arm64 24 rmbuild"
-    echo -e "\t add rmbuild to reset config"
-    echo -e "\t with no arguments, it will  attempt to build socat for the android seen over adb"
-    echo ""
-    exit 0
-fi
-
 PROJECT='strace'
 COLORS=1
 DEFAULT_ARCH='arm'
 DEFAULT_SDKV='23'
 ROOT=`pwd`
 BINARIES='binaries'
-# BINARIES='binaries-oabi'
+STATUS=0
 
-SDKV=$(adb shell getprop ro.build.version.sdk 2>/dev/null)
-[ -z "$SDKV" ] && SDKV=$DEFAULT_SDKV
+[ "$COLORS" -eq "1" ] && ESC8='\033['
+[ "$COLORS" -eq "1" ] && GREEN=${ESC8}"01;32m"
+[ "$COLORS" -eq "1" ] && RED=${ESC8}"31;01m"
+[ "$COLORS" -eq "1" ] && RESET=${ESC8}"00m"
 
-ARCH=$(adb shell getprop ro.product.cpu.abi 2>/dev/null)
-[ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH
-[[ "$ARCH" = *"-"* ]] && ARCH=$(echo "$ARCH" |awk -F '-' '{print $1}')
+_say(){
+  printf "${GREEN}%s${RESET}\n" "${1}"
+}
+
+_die(){
+  printf "${RED}%s${RESET}\n" "${1}"
+  STATUS=$((STATUS+1))
+  exit $STATUS
+}
 
 _not_in_archs(){
   archs=(arm arm64 mips mips64 x86 x86_64)
@@ -37,25 +35,32 @@ _not_in_archs(){
   return 0
 }
 
+if [ "$1" = "-h" ]
+  then
+    echo -e "\t $0 arch api_version rmbuild verbose stip"
+    echo -e "\t example: $0 arm64 24 rmbuild"
+    echo -e "\t add rmbuild to reset config"
+    echo -e "\t with no arguments, it will  attempt to build socat for the android seen over adb"
+    echo ""
+    exit 0
+fi
+
+sed --help |grep -q GNU > /dev/null 2>&1
+[ ! $? -eq "0" ] && _die "GNU sed was not found. Giving up."
+
+ndk-which gcc > /dev/null 2>&1
+[ ! $? -eq "0" ] && _die "this NDK does not gcc. Giving up."
+
+SDKV=$(adb shell getprop ro.build.version.sdk 2>/dev/null)
+[ -z "$SDKV" ] && SDKV=$DEFAULT_SDKV
+
+ARCH=$(adb shell getprop ro.product.cpu.abi 2>/dev/null)
+[ -z "$ARCH" ] && ARCH=$DEFAULT_ARCH
+[[ "$ARCH" = *"-"* ]] && ARCH=$(echo "$ARCH" |awk -F '-' '{print $1}')
+
 if _not_in_archs $ARCH; then
    ARCH=$DEFAULT_ARCH
 fi
-
-[ "$COLORS" -eq "1" ] && ESC8='\033['
-[ "$COLORS" -eq "1" ] && GREEN=${ESC8}"01;32m"
-[ "$COLORS" -eq "1" ] && RED=${ESC8}"31;01m"
-[ "$COLORS" -eq "1" ] && RESET=${ESC8}"00m"
-STATUS=0
-
-_die(){
-  printf "${RED}%s${RESET}\n" "${1}"
-  STATUS=$((STATUS+1))
-  exit $STATUS
-}
-
-_say(){
-  printf "${GREEN}%s${RESET}\n" "${1}"
-}
 
 # ARCH='arm64'
 # SDKV='26'
@@ -129,7 +134,6 @@ cd ${ROOT}
 ${ROOT}/configure \
 --host=$HOST \
 || _die "configure failed"
-
 # --enable-arm-oabi
 # --srcdir=$ROOT
 
@@ -148,7 +152,8 @@ _handle_bin(){
 }
 
 MAKE="$TCDIR/bin/make"
-J=$(sysctl -n hw.ncpu)
+J=$(sysctl -n hw.physicalcpu)
+J=$((J-1))
 [ "$J" -ge 2 -a "$J" -le 16 ] && MAKE="$MAKE -j${J}"
 
 _say "$MAKE"
